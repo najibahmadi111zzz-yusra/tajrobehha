@@ -9,7 +9,9 @@ workflows:
       - name: Build Android APK
         script: |
           gradle wrapper
+          mkdir -p app/gradle/wrapper
+          cp gradle/wrapper/wrapper.jar app/gradle/wrapper/wrapper.jar
           chmod +x gradlew
           ./gradlew assembleDebug
     artifacts:
-      - "**/build/outputs/apk/**/*.apk"
+      - "**/build/outputs/apk/**/*.apk
