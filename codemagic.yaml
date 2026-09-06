@@ -3,11 +3,10 @@ workflows:
     name: Android Build
     max_build_duration: 60
     instance_type: mac_mini_m1
-    working_directory: .
     scripts:
       - name: ساخت APK اندروید
         script: |
-          chmod +x ./gradlew
-          ./gradlew assembleDebug
+          find . -name "gradlew" -exec chmod +x {} \;
+          find . -name "gradlew" -exec {} assembleDebug \;
     artifacts:
-      - app/build/outputs/apk/**/*.apk
+      - "**/build/outputs/apk/**/*.apk"
