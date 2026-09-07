@@ -6,6 +6,7 @@ workflows:
     scripts:
       - name: ساخت APK اندروید
         script: |
+          cd android
           gradle wrapper --gradle-version 8.1.1
           chmod +x gradlew
           ./gradlew assembleRelease
