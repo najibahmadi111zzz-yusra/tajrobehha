@@ -5,11 +5,16 @@ workflows:
     instance_type: mac_mini_m2
 
     scripts:
+      - name: Create Gradle Wrapper
+        script: |
+          cd app
+          gradle wrapper --gradle-version 8.1.1
+
       - name: Build Android APK
         script: |
-          cd android
+          cd app
           chmod +x gradlew
           ./gradlew assembleRelease
 
     artifacts:
-      - android/app/build/outputs/apk/**/*.apk
+      - app/app/build/outputs/apk/**/*.apk
