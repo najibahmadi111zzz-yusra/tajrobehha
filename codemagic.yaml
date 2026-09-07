@@ -1,8 +1,14 @@
-scripts:
-  - name: Build Android APK
-    script: |
-      cd app
-      gradle assembleRelease
+workflows:
+  android-build:
+    name: Android Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
 
-artifacts:
-  - app/build/outputs/apk/**/*.apk
+    scripts:
+      - name: Build Android APK
+        script: |
+          cd app
+          gradle assembleRelease
+
+    artifacts:
+      - app/build/outputs/apk/**/*.apk
