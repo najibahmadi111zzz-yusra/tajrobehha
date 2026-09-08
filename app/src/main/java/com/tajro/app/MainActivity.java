@@ -2,15 +2,12 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.content.Intent;
 import android.graphics.Typeface;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Button;
 
-public class MainActivity extends Activity {
+public class ExperienceListActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,39 +15,25 @@ public class MainActivity extends Activity {
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setGravity(Gravity.CENTER);
-        layout.setPadding(40, 60, 40, 60);
+        layout.setPadding(30, 50, 30, 30);
 
         TextView title = new TextView(this);
-        title.setText("تجربه‌ها");
-        title.setTextSize(32);
+        title.setText("📚 تجربه‌های کاربران");
+        title.setTextSize(26);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setGravity(Gravity.CENTER);
+        title.setPadding(0, 0, 0, 40);
 
-        TextView welcome = new TextView(this);
-        welcome.setText("تجربه‌های خود را ثبت و با دیگران شریک شوید");
-        welcome.setTextSize(18);
-        welcome.setGravity(Gravity.CENTER);
-        welcome.setPadding(0, 30, 0, 50);
-
-        Button addButton = new Button(this);
-        addButton.setText("➕ ثبت یک تجربه");
-
-        Button listButton = new Button(this);
-        listButton.setText("📚 دیدن تجربه‌ها");
-
-        addButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, AddExperienceActivity.class);
-                startActivity(intent);
-            }
-        });
+        TextView message = new TextView(this);
+        message.setText(
+            "هنوز تجربه‌ای منتشر نشده است.\n\n" +
+            "شما می‌توانید اولین تجربه خود را ثبت کنید! ✍️"
+        );
+        message.setTextSize(18);
+        message.setGravity(Gravity.CENTER);
 
         layout.addView(title);
-        layout.addView(welcome);
-        layout.addView(addButton);
-        layout.addView(listButton);
+        layout.addView(message);
 
         setContentView(layout);
     }
