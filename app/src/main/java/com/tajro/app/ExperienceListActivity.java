@@ -4,7 +4,9 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Typeface;
 import android.view.Gravity;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,12 +25,22 @@ public class ExperienceListActivity extends Activity {
 
         db = FirebaseFirestore.getInstance();
 
+        ScrollView scrollView = new ScrollView(this);
+
         layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(30, 50, 30, 30);
 
+        scrollView.addView(
+                layout,
+                new ScrollView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
+
         TextView title = new TextView(this);
-        title.setText("تجربه‌های کاربران");
+        title.setText("📚 تجربه‌های کاربران");
         title.setTextSize(26);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setGravity(Gravity.CENTER);
@@ -36,7 +48,7 @@ public class ExperienceListActivity extends Activity {
 
         layout.addView(title);
 
-        setContentView(layout);
+        setContentView(scrollView);
 
         loadExperiences();
     }
@@ -84,9 +96,7 @@ public class ExperienceListActivity extends Activity {
                         );
 
                         experience.setTextSize(18);
-                        experience.setPadding(
-                                20, 20, 20, 30
-                        );
+                        experience.setPadding(20, 20, 20, 35);
 
                         layout.addView(experience);
                     }
