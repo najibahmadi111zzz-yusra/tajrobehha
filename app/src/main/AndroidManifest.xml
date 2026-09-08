@@ -7,6 +7,10 @@
         android:allowBackup="true">
 
         <activity
+            android:name=".AddExperienceActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true">
 
