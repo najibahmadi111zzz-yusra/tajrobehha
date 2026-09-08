@@ -2,7 +2,12 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.view.Gravity;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Button;
 
 public class MainActivity extends Activity {
 
@@ -10,11 +15,34 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        TextView text = new TextView(this);
-        text.setText("تجربه‌ها");
-        text.setTextSize(30);
-        text.setPadding(40, 100, 40, 40);
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setGravity(Gravity.CENTER);
+        layout.setPadding(40, 60, 40, 60);
 
-        setContentView(text);
+        TextView title = new TextView(this);
+        title.setText("تجربه‌ها");
+        title.setTextSize(32);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setGravity(Gravity.CENTER);
+
+        TextView welcome = new TextView(this);
+        welcome.setText("تجربه‌های خود را ثبت و با دیگران شریک شوید");
+        welcome.setTextSize(18);
+        welcome.setGravity(Gravity.CENTER);
+        welcome.setPadding(0, 30, 0, 50);
+
+        Button addButton = new Button(this);
+        addButton.setText("➕ ثبت یک تجربه");
+
+        Button listButton = new Button(this);
+        listButton.setText("📚 دیدن تجربه‌ها");
+
+        layout.addView(title);
+        layout.addView(welcome);
+        layout.addView(addButton);
+        layout.addView(listButton);
+
+        setContentView(layout);
     }
 }
