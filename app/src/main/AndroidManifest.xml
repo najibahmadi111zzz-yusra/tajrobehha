@@ -7,6 +7,10 @@
         android:allowBackup="true">
 
         <activity
+            android:name=".ExperienceListActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".AddExperienceActivity"
             android:exported="false" />
 
@@ -20,6 +24,7 @@
             </intent-filter>
 
         </activity>
+
     </application>
 
 </manifest>
