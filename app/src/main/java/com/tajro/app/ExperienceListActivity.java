@@ -28,7 +28,7 @@ public class ExperienceListActivity extends Activity {
         layout.setPadding(30, 50, 30, 30);
 
         TextView title = new TextView(this);
-        title.setText("📚 تجربه‌های کاربران");
+        title.setText("تجربه‌های کاربران");
         title.setTextSize(26);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setGravity(Gravity.CENTER);
@@ -51,10 +51,12 @@ public class ExperienceListActivity extends Activity {
                     if (queryDocumentSnapshots.isEmpty()) {
 
                         TextView empty = new TextView(this);
+
                         empty.setText(
                                 "هنوز تجربه‌ای منتشر نشده است.\n\n" +
-                                "شما می‌توانید اولین تجربه خود را ثبت کنید! ✍️"
+                                "اولین تجربه خود را ثبت کنید!"
                         );
+
                         empty.setTextSize(18);
                         empty.setGravity(Gravity.CENTER);
 
@@ -63,7 +65,8 @@ public class ExperienceListActivity extends Activity {
                         return;
                     }
 
-                    for (DocumentSnapshot document : queryDocumentSnapshots) {
+                    for (DocumentSnapshot document :
+                            queryDocumentSnapshots) {
 
                         String experienceTitle =
                                 document.getString("title");
@@ -71,7 +74,8 @@ public class ExperienceListActivity extends Activity {
                         String experienceText =
                                 document.getString("text");
 
-                        TextView experience = new TextView(this);
+                        TextView experience =
+                                new TextView(this);
 
                         experience.setText(
                                 "📌 " + experienceTitle +
@@ -80,26 +84,20 @@ public class ExperienceListActivity extends Activity {
                         );
 
                         experience.setTextSize(18);
-                        experience.setPadding(20, 20, 20, 30);
+                        experience.setPadding(
+                                20, 20, 20, 30
+                        );
 
                         layout.addView(experience);
                     }
-
                 })
                 .addOnFailureListener(e -> {
 
                     Toast.makeText(
                             ExperienceListActivity.this,
-                            "خطا در دریافت تجربه‌ها: " + e.getMessage(),
+                            "خطا در دریافت تجربه‌ها",
                             Toast.LENGTH_LONG
                     ).show();
                 });
     }
 }
-
-بعد از جایگزینی، Save کن و دوباره از طریق Codemagic یک Build جدید بگیر.
-
-وقتی APK جدید را نصب کردی:
-ثبت تجربه → یک تجربه منتشر کن → دیدن تجربه‌ها
-
-باید تجربه‌ای که منتشر کردی آنجا نمایش داده شود. 🚀❤️
