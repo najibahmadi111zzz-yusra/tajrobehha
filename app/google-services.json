@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "835645635628",
+    "project_id": "tajrobehha-app-202",
+    "storage_bucket": "tajrobehha-app-202.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:835645635628:android:e4f21d8438905dc3352589",
+        "android_client_info": {
+          "package_name": "af.ncoom.tajrobeha"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHSWckSIcCN210nZASUPXLWGVoSgSdrCI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:835645635628:android:e14aa36769d947e7352589",
+        "android_client_info": {
+          "package_name": "com.tajro.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHSWckSIcCN210nZASUPXLWGVoSgSdrCI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
