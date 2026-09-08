@@ -69,4 +69,3 @@ public class MainActivity extends Activity {
         setContentView(layout);
     }
 }
-خیلی مهم
