@@ -2,9 +2,10 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.graphics.Color;
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Button;
@@ -37,6 +38,14 @@ public class MainActivity extends Activity {
 
         Button listButton = new Button(this);
         listButton.setText("📚 دیدن تجربه‌ها");
+
+        addButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, AddExperienceActivity.class);
+                startActivity(intent);
+            }
+        });
 
         layout.addView(title);
         layout.addView(welcome);
