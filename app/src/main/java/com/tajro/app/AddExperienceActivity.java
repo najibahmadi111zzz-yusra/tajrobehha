@@ -11,11 +11,20 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public class AddExperienceActivity extends Activity {
+
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        db = FirebaseFirestore.getInstance();
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -43,25 +52,54 @@ public class AddExperienceActivity extends Activity {
             @Override
             public void onClick(View v) {
 
-                String titleText = experienceTitle.getText().toString().trim();
-                String experience = experienceText.getText().toString().trim();
+                String titleText =
+                        experienceTitle.getText().toString().trim();
+
+                String experience =
+                        experienceText.getText().toString().trim();
 
                 if (titleText.isEmpty() || experience.isEmpty()) {
+
                     Toast.makeText(
-                        AddExperienceActivity.this,
-                        "لطفاً عنوان و متن تجربه را وارد کنید",
-                        Toast.LENGTH_SHORT
-                    ).show();
-                } else {
-                    Toast.makeText(
-                        AddExperienceActivity.this,
-                        "تجربه شما آماده انتشار است! 🎉",
-                        Toast.LENGTH_LONG
+                            AddExperienceActivity.this,
+                            "لطفاً عنوان و متن تجربه را وارد کنید",
+                            Toast.LENGTH_SHORT
                     ).show();
 
-                    experienceTitle.setText("");
-                    experienceText.setText("");
+                    return;
                 }
+
+                Map<String, Object> experienceData =
+                        new HashMap<>();
+
+                experienceData.put("title", titleText);
+                experienceData.put("text", experience);
+                experienceData.put("timestamp",
+                        System.currentTimeMillis());
+
+                db.collection("experiences")
+                        .add(experienceData)
+                        .addOnSuccessListener(documentReference -> {
+
+                            Toast.makeText(
+                                    AddExperienceActivity.this,
+                                    "تجربه با موفقیت منتشر شد! 🎉",
+                                    Toast.LENGTH_LONG
+                            ).show();
+
+                            experienceTitle.setText("");
+                            experienceText.setText("");
+
+                        })
+                        .addOnFailureListener(e -> {
+
+                            Toast.makeText(
+                                    AddExperienceActivity.this,
+                                    "خطا در انتشار تجربه: "
+                                            + e.getMessage(),
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        });
             }
         });
 
