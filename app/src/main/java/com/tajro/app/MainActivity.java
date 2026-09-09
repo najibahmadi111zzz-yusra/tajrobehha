@@ -109,8 +109,6 @@ public class MainActivity extends Activity {
         layout.addView(title);
         layout.addView(welcome);
 
-        /* ردیف اول */
-
         LinearLayout row1 = new LinearLayout(this);
         row1.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -122,8 +120,6 @@ public class MainActivity extends Activity {
 
         row1.addView(addButton);
         row1.addView(listButton);
-
-        /* ردیف دوم */
 
         LinearLayout row2 = new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
@@ -137,8 +133,6 @@ public class MainActivity extends Activity {
         row2.addView(chatButton);
         row2.addView(voiceButton);
 
-        /* ردیف سوم */
-
         LinearLayout row3 = new LinearLayout(this);
         row3.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -150,8 +144,6 @@ public class MainActivity extends Activity {
 
         row3.addView(aiButton);
         row3.addView(accountButton);
-
-        /* ردیف چهارم */
 
         LinearLayout row4 = new LinearLayout(this);
         row4.setOrientation(LinearLayout.HORIZONTAL);
@@ -179,41 +171,21 @@ public class MainActivity extends Activity {
 
         layout.addView(footer);
 
-        /* ثبت تجربه */
+        addButton.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    MainActivity.this,
+                    AddExperienceActivity.class
+            );
+            startActivity(intent);
+        });
 
-        addButton.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-
-                        Intent intent = new Intent(
-                                MainActivity.this,
-                                AddExperienceActivity.class
-                        );
-
-                        startActivity(intent);
-                    }
-                }
-        );
-
-        /* دیدن تجربه‌ها */
-
-        listButton.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-
-                        Intent intent = new Intent(
-                                MainActivity.this,
-                                ExperienceListActivity.class
-                        );
-
-                        startActivity(intent);
-                    }
-                }
-        );
-
-        /* گزینه‌های آماده برای مرحله بعد */
+        listButton.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    MainActivity.this,
+                    ExperienceListActivity.class
+            );
+            startActivity(intent);
+        });
 
         chatButton.setOnClickListener(v ->
                 Toast.makeText(
@@ -239,13 +211,13 @@ public class MainActivity extends Activity {
                 ).show()
         );
 
-        accountButton.setOnClickListener(v ->
-                Toast.makeText(
-                        MainActivity.this,
-                        "اکانت امن را در مرحله بعد فعال می‌کنیم",
-                        Toast.LENGTH_SHORT
-                ).show()
-        );
+        accountButton.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    MainActivity.this,
+                    AccountActivity.class
+            );
+            startActivity(intent);
+        });
 
         settingsButton.setOnClickListener(v ->
                 Toast.makeText(
