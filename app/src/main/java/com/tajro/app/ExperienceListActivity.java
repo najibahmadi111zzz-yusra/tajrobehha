@@ -2,14 +2,19 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -17,6 +22,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 public class ExperienceListActivity extends Activity {
 
     private FirebaseFirestore db;
+    private FirebaseAuth auth;
     private LinearLayout layout;
 
     @Override
@@ -24,6 +30,7 @@ public class ExperienceListActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
 
         ScrollView scrollView = new ScrollView(this);
 
@@ -77,6 +84,15 @@ public class ExperienceListActivity extends Activity {
                         return;
                     }
 
+                    FirebaseUser currentUser =
+                            auth.getCurrentUser();
+
+                    String currentUserId = null;
+
+                    if (currentUser != null) {
+                        currentUserId = currentUser.getUid();
+                    }
+
                     for (DocumentSnapshot document :
                             queryDocumentSnapshots) {
 
@@ -86,19 +102,143 @@ public class ExperienceListActivity extends Activity {
                         String experienceText =
                                 document.getString("text");
 
+                        String authorEmail =
+                                document.getString("authorEmail");
+
+                        String userId =
+                                document.getString("userId");
+
+                        LinearLayout card =
+                                new LinearLayout(this);
+
+                        card.setOrientation(
+                                LinearLayout.VERTICAL
+                        );
+
+                        card.setPadding(
+                                20, 20, 20, 20
+                        );
+
                         TextView experience =
                                 new TextView(this);
 
                         experience.setText(
                                 "📌 " + experienceTitle +
                                 "\n\n" +
-                                experienceText
+                                experienceText +
+                                "\n\n👤 " +
+                                (authorEmail != null
+                                        ? authorEmail
+                                        : "کاربر")
                         );
 
                         experience.setTextSize(18);
-                        experience.setPadding(20, 20, 20, 35);
 
-                        layout.addView(experience);
+                        card.addView(experience);
+
+                        if (currentUserId != null &&
+                                userId != null &&
+                                currentUserId.equals(userId)) {
+
+                            LinearLayout buttons =
+                                    new LinearLayout(this);
+
+                            buttons.setOrientation(
+                                    LinearLayout.HORIZONTAL
+                            );
+
+                            Button editButton =
+                                    new Button(this);
+
+                            editButton.setText("✏️ ویرایش");
+
+                            Button deleteButton =
+                                    new Button(this);
+
+                            deleteButton.setText("🗑️ حذف");
+
+                            buttons.addView(
+                                    editButton,
+                                    new LinearLayout.LayoutParams(
+                                            0,
+                                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                                            1
+                                    )
+                            );
+
+                            buttons.addView(
+                                    deleteButton,
+                                    new LinearLayout.LayoutParams(
+                                            0,
+                                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                                            1
+                                    )
+                            );
+
+                            card.addView(buttons);
+
+                            String documentId =
+                                    document.getId();
+
+                            String finalTitle =
+                                    experienceTitle;
+
+                            String finalText =
+                                    experienceText;
+
+                            editButton.setOnClickListener(v -> {
+
+                                Intent intent =
+                                        new Intent(
+                                                ExperienceListActivity.this,
+                                                EditExperienceActivity.class
+                                        );
+
+                                intent.putExtra(
+                                        "documentId",
+                                        documentId
+                                );
+
+                                intent.putExtra(
+                                        "title",
+                                        finalTitle
+                                );
+
+                                intent.putExtra(
+                                        "text",
+                                        finalText
+                                );
+
+                                startActivity(intent);
+                            });
+
+                            deleteButton.setOnClickListener(v -> {
+
+                                db.collection("experiences")
+                                        .document(documentId)
+                                        .delete()
+                                        .addOnSuccessListener(unused -> {
+
+                                            Toast.makeText(
+                                                    ExperienceListActivity.this,
+                                                    "تجربه حذف شد",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
+
+                                            layout.removeView(card);
+                                        })
+                                        .addOnFailureListener(e -> {
+
+                                            Toast.makeText(
+                                                    ExperienceListActivity.this,
+                                                    "خطا در حذف تجربه",
+                                                    Toast.LENGTH_LONG
+                                            ).show();
+                                        });
+                            });
+                        }
+
+                        layout.addView(card);
                     }
                 })
                 .addOnFailureListener(e -> {
