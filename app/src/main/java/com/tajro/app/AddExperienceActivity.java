@@ -11,7 +11,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FieldValue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,12 +22,14 @@ import java.util.Map;
 public class AddExperienceActivity extends Activity {
 
     private FirebaseFirestore db;
+    private FirebaseAuth auth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -52,6 +57,18 @@ public class AddExperienceActivity extends Activity {
             @Override
             public void onClick(View v) {
 
+                FirebaseUser user = auth.getCurrentUser();
+
+                if (user == null) {
+                    Toast.makeText(
+                            AddExperienceActivity.this,
+                            "لطفاً ابتدا وارد اکانت خود شوید",
+                            Toast.LENGTH_LONG
+                    ).show();
+
+                    return;
+                }
+
                 String titleText =
                         experienceTitle.getText().toString().trim();
 
@@ -74,8 +91,12 @@ public class AddExperienceActivity extends Activity {
 
                 experienceData.put("title", titleText);
                 experienceData.put("text", experience);
-                experienceData.put("timestamp",
-                        System.currentTimeMillis());
+                experienceData.put("userId", user.getUid());
+                experienceData.put("authorEmail", user.getEmail());
+                experienceData.put(
+                        "timestamp",
+                        FieldValue.serverTimestamp()
+                );
 
                 db.collection("experiences")
                         .add(experienceData)
