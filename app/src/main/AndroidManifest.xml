@@ -7,6 +7,10 @@
         android:allowBackup="true">
 
         <activity
+            android:name=".AccountActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ExperienceListActivity"
             android:exported="false" />
 
