@@ -1,6 +1,4 @@
-
 package com.tajro.app;
-
 import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Typeface;
