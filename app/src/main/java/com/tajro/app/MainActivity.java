@@ -187,15 +187,15 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        chatButton.setOnClickListener(v ->
-                                      
-chatButton.setOnClickListener(v -> {
-    Intent intent = new Intent(
-            MainActivity.this,
-            ChatActivity.class
-    );
-    startActivity(intent);
-});
+        // 💬 فعال کردن بخش چت
+        chatButton.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    MainActivity.this,
+                    ChatActivity.class
+            );
+            startActivity(intent);
+        });
+
         voiceButton.setOnClickListener(v ->
                 Toast.makeText(
                         MainActivity.this,
