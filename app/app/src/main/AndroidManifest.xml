@@ -7,6 +7,30 @@
         android:allowBackup="true">
 
         <activity
+            android:name=".AIActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".AccountActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".EditExperienceActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ExperienceListActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".AddExperienceActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true">
 
@@ -16,10 +40,6 @@
             </intent-filter>
 
         </activity>
-
-        <activity
-            android:name=".ChatActivity"
-            android:exported="false" />
 
     </application>
 
