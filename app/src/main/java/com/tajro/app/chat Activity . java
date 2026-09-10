@@ -1,0 +1,142 @@
+package com.tajro.app;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+public class ChatActivity extends Activity {
+
+    private int dp(int value) {
+        return (int) (value * getResources()
+                .getDisplayMetrics().density);
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        LinearLayout main = new LinearLayout(this);
+        main.setOrientation(LinearLayout.VERTICAL);
+        main.setPadding(dp(15), dp(20), dp(15), dp(15));
+        main.setBackgroundColor(Color.rgb(235, 248, 250));
+
+        TextView title = new TextView(this);
+        title.setText("💬 چت");
+        title.setTextSize(28);
+        title.setTextColor(Color.rgb(8, 65, 90));
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, 0, 0, dp(20));
+
+        main.addView(title);
+
+        ScrollView scrollView = new ScrollView(this);
+
+        LinearLayout messages = new LinearLayout(this);
+        messages.setOrientation(LinearLayout.VERTICAL);
+
+        TextView welcome = new TextView(this);
+        welcome.setText(
+                "👋 به بخش چت تجربه‌ها خوش آمدید!\n\n" +
+                "اینجا می‌توانید با کاربران دیگر گفتگو کنید."
+        );
+        welcome.setTextSize(18);
+        welcome.setPadding(dp(15), dp(15), dp(15), dp(15));
+
+        messages.addView(welcome);
+
+        scrollView.addView(
+                messages,
+                new ScrollView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        main.addView(
+                scrollView,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        0,
+                        1
+                )
+        );
+
+        LinearLayout bottom = new LinearLayout(this);
+        bottom.setOrientation(LinearLayout.HORIZONTAL);
+        bottom.setGravity(Gravity.CENTER_VERTICAL);
+
+        EditText messageInput = new EditText(this);
+        messageInput.setHint("پیام خود را بنویسید...");
+        messageInput.setTextSize(16);
+
+        bottom.addView(
+                messageInput,
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(60),
+                        1
+                )
+        );
+
+        Button sendButton = new Button(this);
+        sendButton.setText("📤 ارسال");
+
+        bottom.addView(
+                sendButton,
+                new LinearLayout.LayoutParams(
+                        dp(100),
+                        dp(60)
+                )
+        );
+
+        main.addView(bottom);
+
+        sendButton.setOnClickListener(v -> {
+
+            String message =
+                    messageInput.getText().toString().trim();
+
+            if (message.isEmpty()) {
+                Toast.makeText(
+                        ChatActivity.this,
+                        "لطفاً پیام خود را بنویسید",
+                        Toast.LENGTH_SHORT
+                ).show();
+                return;
+            }
+
+            TextView newMessage = new TextView(
+                    ChatActivity.this
+            );
+
+            newMessage.setText("👤 شما:\n" + message);
+            newMessage.setTextSize(17);
+            newMessage.setPadding(
+                    dp(15),
+                    dp(12),
+                    dp(15),
+                    dp(12)
+            );
+
+            messages.addView(newMessage);
+            messageInput.setText("");
+
+            scrollView.post(() ->
+                    scrollView.fullScroll(View.FOCUS_DOWN)
+            );
+        });
+
+        setContentView(main);
+    }
+}
