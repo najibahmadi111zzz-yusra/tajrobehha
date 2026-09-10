@@ -25,15 +25,26 @@ public class MainActivity extends Activity {
     private Button createButton(String text) {
 
         Button button = new Button(this);
+
         button.setText(text);
         button.setTextSize(16);
         button.setTextColor(Color.WHITE);
-        button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        button.setTypeface(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+        );
         button.setGravity(Gravity.CENTER);
 
-        GradientDrawable background = new GradientDrawable();
-        background.setColor(Color.rgb(12, 91, 120));
-        background.setCornerRadius(dp(18));
+        GradientDrawable background =
+                new GradientDrawable();
+
+        background.setColor(
+                Color.rgb(12, 91, 120)
+        );
+
+        background.setCornerRadius(
+                dp(18)
+        );
 
         button.setBackground(background);
 
@@ -44,7 +55,12 @@ public class MainActivity extends Activity {
                         1
                 );
 
-        params.setMargins(dp(6), dp(6), dp(6), dp(6));
+        params.setMargins(
+                dp(6),
+                dp(6),
+                dp(6),
+                dp(6)
+        );
 
         button.setLayoutParams(params);
 
@@ -55,11 +71,22 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        ScrollView scrollView = new ScrollView(this);
+        ScrollView scrollView =
+                new ScrollView(this);
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(dp(20), dp(35), dp(20), dp(25));
+        LinearLayout layout =
+                new LinearLayout(this);
+
+        layout.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        layout.setPadding(
+                dp(20),
+                dp(35),
+                dp(20),
+                dp(25)
+        );
 
         GradientDrawable pageBackground =
                 new GradientDrawable();
@@ -68,7 +95,9 @@ public class MainActivity extends Activity {
                 Color.rgb(235, 248, 250)
         );
 
-        layout.setBackground(pageBackground);
+        layout.setBackground(
+                pageBackground
+        );
 
         scrollView.addView(
                 layout,
@@ -78,26 +107,52 @@ public class MainActivity extends Activity {
                 )
         );
 
-        TextView logo = new TextView(this);
+        // لوگو
+        TextView logo =
+                new TextView(this);
+
         logo.setText("📖💡");
         logo.setTextSize(52);
         logo.setGravity(Gravity.CENTER);
 
-        TextView title = new TextView(this);
+        // عنوان
+        TextView title =
+                new TextView(this);
+
         title.setText("تجربه‌ها");
         title.setTextSize(34);
-        title.setTextColor(Color.rgb(8, 65, 90));
-        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        title.setGravity(Gravity.CENTER);
-        title.setPadding(0, dp(5), 0, dp(8));
+        title.setTextColor(
+                Color.rgb(8, 65, 90)
+        );
 
-        TextView welcome = new TextView(this);
+        title.setTypeface(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+        );
+
+        title.setGravity(
+                Gravity.CENTER
+        );
+
+        title.setPadding(
+                0,
+                dp(5),
+                0,
+                dp(8)
+        );
+
+        // توضیح
+        TextView welcome =
+                new TextView(this);
+
         welcome.setText(
                 "تجربه‌های خود را ثبت کنید و با دیگران شریک شوید"
         );
+
         welcome.setTextSize(17);
         welcome.setTextColor(Color.DKGRAY);
         welcome.setGravity(Gravity.CENTER);
+
         welcome.setPadding(
                 dp(10),
                 dp(5),
@@ -109,8 +164,13 @@ public class MainActivity extends Activity {
         layout.addView(title);
         layout.addView(welcome);
 
-        LinearLayout row1 = new LinearLayout(this);
-        row1.setOrientation(LinearLayout.HORIZONTAL);
+        // ردیف اول
+        LinearLayout row1 =
+                new LinearLayout(this);
+
+        row1.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
 
         Button addButton =
                 createButton("✍️ ثبت تجربه");
@@ -121,8 +181,13 @@ public class MainActivity extends Activity {
         row1.addView(addButton);
         row1.addView(listButton);
 
-        LinearLayout row2 = new LinearLayout(this);
-        row2.setOrientation(LinearLayout.HORIZONTAL);
+        // ردیف دوم
+        LinearLayout row2 =
+                new LinearLayout(this);
+
+        row2.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
 
         Button chatButton =
                 createButton("💬 چت");
@@ -133,8 +198,13 @@ public class MainActivity extends Activity {
         row2.addView(chatButton);
         row2.addView(voiceButton);
 
-        LinearLayout row3 = new LinearLayout(this);
-        row3.setOrientation(LinearLayout.HORIZONTAL);
+        // ردیف سوم
+        LinearLayout row3 =
+                new LinearLayout(this);
+
+        row3.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
 
         Button aiButton =
                 createButton("🤖 دستیار هوشمند");
@@ -145,8 +215,13 @@ public class MainActivity extends Activity {
         row3.addView(aiButton);
         row3.addView(accountButton);
 
-        LinearLayout row4 = new LinearLayout(this);
-        row4.setOrientation(LinearLayout.HORIZONTAL);
+        // ردیف چهارم
+        LinearLayout row4 =
+                new LinearLayout(this);
+
+        row4.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
 
         Button settingsButton =
                 createButton("⚙️ تنظیمات");
@@ -162,80 +237,116 @@ public class MainActivity extends Activity {
         layout.addView(row3);
         layout.addView(row4);
 
-        TextView footer = new TextView(this);
-        footer.setText("تجربه‌ها • یاد بگیر • شریک کن");
+        // پایین صفحه
+        TextView footer =
+                new TextView(this);
+
+        footer.setText(
+                "تجربه‌ها • یاد بگیر • شریک کن"
+        );
+
         footer.setTextSize(14);
         footer.setTextColor(Color.GRAY);
         footer.setGravity(Gravity.CENTER);
-        footer.setPadding(0, dp(30), 0, dp(10));
+
+        footer.setPadding(
+                0,
+                dp(30),
+                0,
+                dp(10)
+        );
 
         layout.addView(footer);
 
+        // ثبت تجربه
         addButton.setOnClickListener(v -> {
-            Intent intent = new Intent(
-                    MainActivity.this,
-                    AddExperienceActivity.class
-            );
+
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            AddExperienceActivity.class
+                    );
+
             startActivity(intent);
         });
 
+        // دیدن تجربه‌ها
         listButton.setOnClickListener(v -> {
-            Intent intent = new Intent(
-                    MainActivity.this,
-                    ExperienceListActivity.class
-            );
+
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            ExperienceListActivity.class
+                    );
+
             startActivity(intent);
         });
 
-        // 💬 فعال کردن بخش چت
+        // چت
         chatButton.setOnClickListener(v -> {
-            Intent intent = new Intent(
-                    MainActivity.this,
-                    ChatActivity.class
-            );
+
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            ChatActivity.class
+                    );
+
             startActivity(intent);
         });
 
-        voiceButton.setOnClickListener(v ->
-                Toast.makeText(
-                        MainActivity.this,
-                        "بخش پیام صوتی به‌زودی فعال می‌شود",
-                        Toast.LENGTH_SHORT
-                ).show()
-        );
+        // پیام صوتی
+        voiceButton.setOnClickListener(v -> {
 
+            Toast.makeText(
+                    MainActivity.this,
+                    "بخش پیام صوتی به‌زودی فعال می‌شود",
+                    Toast.LENGTH_SHORT
+            ).show();
+        });
+
+        // دستیار هوشمند
         aiButton.setOnClickListener(v -> {
-    Intent intent = new Intent(
-            MainActivity.this,
-            AIActivity.class
-    );
-    startActivity(intent);
-});
-        );
 
-        accountButton.setOnClickListener(v -> {
-            Intent intent = new Intent(
-                    MainActivity.this,
-                    AccountActivity.class
-            );
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            AIActivity.class
+                    );
+
             startActivity(intent);
         });
 
-        settingsButton.setOnClickListener(v ->
-                Toast.makeText(
-                        MainActivity.this,
-                        "تنظیمات به‌زودی اضافه می‌شود",
-                        Toast.LENGTH_SHORT
-                ).show()
-        );
+        // اکانت
+        accountButton.setOnClickListener(v -> {
 
-        aboutButton.setOnClickListener(v ->
-                Toast.makeText(
-                        MainActivity.this,
-                        "اپلیکیشن تجربه‌ها",
-                        Toast.LENGTH_SHORT
-                ).show()
-        );
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            AccountActivity.class
+                    );
+
+            startActivity(intent);
+        });
+
+        // تنظیمات
+        settingsButton.setOnClickListener(v -> {
+
+            Toast.makeText(
+                    MainActivity.this,
+                    "تنظیمات به‌زودی اضافه می‌شود",
+                    Toast.LENGTH_SHORT
+            ).show();
+        });
+
+        // درباره برنامه
+        aboutButton.setOnClickListener(v -> {
+
+            Toast.makeText(
+                    MainActivity.this,
+                    "اپلیکیشن تجربه‌ها",
+                    Toast.LENGTH_SHORT
+            ).show();
+        });
 
         setContentView(scrollView);
     }
