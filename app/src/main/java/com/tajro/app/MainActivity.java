@@ -204,12 +204,13 @@ public class MainActivity extends Activity {
                 ).show()
         );
 
-        aiButton.setOnClickListener(v ->
-                Toast.makeText(
-                        MainActivity.this,
-                        "دستیار هوشمند در مرحله بعد فعال می‌شود",
-                        Toast.LENGTH_SHORT
-                ).show()
+        aiButton.setOnClickListener(v -> {
+    Intent intent = new Intent(
+            MainActivity.this,
+            AIActivity.class
+    );
+    startActivity(intent);
+});
         );
 
         accountButton.setOnClickListener(v -> {
