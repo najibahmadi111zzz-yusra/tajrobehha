@@ -11,6 +11,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class ChatActivity extends Activity {
 
@@ -21,26 +22,47 @@ public class ChatActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // پیام آزمایشی
+        Toast.makeText(
+                this,
+                "CHAT TEST",
+                Toast.LENGTH_LONG
+        ).show();
+
+        // صفحه اصلی
         LinearLayout main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
         main.setPadding(20, 25, 20, 20);
-        main.setBackgroundColor(Color.rgb(235, 248, 250));
+        main.setBackgroundColor(
+                Color.rgb(235, 248, 250)
+        );
 
+        // عنوان
         TextView title = new TextView(this);
         title.setText("💬 چت تجربه‌ها");
         title.setTextSize(27);
-        title.setTextColor(Color.rgb(8, 65, 90));
-        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setTextColor(
+                Color.rgb(8, 65, 90)
+        );
+        title.setTypeface(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+        );
         title.setGravity(Gravity.CENTER);
         title.setPadding(0, 0, 0, 20);
 
         main.addView(title);
 
+        // قسمت پیام‌ها
         ScrollView scrollView = new ScrollView(this);
 
         messagesLayout = new LinearLayout(this);
-        messagesLayout.setOrientation(LinearLayout.VERTICAL);
-        messagesLayout.setPadding(10, 10, 10, 10);
+        messagesLayout.setOrientation(
+                LinearLayout.VERTICAL
+        );
+        messagesLayout.setPadding(
+                10, 10, 10, 10
+        );
 
         scrollView.addView(
                 messagesLayout,
@@ -59,12 +81,19 @@ public class ChatActivity extends Activity {
                 )
         );
 
+        // قسمت پایین
         LinearLayout bottom = new LinearLayout(this);
-        bottom.setOrientation(LinearLayout.HORIZONTAL);
-        bottom.setGravity(Gravity.CENTER_VERTICAL);
+        bottom.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+        bottom.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
 
         messageInput = new EditText(this);
-        messageInput.setHint("پیام خود را بنویسید...");
+        messageInput.setHint(
+                "پیام خود را بنویسید..."
+        );
         messageInput.setTextSize(16);
 
         bottom.addView(
@@ -89,37 +118,53 @@ public class ChatActivity extends Activity {
 
         main.addView(bottom);
 
+        // نمایش صفحه
         setContentView(main);
 
+        // دکمه ارسال آزمایشی
         sendButton.setOnClickListener(v -> {
 
             String message =
-                    messageInput.getText().toString().trim();
+                    messageInput
+                            .getText()
+                            .toString()
+                            .trim();
 
-            if (!message.isEmpty()) {
-
-                TextView messageView = new TextView(this);
-
-                messageView.setText(
-                        "👤 شما:\n" + message
-                );
-
-                messageView.setTextSize(17);
-                messageView.setTextColor(Color.DKGRAY);
-                messageView.setPadding(
-                        15, 12, 15, 12
-                );
-
-                messagesLayout.addView(messageView);
-
-                messageInput.setText("");
-
-                scrollView.post(() ->
-                        scrollView.fullScroll(
-                                android.view.View.FOCUS_DOWN
-                        )
-                );
+            if (message.isEmpty()) {
+                Toast.makeText(
+                        this,
+                        "لطفاً پیام بنویسید",
+                        Toast.LENGTH_SHORT
+                ).show();
+                return;
             }
+
+            TextView messageView =
+                    new TextView(this);
+
+            messageView.setText(
+                    "👤 شما:\n" + message
+            );
+
+            messageView.setTextSize(17);
+            messageView.setTextColor(
+                    Color.DKGRAY
+            );
+            messageView.setPadding(
+                    15, 12, 15, 12
+            );
+
+            messagesLayout.addView(
+                    messageView
+            );
+
+            messageInput.setText("");
+
+            scrollView.post(() ->
+                    scrollView.fullScroll(
+                            android.view.View.FOCUS_DOWN
+                    )
+            );
         });
     }
 }
