@@ -188,13 +188,14 @@ public class MainActivity extends Activity {
         });
 
         chatButton.setOnClickListener(v ->
-                Toast.makeText(
-                        MainActivity.this,
-                        "بخش چت به‌زودی فعال می‌شود",
-                        Toast.LENGTH_SHORT
-                ).show()
-        );
-
+                                      
+chatButton.setOnClickListener(v -> {
+    Intent intent = new Intent(
+            MainActivity.this,
+            ChatActivity.class
+    );
+    startActivity(intent);
+});
         voiceButton.setOnClickListener(v ->
                 Toast.makeText(
                         MainActivity.this,
