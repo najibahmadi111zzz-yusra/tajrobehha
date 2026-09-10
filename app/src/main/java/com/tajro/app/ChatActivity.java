@@ -111,9 +111,7 @@ public class ChatActivity extends Activity {
 
         setContentView(main);
 
-        loadMessages();
-    }
-
+// loadMessages();
     private void sendMessage() {
 
         FirebaseUser user = auth.getCurrentUser();
