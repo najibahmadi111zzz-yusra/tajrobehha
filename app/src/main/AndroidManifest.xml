@@ -2,39 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
-        android:theme="@style/AppTheme"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:label="تجربه‌ها"
-        android:icon="@drawable/ic_launcher"
-        android:roundIcon="@drawable/ic_launcher"
         android:allowBackup="true">
-
-        <activity
-            android:name=".AIActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ChatActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".AccountActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".EditExperienceActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ExperienceListActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".AddExperienceActivity"
-            android:exported="false" />
 
         <activity
             android:name=".MainActivity"
@@ -50,3 +20,8 @@
     </application>
 
 </manifest>
+
+چرا این نسخه را می‌گذاریم؟
+فعلاً "AppTheme" و "ic_launcher" را حذف کردیم تا اگر مشکل از Theme یا آیکون ناقص باشد، برنامه به آنها وابسته نباشد. همچنین Activityهای دیگر را موقتاً حذف کردیم تا فقط "MainActivity" که کدش را بررسی کردیم اجرا شود.
+
+بعد از جایگزینی، هنوز Build نزن. فقط به من بگو: «جایگزین شد»؛ مرحله بعد را با هم انجام می‌دهیم.
