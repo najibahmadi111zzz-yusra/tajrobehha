@@ -1,22 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
-        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:name=".TajroApplication"
+        android:theme="@style/AppTheme"
         android:label="تجربه‌ها"
-        android:allowBackup="true">
-
-        <activity
-            android:name=".EditExperienceActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".AccountActivity"
-            android:exported="false" />
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher">
 
         <activity
             android:name=".AIActivity"
@@ -24,6 +16,14 @@
 
         <activity
             android:name=".ChatActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".AccountActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".EditExperienceActivity"
             android:exported="false" />
 
         <activity
@@ -40,7 +40,10 @@
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+
+                <category
+                    android:name="android.intent.category.LAUNCHER" />
+
             </intent-filter>
 
         </activity>
