@@ -20,7 +20,6 @@ import com.google.firebase.ai.java.GenerativeModelFutures;
 import com.google.firebase.ai.type.Content;
 import com.google.firebase.ai.type.GenerativeBackend;
 import com.google.firebase.ai.type.GenerateContentResponse;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -43,48 +42,42 @@ public class AIActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // اتصال به Firebase AI
-        GenerativeModel ai =
-                FirebaseAI.getInstance(
-                        GenerativeBackend.googleAI()
-                ).generativeModel("gemini-3.7-flash");
+        try {
+            GenerativeModel ai =
+                    FirebaseAI.getInstance(
+                            GenerativeBackend.googleAI()
+                    ).generativeModel("gemini-3.7-flash");
 
-        model = GenerativeModelFutures.from(ai);
+            model = GenerativeModelFutures.from(ai);
 
-        // صفحه اصلی
+        } catch (Exception e) {
+            Toast.makeText(
+                    this,
+                    "خطای راه‌اندازی Firebase AI: " + e.getMessage(),
+                    Toast.LENGTH_LONG
+            ).show();
+        }
+
         LinearLayout main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
-        main.setPadding(20, 25, 20, 15);
-        main.setBackgroundColor(
-                Color.rgb(235, 248, 250)
-        );
+        main.setPadding(20, 25, 20, 20);
+        main.setBackgroundColor(Color.rgb(235, 248, 250));
 
-        // عنوان
         TextView title = new TextView(this);
         title.setText("🤖 دستیار هوشمند");
         title.setTextSize(27);
-        title.setTextColor(
-                Color.rgb(8, 65, 90)
-        );
-        title.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
-        );
+        title.setTextColor(Color.rgb(8, 65, 90));
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setGravity(Gravity.CENTER);
         title.setPadding(0, 0, 0, 20);
 
         main.addView(title);
 
-        // قسمت پیام‌ها
         scrollView = new ScrollView(this);
 
         messagesLayout = new LinearLayout(this);
-        messagesLayout.setOrientation(
-                LinearLayout.VERTICAL
-        );
-        messagesLayout.setPadding(
-                10, 10, 10, 10
-        );
+        messagesLayout.setOrientation(LinearLayout.VERTICAL);
+        messagesLayout.setPadding(10, 10, 10, 10);
 
         scrollView.addView(
                 messagesLayout,
@@ -103,75 +96,46 @@ public class AIActivity extends Activity {
                 )
         );
 
-        // قسمت پایین برای نوشتن سؤال
         LinearLayout bottom = new LinearLayout(this);
-        bottom.setOrientation(
-                LinearLayout.HORIZONTAL
-        );
-        bottom.setGravity(Gravity.CENTER_VERTICAL);
-        bottom.setPadding(0, 5, 0, 5);
+        bottom.setOrientation(LinearLayout.HORIZONTAL);
 
-        // کادر سؤال
         questionInput = new EditText(this);
-
-        questionInput.setHint(
-                "سؤال خود را بنویسید..."
-        );
-
+        questionInput.setHint("سؤال خود را بنویسید...");
         questionInput.setTextSize(16);
-
         questionInput.setSingleLine(false);
-
         questionInput.setMinHeight(60);
+        questionInput.setPadding(15, 5, 15, 5);
 
-        questionInput.setPadding(
-                15, 5, 15, 5
-        );
-
-        LinearLayout.LayoutParams inputParams =
+        bottom.addView(
+                questionInput,
                 new LinearLayout.LayoutParams(
                         0,
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                         1
-                );
-
-        bottom.addView(
-                questionInput,
-                inputParams
+                )
         );
 
-        // دکمه ارسال
         Button sendButton = new Button(this);
         sendButton.setText("📤 ارسال");
-        sendButton.setTextSize(15);
-
-        LinearLayout.LayoutParams buttonParams =
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                );
 
         bottom.addView(
                 sendButton,
-                buttonParams
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
         );
 
         main.addView(bottom);
 
-        // نمایش صفحه
         setContentView(main);
 
-        // پیام خوش‌آمدگویی
         addMessage(
                 "🤖 دستیار:",
-                "سلام! من دستیار هوشمند تجربه‌ها هستم.\n" +
-                "سؤال خود را بنویسید."
+                "سلام! من دستیار هوشمند تجربه‌ها هستم. سؤال خود را بنویسید."
         );
 
-        // دکمه ارسال
-        sendButton.setOnClickListener(v ->
-                sendQuestion()
-        );
+        sendButton.setOnClickListener(v -> sendQuestion());
     }
 
     private void sendQuestion() {
@@ -182,32 +146,26 @@ public class AIActivity extends Activity {
                         .trim();
 
         if (question.isEmpty()) {
-
             Toast.makeText(
                     this,
                     "لطفاً سؤال خود را بنویسید",
                     Toast.LENGTH_SHORT
             ).show();
-
             return;
         }
 
-        // نمایش سؤال کاربر
-        addMessage(
-                "👤 شما:",
-                question
-        );
+        if (model == null) {
+            addMessage(
+                    "⚠️ خطا:",
+                    "Firebase AI راه‌اندازی نشده است."
+            );
+            return;
+        }
 
-        // پاک کردن کادر
+        addMessage("👤 شما:", question);
         questionInput.setText("");
+        addMessage("🤖 دستیار:", "در حال بررسی...");
 
-        // نمایش وضعیت
-        addMessage(
-                "🤖 دستیار:",
-                "در حال فکر کردن..."
-        );
-
-        // متن ارسال‌شده به هوش مصنوعی
         Content prompt = new Content.Builder()
                 .addText(
                         "تو دستیار هوشمند اپلیکیشن «تجربه‌ها» هستی. " +
@@ -219,7 +177,6 @@ public class AIActivity extends Activity {
                 )
                 .build();
 
-        // ارسال به Gemini
         ListenableFuture<GenerateContentResponse> response =
                 model.generateContent(prompt);
 
@@ -231,23 +188,17 @@ public class AIActivity extends Activity {
                     public void onSuccess(
                             GenerateContentResponse result) {
 
-                        String answer =
-                                result.getText();
+                        String answer = result.getText();
 
                         runOnUiThread(() -> {
-
                             removeLastMessage();
 
-                            if (answer == null ||
-                                    answer.trim().isEmpty()) {
-
+                            if (answer == null || answer.isEmpty()) {
                                 addMessage(
-                                        "⚠️ دستیار:",
-                                        "پاسخ خالی دریافت شد."
+                                        "⚠️ خطا:",
+                                        "Firebase پاسخ خالی برگرداند."
                                 );
-
                             } else {
-
                                 addMessage(
                                         "🤖 دستیار:",
                                         answer
@@ -257,21 +208,27 @@ public class AIActivity extends Activity {
                     }
 
                     @Override
-                    public void onFailure(
-                            Throwable t) {
+                    public void onFailure(Throwable t) {
 
                         runOnUiThread(() -> {
 
                             removeLastMessage();
 
+                            String errorMessage =
+                                    t.getMessage();
+
+                            if (errorMessage == null ||
+                                    errorMessage.isEmpty()) {
+                                errorMessage =
+                                        t.toString();
+                            }
+
                             addMessage(
-                                    "⚠️ خطا:",
-                                    "پاسخ دریافت نشد.\n\n" +
-                                    "لطفاً اینترنت و تنظیمات Firebase AI را بررسی کنید."
+                                    "⚠️ خطای واقعی Firebase:",
+                                    errorMessage
                             );
                         });
                     }
-
                 },
                 executor
         );
@@ -288,21 +245,13 @@ public class AIActivity extends Activity {
         );
 
         text.setTextSize(17);
-
-        text.setTextColor(
-                Color.DKGRAY
-        );
-
-        text.setPadding(
-                15, 12, 15, 12
-        );
+        text.setTextColor(Color.DKGRAY);
+        text.setPadding(15, 12, 15, 12);
 
         messagesLayout.addView(text);
 
         scrollView.post(() ->
-                scrollView.fullScroll(
-                        View.FOCUS_DOWN
-                )
+                scrollView.fullScroll(View.FOCUS_DOWN)
         );
     }
 
@@ -312,20 +261,15 @@ public class AIActivity extends Activity {
                 messagesLayout.getChildCount();
 
         if (count > 0) {
-
-            messagesLayout.removeViewAt(
-                    count - 1
-            );
+            messagesLayout.removeViewAt(count - 1);
         }
     }
 
     @Override
     protected void onDestroy() {
-
         super.onDestroy();
 
         if (executor instanceof java.util.concurrent.ExecutorService) {
-
             ((java.util.concurrent.ExecutorService) executor)
                     .shutdown();
         }
