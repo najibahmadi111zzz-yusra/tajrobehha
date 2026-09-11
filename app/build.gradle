@@ -20,11 +20,6 @@ android {
             minifyEnabled false
         }
     }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
 }
 
 dependencies {
@@ -32,4 +27,7 @@ dependencies {
 
     implementation 'com.google.firebase:firebase-firestore'
     implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-ai'
+
+    implementation 'com.google.guava:guava:31.0.1-android'
 }
