@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
+        android:theme="@style/AppTheme"
+        android:label="تجربه‌ها"
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher"
+        android:allowBackup="true">
+
         <activity
-    android:name=".AIActivity"
-    android:exported="false" />
+            android:name=".AIActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
 
         <activity
             android:name=".ChatActivity"
