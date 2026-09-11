@@ -1,6 +1,5 @@
 plugins {
     id 'com.android.application'
-    id 'com.google.gms.google-services'
 }
 
 android {
@@ -25,21 +24,4 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
-}
-
-dependencies {
-    implementation platform('com.google.firebase:firebase-bom:34.18.0')
-
-    implementation 'com.google.firebase:firebase-firestore'
-    implementation 'com.google.firebase:firebase-auth'
-
-    // 🤖 دستیار هوشمند
-    implementation 'com.google.firebase:firebase-ai'
-    implementation 'com.google.firebase:firebase-appcheck-debug'
-
-    // مورد نیاز Firebase AI برای Java
-    implementation 'com.google.guava:guava:31.0.1-android'
-
-    // 💰 تبلیغات
-    implementation 'com.google.android.gms:play-services-ads:25.4.0'
 }
