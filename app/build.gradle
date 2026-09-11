@@ -29,5 +29,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-ai'
 
+    // Firebase App Check برای تست
+    implementation 'com.google.firebase:firebase-appcheck-debug'
+
     implementation 'com.google.guava:guava:31.0.1-android'
 }
