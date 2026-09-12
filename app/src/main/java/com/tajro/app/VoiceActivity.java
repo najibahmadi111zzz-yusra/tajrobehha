@@ -29,7 +29,7 @@ public class VoiceActivity extends Activity {
 
     // Publishable Key جدید خودت را اینجا قرار بده
     private static final String SUPABASE_KEY =
-            "sb_publishable_xCkd5NsZ3jcQ6IqKKzm_Lg_UtF_ToDD";
+            "sb_publishable_tFrHuHNyrXsBdnEJl5-40A_WAr-vreH";
 
     private MediaRecorder recorder;
     private String audioPath;
