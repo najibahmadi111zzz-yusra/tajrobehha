@@ -19,17 +19,17 @@ import java.net.URL;
 
 public class VoiceActivity extends Activity {
 
-    // آدرس Supabase
+    // آدرس پروژه Supabase
     private static final String SUPABASE_URL =
             "https://gorbhuqmkjlkrklhasdh.supabase.co";
 
-    // نام Bucket خودت را اینجا بنویس
+    // نام Bucket
     private static final String BUCKET_NAME =
-            "نام-Bucket-خودت";
+            "voice_messages";
 
-    // Publishable key خودت را اینجا قرار بده
+    // Publishable Key خودت را فقط اینجا قرار بده
     private static final String SUPABASE_KEY =
-            "Publishable-Key-خودت";
+        sb_publishable_xCkd5NsZ3jcQ6IqKKzm_Lg_UtF_ToDD
 
     private MediaRecorder recorder;
     private String audioPath;
@@ -133,6 +133,10 @@ public class VoiceActivity extends Activity {
 
     private void stopRecording() {
 
+        if (recorder == null) {
+            return;
+        }
+
         try {
 
             recorder.stop();
@@ -148,9 +152,20 @@ public class VoiceActivity extends Activity {
 
         } catch (Exception e) {
 
+            if (recorder != null) {
+                try {
+                    recorder.release();
+                } catch (Exception ignored) {
+                }
+                recorder = null;
+            }
+
+            recordButton.setEnabled(true);
+            stopButton.setEnabled(false);
+
             Toast.makeText(
                     this,
-                    "خطا در توقف ضبط",
+                    "خطا در توقف ضبط: " + e.getMessage(),
                     Toast.LENGTH_LONG
             ).show();
         }
@@ -165,6 +180,10 @@ public class VoiceActivity extends Activity {
             try {
 
                 File file = new File(audioPath);
+
+                if (!file.exists()) {
+                    throw new Exception("فایل صوتی پیدا نشد");
+                }
 
                 String fileName =
                         "voice_" +
@@ -184,8 +203,9 @@ public class VoiceActivity extends Activity {
                         (HttpURLConnection) url.openConnection();
 
                 connection.setRequestMethod("POST");
-
                 connection.setDoOutput(true);
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(30000);
 
                 connection.setRequestProperty(
                         "Authorization",
@@ -245,7 +265,7 @@ public class VoiceActivity extends Activity {
 
                         Toast.makeText(
                                 VoiceActivity.this,
-                                "صدا با موفقیت در Supabase ذخیره شد",
+                                "صدا با موفقیت ذخیره شد",
                                 Toast.LENGTH_LONG
                         ).show();
 
@@ -288,5 +308,21 @@ public class VoiceActivity extends Activity {
             }
 
         }).start();
+    }
+
+    @Override
+    protected void onDestroy() {
+
+        if (recorder != null) {
+
+            try {
+                recorder.release();
+            } catch (Exception ignored) {
+            }
+
+            recorder = null;
+        }
+
+        super.onDestroy();
     }
 }
