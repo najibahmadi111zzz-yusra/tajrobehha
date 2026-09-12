@@ -2,6 +2,9 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- دسترسی برنامه به اینترنت برای اتصال به OpenRouter -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".TajroApplication"
         android:theme="@style/AppTheme"
@@ -10,40 +13,44 @@
         android:icon="@drawable/ic_launcher"
         android:roundIcon="@drawable/ic_launcher">
 
+        <!-- دستیار هوشمند -->
         <activity
             android:name=".AIActivity"
             android:exported="false" />
 
+        <!-- چت -->
         <activity
             android:name=".ChatActivity"
             android:exported="false" />
 
+        <!-- حساب کاربری -->
         <activity
             android:name=".AccountActivity"
             android:exported="false" />
 
+        <!-- ویرایش تجربه -->
         <activity
             android:name=".EditExperienceActivity"
             android:exported="false" />
 
+        <!-- فهرست تجربه‌ها -->
         <activity
             android:name=".ExperienceListActivity"
             android:exported="false" />
 
+        <!-- افزودن تجربه -->
         <activity
             android:name=".AddExperienceActivity"
             android:exported="false" />
 
+        <!-- صفحه اصلی -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
-                <category
-                    android:name="android.intent.category.LAUNCHER" />
-
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
         </activity>
