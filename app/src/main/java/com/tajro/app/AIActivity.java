@@ -14,17 +14,17 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.firebase.ai.FirebaseAI;
-import com.google.firebase.ai.GenerativeModel;
-import com.google.firebase.ai.java.GenerativeModelFutures;
-import com.google.firebase.ai.type.Content;
-import com.google.firebase.ai.type.GenerativeBackend;
-import com.google.firebase.ai.type.GenerateContentResponse;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-import java.util.concurrent.Executor;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AIActivity extends Activity {
@@ -33,30 +33,12 @@ public class AIActivity extends Activity {
     private EditText questionInput;
     private ScrollView scrollView;
 
-    private final Executor executor =
+    private final ExecutorService executor =
             Executors.newSingleThreadExecutor();
-
-    private GenerativeModelFutures model;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        try {
-            GenerativeModel ai =
-                    FirebaseAI.getInstance(
-                            GenerativeBackend.googleAI()
-                    ).generativeModel("gemini-3.7-flash");
-
-            model = GenerativeModelFutures.from(ai);
-
-        } catch (Exception e) {
-            Toast.makeText(
-                    this,
-                    "خطای راه‌اندازی Firebase AI: " + e.getMessage(),
-                    Toast.LENGTH_LONG
-            ).show();
-        }
 
         LinearLayout main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
@@ -98,6 +80,7 @@ public class AIActivity extends Activity {
 
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.HORIZONTAL);
+        bottom.setGravity(Gravity.CENTER_VERTICAL);
 
         questionInput = new EditText(this);
         questionInput.setHint("سؤال خود را بنویسید...");
@@ -154,105 +137,230 @@ public class AIActivity extends Activity {
             return;
         }
 
-        if (model == null) {
-            addMessage(
-                    "⚠️ خطا:",
-                    "Firebase AI راه‌اندازی نشده است."
-            );
-            return;
-        }
-
         addMessage("👤 شما:", question);
         questionInput.setText("");
         addMessage("🤖 دستیار:", "در حال بررسی...");
 
-        Content prompt = new Content.Builder()
-                .addText(
+        executor.execute(() -> {
+
+            try {
+
+                String apiKey =
+                        BuildConfig.OPENROUTER_API_KEY;
+
+                if (apiKey == null || apiKey.trim().isEmpty()) {
+                    throw new Exception(
+                            "کلید OpenRouter در برنامه تنظیم نشده است."
+                    );
+                }
+
+                URL url = new URL(
+                        "https://openrouter.ai/api/v1/chat/completions"
+                );
+
+                HttpURLConnection connection =
+                        (HttpURLConnection) url.openConnection();
+
+                connection.setRequestMethod("POST");
+                connection.setConnectTimeout(30000);
+                connection.setReadTimeout(60000);
+                connection.setDoOutput(true);
+
+                connection.setRequestProperty(
+                        "Authorization",
+                        "Bearer " + apiKey
+                );
+
+                connection.setRequestProperty(
+                        "Content-Type",
+                        "application/json"
+                );
+
+                JSONObject body = new JSONObject();
+
+                body.put(
+                        "model",
+                        "openrouter/free"
+                );
+
+                JSONArray messages = new JSONArray();
+
+                JSONObject systemMessage = new JSONObject();
+
+                systemMessage.put(
+                        "role",
+                        "system"
+                );
+
+                systemMessage.put(
+                        "content",
                         "تو دستیار هوشمند اپلیکیشن «تجربه‌ها» هستی. " +
-                        "به زبان فارسی/دری، محترمانه و کوتاه پاسخ بده. " +
+                        "به زبان فارسی/دری، محترمانه و واضح پاسخ بده. " +
                         "اگر سؤال پزشکی بود، پاسخ عمومی بده و در موارد جدی " +
-                        "کاربر را به پزشک یا مرکز صحی راهنمایی کن.\n\n" +
-                        "سؤال کاربر:\n" +
+                        "کاربر را به پزشک یا مرکز صحی راهنمایی کن."
+                );
+
+                messages.put(systemMessage);
+
+                JSONObject userMessage = new JSONObject();
+
+                userMessage.put(
+                        "role",
+                        "user"
+                );
+
+                userMessage.put(
+                        "content",
                         question
-                )
-                .build();
+                );
 
-        ListenableFuture<GenerateContentResponse> response =
-                model.generateContent(prompt);
+                messages.put(userMessage);
 
-        Futures.addCallback(
-                response,
-                new FutureCallback<GenerateContentResponse>() {
+                body.put(
+                        "messages",
+                        messages
+                );
 
-                    @Override
-                    public void onSuccess(
-                            GenerateContentResponse result) {
+                byte[] data =
+                        body.toString()
+                                .getBytes(StandardCharsets.UTF_8);
 
-                        String answer = result.getText();
+                OutputStream outputStream =
+                        connection.getOutputStream();
 
-                        runOnUiThread(() -> {
-                            removeLastMessage();
+                outputStream.write(data);
+                outputStream.flush();
+                outputStream.close();
 
-                            if (answer == null || answer.isEmpty()) {
-                                addMessage(
-                                        "⚠️ خطا:",
-                                        "Firebase پاسخ خالی برگرداند."
-                                );
-                            } else {
-                                addMessage(
-                                        "🤖 دستیار:",
-                                        answer
-                                );
-                            }
-                        });
-                    }
+                int responseCode =
+                        connection.getResponseCode();
 
-                    @Override
-                    public void onFailure(Throwable t) {
+                InputStream inputStream;
 
-                        runOnUiThread(() -> {
+                if (responseCode >= 200 &&
+                        responseCode < 300) {
 
-                            removeLastMessage();
+                    inputStream =
+                            connection.getInputStream();
 
-                            String errorMessage =
-                                    t.getMessage();
+                } else {
 
-                            if (errorMessage == null ||
-                                    errorMessage.isEmpty()) {
-                                errorMessage =
-                                        t.toString();
-                            }
+                    inputStream =
+                            connection.getErrorStream();
+                }
 
-                            addMessage(
-                                    "⚠️ خطای واقعی Firebase:",
-                                    errorMessage
-                            );
-                        });
-                    }
-                },
-                executor
-        );
+                BufferedReader reader =
+                        new BufferedReader(
+                                new InputStreamReader(
+                                        inputStream,
+                                        StandardCharsets.UTF_8
+                                )
+                        );
+
+                StringBuilder response =
+                        new StringBuilder();
+
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+
+                reader.close();
+
+                connection.disconnect();
+
+                if (responseCode < 200 ||
+                        responseCode >= 300) {
+
+                    throw new Exception(
+                            "OpenRouter HTTP " +
+                            responseCode +
+                            "\n" +
+                            response.toString()
+                    );
+                }
+
+                JSONObject json =
+                        new JSONObject(
+                                response.toString()
+                        );
+
+                JSONArray choices =
+                        json.getJSONArray("choices");
+
+                JSONObject firstChoice =
+                        choices.getJSONObject(0);
+
+                JSONObject message =
+                        firstChoice.getJSONObject("message");
+
+                String answer =
+                        message.getString("content");
+
+                runOnUiThread(() -> {
+
+                    removeLastMessage();
+
+                    addMessage(
+                            "🤖 دستیار:",
+                            answer
+                    );
+                });
+
+            } catch (Exception e) {
+
+                String error =
+                        e.getMessage();
+
+                if (error == null ||
+                        error.isEmpty()) {
+
+                    error = e.toString();
+                }
+
+                String finalError = error;
+
+                runOnUiThread(() -> {
+
+                    removeLastMessage();
+
+                    addMessage(
+                            "⚠️ خطای OpenRouter:",
+                            finalError
+                    );
+                });
+            }
+        });
     }
 
     private void addMessage(
             String sender,
             String message) {
 
-        TextView text = new TextView(this);
+        runOnUiThread(() -> {
 
-        text.setText(
-                sender + "\n" + message
-        );
+            TextView text =
+                    new TextView(this);
 
-        text.setTextSize(17);
-        text.setTextColor(Color.DKGRAY);
-        text.setPadding(15, 12, 15, 12);
+            text.setText(
+                    sender + "\n" + message
+            );
 
-        messagesLayout.addView(text);
+            text.setTextSize(17);
+            text.setTextColor(Color.DKGRAY);
+            text.setPadding(
+                    15, 12, 15, 12
+            );
 
-        scrollView.post(() ->
-                scrollView.fullScroll(View.FOCUS_DOWN)
-        );
+            messagesLayout.addView(text);
+
+            scrollView.post(() ->
+                    scrollView.fullScroll(
+                            View.FOCUS_DOWN
+                    )
+            );
+        });
     }
 
     private void removeLastMessage() {
@@ -261,17 +369,17 @@ public class AIActivity extends Activity {
                 messagesLayout.getChildCount();
 
         if (count > 0) {
-            messagesLayout.removeViewAt(count - 1);
+            messagesLayout.removeViewAt(
+                    count - 1
+            );
         }
     }
 
     @Override
     protected void onDestroy() {
+
         super.onDestroy();
 
-        if (executor instanceof java.util.concurrent.ExecutorService) {
-            ((java.util.concurrent.ExecutorService) executor)
-                    .shutdown();
-        }
+        executor.shutdown();
     }
 }
