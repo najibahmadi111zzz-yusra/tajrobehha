@@ -19,17 +19,16 @@ import java.net.URL;
 
 public class VoiceActivity extends Activity {
 
-    // آدرس پروژه Supabase
     private static final String SUPABASE_URL =
             "https://gorbhuqmkjlkrklhasdh.supabase.co";
 
-    // نام Bucket
     private static final String BUCKET_NAME =
             "voice_messages";
 
-    // Publishable Key جدید خودت را اینجا قرار بده
     private static final String SUPABASE_KEY =
-            "sb_publishable_tFrHuHNyrXsBdnEJl5-40A_WAr-vreH";
+            "Publishable-Key-خودت";
+
+    private static final int RECORD_AUDIO_REQUEST = 100;
 
     private MediaRecorder recorder;
     private String audioPath;
@@ -71,20 +70,81 @@ public class VoiceActivity extends Activity {
 
         setContentView(layout);
 
-        recordButton.setOnClickListener(v -> startRecording());
+        recordButton.setOnClickListener(v -> {
+
+            if (checkSelfPermission(
+                    Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED) {
+
+                requestPermissions(
+                        new String[]{
+                                Manifest.permission.RECORD_AUDIO
+                        },
+                        RECORD_AUDIO_REQUEST
+                );
+
+            } else {
+
+                startRecording();
+            }
+        });
 
         stopButton.setOnClickListener(v -> stopRecording());
     }
 
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode,
+            String[] permissions,
+            int[] grantResults
+    ) {
+        super.onRequestPermissionsResult(
+                requestCode,
+                permissions,
+                grantResults
+        );
+
+        if (requestCode == RECORD_AUDIO_REQUEST) {
+
+            if (grantResults.length > 0 &&
+                    grantResults[0] ==
+                            PackageManager.PERMISSION_GRANTED) {
+
+                Toast.makeText(
+                        this,
+                        "اجازه میکروفون داده شد",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                startRecording();
+
+            } else {
+
+                statusText.setText(
+                        "اجازه میکروفون داده نشد"
+                );
+
+                Toast.makeText(
+                        this,
+                        "لطفاً اجازه استفاده از میکروفون را بدهید",
+                        Toast.LENGTH_LONG
+                ).show();
+            }
+        }
+    }
+
     private void startRecording() {
 
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
-                != PackageManager.PERMISSION_GRANTED) {
+        if (checkSelfPermission(
+                Manifest.permission.RECORD_AUDIO
+        ) != PackageManager.PERMISSION_GRANTED) {
 
-            requestPermissions(
-                    new String[]{Manifest.permission.RECORD_AUDIO},
-                    100
-            );
+            Toast.makeText(
+                    this,
+                    "اجازه میکروفون وجود ندارد",
+                    Toast.LENGTH_LONG
+            ).show();
+
             return;
         }
 
@@ -92,7 +152,9 @@ public class VoiceActivity extends Activity {
 
             File file = new File(
                     getCacheDir(),
-                    "voice_" + System.currentTimeMillis() + ".m4a"
+                    "voice_" +
+                            System.currentTimeMillis() +
+                            ".m4a"
             );
 
             audioPath = file.getAbsolutePath();
@@ -119,13 +181,19 @@ public class VoiceActivity extends Activity {
             recordButton.setEnabled(false);
             stopButton.setEnabled(true);
 
-            statusText.setText("🔴 در حال ضبط...");
+            statusText.setText(
+                    "🔴 در حال ضبط..."
+            );
 
         } catch (Exception e) {
 
+            statusText.setText(
+                    "خطا در شروع ضبط"
+            );
+
             Toast.makeText(
                     this,
-                    "خطا در شروع ضبط: " + e.getMessage(),
+                    "خطا: " + e.getMessage(),
                     Toast.LENGTH_LONG
             ).show();
         }
@@ -146,26 +214,34 @@ public class VoiceActivity extends Activity {
             recordButton.setEnabled(true);
             stopButton.setEnabled(false);
 
-            statusText.setText("⏳ در حال ارسال...");
+            statusText.setText(
+                    "در حال ارسال..."
+            );
 
             uploadToSupabase();
 
         } catch (Exception e) {
 
             if (recorder != null) {
+
                 try {
                     recorder.release();
                 } catch (Exception ignored) {
                 }
+
                 recorder = null;
             }
 
             recordButton.setEnabled(true);
             stopButton.setEnabled(false);
 
+            statusText.setText(
+                    "خطا در توقف ضبط"
+            );
+
             Toast.makeText(
                     this,
-                    "خطا در توقف ضبط: " + e.getMessage(),
+                    "خطا: " + e.getMessage(),
                     Toast.LENGTH_LONG
             ).show();
         }
@@ -182,28 +258,32 @@ public class VoiceActivity extends Activity {
                 File file = new File(audioPath);
 
                 if (!file.exists()) {
-                    throw new Exception("فایل صوتی پیدا نشد");
+                    throw new Exception(
+                            "فایل صوتی پیدا نشد"
+                    );
                 }
 
                 String fileName =
                         "voice_" +
-                        System.currentTimeMillis() +
-                        ".m4a";
+                                System.currentTimeMillis() +
+                                ".m4a";
 
                 String uploadUrl =
                         SUPABASE_URL +
-                        "/storage/v1/object/" +
-                        BUCKET_NAME +
-                        "/" +
-                        fileName;
+                                "/storage/v1/object/" +
+                                BUCKET_NAME +
+                                "/" +
+                                fileName;
 
                 URL url = new URL(uploadUrl);
 
                 connection =
-                        (HttpURLConnection) url.openConnection();
+                        (HttpURLConnection)
+                                url.openConnection();
 
                 connection.setRequestMethod("POST");
                 connection.setDoOutput(true);
+
                 connection.setConnectTimeout(15000);
                 connection.setReadTimeout(30000);
 
@@ -260,7 +340,7 @@ public class VoiceActivity extends Activity {
                             responseCode < 300) {
 
                         statusText.setText(
-                                "✅ پیام صوتی ذخیره شد"
+                                "پیام صوتی ذخیره شد"
                         );
 
                         Toast.makeText(
@@ -272,12 +352,13 @@ public class VoiceActivity extends Activity {
                     } else {
 
                         statusText.setText(
-                                "❌ ارسال ناموفق بود"
+                                "ارسال ناموفق بود"
                         );
 
                         Toast.makeText(
                                 VoiceActivity.this,
-                                "خطای Supabase: " + responseCode,
+                                "خطای Supabase: " +
+                                        responseCode,
                                 Toast.LENGTH_LONG
                         ).show();
                     }
@@ -290,7 +371,7 @@ public class VoiceActivity extends Activity {
                 runOnUiThread(() -> {
 
                     statusText.setText(
-                            "❌ خطا در ارسال"
+                            "خطا در ارسال"
                     );
 
                     Toast.makeText(
