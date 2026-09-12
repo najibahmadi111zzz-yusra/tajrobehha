@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
@@ -13,23 +14,52 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.DocumentSnapshot;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public class ChatActivity extends Activity {
 
     private LinearLayout messagesLayout;
     private EditText messageInput;
+    private ScrollView scrollView;
+
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // پیام آزمایشی
-        Toast.makeText(
-                this,
-                "CHAT TEST",
-                Toast.LENGTH_LONG
-        ).show();
+        db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
 
-        // صفحه اصلی
+        createChatScreen();
+
+        // ورود ناشناس به Firebase
+        if (auth.getCurrentUser() == null) {
+            auth.signInAnonymously()
+                    .addOnSuccessListener(result -> {
+                        loadMessages();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(
+                                this,
+                                "خطا در اتصال به Firebase",
+                                Toast.LENGTH_LONG
+                        ).show();
+                    });
+        } else {
+            loadMessages();
+        }
+    }
+
+    private void createChatScreen() {
+
         LinearLayout main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
         main.setPadding(20, 25, 20, 20);
@@ -37,7 +67,6 @@ public class ChatActivity extends Activity {
                 Color.rgb(235, 248, 250)
         );
 
-        // عنوان
         TextView title = new TextView(this);
         title.setText("💬 چت تجربه‌ها");
         title.setTextSize(27);
@@ -53,8 +82,7 @@ public class ChatActivity extends Activity {
 
         main.addView(title);
 
-        // قسمت پیام‌ها
-        ScrollView scrollView = new ScrollView(this);
+        scrollView = new ScrollView(this);
 
         messagesLayout = new LinearLayout(this);
         messagesLayout.setOrientation(
@@ -81,7 +109,6 @@ public class ChatActivity extends Activity {
                 )
         );
 
-        // قسمت پایین
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(
                 LinearLayout.HORIZONTAL
@@ -118,53 +145,147 @@ public class ChatActivity extends Activity {
 
         main.addView(bottom);
 
-        // نمایش صفحه
         setContentView(main);
 
-        // دکمه ارسال آزمایشی
-        sendButton.setOnClickListener(v -> {
+        sendButton.setOnClickListener(v -> sendMessage());
+    }
 
-            String message =
-                    messageInput
-                            .getText()
-                            .toString()
-                            .trim();
+    private void sendMessage() {
 
-            if (message.isEmpty()) {
-                Toast.makeText(
-                        this,
-                        "لطفاً پیام بنویسید",
-                        Toast.LENGTH_SHORT
-                ).show();
-                return;
-            }
+        String message = messageInput
+                .getText()
+                .toString()
+                .trim();
 
-            TextView messageView =
-                    new TextView(this);
+        if (message.isEmpty()) {
+            Toast.makeText(
+                    this,
+                    "لطفاً پیام بنویسید",
+                    Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
 
-            messageView.setText(
-                    "👤 شما:\n" + message
-            );
+        if (auth.getCurrentUser() == null) {
+            Toast.makeText(
+                    this,
+                    "در حال اتصال به Firebase...",
+                    Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
 
-            messageView.setTextSize(17);
-            messageView.setTextColor(
-                    Color.DKGRAY
-            );
-            messageView.setPadding(
-                    15, 12, 15, 12
-            );
+        Map<String, Object> data =
+                new HashMap<>();
 
-            messagesLayout.addView(
-                    messageView
-            );
+        data.put(
+                "message",
+                message
+        );
 
-            messageInput.setText("");
+        data.put(
+                "senderId",
+                auth.getCurrentUser().getUid()
+        );
 
-            scrollView.post(() ->
-                    scrollView.fullScroll(
-                            android.view.View.FOCUS_DOWN
-                    )
-            );
-        });
+        data.put(
+                "timestamp",
+                com.google.firebase.firestore.FieldValue.serverTimestamp()
+        );
+
+        db.collection("messages")
+                .add(data)
+                .addOnSuccessListener(documentReference -> {
+                    messageInput.setText("");
+
+                    scrollView.post(() ->
+                            scrollView.fullScroll(
+                                    View.FOCUS_DOWN
+                            )
+                    );
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(
+                            this,
+                            "ارسال پیام ناموفق بود",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                });
+    }
+
+    private void loadMessages() {
+
+        db.collection("messages")
+                .orderBy(
+                        "timestamp",
+                        Query.Direction.ASCENDING
+                )
+                .addSnapshotListener((snapshots, error) -> {
+
+                    if (error != null) {
+                        Toast.makeText(
+                                this,
+                                "خطا در دریافت پیام‌ها",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                        return;
+                    }
+
+                    messagesLayout.removeAllViews();
+
+                    if (snapshots == null) {
+                        return;
+                    }
+
+                    String myId =
+                            auth.getCurrentUser() != null
+                                    ? auth.getCurrentUser().getUid()
+                                    : "";
+
+                    for (DocumentSnapshot document :
+                            snapshots.getDocuments()) {
+
+                        String message =
+                                document.getString("message");
+
+                        String senderId =
+                                document.getString("senderId");
+
+                        if (message == null) {
+                            continue;
+                        }
+
+                        TextView messageView =
+                                new TextView(this);
+
+                        if (myId.equals(senderId)) {
+                            messageView.setText(
+                                    "👤 شما:\n" + message
+                            );
+                        } else {
+                            messageView.setText(
+                                    "👤 کاربر:\n" + message
+                            );
+                        }
+
+                        messageView.setTextSize(17);
+                        messageView.setTextColor(
+                                Color.DKGRAY
+                        );
+                        messageView.setPadding(
+                                15, 12, 15, 12
+                        );
+
+                        messagesLayout.addView(
+                                messageView
+                        );
+                    }
+
+                    scrollView.post(() ->
+                            scrollView.fullScroll(
+                                    View.FOCUS_DOWN
+                            )
+                    );
+                });
     }
 }
