@@ -26,7 +26,7 @@ public class VoiceActivity extends Activity {
             "voice_messages";
 
     private static final String SUPABASE_KEY =
-            "Publishable-Key-خودت";
+            "sb_publishable_13v_O6f0AW81SYFCtYBDVQ_v6YO8MvB";
 
     private static final int RECORD_AUDIO_REQUEST = 100;
 
