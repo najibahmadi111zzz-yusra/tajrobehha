@@ -4,9 +4,12 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -40,45 +43,53 @@ public class ChatActivity extends Activity {
 
         createChatScreen();
 
-        // ورود ناشناس به Firebase
         if (auth.getCurrentUser() == null) {
             auth.signInAnonymously()
-                    .addOnSuccessListener(result -> {
-                        loadMessages();
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(
-                                this,
-                                "خطا در اتصال به Firebase",
-                                Toast.LENGTH_LONG
-                        ).show();
-                    });
+                    .addOnSuccessListener(result -> loadMessages())
+                    .addOnFailureListener(e ->
+                            Toast.makeText(
+                                    this,
+                                    "خطا در اتصال به حساب کاربری",
+                                    Toast.LENGTH_LONG
+                            ).show()
+                    );
         } else {
             loadMessages();
         }
+    }
+
+    private int dp(int value) {
+        return (int) (
+                value * getResources()
+                        .getDisplayMetrics()
+                        .density
+        );
     }
 
     private void createChatScreen() {
 
         LinearLayout main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
-        main.setPadding(20, 25, 20, 20);
+        main.setPadding(
+                dp(12),
+                dp(20),
+                dp(12),
+                dp(10)
+        );
         main.setBackgroundColor(
                 Color.rgb(235, 248, 250)
         );
 
         TextView title = new TextView(this);
         title.setText("💬 چت تجربه‌ها");
-        title.setTextSize(27);
-        title.setTextColor(
-                Color.rgb(8, 65, 90)
-        );
+        title.setTextSize(25);
+        title.setTextColor(Color.rgb(8, 65, 90));
         title.setTypeface(
                 Typeface.DEFAULT,
                 Typeface.BOLD
         );
         title.setGravity(Gravity.CENTER);
-        title.setPadding(0, 0, 0, 20);
+        title.setPadding(0, 0, 0, dp(15));
 
         main.addView(title);
 
@@ -89,16 +100,13 @@ public class ChatActivity extends Activity {
                 LinearLayout.VERTICAL
         );
         messagesLayout.setPadding(
-                10, 10, 10, 10
+                dp(8),
+                dp(8),
+                dp(8),
+                dp(8)
         );
 
-        scrollView.addView(
-                messagesLayout,
-                new ScrollView.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-        );
+        scrollView.addView(messagesLayout);
 
         main.addView(
                 scrollView,
@@ -109,6 +117,7 @@ public class ChatActivity extends Activity {
                 )
         );
 
+        // قسمت نوشتن پیام
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(
                 LinearLayout.HORIZONTAL
@@ -116,30 +125,65 @@ public class ChatActivity extends Activity {
         bottom.setGravity(
                 Gravity.CENTER_VERTICAL
         );
+        bottom.setPadding(
+                0,
+                dp(8),
+                0,
+                0
+        );
 
         messageInput = new EditText(this);
+
         messageInput.setHint(
                 "پیام خود را بنویسید..."
         );
-        messageInput.setTextSize(16);
+
+        messageInput.setTextSize(17);
+
+        // فعال بودن نوشتن
+        messageInput.setEnabled(true);
+        messageInput.setFocusable(true);
+        messageInput.setFocusableInTouchMode(true);
+        messageInput.setClickable(true);
+
+        // اجازه نوشتن متن معمولی
+        messageInput.setInputType(
+                InputType.TYPE_CLASS_TEXT |
+                InputType.TYPE_TEXT_FLAG_MULTI_LINE |
+                InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        );
+
+        // راست‌چین برای فارسی
+        messageInput.setGravity(
+                Gravity.RIGHT |
+                Gravity.CENTER_VERTICAL
+        );
+
+        messageInput.setPadding(
+                dp(12),
+                0,
+                dp(12),
+                0
+        );
 
         bottom.addView(
                 messageInput,
                 new LinearLayout.LayoutParams(
                         0,
-                        65,
+                        dp(55),
                         1
                 )
         );
 
         Button sendButton = new Button(this);
         sendButton.setText("📤 ارسال");
+        sendButton.setTextSize(15);
 
         bottom.addView(
                 sendButton,
                 new LinearLayout.LayoutParams(
-                        110,
-                        65
+                        dp(105),
+                        dp(55)
                 )
         );
 
@@ -147,7 +191,27 @@ public class ChatActivity extends Activity {
 
         setContentView(main);
 
-        sendButton.setOnClickListener(v -> sendMessage());
+        // وقتی روی کادر می‌زند، کیبورد باز شود
+        messageInput.setOnClickListener(v -> {
+            messageInput.requestFocus();
+
+            InputMethodManager imm =
+                    (InputMethodManager)
+                            getSystemService(
+                                    Context.INPUT_METHOD_SERVICE
+                            );
+
+            if (imm != null) {
+                imm.showSoftInput(
+                        messageInput,
+                        InputMethodManager.SHOW_IMPLICIT
+                );
+            }
+        });
+
+        sendButton.setOnClickListener(
+                v -> sendMessage()
+        );
     }
 
     private void sendMessage() {
@@ -169,7 +233,7 @@ public class ChatActivity extends Activity {
         if (auth.getCurrentUser() == null) {
             Toast.makeText(
                     this,
-                    "در حال اتصال به Firebase...",
+                    "در حال اتصال...",
                     Toast.LENGTH_SHORT
             ).show();
             return;
@@ -190,27 +254,31 @@ public class ChatActivity extends Activity {
 
         data.put(
                 "timestamp",
-                com.google.firebase.firestore.FieldValue.serverTimestamp()
+                com.google.firebase.firestore.FieldValue
+                        .serverTimestamp()
         );
 
         db.collection("messages")
                 .add(data)
-                .addOnSuccessListener(documentReference -> {
-                    messageInput.setText("");
+                .addOnSuccessListener(
+                        documentReference -> {
 
-                    scrollView.post(() ->
-                            scrollView.fullScroll(
-                                    View.FOCUS_DOWN
-                            )
-                    );
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(
-                            this,
-                            "ارسال پیام ناموفق بود",
-                            Toast.LENGTH_SHORT
-                    ).show();
-                });
+                            messageInput.setText("");
+
+                            scrollView.post(() ->
+                                    scrollView.fullScroll(
+                                            View.FOCUS_DOWN
+                                    )
+                            );
+                        }
+                )
+                .addOnFailureListener(e ->
+                        Toast.makeText(
+                                this,
+                                "ارسال پیام ناموفق بود",
+                                Toast.LENGTH_SHORT
+                        ).show()
+                );
     }
 
     private void loadMessages() {
@@ -220,72 +288,88 @@ public class ChatActivity extends Activity {
                         "timestamp",
                         Query.Direction.ASCENDING
                 )
-                .addSnapshotListener((snapshots, error) -> {
+                .addSnapshotListener(
+                        (snapshots, error) -> {
 
-                    if (error != null) {
-                        Toast.makeText(
-                                this,
-                                "خطا در دریافت پیام‌ها",
-                                Toast.LENGTH_SHORT
-                        ).show();
-                        return;
-                    }
+                            if (error != null) {
+                                Toast.makeText(
+                                        this,
+                                        "خطا در دریافت پیام‌ها",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                                return;
+                            }
 
-                    messagesLayout.removeAllViews();
+                            messagesLayout.removeAllViews();
 
-                    if (snapshots == null) {
-                        return;
-                    }
+                            if (snapshots == null) {
+                                return;
+                            }
 
-                    String myId =
-                            auth.getCurrentUser() != null
-                                    ? auth.getCurrentUser().getUid()
-                                    : "";
+                            String myId =
+                                    auth.getCurrentUser() != null
+                                            ? auth.getCurrentUser().getUid()
+                                            : "";
 
-                    for (DocumentSnapshot document :
-                            snapshots.getDocuments()) {
+                            for (
+                                    DocumentSnapshot document :
+                                    snapshots.getDocuments()
+                            ) {
 
-                        String message =
-                                document.getString("message");
+                                String message =
+                                        document.getString(
+                                                "message"
+                                        );
 
-                        String senderId =
-                                document.getString("senderId");
+                                String senderId =
+                                        document.getString(
+                                                "senderId"
+                                        );
 
-                        if (message == null) {
-                            continue;
-                        }
+                                if (message == null) {
+                                    continue;
+                                }
 
-                        TextView messageView =
-                                new TextView(this);
+                                TextView messageView =
+                                        new TextView(this);
 
-                        if (myId.equals(senderId)) {
-                            messageView.setText(
-                                    "👤 شما:\n" + message
+                                if (myId.equals(senderId)) {
+                                    messageView.setText(
+                                            "👤 شما:\n" + message
+                                    );
+                                } else {
+                                    messageView.setText(
+                                            "👤 کاربر:\n" + message
+                                    );
+                                }
+
+                                messageView.setTextSize(17);
+                                messageView.setTextColor(
+                                        Color.DKGRAY
+                                );
+
+                                messageView.setGravity(
+                                        Gravity.RIGHT
+                                );
+
+                                messageView.setPadding(
+                                        dp(15),
+                                        dp(12),
+                                        dp(15),
+                                        dp(12)
+                                );
+
+                                messagesLayout.addView(
+                                        messageView
+                                );
+                            }
+
+                            scrollView.post(() ->
+                                    scrollView.fullScroll(
+                                            View.FOCUS_DOWN
+                                    )
                             );
-                        } else {
-                            messageView.setText(
-                                    "👤 کاربر:\n" + message
-                            );
                         }
-
-                        messageView.setTextSize(17);
-                        messageView.setTextColor(
-                                Color.DKGRAY
-                        );
-                        messageView.setPadding(
-                                15, 12, 15, 12
-                        );
-
-                        messagesLayout.addView(
-                                messageView
-                        );
-                    }
-
-                    scrollView.post(() ->
-                            scrollView.fullScroll(
-                                    View.FOCUS_DOWN
-                            )
-                    );
-                });
+                );
     }
-}
+                        }
