@@ -27,9 +27,9 @@ public class VoiceActivity extends Activity {
     private static final String BUCKET_NAME =
             "voice_messages";
 
-    // Publishable Key خودت را فقط اینجا قرار بده
+    // Publishable Key جدید خودت را اینجا قرار بده
     private static final String SUPABASE_KEY =
-        sb_publishable_xCkd5NsZ3jcQ6IqKKzm_Lg_UtF_ToDD
+            "sb_publishable_xCkd5NsZ3jcQ6IqKKzm_Lg_UtF_ToDD";
 
     private MediaRecorder recorder;
     private String audioPath;
