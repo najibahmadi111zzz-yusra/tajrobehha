@@ -26,6 +26,11 @@
             android:name=".AIActivity"
             android:exported="false" />
 
+        <!-- صفحه پیام صوتی -->
+        <activity
+            android:name=".VoiceActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>
