@@ -294,15 +294,17 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // پیام صوتی
-        voiceButton.setOnClickListener(v -> {
+// پیام صوتی
+voiceButton.setOnClickListener(v -> {
 
-            Toast.makeText(
+    Intent intent =
+            new Intent(
                     MainActivity.this,
-                    "بخش پیام صوتی به‌زودی فعال می‌شود",
-                    Toast.LENGTH_SHORT
-            ).show();
-        });
+                    VoiceActivity.class
+            );
+
+    startActivity(intent);
+});
 
         // دستیار هوشمند
         aiButton.setOnClickListener(v -> {
