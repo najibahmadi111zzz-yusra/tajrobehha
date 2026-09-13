@@ -81,6 +81,7 @@ public class ExchangeActivity extends Activity {
                 Typeface.DEFAULT,
                 Typeface.BOLD
         );
+
         view.setPadding(
                 0,
                 dp(15),
@@ -111,6 +112,7 @@ public class ExchangeActivity extends Activity {
 
         edit.setHint(hint);
         edit.setTextSize(16);
+
         edit.setPadding(
                 dp(10),
                 dp(8),
@@ -162,6 +164,7 @@ public class ExchangeActivity extends Activity {
 
         smart.setTextSize(17);
         smart.setGravity(Gravity.CENTER);
+
         smart.setPadding(
                 0,
                 0,
@@ -189,6 +192,7 @@ public class ExchangeActivity extends Activity {
         );
 
         rates.setTextSize(17);
+
         layout.addView(rates);
 
         TextView rateNote =
@@ -199,6 +203,7 @@ public class ExchangeActivity extends Activity {
         );
 
         rateNote.setTextSize(14);
+
         rateNote.setPadding(
                 0,
                 dp(8),
@@ -208,7 +213,7 @@ public class ExchangeActivity extends Activity {
 
         layout.addView(rateNote);
 
-        // ---------------- ثبت مشتری ----------------
+        // ---------------- مشتری ----------------
 
         layout.addView(
                 title("👤 اطلاعات مشتری", 22)
@@ -228,7 +233,7 @@ public class ExchangeActivity extends Activity {
 
         layout.addView(phoneInput);
 
-        // ---------------- نوع ارز ----------------
+        // ---------------- ارز ----------------
 
         currencySpinner =
                 new Spinner(this);
@@ -329,6 +334,7 @@ public class ExchangeActivity extends Activity {
         );
 
         totalText.setTextSize(21);
+
         totalText.setTypeface(
                 Typeface.DEFAULT,
                 Typeface.BOLD
@@ -360,6 +366,7 @@ public class ExchangeActivity extends Activity {
                 new TextView(this);
 
         customerBalanceText.setTextSize(17);
+
         customerBalanceText.setPadding(
                 0,
                 dp(5),
@@ -388,6 +395,7 @@ public class ExchangeActivity extends Activity {
                 new TextView(this);
 
         balanceText.setTextSize(18);
+
         balanceText.setPadding(
                 0,
                 dp(5),
@@ -397,7 +405,7 @@ public class ExchangeActivity extends Activity {
 
         layout.addView(balanceText);
 
-        // ---------------- دکمه گاوصندوق هوشمند ----------------
+        // ---------------- گاوصندوق ----------------
 
         Button vaultButton =
                 makeButton(
@@ -406,7 +414,7 @@ public class ExchangeActivity extends Activity {
 
         layout.addView(vaultButton);
 
-        // ---------------- تبدیل ارز ----------------
+        // ---------------- تبدیل ----------------
 
         layout.addView(
                 title("🔄 تبدیل ارز", 22)
@@ -429,6 +437,7 @@ public class ExchangeActivity extends Activity {
                 new TextView(this);
 
         historyText.setTextSize(16);
+
         historyText.setPadding(
                 0,
                 dp(5),
@@ -438,12 +447,14 @@ public class ExchangeActivity extends Activity {
 
         layout.addView(historyText);
 
-        Button clearHistory =
+        // ---------------- تنظیمات ----------------
+
+        Button settingsButton =
                 makeButton(
-                        "🗑️ پاک کردن تاریخچه"
+                        "⚙️ تنظیمات صرافی"
                 );
 
-        layout.addView(clearHistory);
+        layout.addView(settingsButton);
 
         // ---------------- گزارش ----------------
 
@@ -455,6 +466,7 @@ public class ExchangeActivity extends Activity {
                 new TextView(this);
 
         reportText.setTextSize(17);
+
         reportText.setPadding(
                 0,
                 dp(5),
@@ -486,13 +498,9 @@ public class ExchangeActivity extends Activity {
                 v -> showConverter()
         );
 
-        clearHistory.setOnClickListener(
-                v -> clearHistory()
-        );
-
-        // باز کردن گاوصندوق
         vaultButton.setOnClickListener(
                 v -> {
+
                     Intent intent =
                             new Intent(
                                     ExchangeActivity.this,
@@ -501,6 +509,10 @@ public class ExchangeActivity extends Activity {
 
                     startActivity(intent);
                 }
+        );
+
+        settingsButton.setOnClickListener(
+                v -> showExchangeSettings()
         );
 
         scrollView.addView(layout);
@@ -757,18 +769,23 @@ public class ExchangeActivity extends Activity {
     ) {
 
         if (currency.equals("دلار آمریکا")) {
+
             dollarBalance += amount;
 
         } else if (currency.equals("یورو")) {
+
             euroBalance += amount;
 
         } else if (currency.equals("تومان")) {
+
             tomanBalance += amount;
 
         } else if (currency.equals("لیره ترکیه")) {
+
             liraBalance += amount;
 
         } else if (currency.equals("کلدار پاکستان")) {
+
             rupeeBalance += amount;
         }
     }
@@ -779,18 +796,23 @@ public class ExchangeActivity extends Activity {
     ) {
 
         if (currency.equals("دلار آمریکا")) {
+
             dollarBalance -= amount;
 
         } else if (currency.equals("یورو")) {
+
             euroBalance -= amount;
 
         } else if (currency.equals("تومان")) {
+
             tomanBalance -= amount;
 
         } else if (currency.equals("لیره ترکیه")) {
+
             liraBalance -= amount;
 
         } else if (currency.equals("کلدار پاکستان")) {
+
             rupeeBalance -= amount;
         }
     }
@@ -845,10 +867,11 @@ public class ExchangeActivity extends Activity {
             StringBuilder text =
                     new StringBuilder();
 
-            for (int i =
-                    history.length() - 1;
+            for (
+                    int i = history.length() - 1;
                     i >= 0;
-                    i--) {
+                    i--
+            ) {
 
                 JSONObject item =
                         history.getJSONObject(i);
@@ -941,9 +964,11 @@ public class ExchangeActivity extends Activity {
             double buyTotal = 0;
             double sellTotal = 0;
 
-            for (int i = 0;
+            for (
+                    int i = 0;
                     i < history.length();
-                    i++) {
+                    i++
+            ) {
 
                 JSONObject item =
                         history.getJSONObject(i);
@@ -976,14 +1001,17 @@ public class ExchangeActivity extends Activity {
             String status;
 
             if (result > 0) {
+
                 status =
                         "🟢 فروش بیشتر از خرید";
 
             } else if (result < 0) {
+
                 status =
                         "🔴 خرید بیشتر از فروش";
 
             } else {
+
                 status =
                         "⚪ خرید و فروش برابر";
             }
@@ -1051,9 +1079,11 @@ public class ExchangeActivity extends Activity {
 
             int count = 0;
 
-            for (int i = 0;
+            for (
+                    int i = 0;
                     i < history.length();
-                    i++) {
+                    i++
+            ) {
 
                 JSONObject item =
                         history.getJSONObject(i);
@@ -1121,7 +1151,9 @@ public class ExchangeActivity extends Activity {
                     format(sold) +
                     " افغانی\n\n" +
                     "💰 مانده حساب: " +
-                    format(Math.abs(balance)) +
+                    format(
+                            Math.abs(balance)
+                    ) +
                     " افغانی\n" +
                     status
             );
@@ -1179,6 +1211,68 @@ public class ExchangeActivity extends Activity {
                     Toast.LENGTH_SHORT
             ).show();
         }
+    }
+
+    // ---------------- تنظیمات امن صرافی ----------------
+
+    private void showExchangeSettings() {
+
+        String[] options = {
+                "🗑️ حذف تاریخچه معاملات"
+        };
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("⚙️ تنظیمات صرافی")
+                .setItems(
+                        options,
+                        (dialog, which) -> {
+
+                            if (which == 0) {
+                                confirmClearHistory();
+                            }
+                        }
+                )
+                .setNegativeButton(
+                        "بستن",
+                        null
+                )
+                .show();
+    }
+
+    private void confirmClearHistory() {
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("⚠️ هشدار مهم")
+                .setMessage(
+                        "تمام معاملات ثبت‌شده حذف خواهند شد.\n\n" +
+                        "این کار را فقط در صورتی انجام دهید که کاملاً مطمئن باشید."
+                )
+                .setNegativeButton(
+                        "انصراف",
+                        null
+                )
+                .setPositiveButton(
+                        "ادامه",
+                        (dialog, which) -> {
+
+                            new android.app.AlertDialog.Builder(this)
+                                    .setTitle("🔴 تأیید نهایی")
+                                    .setMessage(
+                                            "آیا واقعاً می‌خواهید تمام تاریخچه معاملات را حذف کنید؟"
+                                    )
+                                    .setNegativeButton(
+                                            "خیر",
+                                            null
+                                    )
+                                    .setPositiveButton(
+                                            "بله، حذف شود",
+                                            (dialog2, which2) ->
+                                                    clearHistory()
+                                    )
+                                    .show();
+                        }
+                )
+                .show();
     }
 
     private void clearHistory() {
