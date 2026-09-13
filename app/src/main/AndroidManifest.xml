@@ -45,6 +45,10 @@
     android:exported="false" />
         <activity
             
+            <activity
+    android:name=".VaultActivity"
+    android:exported="false" />
+            
             android:name=".MainActivity"
             android:exported="true">
 
