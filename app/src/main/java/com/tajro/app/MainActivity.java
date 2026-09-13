@@ -1,5 +1,5 @@
-import android.content.Intent;
 package com.tajro.app;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.Intent;
@@ -7,7 +7,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -107,7 +106,6 @@ public class MainActivity extends Activity {
                 )
         );
 
-        // لوگو
         TextView logo =
                 new TextView(this);
 
@@ -115,7 +113,6 @@ public class MainActivity extends Activity {
         logo.setTextSize(52);
         logo.setGravity(Gravity.CENTER);
 
-        // عنوان
         TextView title =
                 new TextView(this);
 
@@ -141,7 +138,6 @@ public class MainActivity extends Activity {
                 dp(8)
         );
 
-        // توضیح
         TextView welcome =
                 new TextView(this);
 
@@ -164,7 +160,6 @@ public class MainActivity extends Activity {
         layout.addView(title);
         layout.addView(welcome);
 
-        // ردیف اول
         LinearLayout row1 =
                 new LinearLayout(this);
 
@@ -181,7 +176,6 @@ public class MainActivity extends Activity {
         row1.addView(addButton);
         row1.addView(listButton);
 
-        // ردیف دوم
         LinearLayout row2 =
                 new LinearLayout(this);
 
@@ -198,7 +192,6 @@ public class MainActivity extends Activity {
         row2.addView(chatButton);
         row2.addView(voiceButton);
 
-        // ردیف سوم
         LinearLayout row3 =
                 new LinearLayout(this);
 
@@ -215,7 +208,6 @@ public class MainActivity extends Activity {
         row3.addView(aiButton);
         row3.addView(accountButton);
 
-        // ردیف چهارم
         LinearLayout row4 =
                 new LinearLayout(this);
 
@@ -223,21 +215,33 @@ public class MainActivity extends Activity {
                 LinearLayout.HORIZONTAL
         );
 
+        Button exchangeButton =
+                createButton("💱 صرافی");
+
         Button settingsButton =
                 createButton("⚙️ تنظیمات");
+
+        row4.addView(exchangeButton);
+        row4.addView(settingsButton);
+
+        LinearLayout row5 =
+                new LinearLayout(this);
+
+        row5.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
 
         Button aboutButton =
                 createButton("ℹ️ درباره برنامه");
 
-        row4.addView(settingsButton);
-        row4.addView(aboutButton);
+        row5.addView(aboutButton);
 
         layout.addView(row1);
         layout.addView(row2);
         layout.addView(row3);
         layout.addView(row4);
+        layout.addView(row5);
 
-        // پایین صفحه
         TextView footer =
                 new TextView(this);
 
@@ -258,7 +262,6 @@ public class MainActivity extends Activity {
 
         layout.addView(footer);
 
-        // ثبت تجربه
         addButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -270,7 +273,6 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // دیدن تجربه‌ها
         listButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -282,7 +284,6 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // چت
         chatButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -294,28 +295,28 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-// پیام صوتی
-voiceButton.setOnClickListener(v -> {
+        voiceButton.setOnClickListener(v -> {
 
-    Intent intent =
-            new Intent(
-                    MainActivity.this,
-                    VoiceActivity.class
-            );
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            VoiceActivity.class
+                    );
 
-    startActivity(intent);
-});
-Button exchangeButton = createButton("💱 صرافی");
+            startActivity(intent);
+        });
 
-exchangeButton.setOnClickListener(v -> {
-    Intent intent =
-            new Intent(
-                    MainActivity.this,
-                    ExchangeActivity.class
-            );
-    startActivity(intent);
-});
-        // دستیار هوشمند
+        exchangeButton.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            ExchangeActivity.class
+                    );
+
+            startActivity(intent);
+        });
+
         aiButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -327,7 +328,6 @@ exchangeButton.setOnClickListener(v -> {
             startActivity(intent);
         });
 
-        // اکانت
         accountButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -339,7 +339,6 @@ exchangeButton.setOnClickListener(v -> {
             startActivity(intent);
         });
 
-        // تنظیمات
         settingsButton.setOnClickListener(v -> {
 
             Toast.makeText(
@@ -349,7 +348,6 @@ exchangeButton.setOnClickListener(v -> {
             ).show();
         });
 
-        // درباره برنامه
         aboutButton.setOnClickListener(v -> {
 
             Toast.makeText(
