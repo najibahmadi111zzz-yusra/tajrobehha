@@ -1,5 +1,5 @@
+import android.content.Intent;
 package com.tajro.app;
-
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.Intent;
@@ -305,7 +305,16 @@ voiceButton.setOnClickListener(v -> {
 
     startActivity(intent);
 });
+Button exchangeButton = createButton("💱 صرافی");
 
+exchangeButton.setOnClickListener(v -> {
+    Intent intent =
+            new Intent(
+                    MainActivity.this,
+                    ExchangeActivity.class
+            );
+    startActivity(intent);
+});
         // دستیار هوشمند
         aiButton.setOnClickListener(v -> {
 
