@@ -22,11 +22,12 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class ExchangeActivity extends Activity {
 
-    private SharedPreferences prefs;
+    private SharedPreferences oldPrefs;
 
     private Spinner currencySpinner;
     private Spinner typeSpinner;
@@ -42,31 +43,26 @@ public class ExchangeActivity extends Activity {
     private TextView customerBalanceText;
     private TextView historyText;
     private TextView reportText;
-
-    private double afghaniBalance;
-    private double dollarBalance;
-    private double euroBalance;
-    private double tomanBalance;
-    private double liraBalance;
-    private double rupeeBalance;
+    private TextView ratesText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        prefs = getSharedPreferences(
+        oldPrefs = getSharedPreferences(
                 "exchange_data",
                 MODE_PRIVATE
         );
 
-        loadBalances();
+        migrateOldDataIfNeeded();
         createInterface();
     }
 
     private int dp(int value) {
         return (int) (
                 value * getResources()
-                        .getDisplayMetrics().density
+                        .getDisplayMetrics()
+                        .density
         );
     }
 
@@ -180,20 +176,18 @@ public class ExchangeActivity extends Activity {
                 title("📊 نرخ ارز", 22)
         );
 
-        TextView rates =
+        ratesText =
                 new TextView(this);
 
-        rates.setText(
-                "🇺🇸 دلار: نرخ را وارد کنید\n" +
-                "🇪🇺 یورو: نرخ را وارد کنید\n" +
-                "🇮🇷 تومان: نرخ را وارد کنید\n" +
-                "🇹🇷 لیره: نرخ را وارد کنید\n" +
-                "🇵🇰 کلدار: نرخ را وارد کنید"
+        ratesText.setTextSize(16);
+        ratesText.setPadding(
+                0,
+                0,
+                0,
+                dp(10)
         );
 
-        rates.setTextSize(17);
-
-        layout.addView(rates);
+        layout.addView(ratesText);
 
         TextView rateNote =
                 new TextView(this);
@@ -238,19 +232,14 @@ public class ExchangeActivity extends Activity {
         currencySpinner =
                 new Spinner(this);
 
-        String[] currencies = {
-                "دلار آمریکا",
-                "یورو",
-                "تومان",
-                "لیره ترکیه",
-                "کلدار پاکستان"
-        };
+        List<String> currencyList =
+                ExchangeData.getCurrencies();
 
         ArrayAdapter<String> currencyAdapter =
                 new ArrayAdapter<>(
                         this,
                         android.R.layout.simple_spinner_item,
-                        currencies
+                        currencyList
                 );
 
         currencyAdapter.setDropDownViewResource(
@@ -476,11 +465,10 @@ public class ExchangeActivity extends Activity {
 
         layout.addView(reportText);
 
+        updateRatesText();
         updateBalanceText();
         updateHistory();
         updateReport();
-
-        // ---------------- دکمه‌ها ----------------
 
         calculate.setOnClickListener(
                 v -> calculateTotal()
@@ -518,6 +506,43 @@ public class ExchangeActivity extends Activity {
         scrollView.addView(layout);
 
         setContentView(scrollView);
+    }
+
+    private void updateRatesText() {
+
+        StringBuilder text =
+                new StringBuilder();
+
+        text.append("🇦🇫 افغانی: 1\n");
+
+        for (
+                String currency :
+                ExchangeData.getCurrencies()
+        ) {
+
+            if (
+                    currency.equals(
+                            ExchangeData.AFN
+                    )
+            ) {
+                continue;
+            }
+
+            double rate =
+                    ExchangeData.getRate(
+                            currency
+                    );
+
+            text.append("💱 ")
+                    .append(currency)
+                    .append(": ")
+                    .append(format(rate))
+                    .append(" افغانی\n");
+        }
+
+        ratesText.setText(
+                text.toString()
+        );
     }
 
     private void calculateTotal() {
@@ -625,26 +650,74 @@ public class ExchangeActivity extends Activity {
                             .toString()
                             .trim();
 
+            /*
+             * خرید:
+             * صراف ارز را از مشتری می‌خرد.
+             * موجودی ارز زیاد می‌شود و افغانی کم می‌شود.
+             *
+             * فروش:
+             * صراف ارز را به مشتری می‌فروشد.
+             * موجودی ارز کم می‌شود و افغانی زیاد می‌شود.
+             */
+
+            double currentAfn =
+                    ExchangeData.getBalance(
+                            ExchangeData.AFN
+                    );
+
+            double currentCurrency =
+                    ExchangeData.getBalance(
+                            currency
+                    );
+
             if (type.equals("خرید")) {
 
-                addCurrency(
-                        currency,
-                        amount
+                if (currentAfn < total) {
+
+                    Toast.makeText(
+                            this,
+                            "❌ موجودی افغانی برای این خرید کافی نیست",
+                            Toast.LENGTH_LONG
+                    ).show();
+
+                    return;
+                }
+
+                ExchangeData.setBalance(
+                        ExchangeData.AFN,
+                        currentAfn - total
                 );
 
-                afghaniBalance -= total;
+                ExchangeData.setBalance(
+                        currency,
+                        currentCurrency + amount
+                );
 
             } else {
 
-                removeCurrency(
+                if (currentCurrency < amount) {
+
+                    Toast.makeText(
+                            this,
+                            "❌ موجودی " +
+                            currency +
+                            " برای فروش کافی نیست",
+                            Toast.LENGTH_LONG
+                    ).show();
+
+                    return;
+                }
+
+                ExchangeData.setBalance(
                         currency,
-                        amount
+                        currentCurrency - amount
                 );
 
-                afghaniBalance += total;
+                ExchangeData.setBalance(
+                        ExchangeData.AFN,
+                        currentAfn + total
+                );
             }
-
-            saveBalances();
 
             String date =
                     new SimpleDateFormat(
@@ -710,27 +783,9 @@ public class ExchangeActivity extends Activity {
                     receiptNumber
             );
 
-            String oldHistory =
-                    prefs.getString(
-                            "history",
-                            "[]"
-                    );
-
-            JSONArray history =
-                    new JSONArray(
-                            oldHistory
-                    );
-
-            history.put(
+            ExchangeData.saveTransaction(
                     transaction
             );
-
-            prefs.edit()
-                    .putString(
-                            "history",
-                            history.toString()
-                    )
-                    .apply();
 
             totalText.setText(
                     "💰 مبلغ کل: " +
@@ -763,97 +818,43 @@ public class ExchangeActivity extends Activity {
         }
     }
 
-    private void addCurrency(
-            String currency,
-            double amount
-    ) {
-
-        if (currency.equals("دلار آمریکا")) {
-
-            dollarBalance += amount;
-
-        } else if (currency.equals("یورو")) {
-
-            euroBalance += amount;
-
-        } else if (currency.equals("تومان")) {
-
-            tomanBalance += amount;
-
-        } else if (currency.equals("لیره ترکیه")) {
-
-            liraBalance += amount;
-
-        } else if (currency.equals("کلدار پاکستان")) {
-
-            rupeeBalance += amount;
-        }
-    }
-
-    private void removeCurrency(
-            String currency,
-            double amount
-    ) {
-
-        if (currency.equals("دلار آمریکا")) {
-
-            dollarBalance -= amount;
-
-        } else if (currency.equals("یورو")) {
-
-            euroBalance -= amount;
-
-        } else if (currency.equals("تومان")) {
-
-            tomanBalance -= amount;
-
-        } else if (currency.equals("لیره ترکیه")) {
-
-            liraBalance -= amount;
-
-        } else if (currency.equals("کلدار پاکستان")) {
-
-            rupeeBalance -= amount;
-        }
-    }
-
     private void updateBalanceText() {
 
-        String text =
-                "💰 موجودی فعلی\n\n" +
-                "🇦🇫 افغانی: " +
-                format(afghaniBalance) +
-                "\n" +
-                "🇺🇸 دلار: " +
-                format(dollarBalance) +
-                "\n" +
-                "🇪🇺 یورو: " +
-                format(euroBalance) +
-                "\n" +
-                "🇮🇷 تومان: " +
-                format(tomanBalance) +
-                "\n" +
-                "🇹🇷 لیره: " +
-                format(liraBalance) +
-                "\n" +
-                "🇵🇰 کلدار: " +
-                format(rupeeBalance);
+        StringBuilder text =
+                new StringBuilder();
 
-        balanceText.setText(text);
+        text.append(
+                "💰 موجودی فعلی\n\n"
+        );
+
+        for (
+                String currency :
+                ExchangeData.getCurrencies()
+        ) {
+
+            double balance =
+                    ExchangeData.getBalance(
+                            currency
+                    );
+
+            text.append("💱 ")
+                    .append(currency)
+                    .append(": ")
+                    .append(format(balance))
+                    .append("\n");
+        }
+
+        balanceText.setText(
+                text.toString()
+        );
     }
 
     private void updateHistory() {
 
         try {
 
-            String saved =
-                    prefs.getString(
-                            "history",
-                            "[]"
-                    );
-
             JSONArray history =
-                    new JSONArray(saved);
+                    ExchangeData.getTransactions();
 
             if (history.length() == 0) {
 
@@ -883,7 +884,9 @@ public class ExchangeActivity extends Activity {
                 text.append(
                         "👤 مشتری: "
                 ).append(
-                        item.optString("customer")
+                        item.optString(
+                                "customer"
+                        )
                 );
 
                 text.append(
@@ -949,14 +952,8 @@ public class ExchangeActivity extends Activity {
 
         try {
 
-            String saved =
-                    prefs.getString(
-                            "history",
-                            "[]"
-                    );
-
             JSONArray history =
-                    new JSONArray(saved);
+                    ExchangeData.getTransactions();
 
             int buys = 0;
             int sells = 0;
@@ -1067,12 +1064,7 @@ public class ExchangeActivity extends Activity {
         try {
 
             JSONArray history =
-                    new JSONArray(
-                            prefs.getString(
-                                    "history",
-                                    "[]"
-                            )
-                    );
+                    ExchangeData.getTransactions();
 
             double bought = 0;
             double sold = 0;
@@ -1277,12 +1269,7 @@ public class ExchangeActivity extends Activity {
 
     private void clearHistory() {
 
-        prefs.edit()
-                .putString(
-                        "history",
-                        "[]"
-                )
-                .apply();
+        ExchangeData.clearTransactions();
 
         updateHistory();
         updateReport();
@@ -1294,99 +1281,134 @@ public class ExchangeActivity extends Activity {
         ).show();
     }
 
-    private void loadBalances() {
+    /*
+     * انتقال اطلاعات قدیمی:
+     *
+     * اطلاعات نسخه قبلی حذف نمی‌شود.
+     * فقط یک بار موجودی‌های قدیمی به سیستم مرکزی منتقل می‌شوند.
+     */
+    private void migrateOldDataIfNeeded() {
 
-        afghaniBalance =
-                Double.longBitsToDouble(
-                        prefs.getLong(
-                                "afghani",
-                                Double.doubleToLongBits(
-                                        100000
-                                )
-                        )
+        SharedPreferences central =
+                getSharedPreferences(
+                        "tajro_exchange_data",
+                        MODE_PRIVATE
                 );
 
-        dollarBalance =
-                Double.longBitsToDouble(
-                        prefs.getLong(
-                                "dollar",
-                                Double.doubleToLongBits(0)
-                        )
+        boolean migrated =
+                central.getBoolean(
+                        "old_exchange_migrated",
+                        false
                 );
 
-        euroBalance =
-                Double.longBitsToDouble(
-                        prefs.getLong(
-                                "euro",
-                                Double.doubleToLongBits(0)
-                        )
-                );
+        if (migrated) {
+            return;
+        }
 
-        tomanBalance =
-                Double.longBitsToDouble(
-                        prefs.getLong(
-                                "toman",
-                                Double.doubleToLongBits(0)
-                        )
-                );
+        migrateBalance(
+                central,
+                "afghani",
+                ExchangeData.AFN
+        );
 
-        liraBalance =
-                Double.longBitsToDouble(
-                        prefs.getLong(
-                                "lira",
-                                Double.doubleToLongBits(0)
-                        )
-                );
+        migrateBalance(
+                central,
+                "dollar",
+                ExchangeData.USD
+        );
 
-        rupeeBalance =
-                Double.longBitsToDouble(
-                        prefs.getLong(
-                                "rupee",
-                                Double.doubleToLongBits(0)
-                        )
-                );
-    }
+        migrateBalance(
+                central,
+                "euro",
+                ExchangeData.EUR
+        );
 
-    private void saveBalances() {
+        migrateBalance(
+                central,
+                "toman",
+                ExchangeData.TOMAN
+        );
 
-        prefs.edit()
-                .putLong(
-                        "afghani",
-                        Double.doubleToLongBits(
-                                afghaniBalance
-                        )
-                )
-                .putLong(
-                        "dollar",
-                        Double.doubleToLongBits(
-                                dollarBalance
-                        )
-                )
-                .putLong(
-                        "euro",
-                        Double.doubleToLongBits(
-                                euroBalance
-                        )
-                )
-                .putLong(
-                        "toman",
-                        Double.doubleToLongBits(
-                                tomanBalance
-                        )
-                )
-                .putLong(
-                        "lira",
-                        Double.doubleToLongBits(
-                                liraBalance
-                        )
-                )
-                .putLong(
-                        "rupee",
-                        Double.doubleToLongBits(
-                                rupeeBalance
-                        )
+        migrateBalance(
+                central,
+                "lira",
+                ExchangeData.TRY
+        );
+
+        migrateBalance(
+                central,
+                "rupee",
+                ExchangeData.PKR
+        );
+
+        central.edit()
+                .putBoolean(
+                        "old_exchange_migrated",
+                        true
                 )
                 .apply();
+    }
+
+    private void migrateBalance(
+            SharedPreferences central,
+            String oldKey,
+            String currency
+    ) {
+
+        if (!oldPrefs.contains(oldKey)) {
+            return;
+        }
+
+        try {
+
+            long bits =
+                    oldPrefs.getLong(
+                            oldKey,
+                            Double.doubleToLongBits(0)
+                    );
+
+            double oldValue =
+                    Double.longBitsToDouble(bits);
+
+            double current =
+                    ExchangeData.getBalance(
+                            currency
+                    );
+
+            /*
+             * اگر سیستم مرکزی مقدار پیش‌فرض دارد،
+             * مقدار قدیمی را فقط وقتی وارد می‌کنیم
+             * که مقدار واقعی قدیمی وجود داشته باشد.
+             */
+            if (oldValue != 0) {
+
+                ExchangeData.setBalance(
+                        currency,
+                        oldValue
+                );
+
+            } else if (current == 0) {
+
+                ExchangeData.setBalance(
+                        currency,
+                        0
+                );
+            }
+
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (balanceText != null) {
+            updateRatesText();
+            updateBalanceText();
+            updateHistory();
+            updateReport();
+        }
     }
 
     private String format(double value) {
@@ -1397,4 +1419,4 @@ public class ExchangeActivity extends Activity {
                 value
         );
     }
-}
+    }
