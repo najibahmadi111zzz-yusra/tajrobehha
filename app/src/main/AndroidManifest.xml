@@ -40,15 +40,16 @@
         <activity
             android:name=".VoiceActivity"
             android:exported="false" />
-<activity
-    android:name=".ExchangeActivity"
-    android:exported="false" />
+
         <activity
-            
-            <activity
-    android:name=".VaultActivity"
-    android:exported="false" />
-            
+            android:name=".ExchangeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".VaultActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true">
 
