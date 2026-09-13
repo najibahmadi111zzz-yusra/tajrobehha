@@ -2,12 +2,12 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.InputType;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -279,9 +279,7 @@ public class ExchangeActivity extends Activity {
                 android.R.layout.simple_spinner_dropdown_item
         );
 
-        typeSpinner.setAdapter(
-                typeAdapter
-        );
+        typeSpinner.setAdapter(typeAdapter);
 
         layout.addView(typeSpinner);
 
@@ -394,10 +392,19 @@ public class ExchangeActivity extends Activity {
                 0,
                 dp(5),
                 0,
-                dp(20)
+                dp(10)
         );
 
         layout.addView(balanceText);
+
+        // ---------------- دکمه گاوصندوق هوشمند ----------------
+
+        Button vaultButton =
+                makeButton(
+                        "🔐 ورود به گاوصندوق هوشمند"
+                );
+
+        layout.addView(vaultButton);
 
         // ---------------- تبدیل ارز ----------------
 
@@ -481,6 +488,19 @@ public class ExchangeActivity extends Activity {
 
         clearHistory.setOnClickListener(
                 v -> clearHistory()
+        );
+
+        // باز کردن گاوصندوق
+        vaultButton.setOnClickListener(
+                v -> {
+                    Intent intent =
+                            new Intent(
+                                    ExchangeActivity.this,
+                                    VaultActivity.class
+                            );
+
+                    startActivity(intent);
+                }
         );
 
         scrollView.addView(layout);
@@ -887,9 +907,7 @@ public class ExchangeActivity extends Activity {
                         item.optLong("receipt")
                 );
 
-                text.append(
-                        "\n"
-                );
+                text.append("\n");
             }
 
             historyText.setText(
