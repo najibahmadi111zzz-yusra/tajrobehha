@@ -98,4 +98,306 @@ public class ExchangeActivity extends Activity {
         transactionTitle.setText("🧾 ثبت معامله");
         transactionTitle.setTextSize(22);
         transactionTitle.setTypeface(null, Typeface.BOLD);
-        transactionTitle.setPadding(0, 30, 0, 
+        transactionTitle.setPadding(0, 30, 0, 15);
+
+        layout.addView(transactionTitle);
+
+        currencySpinner = new Spinner(this);
+
+        String[] currencies = {
+                "دلار آمریکا",
+                "یورو",
+                "تومان",
+                "لیره ترکیه",
+                "کلدار پاکستان"
+        };
+
+        ArrayAdapter<String> currencyAdapter =
+                new ArrayAdapter<>(
+                        this,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        currencies
+                );
+
+        currencySpinner.setAdapter(currencyAdapter);
+
+        layout.addView(currencySpinner);
+
+        typeSpinner = new Spinner(this);
+
+        String[] types = {
+                "خرید",
+                "فروش"
+        };
+
+        ArrayAdapter<String> typeAdapter =
+                new ArrayAdapter<>(
+                        this,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        types
+                );
+
+        typeSpinner.setAdapter(typeAdapter);
+
+        layout.addView(typeSpinner);
+
+        amountInput = new EditText(this);
+        amountInput.setHint("مقدار ارز");
+        amountInput.setInputType(2);
+
+        layout.addView(amountInput);
+
+        rateInput = new EditText(this);
+        rateInput.setHint("نرخ هر واحد به افغانی");
+        rateInput.setInputType(2);
+
+        layout.addView(rateInput);
+
+        Button calculateButton = new Button(this);
+        calculateButton.setText("🧮 محاسبه");
+
+        layout.addView(calculateButton);
+
+        totalText = new TextView(this);
+        totalText.setText("مبلغ کل: 0 افغانی");
+        totalText.setTextSize(20);
+        totalText.setTypeface(null, Typeface.BOLD);
+        totalText.setPadding(0, 20, 0, 20);
+
+        layout.addView(totalText);
+
+        Button saveButton = new Button(this);
+        saveButton.setText("✅ ثبت معامله");
+
+        layout.addView(saveButton);
+
+        balanceText = new TextView(this);
+        balanceText.setTextSize(19);
+        balanceText.setPadding(0, 30, 0, 20);
+
+        layout.addView(balanceText);
+
+        updateBalanceText();
+
+        receiptText = new TextView(this);
+        receiptText.setTextSize(18);
+        receiptText.setPadding(0, 20, 0, 30);
+
+        layout.addView(receiptText);
+
+        calculateButton.setOnClickListener(v ->
+                calculateTotal()
+        );
+
+        saveButton.setOnClickListener(v ->
+                saveTransaction()
+        );
+
+        scrollView.addView(layout);
+
+        setContentView(scrollView);
+    }
+
+    private void calculateTotal() {
+
+        try {
+
+            double amount =
+                    Double.parseDouble(
+                            amountInput.getText().toString()
+                    );
+
+            double rate =
+                    Double.parseDouble(
+                            rateInput.getText().toString()
+                    );
+
+            double total = amount * rate;
+
+            totalText.setText(
+                    "مبلغ کل: " +
+                            format(total) +
+                            " افغانی"
+            );
+
+        } catch (Exception e) {
+
+            Toast.makeText(
+                    this,
+                    "مقدار و نرخ را درست وارد کنید",
+                    Toast.LENGTH_SHORT
+            ).show();
+        }
+    }
+
+    private void saveTransaction() {
+
+        try {
+
+            double amount =
+                    Double.parseDouble(
+                            amountInput.getText().toString()
+                    );
+
+            double rate =
+                    Double.parseDouble(
+                            rateInput.getText().toString()
+                    );
+
+            double total = amount * rate;
+
+            String currency =
+                    currencySpinner
+                            .getSelectedItem()
+                            .toString();
+
+            String type =
+                    typeSpinner
+                            .getSelectedItem()
+                            .toString();
+
+            if (type.equals("خرید")) {
+
+                addCurrency(
+                        currency,
+                        amount
+                );
+
+                afghaniBalance -= total;
+
+            } else {
+
+                removeCurrency(
+                        currency,
+                        amount
+                );
+
+                afghaniBalance += total;
+            }
+
+            String date =
+                    new SimpleDateFormat(
+                            "yyyy/MM/dd HH:mm",
+                            Locale.getDefault()
+                    ).format(new Date());
+
+            String receipt =
+                    "━━━━━━━━━━━━━━\n" +
+                    "🧾 رسید معامله\n" +
+                    "━━━━━━━━━━━━━━\n" +
+                    "شماره رسید: " +
+                    System.currentTimeMillis() +
+                    "\n\n" +
+                    "نوع معامله: " +
+                    type +
+                    "\n" +
+                    "ارز: " +
+                    currency +
+                    "\n" +
+                    "مقدار: " +
+                    format(amount) +
+                    "\n" +
+                    "نرخ: " +
+                    format(rate) +
+                    " افغانی\n" +
+                    "مبلغ کل: " +
+                    format(total) +
+                    " افغانی\n" +
+                    "تاریخ: " +
+                    date +
+                    "\n" +
+                    "━━━━━━━━━━━━━━";
+
+            receiptText.setText(receipt);
+
+            updateBalanceText();
+
+            amountInput.setText("");
+            rateInput.setText("");
+
+            Toast.makeText(
+                    this,
+                    "معامله با موفقیت ثبت شد",
+                    Toast.LENGTH_LONG
+            ).show();
+
+        } catch (Exception e) {
+
+            Toast.makeText(
+                    this,
+                    "لطفاً مقدار و نرخ را درست وارد کنید",
+                    Toast.LENGTH_SHORT
+            ).show();
+        }
+    }
+
+    private void addCurrency(
+            String currency,
+            double amount
+    ) {
+
+        if (currency.equals("دلار آمریکا")) {
+            dollarBalance += amount;
+        } else if (currency.equals("یورو")) {
+            euroBalance += amount;
+        } else if (currency.equals("تومان")) {
+            tomanBalance += amount;
+        } else if (currency.equals("لیره ترکیه")) {
+            liraBalance += amount;
+        } else if (currency.equals("کلدار پاکستان")) {
+            rupeeBalance += amount;
+        }
+    }
+
+    private void removeCurrency(
+            String currency,
+            double amount
+    ) {
+
+        if (currency.equals("دلار آمریکا")) {
+            dollarBalance -= amount;
+        } else if (currency.equals("یورو")) {
+            euroBalance -= amount;
+        } else if (currency.equals("تومان")) {
+            tomanBalance -= amount;
+        } else if (currency.equals("لیره ترکیه")) {
+            liraBalance -= amount;
+        } else if (currency.equals("کلدار پاکستان")) {
+            rupeeBalance -= amount;
+        }
+    }
+
+    private void updateBalanceText() {
+
+        String balance =
+                "💰 موجودی صرافی\n\n" +
+                "افغانی: " +
+                format(afghaniBalance) +
+                "\n" +
+                "دلار: " +
+                format(dollarBalance) +
+                "\n" +
+                "یورو: " +
+                format(euroBalance) +
+                "\n" +
+                "تومان: " +
+                format(tomanBalance) +
+                "\n" +
+                "لیره: " +
+                format(liraBalance) +
+                "\n" +
+                "کلدار: " +
+                format(rupeeBalance);
+
+        balanceText.setText(balance);
+    }
+
+    private String format(double value) {
+
+        return String.format(
+                Locale.US,
+                "%.2f",
+                value
+        );
+    }
+}
