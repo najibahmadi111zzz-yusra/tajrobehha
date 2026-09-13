@@ -29,7 +29,7 @@ public class VoiceActivity extends Activity {
             "voice_messages";
 
     private static final String SUPABASE_KEY =
-            "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
+            " ";
 
     private static final int RECORD_AUDIO_REQUEST = 100;
 
