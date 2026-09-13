@@ -11,8 +11,11 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -26,7 +29,7 @@ public class VoiceActivity extends Activity {
             "voice_messages";
 
     private static final String SUPABASE_KEY =
-            "sb_publishable_13v_O6f0AW81SYFCtYBDVQ_v6YO8MvB";
+            "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
 
     private static final int RECORD_AUDIO_REQUEST = 100;
 
@@ -327,12 +330,55 @@ public class VoiceActivity extends Activity {
                 }
 
                 output.flush();
-
-                input.close();
                 output.close();
+                input.close();
 
                 int responseCode =
                         connection.getResponseCode();
+
+                InputStream errorStream;
+
+                if (responseCode >= 200 &&
+                        responseCode < 300) {
+
+                    errorStream =
+                            connection.getInputStream();
+
+                } else {
+
+                    errorStream =
+                            connection.getErrorStream();
+                }
+
+                String responseMessage = "";
+
+                if (errorStream != null) {
+
+                    BufferedReader reader =
+                            new BufferedReader(
+                                    new InputStreamReader(
+                                            errorStream
+                                    )
+                            );
+
+                    StringBuilder builder =
+                            new StringBuilder();
+
+                    String line;
+
+                    while ((line = reader.readLine()) != null) {
+
+                        builder.append(line);
+                    }
+
+                    reader.close();
+
+                    responseMessage =
+                            builder.toString();
+                }
+
+                final String finalMessage =
+                        responseMessage;
 
                 runOnUiThread(() -> {
 
@@ -340,31 +386,38 @@ public class VoiceActivity extends Activity {
                             responseCode < 300) {
 
                         statusText.setText(
-                                "پیام صوتی ذخیره شد"
+                                "✅ پیام صوتی ذخیره شد"
                         );
 
                         Toast.makeText(
                                 VoiceActivity.this,
-                                "صدا با موفقیت ذخیره شد",
+                                "صدا با موفقیت در Supabase ذخیره شد",
                                 Toast.LENGTH_LONG
                         ).show();
 
                     } else {
 
                         statusText.setText(
-                                "ارسال ناموفق بود"
+                                "خطای Supabase: " +
+                                        responseCode
                         );
 
                         Toast.makeText(
                                 VoiceActivity.this,
-                                "خطای Supabase: " +
-                                        responseCode,
+                                "خطای " +
+                                        responseCode +
+                                        ": " +
+                                        finalMessage,
                                 Toast.LENGTH_LONG
                         ).show();
                     }
                 });
 
-                file.delete();
+                if (responseCode >= 200 &&
+                        responseCode < 300) {
+
+                    file.delete();
+                }
 
             } catch (Exception e) {
 
@@ -406,4 +459,4 @@ public class VoiceActivity extends Activity {
 
         super.onDestroy();
     }
-}
+            }
