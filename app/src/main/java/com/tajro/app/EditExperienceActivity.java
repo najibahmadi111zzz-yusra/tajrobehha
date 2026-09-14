@@ -1,7 +1,10 @@
 package com.tajro.app;
+
 import android.app.Activity;
 import android.os.Bundle;
+import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -24,12 +27,16 @@ public class EditExperienceActivity extends Activity {
 
     private String documentId;
 
+    private int themeColor;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
+
+        themeColor = ThemeManager.getThemeColor(this);
 
         documentId = getIntent().getStringExtra("documentId");
 
@@ -39,12 +46,14 @@ public class EditExperienceActivity extends Activity {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(35, 50, 35, 35);
+        layout.setBackgroundColor(getLightThemeColor());
 
         android.widget.TextView pageTitle =
                 new android.widget.TextView(this);
 
         pageTitle.setText("✏️ ویرایش تجربه");
         pageTitle.setTextSize(26);
+        pageTitle.setTextColor(themeColor);
         pageTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         pageTitle.setGravity(Gravity.CENTER);
         pageTitle.setPadding(0, 0, 0, 35);
@@ -67,6 +76,7 @@ public class EditExperienceActivity extends Activity {
 
         Button saveButton = new Button(this);
         saveButton.setText("💾 ذخیره تغییرات");
+        styleButton(saveButton);
 
         layout.addView(pageTitle);
         layout.addView(titleInput);
@@ -181,5 +191,30 @@ public class EditExperienceActivity extends Activity {
                             Toast.LENGTH_LONG
                     ).show();
                 });
+    }
+
+    private void styleButton(Button button) {
+
+        GradientDrawable background =
+                new GradientDrawable();
+
+        background.setColor(themeColor);
+        background.setCornerRadius(24);
+
+        button.setBackground(background);
+        button.setTextColor(Color.WHITE);
+    }
+
+    private int getLightThemeColor() {
+
+        int red = Color.red(themeColor);
+        int green = Color.green(themeColor);
+        int blue = Color.blue(themeColor);
+
+        red = red + (255 - red) * 92 / 100;
+        green = green + (255 - green) * 92 / 100;
+        blue = blue + (255 - blue) * 92 / 100;
+
+        return Color.rgb(red, green, blue);
     }
 }
