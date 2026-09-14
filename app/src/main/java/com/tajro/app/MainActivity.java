@@ -18,6 +18,9 @@ public class MainActivity extends Activity {
 
     private RewardedAdManager rewardedAdManager;
 
+    // تبلیغ بینابینی
+    private InterstitialAdManager interstitialAdManager;
+
     private int dp(int value) {
         return (int) (value * getResources()
                 .getDisplayMetrics().density);
@@ -72,12 +75,29 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // ==================================
         // Unity Rewarded Ad
+        // ==================================
+
         rewardedAdManager =
                 new RewardedAdManager(this);
 
-        // آماده‌سازی تبلیغ
+        // آماده‌سازی تبلیغ جایزه‌ای
         rewardedAdManager.loadRewardedAd();
+
+        // ==================================
+        // Unity Interstitial Ad
+        // ==================================
+
+        interstitialAdManager =
+                new InterstitialAdManager(this);
+
+        // آماده‌سازی تبلیغ بینابینی
+        interstitialAdManager.loadInterstitialAd();
+
+        // ==================================
+        // صفحه اصلی
+        // ==================================
 
         ScrollView scrollView =
                 new ScrollView(this);
@@ -115,12 +135,20 @@ public class MainActivity extends Activity {
                 )
         );
 
+        // ==================================
+        // لوگو
+        // ==================================
+
         TextView logo =
                 new TextView(this);
 
         logo.setText("📖💡");
         logo.setTextSize(52);
         logo.setGravity(Gravity.CENTER);
+
+        // ==================================
+        // عنوان
+        // ==================================
 
         TextView title =
                 new TextView(this);
@@ -147,6 +175,10 @@ public class MainActivity extends Activity {
                 dp(8)
         );
 
+        // ==================================
+        // متن خوش‌آمدگویی
+        // ==================================
+
         TextView welcome =
                 new TextView(this);
 
@@ -169,6 +201,10 @@ public class MainActivity extends Activity {
         layout.addView(title);
         layout.addView(welcome);
 
+        // ==================================
+        // ردیف اول
+        // ==================================
+
         LinearLayout row1 =
                 new LinearLayout(this);
 
@@ -184,6 +220,10 @@ public class MainActivity extends Activity {
 
         row1.addView(addButton);
         row1.addView(listButton);
+
+        // ==================================
+        // ردیف دوم
+        // ==================================
 
         LinearLayout row2 =
                 new LinearLayout(this);
@@ -201,6 +241,10 @@ public class MainActivity extends Activity {
         row2.addView(chatButton);
         row2.addView(voiceButton);
 
+        // ==================================
+        // ردیف سوم
+        // ==================================
+
         LinearLayout row3 =
                 new LinearLayout(this);
 
@@ -216,6 +260,10 @@ public class MainActivity extends Activity {
 
         row3.addView(aiButton);
         row3.addView(accountButton);
+
+        // ==================================
+        // ردیف چهارم
+        // ==================================
 
         LinearLayout row4 =
                 new LinearLayout(this);
@@ -233,6 +281,10 @@ public class MainActivity extends Activity {
         row4.addView(exchangeButton);
         row4.addView(settingsButton);
 
+        // ==================================
+        // ردیف پنجم
+        // ==================================
+
         LinearLayout row5 =
                 new LinearLayout(this);
 
@@ -245,29 +297,46 @@ public class MainActivity extends Activity {
 
         row5.addView(aboutButton);
 
+        // ==================================
         // دکمه تبلیغ جایزه‌ای
+        // ==================================
+
         Button rewardedButton =
-                createButton("🎁 تماشای تبلیغ و دریافت جایزه");
-LinearLayout.LayoutParams rewardedParams =
-        new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(65)
+                createButton(
+                        "🎁 تماشای تبلیغ و دریافت جایزه"
+                );
+
+        LinearLayout.LayoutParams rewardedParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(65)
+                );
+
+        rewardedParams.setMargins(
+                dp(6),
+                dp(6),
+                dp(6),
+                dp(6)
         );
 
-rewardedParams.setMargins(
-        dp(6),
-        dp(6),
-        dp(6),
-        dp(6)
-);
+        rewardedButton.setLayoutParams(
+                rewardedParams
+        );
 
-rewardedButton.setLayoutParams(rewardedParams);
+        // ==================================
+        // اضافه کردن دکمه‌ها
+        // ==================================
+
         layout.addView(row1);
         layout.addView(row2);
         layout.addView(row3);
         layout.addView(row4);
         layout.addView(row5);
         layout.addView(rewardedButton);
+
+        // ==================================
+        // پایین صفحه
+        // ==================================
 
         TextView footer =
                 new TextView(this);
@@ -289,6 +358,10 @@ rewardedButton.setLayoutParams(rewardedParams);
 
         layout.addView(footer);
 
+        // ==================================
+        // ثبت تجربه
+        // ==================================
+
         addButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -300,7 +373,15 @@ rewardedButton.setLayoutParams(rewardedParams);
             startActivity(intent);
         });
 
+        // ==================================
+        // دیدن تجربه‌ها
+        // تبلیغ حداکثر یک بار در 24 ساعت
+        // ==================================
+
         listButton.setOnClickListener(v -> {
+
+            interstitialAdManager
+                    .showInterstitialIfAllowed();
 
             Intent intent =
                     new Intent(
@@ -310,6 +391,10 @@ rewardedButton.setLayoutParams(rewardedParams);
 
             startActivity(intent);
         });
+
+        // ==================================
+        // چت
+        // ==================================
 
         chatButton.setOnClickListener(v -> {
 
@@ -322,6 +407,10 @@ rewardedButton.setLayoutParams(rewardedParams);
             startActivity(intent);
         });
 
+        // ==================================
+        // پیام صوتی
+        // ==================================
+
         voiceButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -333,7 +422,15 @@ rewardedButton.setLayoutParams(rewardedParams);
             startActivity(intent);
         });
 
+        // ==================================
+        // صرافی
+        // تبلیغ حداکثر یک بار در 24 ساعت
+        // ==================================
+
         exchangeButton.setOnClickListener(v -> {
+
+            interstitialAdManager
+                    .showInterstitialIfAllowed();
 
             Intent intent =
                     new Intent(
@@ -343,6 +440,10 @@ rewardedButton.setLayoutParams(rewardedParams);
 
             startActivity(intent);
         });
+
+        // ==================================
+        // دستیار هوشمند
+        // ==================================
 
         aiButton.setOnClickListener(v -> {
 
@@ -355,6 +456,10 @@ rewardedButton.setLayoutParams(rewardedParams);
             startActivity(intent);
         });
 
+        // ==================================
+        // اکانت
+        // ==================================
+
         accountButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -366,6 +471,10 @@ rewardedButton.setLayoutParams(rewardedParams);
             startActivity(intent);
         });
 
+        // ==================================
+        // تنظیمات
+        // ==================================
+
         settingsButton.setOnClickListener(v -> {
 
             Toast.makeText(
@@ -374,6 +483,10 @@ rewardedButton.setLayoutParams(rewardedParams);
                     Toast.LENGTH_SHORT
             ).show();
         });
+
+        // ==================================
+        // درباره برنامه
+        // ==================================
 
         aboutButton.setOnClickListener(v -> {
 
@@ -384,7 +497,10 @@ rewardedButton.setLayoutParams(rewardedParams);
             ).show();
         });
 
-        // نمایش تبلیغ جایزه‌ای
+        // ==================================
+        // تبلیغ جایزه‌ای
+        // ==================================
+
         rewardedButton.setOnClickListener(v -> {
 
             rewardedAdManager.showRewardedAd(
@@ -422,6 +538,10 @@ rewardedButton.setLayoutParams(rewardedParams);
                     }
             );
         });
+
+        // ==================================
+        // نمایش صفحه
+        // ==================================
 
         setContentView(scrollView);
     }
