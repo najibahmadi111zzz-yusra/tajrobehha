@@ -15,6 +15,11 @@ android {
         versionName '1.0'
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
     buildFeatures {
         buildConfig true
     }
@@ -42,12 +47,11 @@ dependencies {
     implementation 'com.google.firebase:firebase-firestore'
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-ai'
-
-    // Firebase Storage برای ذخیره پیام‌های صوتی
     implementation 'com.google.firebase:firebase-storage'
-
-    // Firebase App Check برای تست
     implementation 'com.google.firebase:firebase-appcheck-debug'
 
     implementation 'com.google.guava:guava:31.0.1-android'
+
+    // Unity Ads
+    implementation 'com.unity3d.ads:unity-ads:4.20.0'
 }
