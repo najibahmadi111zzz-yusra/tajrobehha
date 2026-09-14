@@ -7,15 +7,16 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.appcheck.FirebaseAppCheck;
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
 
-import com.unity3d.ads.IUnityAdsInitializationListener;
+import com.unity3d.ads.InitializationConfiguration;
+import com.unity3d.ads.InitializationListener;
 import com.unity3d.ads.UnityAds;
+import com.unity3d.ads.UnityAdsError;
 
-public class TajroApplication extends Application
-        implements IUnityAdsInitializationListener {
+public class TajroApplication extends Application {
 
-    private static final String UNITY_GAME_ID = "800372948";
+    private static final String UNITY_GAME_ID = "864578833";
 
-    // فعلاً حتماً true باشد؛ برای تست تبلیغ
+    // فعلاً برای تست حتماً true باشد
     private static final boolean TEST_MODE = true;
 
     @Override
@@ -34,28 +35,36 @@ public class TajroApplication extends Application
         );
 
         // Unity Ads
+        InitializationConfiguration config =
+                new InitializationConfiguration.Builder(
+                        UNITY_GAME_ID
+                )
+                        .withTestMode(TEST_MODE)
+                        .build();
+
+        InitializationListener listener =
+                error -> {
+
+                    if (error == null) {
+
+                        Log.d(
+                                "UnityAds",
+                                "Unity Ads initialized successfully"
+                        );
+
+                    } else {
+
+                        Log.e(
+                                "UnityAds",
+                                "Unity Ads initialization failed: "
+                                        + error.getMessage()
+                        );
+                    }
+                };
+
         UnityAds.initialize(
-                this,
-                UNITY_GAME_ID,
-                TEST_MODE,
-                this
-        );
-    }
-
-    @Override
-    public void onInitializationComplete() {
-        Log.d("UnityAds", "Unity Ads initialized successfully");
-    }
-
-    @Override
-    public void onInitializationFailed(
-            UnityAds.UnityAdsInitializationError error,
-            String message) {
-
-        Log.e(
-                "UnityAds",
-                "Unity Ads initialization failed: "
-                        + error + " - " + message
+                config,
+                listener
         );
     }
 }
