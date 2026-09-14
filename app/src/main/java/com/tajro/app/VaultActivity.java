@@ -2,6 +2,8 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.EditText;
@@ -23,6 +25,8 @@ public class VaultActivity extends Activity {
     private EditText noteInput;
     private Spinner currencySpinner;
 
+    private int themeColor;
+
     private final String[] currencies = {
             ExchangeData.AFN,
             ExchangeData.USD,
@@ -38,6 +42,8 @@ public class VaultActivity extends Activity {
 
         data = ExchangeData.get(this);
 
+        themeColor = ThemeManager.getThemeColor(this);
+
         buildScreen();
         updateBalance();
     }
@@ -48,10 +54,12 @@ public class VaultActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(30, 30, 30, 30);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
+        root.setBackgroundColor(getLightThemeColor());
 
         TextView title = new TextView(this);
         title.setText("🔐 گاوصندوق هوشمند");
         title.setTextSize(26);
+        title.setTextColor(themeColor);
         title.setGravity(Gravity.CENTER);
         title.setPadding(0, 10, 0, 25);
 
@@ -83,6 +91,7 @@ public class VaultActivity extends Activity {
 
         balanceText = new TextView(this);
         balanceText.setTextSize(22);
+        balanceText.setTextColor(themeColor);
         balanceText.setGravity(Gravity.CENTER);
         balanceText.setPadding(0, 25, 0, 25);
 
@@ -103,18 +112,22 @@ public class VaultActivity extends Activity {
 
         Button depositButton = new Button(this);
         depositButton.setText("➕ گذاشتن در گاوصندوق");
+        styleButton(depositButton);
         root.addView(depositButton);
 
         Button withdrawButton = new Button(this);
         withdrawButton.setText("➖ برداشت از گاوصندوق");
+        styleButton(withdrawButton);
         root.addView(withdrawButton);
 
         Button historyButton = new Button(this);
         historyButton.setText("📋 تاریخچه گاوصندوق");
+        styleButton(historyButton);
         root.addView(historyButton);
 
         Button backButton = new Button(this);
         backButton.setText("⬅️ بازگشت");
+        styleButton(backButton);
         root.addView(backButton);
 
         depositButton.setOnClickListener(v -> deposit());
@@ -406,4 +419,29 @@ public class VaultActivity extends Activity {
             ).show();
         }
     }
-          }
+
+    private void styleButton(Button button) {
+
+        GradientDrawable background =
+                new GradientDrawable();
+
+        background.setColor(themeColor);
+        background.setCornerRadius(24);
+
+        button.setBackground(background);
+        button.setTextColor(Color.WHITE);
+    }
+
+    private int getLightThemeColor() {
+
+        int red = Color.red(themeColor);
+        int green = Color.green(themeColor);
+        int blue = Color.blue(themeColor);
+
+        red = red + (255 - red) * 92 / 100;
+        green = green + (255 - green) * 92 / 100;
+        blue = blue + (255 - blue) * 92 / 100;
+
+        return Color.rgb(red, green, blue);
+    }
+                               }
