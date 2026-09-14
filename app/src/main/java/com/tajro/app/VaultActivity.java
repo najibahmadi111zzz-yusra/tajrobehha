@@ -444,4 +444,4 @@ public class VaultActivity extends Activity {
 
         return Color.rgb(red, green, blue);
     }
-                               }
+}
