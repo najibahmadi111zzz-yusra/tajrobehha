@@ -12,7 +12,6 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
@@ -33,10 +32,12 @@ public class MainActivity extends Activity {
         button.setText(text);
         button.setTextSize(16);
         button.setTextColor(Color.WHITE);
+
         button.setTypeface(
                 Typeface.DEFAULT,
                 Typeface.BOLD
         );
+
         button.setGravity(Gravity.CENTER);
 
         GradientDrawable background =
@@ -82,7 +83,6 @@ public class MainActivity extends Activity {
         rewardedAdManager =
                 new RewardedAdManager(this);
 
-        // آماده‌سازی تبلیغ جایزه‌ای
         rewardedAdManager.loadRewardedAd();
 
         // ==================================
@@ -92,7 +92,6 @@ public class MainActivity extends Activity {
         interstitialAdManager =
                 new InterstitialAdManager(this);
 
-        // آماده‌سازی تبلیغ بینابینی
         interstitialAdManager.loadInterstitialAd();
 
         // ==================================
@@ -155,6 +154,7 @@ public class MainActivity extends Activity {
 
         title.setText("تجربه‌ها");
         title.setTextSize(34);
+
         title.setTextColor(
                 Color.rgb(8, 65, 90)
         );
@@ -176,7 +176,7 @@ public class MainActivity extends Activity {
         );
 
         // ==================================
-        // متن خوش‌آمدگویی
+        // خوش‌آمدگویی
         // ==================================
 
         TextView welcome =
@@ -235,11 +235,11 @@ public class MainActivity extends Activity {
         Button chatButton =
                 createButton("💬 چت");
 
-        Button voiceButton =
-                createButton("🎤 پیام صوتی");
+        Button aiButton =
+                createButton("🤖 دستیار هوشمند");
 
         row2.addView(chatButton);
-        row2.addView(voiceButton);
+        row2.addView(aiButton);
 
         // ==================================
         // ردیف سوم
@@ -252,53 +252,17 @@ public class MainActivity extends Activity {
                 LinearLayout.HORIZONTAL
         );
 
-        Button aiButton =
-                createButton("🤖 دستیار هوشمند");
-
-        Button accountButton =
-                createButton("👤 اکانت من");
-
-        row3.addView(aiButton);
-        row3.addView(accountButton);
-
-        // ==================================
-        // ردیف چهارم
-        // ==================================
-
-        LinearLayout row4 =
-                new LinearLayout(this);
-
-        row4.setOrientation(
-                LinearLayout.HORIZONTAL
-        );
-
         Button exchangeButton =
                 createButton("💱 صرافی");
 
         Button settingsButton =
                 createButton("⚙️ تنظیمات");
 
-        row4.addView(exchangeButton);
-        row4.addView(settingsButton);
+        row3.addView(exchangeButton);
+        row3.addView(settingsButton);
 
         // ==================================
-        // ردیف پنجم
-        // ==================================
-
-        LinearLayout row5 =
-                new LinearLayout(this);
-
-        row5.setOrientation(
-                LinearLayout.HORIZONTAL
-        );
-
-        Button aboutButton =
-                createButton("ℹ️ درباره برنامه");
-
-        row5.addView(aboutButton);
-
-        // ==================================
-        // دکمه تبلیغ جایزه‌ای
+        // تبلیغ جایزه‌ای
         // ==================================
 
         Button rewardedButton =
@@ -324,14 +288,12 @@ public class MainActivity extends Activity {
         );
 
         // ==================================
-        // اضافه کردن دکمه‌ها
+        // اضافه کردن بخش‌ها
         // ==================================
 
         layout.addView(row1);
         layout.addView(row2);
         layout.addView(row3);
-        layout.addView(row4);
-        layout.addView(row5);
         layout.addView(rewardedButton);
 
         // ==================================
@@ -375,7 +337,6 @@ public class MainActivity extends Activity {
 
         // ==================================
         // دیدن تجربه‌ها
-        // تبلیغ حداکثر یک بار در 24 ساعت
         // ==================================
 
         listButton.setOnClickListener(v -> {
@@ -408,15 +369,15 @@ public class MainActivity extends Activity {
         });
 
         // ==================================
-        // پیام صوتی
+        // دستیار هوشمند
         // ==================================
 
-        voiceButton.setOnClickListener(v -> {
+        aiButton.setOnClickListener(v -> {
 
             Intent intent =
                     new Intent(
                             MainActivity.this,
-                            VoiceActivity.class
+                            AIActivity.class
                     );
 
             startActivity(intent);
@@ -424,7 +385,6 @@ public class MainActivity extends Activity {
 
         // ==================================
         // صرافی
-        // تبلیغ حداکثر یک بار در 24 ساعت
         // ==================================
 
         exchangeButton.setOnClickListener(v -> {
@@ -442,59 +402,18 @@ public class MainActivity extends Activity {
         });
 
         // ==================================
-        // دستیار هوشمند
-        // ==================================
-
-        aiButton.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            MainActivity.this,
-                            AIActivity.class
-                    );
-
-            startActivity(intent);
-        });
-
-        // ==================================
-        // اکانت
-        // ==================================
-
-        accountButton.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            MainActivity.this,
-                            AccountActivity.class
-                    );
-
-            startActivity(intent);
-        });
-
-        // ==================================
         // تنظیمات
         // ==================================
 
         settingsButton.setOnClickListener(v -> {
 
-            Toast.makeText(
-                    MainActivity.this,
-                    "تنظیمات به‌زودی اضافه می‌شود",
-                    Toast.LENGTH_SHORT
-            ).show();
-        });
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            SettingsActivity.class
+                    );
 
-        // ==================================
-        // درباره برنامه
-        // ==================================
-
-        aboutButton.setOnClickListener(v -> {
-
-            Toast.makeText(
-                    MainActivity.this,
-                    "اپلیکیشن تجربه‌ها",
-                    Toast.LENGTH_SHORT
-            ).show();
+            startActivity(intent);
         });
 
         // ==================================
@@ -509,30 +428,30 @@ public class MainActivity extends Activity {
                         @Override
                         public void onRewarded() {
 
-                            Toast.makeText(
+                            android.widget.Toast.makeText(
                                     MainActivity.this,
                                     "🎉 جایزه شما فعال شد!",
-                                    Toast.LENGTH_LONG
+                                    android.widget.Toast.LENGTH_LONG
                             ).show();
                         }
 
                         @Override
                         public void onAdNotReady() {
 
-                            Toast.makeText(
+                            android.widget.Toast.makeText(
                                     MainActivity.this,
                                     "⏳ تبلیغ هنوز آماده نیست، چند لحظه بعد دوباره امتحان کنید.",
-                                    Toast.LENGTH_SHORT
+                                    android.widget.Toast.LENGTH_SHORT
                             ).show();
                         }
 
                         @Override
                         public void onAdFailed() {
 
-                            Toast.makeText(
+                            android.widget.Toast.makeText(
                                     MainActivity.this,
                                     "❌ نمایش تبلیغ ناموفق بود.",
-                                    Toast.LENGTH_SHORT
+                                    android.widget.Toast.LENGTH_SHORT
                             ).show();
                         }
                     }
