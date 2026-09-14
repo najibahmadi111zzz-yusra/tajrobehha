@@ -15,7 +15,7 @@ import com.unity3d.ads.UnityAdsError;
 
 public class TajroApplication extends Application {
 
-    private static final String UNITY_GAME_ID = "77667888";
+    private static final String UNITY_GAME_ID = "800372948";
 
     // در مرحله تست حتماً true باشد
     private static final boolean TEST_MODE = true;
