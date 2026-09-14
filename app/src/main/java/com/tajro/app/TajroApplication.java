@@ -2,6 +2,7 @@ package com.tajro.app;
 
 import android.app.Application;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.appcheck.FirebaseAppCheck;
@@ -16,25 +17,45 @@ public class TajroApplication extends Application {
 
     private static final String UNITY_GAME_ID = "864578833";
 
-    // فعلاً برای تست حتماً true باشد
+    // در مرحله تست حتماً true باشد
     private static final boolean TEST_MODE = true;
 
     @Override
     public void onCreate() {
         super.onCreate();
 
+        // =========================
         // Firebase
-        FirebaseApp.initializeApp(this);
+        // =========================
+        try {
 
-        // Firebase App Check
-        FirebaseAppCheck firebaseAppCheck =
-                FirebaseAppCheck.getInstance();
+            FirebaseApp.initializeApp(this);
 
-        firebaseAppCheck.installAppCheckProviderFactory(
-                DebugAppCheckProviderFactory.getInstance()
-        );
+            FirebaseAppCheck firebaseAppCheck =
+                    FirebaseAppCheck.getInstance();
 
+            firebaseAppCheck.installAppCheckProviderFactory(
+                    DebugAppCheckProviderFactory.getInstance()
+            );
+
+            Log.d(
+                    "Firebase",
+                    "Firebase initialized successfully"
+            );
+
+        } catch (Exception e) {
+
+            Log.e(
+                    "Firebase",
+                    "Firebase initialization error",
+                    e
+            );
+        }
+
+        // =========================
         // Unity Ads
+        // =========================
+
         InitializationConfiguration config =
                 new InitializationConfiguration.Builder(
                         UNITY_GAME_ID
@@ -52,15 +73,36 @@ public class TajroApplication extends Application {
                                 "Unity Ads initialized successfully"
                         );
 
+                        Toast.makeText(
+                                this,
+                                "✅ Unity Ads آماده شد.",
+                                Toast.LENGTH_SHORT
+                        ).show();
+
                     } else {
+
+                        String message =
+                                error.getMessage();
 
                         Log.e(
                                 "UnityAds",
                                 "Unity Ads initialization failed: "
-                                        + error.getMessage()
+                                        + message
                         );
+
+                        Toast.makeText(
+                                this,
+                                "❌ خطای Unity Ads: "
+                                        + message,
+                                Toast.LENGTH_LONG
+                        ).show();
                     }
                 };
+
+        Log.d(
+                "UnityAds",
+                "Starting Unity Ads initialization..."
+        );
 
         UnityAds.initialize(
                 config,
