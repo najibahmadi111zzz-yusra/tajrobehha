@@ -16,7 +16,7 @@ public class RewardedAdManager {
 
     private static final String TAG = "RewardedAdManager";
 
-    // شناسه دقیق جایگاه Rewarded از Unity
+    // شناسه دقیق جایگاه تبلیغ Rewarded در Unity
     private static final String AD_UNIT_ID = "BP_Rewarded_Android";
 
     private final Activity activity;
@@ -27,11 +27,24 @@ public class RewardedAdManager {
         this.activity = activity;
     }
 
+    // ==============================
     // بارگذاری تبلیغ
+    // ==============================
     public void loadRewardedAd() {
 
         if (!UnityAds.isInitialized()) {
-            Log.e(TAG, "Unity Ads is not initialized");
+
+            Log.e(
+                    TAG,
+                    "Unity Ads is not initialized"
+            );
+
+            Toast.makeText(
+                    activity,
+                    "❌ Unity Ads هنوز آماده نشده است.",
+                    Toast.LENGTH_SHORT
+            ).show();
+
             return;
         }
 
@@ -52,6 +65,12 @@ public class RewardedAdManager {
                                 "Rewarded Ad Loaded Successfully"
                         );
 
+                        Toast.makeText(
+                                activity,
+                                "✅ تبلیغ آماده شد.",
+                                Toast.LENGTH_SHORT
+                        ).show();
+
                         rewardedAd.setOnAdExpired(
                                 expiredAd -> {
 
@@ -62,6 +81,7 @@ public class RewardedAdManager {
 
                                     rewardedAd = null;
 
+                                    // بارگذاری تبلیغ جدید
                                     loadRewardedAd();
                                 }
                         );
@@ -70,22 +90,41 @@ public class RewardedAdManager {
 
                         rewardedAd = null;
 
-                        String message =
-                                error != null
-                                        ? error.getMessage()
-                                        : "Unknown error";
+                        String message;
+
+                        if (error != null) {
+
+                            message =
+                                    "کد "
+                                            + error.getCode()
+                                            + ": "
+                                            + error.getMessage();
+
+                        } else {
+
+                            message = "Unknown error";
+                        }
 
                         Log.e(
                                 TAG,
                                 "Rewarded Ad Load Failed: "
                                         + message
                         );
+
+                        // نمایش خطای واقعی روی صفحه
+                        Toast.makeText(
+                                activity,
+                                "❌ خطای تبلیغ: " + message,
+                                Toast.LENGTH_LONG
+                        ).show();
                     }
                 }
         );
     }
 
+    // ==============================
     // نمایش تبلیغ
+    // ==============================
     public void showRewardedAd(
             final RewardListener rewardListener) {
 
@@ -102,15 +141,18 @@ public class RewardedAdManager {
                     "Rewarded Ad is not ready"
             );
 
+            // تلاش دوباره برای بارگذاری
             loadRewardedAd();
 
             if (rewardListener != null) {
+
                 rewardListener.onAdNotReady();
             }
 
             return;
         }
 
+        // تبلیغ فعلی را برای نمایش نگه می‌داریم
         RewardedAd adToShow = rewardedAd;
 
         // جلوگیری از نمایش دوباره همان تبلیغ
@@ -155,6 +197,7 @@ public class RewardedAdManager {
                         );
 
                         if (rewardListener != null) {
+
                             rewardListener.onRewarded();
                         }
                     }
@@ -178,10 +221,20 @@ public class RewardedAdManager {
                             RewardedAd ad,
                             UnityAdsError error) {
 
-                        String message =
-                                error != null
-                                        ? error.getMessage()
-                                        : "Unknown error";
+                        String message;
+
+                        if (error != null) {
+
+                            message =
+                                    "کد "
+                                            + error.getCode()
+                                            + ": "
+                                            + error.getMessage();
+
+                        } else {
+
+                            message = "Unknown error";
+                        }
 
                         Log.e(
                                 TAG,
@@ -189,20 +242,36 @@ public class RewardedAdManager {
                                         + message
                         );
 
+                        Toast.makeText(
+                                activity,
+                                "❌ خطای نمایش تبلیغ: "
+                                        + message,
+                                Toast.LENGTH_LONG
+                        ).show();
+
                         if (rewardListener != null) {
+
                             rewardListener.onAdFailed();
                         }
 
+                        // تلاش برای بارگذاری تبلیغ بعدی
                         loadRewardedAd();
                     }
                 }
         );
     }
 
+    // ==============================
+    // بررسی آماده بودن تبلیغ
+    // ==============================
     public boolean isAdLoaded() {
+
         return rewardedAd != null;
     }
 
+    // ==============================
+    // نتیجه تبلیغ
+    // ==============================
     public interface RewardListener {
 
         void onRewarded();
