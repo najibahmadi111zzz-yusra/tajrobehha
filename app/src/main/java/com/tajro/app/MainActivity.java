@@ -16,6 +16,8 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
+    private RewardedAdManager rewardedAdManager;
+
     private int dp(int value) {
         return (int) (value * getResources()
                 .getDisplayMetrics().density);
@@ -69,6 +71,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Unity Rewarded Ad
+        rewardedAdManager =
+                new RewardedAdManager(this);
+
+        // آماده‌سازی تبلیغ
+        rewardedAdManager.loadRewardedAd();
 
         ScrollView scrollView =
                 new ScrollView(this);
@@ -236,11 +245,16 @@ public class MainActivity extends Activity {
 
         row5.addView(aboutButton);
 
+        // دکمه تبلیغ جایزه‌ای
+        Button rewardedButton =
+                createButton("🎁 تماشای تبلیغ و دریافت جایزه");
+
         layout.addView(row1);
         layout.addView(row2);
         layout.addView(row3);
         layout.addView(row4);
         layout.addView(row5);
+        layout.addView(rewardedButton);
 
         TextView footer =
                 new TextView(this);
@@ -355,6 +369,45 @@ public class MainActivity extends Activity {
                     "اپلیکیشن تجربه‌ها",
                     Toast.LENGTH_SHORT
             ).show();
+        });
+
+        // نمایش تبلیغ جایزه‌ای
+        rewardedButton.setOnClickListener(v -> {
+
+            rewardedAdManager.showRewardedAd(
+                    new RewardedAdManager.RewardListener() {
+
+                        @Override
+                        public void onRewarded() {
+
+                            Toast.makeText(
+                                    MainActivity.this,
+                                    "🎉 جایزه شما فعال شد!",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
+
+                        @Override
+                        public void onAdNotReady() {
+
+                            Toast.makeText(
+                                    MainActivity.this,
+                                    "⏳ تبلیغ هنوز آماده نیست، چند لحظه بعد دوباره امتحان کنید.",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+
+                        @Override
+                        public void onAdFailed() {
+
+                            Toast.makeText(
+                                    MainActivity.this,
+                                    "❌ نمایش تبلیغ ناموفق بود.",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                    }
+            );
         });
 
         setContentView(scrollView);
