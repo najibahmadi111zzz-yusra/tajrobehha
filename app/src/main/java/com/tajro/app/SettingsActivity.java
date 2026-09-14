@@ -1,14 +1,18 @@
 package com.tajro.app;
 
 import android.app.Activity;
-import android.os.Bundle;
+import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.os.Bundle;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -19,37 +23,141 @@ public class SettingsActivity extends Activity {
 
     private SharedPreferences preferences;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    private LinearLayout mainLayout;
 
-        preferences = getSharedPreferences(
-                "tajrobehha_settings",
-                MODE_PRIVATE
+    private int selectedColor =
+            Color.rgb(12, 91, 120);
+
+    private boolean nightMode = false;
+
+    private int dp(int value) {
+
+        return (int) (
+                value *
+                        getResources()
+                                .getDisplayMetrics()
+                                .density
+        );
+    }
+
+    private Button createSettingButton(
+            String text
+    ) {
+
+        Button button =
+                new Button(this);
+
+        button.setText(text);
+        button.setTextSize(17);
+        button.setTextColor(Color.WHITE);
+
+        button.setTypeface(
+                Typeface.DEFAULT,
+                Typeface.BOLD
         );
 
-        LinearLayout layout = new LinearLayout(this);
+        button.setGravity(
+                Gravity.CENTER
+        );
 
-        layout.setOrientation(
+        GradientDrawable background =
+                new GradientDrawable();
+
+        background.setColor(
+                selectedColor
+        );
+
+        background.setCornerRadius(
+                dp(18)
+        );
+
+        button.setBackground(
+                background
+        );
+
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(62)
+                );
+
+        params.setMargins(
+                0,
+                dp(7),
+                0,
+                dp(7)
+        );
+
+        button.setLayoutParams(params);
+
+        return button;
+    }
+
+    @Override
+    protected void onCreate(
+            Bundle savedInstanceState
+    ) {
+
+        super.onCreate(savedInstanceState);
+
+        preferences =
+                getSharedPreferences(
+                        "tajrobehha_settings",
+                        MODE_PRIVATE
+                );
+
+        selectedColor =
+                preferences.getInt(
+                        "theme_color",
+                        Color.rgb(12, 91, 120)
+                );
+
+        nightMode =
+                preferences.getBoolean(
+                        "night_mode",
+                        false
+                );
+
+        buildSettings();
+    }
+
+    private void buildSettings() {
+
+        ScrollView scrollView =
+                new ScrollView(this);
+
+        mainLayout =
+                new LinearLayout(this);
+
+        mainLayout.setOrientation(
                 LinearLayout.VERTICAL
         );
 
-        layout.setPadding(
-                30, 40, 30, 30
+        mainLayout.setPadding(
+                dp(20),
+                dp(25),
+                dp(20),
+                dp(30)
         );
 
-        layout.setBackgroundColor(
-                Color.rgb(235, 248, 250)
+        updateBackground();
+
+        scrollView.addView(
+                mainLayout
         );
 
+        // ==================================
         // عنوان
-        TextView title = new TextView(this);
+        // ==================================
 
-        title.setText("⚙️ تنظیمات تجربه‌ها");
-        title.setTextSize(28);
-        title.setTextColor(
-                Color.rgb(8, 65, 90)
+        TextView title =
+                new TextView(this);
+
+        title.setText(
+                "⚙️ تنظیمات تجربه‌ها"
         );
+
+        title.setTextSize(28);
 
         title.setTypeface(
                 Typeface.DEFAULT,
@@ -61,157 +169,183 @@ public class SettingsActivity extends Activity {
         );
 
         title.setPadding(
-                0, 0, 0, 30
+                0,
+                0,
+                0,
+                dp(20)
         );
 
-        layout.addView(title);
+        updateTextColor(title);
 
-        // اعلان‌ها
-        Switch notificationSwitch =
+        mainLayout.addView(title);
+
+        // ==================================
+        // طرح و رنگ
+        // ==================================
+
+        Button colorButton =
+                createSettingButton(
+                        "🎨 طرح و رنگ برنامه"
+                );
+
+        mainLayout.addView(
+                colorButton
+        );
+
+        colorButton.setOnClickListener(
+                v -> showColorDialog()
+        );
+
+        // ==================================
+        // حالت شب
+        // ==================================
+
+        Switch nightSwitch =
                 new Switch(this);
 
-        notificationSwitch.setText(
-                "🔔 اعلان‌ها"
+        nightSwitch.setText(
+                "🌙 حالت شب"
         );
 
-        notificationSwitch.setTextSize(18);
+        nightSwitch.setTextSize(18);
 
-        notificationSwitch.setChecked(
-                preferences.getBoolean(
-                        "notifications",
-                        true
-                )
+        nightSwitch.setChecked(
+                nightMode
         );
 
-        layout.addView(
-                notificationSwitch
+        nightSwitch.setPadding(
+                dp(5),
+                dp(12),
+                dp(5),
+                dp(12)
         );
 
-        notificationSwitch.setOnCheckedChangeListener(
+        updateTextColor(nightSwitch);
+
+        mainLayout.addView(
+                nightSwitch
+        );
+
+        nightSwitch.setOnCheckedChangeListener(
                 (buttonView, isChecked) -> {
+
+                    nightMode = isChecked;
 
                     preferences.edit()
                             .putBoolean(
-                                    "notifications",
+                                    "night_mode",
                                     isChecked
                             )
                             .apply();
 
-                    if (isChecked) {
+                    Toast.makeText(
+                            this,
+                            isChecked
+                                    ? "🌙 حالت شب فعال شد"
+                                    : "☀️ حالت روز فعال شد",
+                            Toast.LENGTH_SHORT
+                    ).show();
 
-                        Toast.makeText(
-                                this,
-                                "اعلان‌ها فعال شد 🔔",
-                                Toast.LENGTH_SHORT
-                        ).show();
-
-                    } else {
-
-                        Toast.makeText(
-                                this,
-                                "اعلان‌ها خاموش شد",
-                                Toast.LENGTH_SHORT
-                        ).show();
-                    }
+                    buildSettings();
                 }
         );
 
+        // ==================================
         // زبان
+        // ==================================
+
         Button languageButton =
-                new Button(this);
+                createSettingButton(
+                        "🌐 زبان برنامه"
+                );
 
-        languageButton.setText(
-                "🌐 زبان برنامه: فارسی / دری"
-        );
-
-        layout.addView(
+        mainLayout.addView(
                 languageButton
         );
 
-        languageButton.setOnClickListener(v ->
-                Toast.makeText(
-                        this,
-                        "زبان فعلی: فارسی / دری",
-                        Toast.LENGTH_SHORT
-                ).show()
+        languageButton.setOnClickListener(
+                v -> showLanguageDialog()
         );
 
+        // ==================================
+        // اکانت من
+        // ==================================
+
+        Button accountButton =
+                createSettingButton(
+                        "👤 اکانت من"
+                );
+
+        mainLayout.addView(
+                accountButton
+        );
+
+        accountButton.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            SettingsActivity.this,
+                            AccountActivity.class
+                    );
+
+            startActivity(intent);
+        });
+
+        // ==================================
         // حریم خصوصی
+        // ==================================
+
         Button privacyButton =
-                new Button(this);
+                createSettingButton(
+                        "🔒 حریم خصوصی"
+                );
 
-        privacyButton.setText(
-                "🔒 حریم خصوصی"
-        );
-
-        layout.addView(
+        mainLayout.addView(
                 privacyButton
         );
 
-        privacyButton.setOnClickListener(v -> {
-
-            Toast.makeText(
-                    this,
-                    "اطلاعات حساب و تجربه‌های شما " +
-                    "باید مطابق قوانین Firebase محافظت شود.",
-                    Toast.LENGTH_LONG
-            ).show();
-        });
-
-        // پاک کردن تنظیمات محلی
-        Button clearButton =
-                new Button(this);
-
-        clearButton.setText(
-                "🧹 پاک کردن تنظیمات این دستگاه"
+        privacyButton.setOnClickListener(
+                v -> showPrivacyDialog()
         );
 
-        layout.addView(
-                clearButton
-        );
-
-        clearButton.setOnClickListener(v -> {
-
-            preferences.edit()
-                    .clear()
-                    .apply();
-
-            notificationSwitch.setChecked(
-                    true
-            );
-
-            Toast.makeText(
-                    this,
-                    "تنظیمات محلی پاک شد",
-                    Toast.LENGTH_SHORT
-            ).show();
-        });
-
+        // ==================================
         // خروج از حساب
+        // ==================================
+
         Button logoutButton =
-                new Button(this);
+                createSettingButton(
+                        "🚪 خروج از حساب"
+                );
 
-        logoutButton.setText(
-                "🚪 خروج از حساب"
-        );
-
-        layout.addView(
+        mainLayout.addView(
                 logoutButton
         );
 
-        logoutButton.setOnClickListener(v -> {
+        logoutButton.setOnClickListener(
+                v -> showLogoutDialog()
+        );
 
-            FirebaseAuth.getInstance()
-                    .signOut();
+        // ==================================
+        // درباره برنامه
+        // ==================================
 
-            Toast.makeText(
-                    this,
-                    "از حساب خارج شدید",
-                    Toast.LENGTH_SHORT
-            ).show();
-        });
+        Button aboutButton =
+                createSettingButton(
+                        "ℹ️ درباره برنامه"
+                );
 
-        // نسخه برنامه
+        mainLayout.addView(
+                aboutButton
+        );
+
+        aboutButton.setOnClickListener(
+                v -> showAboutDialog()
+        );
+
+        // ==================================
+        // نسخه
+        // ==================================
+
         TextView versionText =
                 new TextView(this);
 
@@ -233,28 +367,305 @@ public class SettingsActivity extends Activity {
         }
 
         versionText.setText(
-                "\n📱 تجربه‌ها\n" +
-                "نسخه " + version
+                "\n📱 تجربه‌ها\nنسخه "
+                        + version
         );
 
-        versionText.setTextSize(16);
-        versionText.setTextColor(
-                Color.GRAY
-        );
-
+        versionText.setTextSize(15);
         versionText.setGravity(
                 Gravity.CENTER
         );
 
         versionText.setPadding(
-                0, 25, 0, 10
+                0,
+                dp(20),
+                0,
+                dp(10)
         );
 
-        layout.addView(
+        updateTextColor(versionText);
+
+        mainLayout.addView(
                 versionText
         );
 
-        // نمایش صفحه
-        setContentView(layout);
+        // ==================================
+        // برگشت
+        // ==================================
+
+        Button backButton =
+                createSettingButton(
+                        "↩️ برگشت"
+                );
+
+        mainLayout.addView(
+                backButton
+        );
+
+        backButton.setOnClickListener(
+                v -> finish()
+        );
+
+        setContentView(scrollView);
+    }
+
+    // ==================================
+    // پس‌زمینه
+    // ==================================
+
+    private void updateBackground() {
+
+        if (nightMode) {
+
+            mainLayout.setBackgroundColor(
+                    Color.rgb(25, 30, 35)
+            );
+
+        } else {
+
+            mainLayout.setBackgroundColor(
+                    Color.rgb(235, 248, 250)
+            );
+        }
+    }
+
+    // ==================================
+    // رنگ متن
+    // ==================================
+
+    private void updateTextColor(
+            TextView textView
+    ) {
+
+        if (nightMode) {
+
+            textView.setTextColor(
+                    Color.WHITE
+            );
+
+        } else {
+
+            textView.setTextColor(
+                    Color.rgb(8, 65, 90)
+            );
+        }
+    }
+
+    // ==================================
+    // انتخاب رنگ
+    // ==================================
+
+    private void showColorDialog() {
+
+        String[] colors = {
+                "آبی اصلی",
+                "سبز آرام",
+                "بنفش",
+                "نارنجی",
+                "سرمه‌ای"
+        };
+
+        int[] colorValues = {
+                Color.rgb(12, 91, 120),
+                Color.rgb(30, 120, 85),
+                Color.rgb(105, 70, 150),
+                Color.rgb(190, 105, 30),
+                Color.rgb(25, 55, 90)
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle("🎨 انتخاب رنگ")
+                .setItems(
+                        colors,
+                        (dialog, which) -> {
+
+                            selectedColor =
+                                    colorValues[which];
+
+                            preferences.edit()
+                                    .putInt(
+                                            "theme_color",
+                                            selectedColor
+                                    )
+                                    .apply();
+
+                            Toast.makeText(
+                                    this,
+                                    "✅ رنگ برنامه تغییر کرد",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+
+                            buildSettings();
+                        }
+                )
+                .show();
+    }
+
+    // ==================================
+    // انتخاب زبان
+    // ==================================
+
+    private void showLanguageDialog() {
+
+        String[] languages = {
+                "🇦🇫 دری",
+                "🇬🇧 English",
+                "🇦🇫 پښتو",
+                "🇵🇰 اردو"
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle("🌐 زبان برنامه")
+                .setItems(
+                        languages,
+                        (dialog, which) -> {
+
+                            String language;
+
+                            if (which == 0) {
+
+                                language = "دری";
+
+                            } else if (which == 1) {
+
+                                language = "English";
+
+                            } else if (which == 2) {
+
+                                language = "پښتو";
+
+                            } else {
+
+                                language = "اردو";
+                            }
+
+                            preferences.edit()
+                                    .putString(
+                                            "language",
+                                            language
+                                    )
+                                    .apply();
+
+                            Toast.makeText(
+                                    this,
+                                    "زبان انتخاب شد: "
+                                            + language,
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                )
+                .show();
+    }
+
+    // ==================================
+    // حریم خصوصی
+    // ==================================
+
+    private void showPrivacyDialog() {
+
+        new AlertDialog.Builder(this)
+                .setTitle(
+                        "🔒 حریم خصوصی"
+                )
+                .setMessage(
+                        "تجربه‌ها برای محافظت از " +
+                        "اطلاعات کاربران تلاش می‌کند.\n\n" +
+                        "اطلاعات حساب و داده‌های برنامه " +
+                        "باید مطابق قوانین و تنظیمات " +
+                        "سرویس‌های مورد استفاده محافظت شوند.\n\n" +
+                        "هیچ رمز عبور یا کلید محرمانه‌ای " +
+                        "نباید در اختیار دیگران قرار گیرد."
+                )
+                .setPositiveButton(
+                        "متوجه شدم",
+                        null
+                )
+                .show();
+    }
+
+    // ==================================
+    // خروج از حساب
+    // ==================================
+
+    private void showLogoutDialog() {
+
+        new AlertDialog.Builder(this)
+                .setTitle(
+                        "🚪 خروج از حساب"
+                )
+                .setMessage(
+                        "آیا مطمئن هستید که می‌خواهید " +
+                        "از حساب خود خارج شوید؟"
+                )
+                .setNegativeButton(
+                        "انصراف",
+                        null
+                )
+                .setPositiveButton(
+                        "خروج",
+                        (dialog, which) -> {
+
+                            FirebaseAuth
+                                    .getInstance()
+                                    .signOut();
+
+                            Toast.makeText(
+                                    this,
+                                    "از حساب خارج شدید",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+
+                            finish();
+                        }
+                )
+                .show();
+    }
+
+    // ==================================
+    // درباره برنامه
+    // ==================================
+
+    private void showAboutDialog() {
+
+        new AlertDialog.Builder(this)
+                .setTitle(
+                        "ℹ️ درباره برنامه"
+                )
+                .setMessage(
+                        "تجربه‌ها\n\n" +
+                        "محلی برای ثبت، یادگیری و " +
+                        "شریک‌کردن تجربه‌ها.\n\n" +
+                        "یاد بگیر • تجربه کن • شریک کن\n\n" +
+                        "نسخه برنامه: "
+                                + getVersionName()
+                )
+                .setPositiveButton(
+                        "بستن",
+                        null
+                )
+                .show();
+    }
+
+    // ==================================
+    // نسخه برنامه
+    // ==================================
+
+    private String getVersionName() {
+
+        try {
+
+            PackageInfo info =
+                    getPackageManager()
+                            .getPackageInfo(
+                                    getPackageName(),
+                                    0
+                            );
+
+            return info.versionName;
+
+        } catch (Exception e) {
+
+            return "1.0";
+        }
     }
 }
