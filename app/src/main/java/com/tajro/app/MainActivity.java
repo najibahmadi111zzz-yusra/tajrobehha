@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
@@ -43,8 +44,9 @@ public class MainActivity extends Activity {
         GradientDrawable background =
                 new GradientDrawable();
 
+        // رنگ انتخاب‌شده از تنظیمات
         background.setColor(
-                Color.rgb(12, 91, 120)
+                ThemeManager.getThemeColor(this)
         );
 
         background.setCornerRadius(
@@ -155,8 +157,9 @@ public class MainActivity extends Activity {
         title.setText("تجربه‌ها");
         title.setTextSize(34);
 
+        // رنگ عنوان از تنظیمات
         title.setTextColor(
-                Color.rgb(8, 65, 90)
+                ThemeManager.getThemeColor(this)
         );
 
         title.setTypeface(
@@ -428,30 +431,30 @@ public class MainActivity extends Activity {
                         @Override
                         public void onRewarded() {
 
-                            android.widget.Toast.makeText(
+                            Toast.makeText(
                                     MainActivity.this,
                                     "🎉 جایزه شما فعال شد!",
-                                    android.widget.Toast.LENGTH_LONG
+                                    Toast.LENGTH_LONG
                             ).show();
                         }
 
                         @Override
                         public void onAdNotReady() {
 
-                            android.widget.Toast.makeText(
+                            Toast.makeText(
                                     MainActivity.this,
                                     "⏳ تبلیغ هنوز آماده نیست، چند لحظه بعد دوباره امتحان کنید.",
-                                    android.widget.Toast.LENGTH_SHORT
+                                    Toast.LENGTH_SHORT
                             ).show();
                         }
 
                         @Override
                         public void onAdFailed() {
 
-                            android.widget.Toast.makeText(
+                            Toast.makeText(
                                     MainActivity.this,
                                     "❌ نمایش تبلیغ ناموفق بود.",
-                                    android.widget.Toast.LENGTH_SHORT
+                                    Toast.LENGTH_SHORT
                             ).show();
                         }
                     }
@@ -464,4 +467,4 @@ public class MainActivity extends Activity {
 
         setContentView(scrollView);
     }
-}
+    }
