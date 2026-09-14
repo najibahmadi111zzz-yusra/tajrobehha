@@ -4,14 +4,13 @@ import android.app.Activity;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.unity3d.ads.UnityAds;
-import com.unity3d.ads.UnityAdsError;
-import com.unity3d.ads.ShowConfiguration;
 import com.unity3d.ads.LoadConfiguration;
 import com.unity3d.ads.RewardedAd;
 import com.unity3d.ads.RewardedShowListener;
-import com.unity3d.ads.RewardedLoadListener;
+import com.unity3d.ads.ShowConfiguration;
 import com.unity3d.ads.ShowFinishState;
+import com.unity3d.ads.UnityAds;
+import com.unity3d.ads.UnityAdsError;
 
 public class RewardedAdManager {
 
@@ -42,51 +41,45 @@ public class RewardedAdManager {
 
         RewardedAd.load(
                 loadConfig,
-                new RewardedLoadListener() {
+                (ad, error) -> {
 
-                    @Override
-                    public void onRewardedLoaded(
-                            RewardedAd ad,
-                            UnityAdsError error) {
+                    if (ad != null) {
 
-                        if (ad != null) {
+                        rewardedAd = ad;
 
-                            rewardedAd = ad;
+                        Log.d(
+                                TAG,
+                                "Rewarded Ad Loaded Successfully"
+                        );
 
-                            Log.d(
-                                    TAG,
-                                    "Rewarded Ad Loaded Successfully"
-                            );
+                        rewardedAd.setOnAdExpired(
+                                expiredAd -> {
 
-                            rewardedAd.setOnAdExpired(
-                                    expiredAd -> {
+                                    Log.d(
+                                            TAG,
+                                            "Rewarded Ad Expired"
+                                    );
 
-                                        Log.d(
-                                                TAG,
-                                                "Rewarded Ad Expired"
-                                        );
+                                    rewardedAd = null;
 
-                                        rewardedAd = null;
+                                    loadRewardedAd();
+                                }
+                        );
 
-                                        loadRewardedAd();
-                                    }
-                            );
+                    } else {
 
-                        } else {
+                        rewardedAd = null;
 
-                            rewardedAd = null;
+                        String message =
+                                error != null
+                                        ? error.getMessage()
+                                        : "Unknown error";
 
-                            String message =
-                                    error != null
-                                            ? error.getMessage()
-                                            : "Unknown error";
-
-                            Log.e(
-                                    TAG,
-                                    "Rewarded Ad Load Failed: "
-                                            + message
-                            );
-                        }
+                        Log.e(
+                                TAG,
+                                "Rewarded Ad Load Failed: "
+                                        + message
+                        );
                     }
                 }
         );
@@ -120,7 +113,7 @@ public class RewardedAdManager {
 
         RewardedAd adToShow = rewardedAd;
 
-        // برای جلوگیری از نمایش دوباره همان تبلیغ
+        // جلوگیری از نمایش دوباره همان تبلیغ
         rewardedAd = null;
 
         ShowConfiguration showConfig =
@@ -128,6 +121,7 @@ public class RewardedAdManager {
                         .build();
 
         adToShow.show(
+                activity,
                 showConfig,
                 new RewardedShowListener() {
 
@@ -175,7 +169,7 @@ public class RewardedAdManager {
                                 "Rewarded Ad Completed"
                         );
 
-                        // تبلیغ بعدی را آماده می‌کنیم
+                        // آماده‌سازی تبلیغ بعدی
                         loadRewardedAd();
                     }
 
@@ -199,7 +193,6 @@ public class RewardedAdManager {
                             rewardListener.onAdFailed();
                         }
 
-                        // دوباره تبلیغ را بارگذاری کن
                         loadRewardedAd();
                     }
                 }
