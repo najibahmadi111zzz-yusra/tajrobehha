@@ -248,7 +248,20 @@ public class MainActivity extends Activity {
         // دکمه تبلیغ جایزه‌ای
         Button rewardedButton =
                 createButton("🎁 تماشای تبلیغ و دریافت جایزه");
+LinearLayout.LayoutParams rewardedParams =
+        new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(65)
+        );
 
+rewardedParams.setMargins(
+        dp(6),
+        dp(6),
+        dp(6),
+        dp(6)
+);
+
+rewardedButton.setLayoutParams(rewardedParams);
         layout.addView(row1);
         layout.addView(row2);
         layout.addView(row3);
