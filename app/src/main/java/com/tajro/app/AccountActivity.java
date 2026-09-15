@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -42,7 +41,10 @@ public class AccountActivity extends Activity {
         title.setText("👤 اکانت من");
         title.setTextSize(28);
         title.setTextColor(themeColor);
-        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setTypeface(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+        );
         title.setGravity(Gravity.CENTER);
         title.setPadding(0, 0, 0, 35);
 
@@ -83,46 +85,73 @@ public class AccountActivity extends Activity {
 
         showCurrentUser();
 
-        registerButton.setOnClickListener(v -> registerUser());
+        registerButton.setOnClickListener(v ->
+                registerUser()
+        );
 
-        loginButton.setOnClickListener(v -> loginUser());
+        loginButton.setOnClickListener(v ->
+                loginUser()
+        );
 
         logoutButton.setOnClickListener(v -> {
+
             auth.signOut();
+
+            // قفل دوباره برنامه بعد از خروج
+            AppLockManager.lockSession(this);
+
             showCurrentUser();
 
             Toast.makeText(
                     AccountActivity.this,
-                    "از حساب خارج شدید",
+                    "از حساب خارج شدید 🔒",
                     Toast.LENGTH_SHORT
             ).show();
         });
     }
 
+    // ==================================
+    // ثبت نام
+    // ==================================
+
     private void registerUser() {
 
-        String email = emailInput.getText().toString().trim();
-        String password = passwordInput.getText().toString();
+        String email =
+                emailInput.getText()
+                        .toString()
+                        .trim();
 
-        if (email.isEmpty() || password.isEmpty()) {
+        String password =
+                passwordInput.getText()
+                        .toString();
+
+        if (email.isEmpty()
+                || password.isEmpty()) {
+
             Toast.makeText(
                     this,
                     "ایمیل و رمز عبور را وارد کنید",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
         if (password.length() < 6) {
+
             Toast.makeText(
                     this,
                     "رمز عبور باید حداقل ۶ حرف باشد",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
-        auth.createUserWithEmailAndPassword(email, password)
+        auth.createUserWithEmailAndPassword(
+                        email,
+                        password
+                )
                 .addOnSuccessListener(authResult -> {
 
                     Toast.makeText(
@@ -143,21 +172,37 @@ public class AccountActivity extends Activity {
                 });
     }
 
+    // ==================================
+    // ورود
+    // ==================================
+
     private void loginUser() {
 
-        String email = emailInput.getText().toString().trim();
-        String password = passwordInput.getText().toString();
+        String email =
+                emailInput.getText()
+                        .toString()
+                        .trim();
 
-        if (email.isEmpty() || password.isEmpty()) {
+        String password =
+                passwordInput.getText()
+                        .toString();
+
+        if (email.isEmpty()
+                || password.isEmpty()) {
+
             Toast.makeText(
                     this,
                     "ایمیل و رمز عبور را وارد کنید",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
-        auth.signInWithEmailAndPassword(email, password)
+        auth.signInWithEmailAndPassword(
+                        email,
+                        password
+                )
                 .addOnSuccessListener(authResult -> {
 
                     Toast.makeText(
@@ -172,23 +217,43 @@ public class AccountActivity extends Activity {
 
                     Toast.makeText(
                             AccountActivity.this,
-                            "ورود ناموفق: " + e.getMessage(),
+                            "ورود ناموفق: "
+                                    + e.getMessage(),
                             Toast.LENGTH_LONG
                     ).show();
                 });
     }
 
+    // ==================================
+    // نمایش وضعیت حساب
+    // ==================================
+
     private void showCurrentUser() {
 
-        FirebaseUser user = auth.getCurrentUser();
+        FirebaseUser user =
+                auth.getCurrentUser();
 
         if (user != null) {
 
-            statusText.setText(
-                    "✅ وارد شده‌اید\n\n" +
-                    "ایمیل:\n" +
-                    user.getEmail()
-            );
+            // ==================================
+            // مخفی کردن اطلاعات شخصی
+            // ==================================
+
+            if (AppLockManager.isPersonalInfoHidden(this)) {
+
+                statusText.setText(
+                        "✅ وارد شده‌اید\n\n" +
+                        "👁️ اطلاعات شخصی شما مخفی است"
+                );
+
+            } else {
+
+                statusText.setText(
+                        "✅ وارد شده‌اید\n\n" +
+                        "ایمیل:\n" +
+                        user.getEmail()
+                );
+            }
 
         } else {
 
@@ -197,6 +262,10 @@ public class AccountActivity extends Activity {
             );
         }
     }
+
+    // ==================================
+    // استایل دکمه
+    // ==================================
 
     private void styleButton(Button button) {
 
@@ -210,16 +279,34 @@ public class AccountActivity extends Activity {
         button.setTextColor(Color.WHITE);
     }
 
+    // ==================================
+    // رنگ پس‌زمینه
+    // ==================================
+
     private int getLightThemeColor() {
 
-        int red = Color.red(themeColor);
-        int green = Color.green(themeColor);
-        int blue = Color.blue(themeColor);
+        int red =
+                Color.red(themeColor);
 
-        red = red + (255 - red) * 92 / 100;
-        green = green + (255 - green) * 92 / 100;
-        blue = blue + (255 - blue) * 92 / 100;
+        int green =
+                Color.green(themeColor);
 
-        return Color.rgb(red, green, blue);
+        int blue =
+                Color.blue(themeColor);
+
+        red =
+                red + (255 - red) * 92 / 100;
+
+        green =
+                green + (255 - green) * 92 / 100;
+
+        blue =
+                blue + (255 - blue) * 92 / 100;
+
+        return Color.rgb(
+                red,
+                green,
+                blue
+        );
     }
 }
