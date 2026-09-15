@@ -17,9 +17,21 @@ import android.widget.Toast;
 public class MainActivity extends Activity {
 
     private RewardedAdManager rewardedAdManager;
-
-    // تبلیغ بینابینی
     private InterstitialAdManager interstitialAdManager;
+
+    // عناصر صفحه برای تغییر فوری رنگ و حالت شب
+    private LinearLayout mainLayout;
+    private TextView title;
+    private TextView welcome;
+    private TextView footer;
+
+    private Button addButton;
+    private Button listButton;
+    private Button chatButton;
+    private Button aiButton;
+    private Button exchangeButton;
+    private Button settingsButton;
+    private Button rewardedButton;
 
     private int dp(int value) {
         return (int) (value * getResources()
@@ -41,19 +53,7 @@ public class MainActivity extends Activity {
 
         button.setGravity(Gravity.CENTER);
 
-        GradientDrawable background =
-                new GradientDrawable();
-
-        // رنگ انتخاب‌شده از تنظیمات
-        background.setColor(
-                ThemeManager.getThemeColor(this)
-        );
-
-        background.setCornerRadius(
-                dp(18)
-        );
-
-        button.setBackground(background);
+        styleButton(button);
 
         LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(
@@ -72,6 +72,23 @@ public class MainActivity extends Activity {
         button.setLayoutParams(params);
 
         return button;
+    }
+
+    private void styleButton(Button button) {
+
+        GradientDrawable background =
+                new GradientDrawable();
+
+        background.setColor(
+                ThemeManager.getThemeColor(this)
+        );
+
+        background.setCornerRadius(
+                dp(18)
+        );
+
+        button.setBackground(background);
+        button.setTextColor(Color.WHITE);
     }
 
     @Override
@@ -103,33 +120,22 @@ public class MainActivity extends Activity {
         ScrollView scrollView =
                 new ScrollView(this);
 
-        LinearLayout layout =
+        mainLayout =
                 new LinearLayout(this);
 
-        layout.setOrientation(
+        mainLayout.setOrientation(
                 LinearLayout.VERTICAL
         );
 
-        layout.setPadding(
+        mainLayout.setPadding(
                 dp(20),
                 dp(35),
                 dp(20),
                 dp(25)
         );
 
-        GradientDrawable pageBackground =
-                new GradientDrawable();
-
-        pageBackground.setColor(
-                Color.rgb(235, 248, 250)
-        );
-
-        layout.setBackground(
-                pageBackground
-        );
-
         scrollView.addView(
-                layout,
+                mainLayout,
                 new ScrollView.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
@@ -151,16 +157,11 @@ public class MainActivity extends Activity {
         // عنوان
         // ==================================
 
-        TextView title =
+        title =
                 new TextView(this);
 
         title.setText("تجربه‌ها");
         title.setTextSize(34);
-
-        // رنگ عنوان از تنظیمات
-        title.setTextColor(
-                ThemeManager.getThemeColor(this)
-        );
 
         title.setTypeface(
                 Typeface.DEFAULT,
@@ -182,7 +183,7 @@ public class MainActivity extends Activity {
         // خوش‌آمدگویی
         // ==================================
 
-        TextView welcome =
+        welcome =
                 new TextView(this);
 
         welcome.setText(
@@ -190,7 +191,6 @@ public class MainActivity extends Activity {
         );
 
         welcome.setTextSize(17);
-        welcome.setTextColor(Color.DKGRAY);
         welcome.setGravity(Gravity.CENTER);
 
         welcome.setPadding(
@@ -200,9 +200,9 @@ public class MainActivity extends Activity {
                 dp(30)
         );
 
-        layout.addView(logo);
-        layout.addView(title);
-        layout.addView(welcome);
+        mainLayout.addView(logo);
+        mainLayout.addView(title);
+        mainLayout.addView(welcome);
 
         // ==================================
         // ردیف اول
@@ -215,10 +215,10 @@ public class MainActivity extends Activity {
                 LinearLayout.HORIZONTAL
         );
 
-        Button addButton =
+        addButton =
                 createButton("✍️ ثبت تجربه");
 
-        Button listButton =
+        listButton =
                 createButton("📚 دیدن تجربه‌ها");
 
         row1.addView(addButton);
@@ -235,10 +235,10 @@ public class MainActivity extends Activity {
                 LinearLayout.HORIZONTAL
         );
 
-        Button chatButton =
+        chatButton =
                 createButton("💬 چت");
 
-        Button aiButton =
+        aiButton =
                 createButton("🤖 دستیار هوشمند");
 
         row2.addView(chatButton);
@@ -255,10 +255,10 @@ public class MainActivity extends Activity {
                 LinearLayout.HORIZONTAL
         );
 
-        Button exchangeButton =
+        exchangeButton =
                 createButton("💱 صرافی");
 
-        Button settingsButton =
+        settingsButton =
                 createButton("⚙️ تنظیمات");
 
         row3.addView(exchangeButton);
@@ -268,7 +268,7 @@ public class MainActivity extends Activity {
         // تبلیغ جایزه‌ای
         // ==================================
 
-        Button rewardedButton =
+        rewardedButton =
                 createButton(
                         "🎁 تماشای تبلیغ و دریافت جایزه"
                 );
@@ -294,16 +294,16 @@ public class MainActivity extends Activity {
         // اضافه کردن بخش‌ها
         // ==================================
 
-        layout.addView(row1);
-        layout.addView(row2);
-        layout.addView(row3);
-        layout.addView(rewardedButton);
+        mainLayout.addView(row1);
+        mainLayout.addView(row2);
+        mainLayout.addView(row3);
+        mainLayout.addView(rewardedButton);
 
         // ==================================
         // پایین صفحه
         // ==================================
 
-        TextView footer =
+        footer =
                 new TextView(this);
 
         footer.setText(
@@ -311,7 +311,6 @@ public class MainActivity extends Activity {
         );
 
         footer.setTextSize(14);
-        footer.setTextColor(Color.GRAY);
         footer.setGravity(Gravity.CENTER);
 
         footer.setPadding(
@@ -321,7 +320,7 @@ public class MainActivity extends Activity {
                 dp(10)
         );
 
-        layout.addView(footer);
+        mainLayout.addView(footer);
 
         // ==================================
         // ثبت تجربه
@@ -466,5 +465,72 @@ public class MainActivity extends Activity {
         // ==================================
 
         setContentView(scrollView);
+
+        // اعمال رنگ و حالت شب
+        applyTheme();
     }
+
+    // ==================================
+    // برگشت از تنظیمات
+    // رنگ و حالت شب فوراً اعمال می‌شود
+    // ==================================
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (mainLayout != null) {
+            applyTheme();
+        }
     }
+
+    // ==================================
+    // اعمال رنگ و حالت شب
+    // ==================================
+
+    private void applyTheme() {
+
+        boolean night =
+                ThemeManager.isNightMode(this);
+
+        int themeColor =
+                ThemeManager.getThemeColor(this);
+
+        // پس‌زمینه اصلی
+        mainLayout.setBackgroundColor(
+                ThemeManager.getBackgroundColor(this)
+        );
+
+        // عنوان
+        if (night) {
+            title.setTextColor(Color.WHITE);
+        } else {
+            title.setTextColor(themeColor);
+        }
+
+        // متن خوش‌آمدگویی
+        welcome.setTextColor(
+                ThemeManager.getNormalTextColor(this)
+        );
+
+        // پایین صفحه
+        if (night) {
+            footer.setTextColor(
+                    Color.LTGRAY
+            );
+        } else {
+            footer.setTextColor(
+                    Color.GRAY
+            );
+        }
+
+        // همه دکمه‌ها
+        styleButton(addButton);
+        styleButton(listButton);
+        styleButton(chatButton);
+        styleButton(aiButton);
+        styleButton(exchangeButton);
+        styleButton(settingsButton);
+        styleButton(rewardedButton);
+    }
+}
