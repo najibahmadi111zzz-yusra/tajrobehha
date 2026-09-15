@@ -9,8 +9,10 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.Gravity;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Switch;
@@ -574,24 +576,495 @@ public class SettingsActivity extends Activity {
 
     private void showPrivacyDialog() {
 
+        String lockStatus =
+                AppLockManager.hasPassword(this)
+                        ? "فعال"
+                        : "غیرفعال";
+
+        String hideStatus =
+                AppLockManager.isPersonalInfoHidden(this)
+                        ? "فعال"
+                        : "غیرفعال";
+
+        String message =
+                "🔐 قفل برنامه: " + lockStatus +
+                "\n👁️ مخفی‌کردن اطلاعات: " + hideStatus +
+                "\n\n" +
+                "از گزینه‌های زیر استفاده کنید.";
+
         new AlertDialog.Builder(this)
-                .setTitle(
-                        "🔒 حریم خصوصی"
-                )
-                .setMessage(
-                        "تجربه‌ها برای محافظت از " +
-                        "اطلاعات کاربران تلاش می‌کند.\n\n" +
-                        "اطلاعات حساب و داده‌های برنامه " +
-                        "باید مطابق قوانین و تنظیمات " +
-                        "سرویس‌های مورد استفاده محافظت شوند.\n\n" +
-                        "هیچ رمز عبور یا کلید محرمانه‌ای " +
-                        "نباید در اختیار دیگران قرار گیرد."
-                )
+                .setTitle("🔒 حریم خصوصی")
+                .setMessage(message)
                 .setPositiveButton(
-                        "متوجه شدم",
+                        "🔐 قفل برنامه",
+                        (dialog, which) ->
+                                showLockSettings()
+                )
+                .setNeutralButton(
+                        "👁️ اطلاعات شخصی",
+                        (dialog, which) ->
+                                showPersonalInfoSettings()
+                )
+                .setNegativeButton(
+                        "بستن",
                         null
                 )
                 .show();
+    }
+
+    // ==================================
+    // تنظیمات قفل
+    // ==================================
+
+    private void showLockSettings() {
+
+        boolean hasPassword =
+                AppLockManager.hasPassword(this);
+
+        boolean lockEnabled =
+                AppLockManager.isLockEnabled(this);
+
+        if (!hasPassword) {
+
+            new AlertDialog.Builder(this)
+                    .setTitle("🔐 ساخت رمز قفل")
+                    .setMessage(
+                            "برای قفل برنامه یک رمز دقیقاً ۶ رقمی بسازید."
+                    )
+                    .setPositiveButton(
+                            "ساخت رمز",
+                            (dialog, which) ->
+                                    showCreatePasswordDialog()
+                    )
+                    .setNegativeButton(
+                            "انصراف",
+                            null
+                    )
+                    .show();
+
+            return;
+        }
+
+        String[] options;
+
+        if (lockEnabled) {
+
+            options = new String[]{
+                    "🔑 تغییر رمز",
+                    "🔓 غیرفعال کردن قفل"
+            };
+
+        } else {
+
+            options = new String[]{
+                    "🔐 فعال کردن قفل",
+                    "🔑 تغییر رمز"
+            };
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("🔐 تنظیمات قفل")
+                .setItems(
+                        options,
+                        (dialog, which) -> {
+
+                            if (lockEnabled) {
+
+                                if (which == 0) {
+
+                                    showChangePasswordDialog();
+
+                                } else {
+
+                                    disableLock();
+                                }
+
+                            } else {
+
+                                if (which == 0) {
+
+                                    enableLock();
+
+                                } else {
+
+                                    showChangePasswordDialog();
+                                }
+                            }
+                        }
+                )
+                .show();
+    }
+
+    // ==================================
+    // ساخت رمز
+    // ==================================
+
+    private void showCreatePasswordDialog() {
+
+        LinearLayout layout =
+                createPasswordLayout();
+
+        EditText password =
+                createPasswordInput(
+                        "رمز جدید: ۶ رقم"
+                );
+
+        EditText confirm =
+                createPasswordInput(
+                        "تکرار رمز: ۶ رقم"
+                );
+
+        layout.addView(password);
+        layout.addView(confirm);
+
+        new AlertDialog.Builder(this)
+                .setTitle("🔐 ساخت رمز قفل")
+                .setView(layout)
+                .setPositiveButton(
+                        "ذخیره",
+                        (dialog, which) -> {
+
+                            String p =
+                                    password.getText()
+                                            .toString();
+
+                            String c =
+                                    confirm.getText()
+                                            .toString();
+
+                            if (!AppLockManager.isValidPassword(p)) {
+
+                                Toast.makeText(
+                                        this,
+                                        "رمز باید دقیقاً ۶ رقم باشد",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                                return;
+                            }
+
+                            if (!p.equals(c)) {
+
+                                Toast.makeText(
+                                        this,
+                                        "دو رمز یکسان نیستند",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                                return;
+                            }
+
+                            if (AppLockManager.setPassword(
+                                    this,
+                                    p
+                            )) {
+
+                                AppLockManager.setSessionUnlocked(
+                                        this,
+                                        true
+                                );
+
+                                Toast.makeText(
+                                        this,
+                                        "رمز ۶ رقمی ساخته شد ✅",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                            } else {
+
+                                Toast.makeText(
+                                        this,
+                                        "ساخت رمز ناموفق بود",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
+                        }
+                )
+                .setNegativeButton(
+                        "انصراف",
+                        null
+                )
+                .show();
+    }
+
+    // ==================================
+    // تغییر رمز
+    // ==================================
+
+    private void showChangePasswordDialog() {
+
+        LinearLayout layout =
+                createPasswordLayout();
+
+        EditText oldPassword =
+                createPasswordInput(
+                        "رمز فعلی: ۶ رقم"
+                );
+
+        EditText newPassword =
+                createPasswordInput(
+                        "رمز جدید: ۶ رقم"
+                );
+
+        EditText confirmPassword =
+                createPasswordInput(
+                        "تکرار رمز جدید"
+                );
+
+        layout.addView(oldPassword);
+        layout.addView(newPassword);
+        layout.addView(confirmPassword);
+
+        new AlertDialog.Builder(this)
+                .setTitle("🔑 تغییر رمز")
+                .setView(layout)
+                .setPositiveButton(
+                        "تغییر",
+                        (dialog, which) -> {
+
+                            String oldPass =
+                                    oldPassword.getText()
+                                            .toString();
+
+                            String newPass =
+                                    newPassword.getText()
+                                            .toString();
+
+                            String confirm =
+                                    confirmPassword.getText()
+                                            .toString();
+
+                            if (!AppLockManager.isValidPassword(
+                                    oldPass
+                            )) {
+
+                                Toast.makeText(
+                                        this,
+                                        "رمز فعلی باید دقیقاً ۶ رقم باشد",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                                return;
+                            }
+
+                            if (!AppLockManager.isValidPassword(
+                                    newPass
+                            )) {
+
+                                Toast.makeText(
+                                        this,
+                                        "رمز جدید باید دقیقاً ۶ رقم باشد",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                                return;
+                            }
+
+                            if (!newPass.equals(confirm)) {
+
+                                Toast.makeText(
+                                        this,
+                                        "رمز جدید و تکرار آن یکسان نیست",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                                return;
+                            }
+
+                            if (AppLockManager.changePassword(
+                                    this,
+                                    oldPass,
+                                    newPass
+                            )) {
+
+                                Toast.makeText(
+                                        this,
+                                        "رمز با موفقیت تغییر کرد ✅",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                            } else {
+
+                                Toast.makeText(
+                                        this,
+                                        "رمز فعلی اشتباه است ❌",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
+                        }
+                )
+                .setNegativeButton(
+                        "انصراف",
+                        null
+                )
+                .show();
+    }
+
+    // ==================================
+    // فعال کردن قفل
+    // ==================================
+
+    private void enableLock() {
+
+        AppLockManager.setLockEnabled(
+                this,
+                true
+        );
+
+        Toast.makeText(
+                this,
+                "🔐 قفل برنامه فعال شد",
+                Toast.LENGTH_SHORT
+        ).show();
+    }
+
+    // ==================================
+    // غیرفعال کردن قفل
+    // ==================================
+
+    private void disableLock() {
+
+        new AlertDialog.Builder(this)
+                .setTitle("🔓 غیرفعال کردن قفل")
+                .setMessage(
+                        "آیا می‌خواهید قفل برنامه غیرفعال شود؟"
+                )
+                .setNegativeButton(
+                        "انصراف",
+                        null
+                )
+                .setPositiveButton(
+                        "غیرفعال",
+                        (dialog, which) -> {
+
+                            AppLockManager.setLockEnabled(
+                                    this,
+                                    false
+                            );
+
+                            Toast.makeText(
+                                    this,
+                                    "قفل برنامه غیرفعال شد",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                )
+                .show();
+    }
+
+    // ==================================
+    // اطلاعات شخصی
+    // ==================================
+
+    private void showPersonalInfoSettings() {
+
+        boolean hidden =
+                AppLockManager.isPersonalInfoHidden(this);
+
+        String[] options = {
+                "👁️ نمایش اطلاعات شخصی",
+                "🙈 مخفی‌کردن اطلاعات شخصی"
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle("👁️ اطلاعات شخصی")
+                .setSingleChoiceItems(
+                        options,
+                        hidden ? 1 : 0,
+                        (dialog, which) -> {
+
+                            boolean hide =
+                                    which == 1;
+
+                            AppLockManager
+                                    .setPersonalInfoHidden(
+                                            this,
+                                            hide
+                                    );
+
+                            Toast.makeText(
+                                    this,
+                                    hide
+                                            ? "اطلاعات شخصی مخفی شد 🙈"
+                                            : "اطلاعات شخصی نمایش داده می‌شود 👁️",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+
+                            dialog.dismiss();
+                        }
+                )
+                .setNegativeButton(
+                        "بستن",
+                        null
+                )
+                .show();
+    }
+
+    // ==================================
+    // ساخت Layout رمز
+    // ==================================
+
+    private LinearLayout createPasswordLayout() {
+
+        LinearLayout layout =
+                new LinearLayout(this);
+
+        layout.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        layout.setPadding(
+                dp(20),
+                dp(5),
+                dp(20),
+                dp(5)
+        );
+
+        return layout;
+    }
+
+    // ==================================
+    // فیلد رمز
+    // ==================================
+
+    private EditText createPasswordInput(
+            String hint
+    ) {
+
+        EditText input =
+                new EditText(this);
+
+        input.setHint(hint);
+
+        input.setTextSize(18);
+
+        input.setInputType(
+                InputType.TYPE_CLASS_NUMBER
+                        | InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        );
+
+        input.setSingleLine(true);
+
+        input.setGravity(
+                Gravity.CENTER
+        );
+
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(58)
+                );
+
+        params.setMargins(
+                0,
+                dp(5),
+                0,
+                dp(5)
+        );
+
+        input.setLayoutParams(params);
+
+        return input;
     }
 
     // ==================================
@@ -619,6 +1092,9 @@ public class SettingsActivity extends Activity {
                             FirebaseAuth
                                     .getInstance()
                                     .signOut();
+
+                            // بعد از خروج، قفل دوباره فعال شود
+                            AppLockManager.lockSession(this);
 
                             Toast.makeText(
                                     this,
@@ -679,4 +1155,4 @@ public class SettingsActivity extends Activity {
             return "1.0";
         }
     }
-}
+            }
