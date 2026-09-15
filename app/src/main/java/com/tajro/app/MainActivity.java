@@ -96,6 +96,26 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         // ==================================
+        // قفل امنیتی برنامه
+        // ==================================
+
+        if (AppLockManager.hasPassword(this)
+                && AppLockManager.isLockEnabled(this)
+                && !AppLockManager.isSessionUnlocked(this)) {
+
+            Intent lockIntent =
+                    new Intent(
+                            MainActivity.this,
+                            AppLockActivity.class
+                    );
+
+            startActivity(lockIntent);
+            finish();
+
+            return;
+        }
+
+        // ==================================
         // Unity Rewarded Ad
         // ==================================
 
@@ -533,4 +553,4 @@ public class MainActivity extends Activity {
         styleButton(settingsButton);
         styleButton(rewardedButton);
     }
-}
+            }
