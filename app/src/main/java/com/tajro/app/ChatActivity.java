@@ -812,8 +812,6 @@ public class ChatActivity extends Activity {
                                     Toast.LENGTH_SHORT
                             ).show();
 
-                            audioFile.delete();
-
                             scrollToBottom();
                         }
                 )
