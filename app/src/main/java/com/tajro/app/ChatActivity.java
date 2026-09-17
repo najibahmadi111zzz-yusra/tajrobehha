@@ -5,13 +5,14 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,11 +34,12 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 
 import java.io.File;
-import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,6 +47,27 @@ public class ChatActivity extends Activity {
 
     private static final int RECORD_AUDIO_PERMISSION = 1001;
     private static final int PICK_MEDIA_REQUEST = 1002;
+
+    // ==============================
+    // SUPABASE
+    // ==============================
+
+    private static final String SUPABASE_URL =
+            "https://gorbhuqmkjlkrklhasdh.supabase.co";
+
+    // اینجا Publishable Key خودت را قرار بده
+    private static final String SUPABASE_PUBLISHABLE_KEY =
+            "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
+
+    // نام bucket عکس و ویدئو
+    private static final String MEDIA_BUCKET =
+            "chat_media";
+
+    // نام bucket صدا
+    private static final String VOICE_BUCKET =
+            "voice_messages";
+
+    // ==============================
 
     private LinearLayout messagesLayout;
     private EditText messageInput;
@@ -54,7 +77,6 @@ public class ChatActivity extends Activity {
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
-    private FirebaseStorage storage;
 
     private MediaRecorder recorder;
     private String audioFilePath;
@@ -68,14 +90,15 @@ public class ChatActivity extends Activity {
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
-        storage = FirebaseStorage.getInstance();
 
         createChatScreen();
 
         if (auth.getCurrentUser() == null) {
 
             auth.signInAnonymously()
-                    .addOnSuccessListener(result -> loadMessages())
+                    .addOnSuccessListener(result ->
+                            loadMessages()
+                    )
                     .addOnFailureListener(e ->
                             Toast.makeText(
                                     this,
@@ -85,22 +108,34 @@ public class ChatActivity extends Activity {
                     );
 
         } else {
+
             loadMessages();
         }
     }
 
     private int dp(int value) {
+
         return (int) (
-                value * getResources()
-                        .getDisplayMetrics()
-                        .density
+                value *
+                        getResources()
+                                .getDisplayMetrics()
+                                .density
         );
     }
 
+    // =========================================================
+    // CHAT SCREEN
+    // =========================================================
+
     private void createChatScreen() {
 
-        LinearLayout main = new LinearLayout(this);
-        main.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout main =
+                new LinearLayout(this);
+
+        main.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
         main.setPadding(
                 dp(12),
                 dp(20),
@@ -112,15 +147,24 @@ public class ChatActivity extends Activity {
                 Color.rgb(235, 248, 250)
         );
 
-        TextView title = new TextView(this);
+        TextView title =
+                new TextView(this);
+
         title.setText("💬 چت تجربه‌ها");
         title.setTextSize(25);
-        title.setTextColor(Color.rgb(8, 65, 90));
+        title.setTextColor(
+                Color.rgb(8, 65, 90)
+        );
+
         title.setTypeface(
                 Typeface.DEFAULT,
                 Typeface.BOLD
         );
-        title.setGravity(Gravity.CENTER);
+
+        title.setGravity(
+                Gravity.CENTER
+        );
+
         title.setPadding(
                 0,
                 0,
@@ -130,9 +174,12 @@ public class ChatActivity extends Activity {
 
         main.addView(title);
 
-        scrollView = new ScrollView(this);
+        scrollView =
+                new ScrollView(this);
 
-        messagesLayout = new LinearLayout(this);
+        messagesLayout =
+                new LinearLayout(this);
+
         messagesLayout.setOrientation(
                 LinearLayout.VERTICAL
         );
@@ -144,7 +191,9 @@ public class ChatActivity extends Activity {
                 dp(8)
         );
 
-        scrollView.addView(messagesLayout);
+        scrollView.addView(
+                messagesLayout
+        );
 
         main.addView(
                 scrollView,
@@ -155,7 +204,9 @@ public class ChatActivity extends Activity {
                 )
         );
 
-        LinearLayout bottom = new LinearLayout(this);
+        LinearLayout bottom =
+                new LinearLayout(this);
+
         bottom.setOrientation(
                 LinearLayout.HORIZONTAL
         );
@@ -171,12 +222,15 @@ public class ChatActivity extends Activity {
                 0
         );
 
-        messageInput = new EditText(this);
+        messageInput =
+                new EditText(this);
+
         messageInput.setHint(
                 "پیام خود را بنویسید..."
         );
 
         messageInput.setTextSize(17);
+
         messageInput.setEnabled(true);
         messageInput.setFocusable(true);
         messageInput.setFocusableInTouchMode(true);
@@ -184,13 +238,13 @@ public class ChatActivity extends Activity {
 
         messageInput.setInputType(
                 android.text.InputType.TYPE_CLASS_TEXT |
-                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE |
-                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+                        android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE |
+                        android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         );
 
         messageInput.setGravity(
                 Gravity.RIGHT |
-                Gravity.CENTER_VERTICAL
+                        Gravity.CENTER_VERTICAL
         );
 
         messageInput.setPadding(
@@ -209,7 +263,9 @@ public class ChatActivity extends Activity {
                 )
         );
 
-        Button sendButton = new Button(this);
+        Button sendButton =
+                new Button(this);
+
         sendButton.setText("📤");
         sendButton.setTextSize(18);
 
@@ -221,7 +277,9 @@ public class ChatActivity extends Activity {
                 )
         );
 
-        mediaButton = new Button(this);
+        mediaButton =
+                new Button(this);
+
         mediaButton.setText("📷");
         mediaButton.setTextSize(20);
 
@@ -233,7 +291,9 @@ public class ChatActivity extends Activity {
                 )
         );
 
-        voiceButton = new Button(this);
+        voiceButton =
+                new Button(this);
+
         voiceButton.setText("🎤");
         voiceButton.setTextSize(20);
 
@@ -280,6 +340,10 @@ public class ChatActivity extends Activity {
                 v -> toggleRecording()
         );
     }
+
+    // =========================================================
+    // TEXT MESSAGE
+    // =========================================================
 
     private void sendMessage() {
 
@@ -354,11 +418,16 @@ public class ChatActivity extends Activity {
                 );
     }
 
+    // =========================================================
+    // SELECT PHOTO / VIDEO
+    // =========================================================
+
     private void chooseMedia() {
 
-        Intent intent = new Intent(
-                Intent.ACTION_OPEN_DOCUMENT
-        );
+        Intent intent =
+                new Intent(
+                        Intent.ACTION_OPEN_DOCUMENT
+                );
 
         intent.addCategory(
                 Intent.CATEGORY_OPENABLE
@@ -386,6 +455,7 @@ public class ChatActivity extends Activity {
             int resultCode,
             Intent data
     ) {
+
         super.onActivityResult(
                 requestCode,
                 resultCode,
@@ -400,7 +470,8 @@ public class ChatActivity extends Activity {
             return;
         }
 
-        Uri uri = data.getData();
+        Uri uri =
+                data.getData();
 
         String mimeType =
                 getContentResolver()
@@ -421,14 +492,16 @@ public class ChatActivity extends Activity {
 
             uploadMedia(
                     uri,
-                    "image"
+                    "image",
+                    mimeType
             );
 
         } else if (mimeType.startsWith("video/")) {
 
             uploadMedia(
                     uri,
-                    "video"
+                    "video",
+                    mimeType
             );
 
         } else {
@@ -441,9 +514,14 @@ public class ChatActivity extends Activity {
         }
     }
 
+    // =========================================================
+    // SUPABASE MEDIA UPLOAD
+    // =========================================================
+
     private void uploadMedia(
             Uri uri,
-            String type
+            String type,
+            String mimeType
     ) {
 
         if (auth.getCurrentUser() == null) {
@@ -465,52 +543,172 @@ public class ChatActivity extends Activity {
                 Toast.LENGTH_SHORT
         ).show();
 
-        String extension =
-                type.equals("image")
-                        ? ".jpg"
-                        : ".mp4";
+        new Thread(() -> {
 
-        String fileName =
-                type +
-                        "_" +
-                        System.currentTimeMillis() +
-                        extension;
+            try {
 
-        StorageReference mediaRef =
-                storage.getReference()
-                        .child("chat_media")
-                        .child(fileName);
+                String extension;
 
-        mediaRef.putFile(uri)
-                .addOnSuccessListener(
-                        taskSnapshot ->
+                if (type.equals("image")) {
 
-                                mediaRef.getDownloadUrl()
-                                        .addOnSuccessListener(
-                                                downloadUri ->
-                                                        saveMediaMessage(
-                                                                downloadUri.toString(),
-                                                                type
-                                                        )
-                                        )
-                                        .addOnFailureListener(e ->
-                                                Toast.makeText(
-                                                        this,
-                                                        "گرفتن لینک فایل ناموفق بود",
-                                                        Toast.LENGTH_LONG
-                                                ).show()
-                                        )
-                )
-                .addOnFailureListener(e ->
+                    extension = ".jpg";
+
+                } else {
+
+                    extension = ".mp4";
+                }
+
+                String fileName =
+                        type +
+                                "_" +
+                                System.currentTimeMillis() +
+                                extension;
+
+                String filePath =
+                        "chat/" +
+                                auth.getCurrentUser().getUid() +
+                                "/" +
+                                fileName;
+
+                String uploadUrl =
+                        SUPABASE_URL +
+                                "/storage/v1/object/" +
+                                MEDIA_BUCKET +
+                                "/" +
+                                filePath;
+
+                HttpURLConnection connection =
+                        (HttpURLConnection)
+                                new URL(uploadUrl)
+                                        .openConnection();
+
+                connection.setRequestMethod("POST");
+
+                connection.setDoOutput(true);
+                connection.setDoInput(true);
+
+                connection.setRequestProperty(
+                        "apikey",
+                        SUPABASE_PUBLISHABLE_KEY
+                );
+
+                connection.setRequestProperty(
+                        "Authorization",
+                        "Bearer " +
+                                SUPABASE_PUBLISHABLE_KEY
+                );
+
+                connection.setRequestProperty(
+                        "Content-Type",
+                        mimeType
+                );
+
+                connection.setRequestProperty(
+                        "x-upsert",
+                        "false"
+                );
+
+                InputStream input =
+                        getContentResolver()
+                                .openInputStream(uri);
+
+                if (input == null) {
+
+                    throw new IOException(
+                            "فایل قابل خواندن نیست"
+                    );
+                }
+
+                OutputStream output =
+                        connection.getOutputStream();
+
+                byte[] buffer =
+                        new byte[8192];
+
+                int length;
+
+                while (
+                        (length =
+                                input.read(buffer))
+                                != -1
+                ) {
+
+                    output.write(
+                            buffer,
+                            0,
+                            length
+                    );
+                }
+
+                output.flush();
+                output.close();
+                input.close();
+
+                int responseCode =
+                        connection.getResponseCode();
+
+                if (responseCode >= 200 &&
+                        responseCode < 300) {
+
+                    String publicUrl =
+                            SUPABASE_URL +
+                                    "/storage/v1/object/public/" +
+                                    MEDIA_BUCKET +
+                                    "/" +
+                                    filePath;
+
+                    runOnUiThread(() ->
+
+                            saveMediaMessage(
+                                    publicUrl,
+                                    type
+                            )
+                    );
+
+                } else {
+
+                    InputStream errorStream =
+                            connection.getErrorStream();
+
+                    String errorMessage =
+                            readStream(
+                                    errorStream
+                            );
+
+                    runOnUiThread(() ->
+
+                            Toast.makeText(
+                                    this,
+                                    "خطای Supabase: " +
+                                            responseCode +
+                                            "\n" +
+                                            errorMessage,
+                                    Toast.LENGTH_LONG
+                            ).show()
+                    );
+                }
+
+                connection.disconnect();
+
+            } catch (Exception e) {
+
+                runOnUiThread(() ->
 
                         Toast.makeText(
                                 this,
-                                "آپلود فایل ناموفق بود: "
-                                        + e.getMessage(),
+                                "آپلود فایل ناموفق بود:\n" +
+                                        e.getMessage(),
                                 Toast.LENGTH_LONG
                         ).show()
                 );
+            }
+
+        }).start();
     }
+
+    // =========================================================
+    // SAVE MEDIA MESSAGE
+    // =========================================================
 
     private void saveMediaMessage(
             String mediaUrl,
@@ -566,6 +764,10 @@ public class ChatActivity extends Activity {
                 );
     }
 
+    // =========================================================
+    // VOICE RECORDING
+    // =========================================================
+
     private void toggleRecording() {
 
         if (isRecording) {
@@ -602,7 +804,9 @@ public class ChatActivity extends Activity {
                     getExternalCacheDir();
 
             if (directory == null) {
-                directory = getCacheDir();
+
+                directory =
+                        getCacheDir();
             }
 
             audioFilePath =
@@ -613,7 +817,8 @@ public class ChatActivity extends Activity {
                                     ".3gp"
                     ).getAbsolutePath();
 
-            recorder = new MediaRecorder();
+            recorder =
+                    new MediaRecorder();
 
             recorder.setAudioSource(
                     MediaRecorder.AudioSource.MIC
@@ -632,6 +837,7 @@ public class ChatActivity extends Activity {
             );
 
             recorder.prepare();
+
             recorder.start();
 
             isRecording = true;
@@ -673,7 +879,9 @@ public class ChatActivity extends Activity {
         try {
 
             recorder.stop();
+
             recorder.release();
+
             recorder = null;
 
             isRecording = false;
@@ -712,6 +920,10 @@ public class ChatActivity extends Activity {
         }
     }
 
+    // =========================================================
+    // SUPABASE AUDIO UPLOAD
+    // =========================================================
+
     private void uploadAudio() {
 
         if (auth.getCurrentUser() == null) {
@@ -739,40 +951,152 @@ public class ChatActivity extends Activity {
             return;
         }
 
-        String fileName =
-                "voice_" +
-                        System.currentTimeMillis() +
-                        ".3gp";
+        new Thread(() -> {
 
-        StorageReference audioRef =
-                storage.getReference()
-                        .child("voice_messages")
-                        .child(fileName);
+            try {
 
-        audioRef.putFile(
-                Uri.fromFile(audioFile)
-        )
-                .addOnSuccessListener(
-                        taskSnapshot ->
+                String fileName =
+                        "voice_" +
+                                System.currentTimeMillis() +
+                                ".3gp";
 
-                                audioRef.getDownloadUrl()
-                                        .addOnSuccessListener(
-                                                uri ->
-                                                        saveAudioMessage(
-                                                                uri.toString()
-                                                        )
-                                        )
-                )
-                .addOnFailureListener(e ->
+                String filePath =
+                        "chat/" +
+                                auth.getCurrentUser().getUid() +
+                                "/" +
+                                fileName;
+
+                String uploadUrl =
+                        SUPABASE_URL +
+                                "/storage/v1/object/" +
+                                VOICE_BUCKET +
+                                "/" +
+                                filePath;
+
+                HttpURLConnection connection =
+                        (HttpURLConnection)
+                                new URL(uploadUrl)
+                                        .openConnection();
+
+                connection.setRequestMethod("POST");
+
+                connection.setDoOutput(true);
+                connection.setDoInput(true);
+
+                connection.setRequestProperty(
+                        "apikey",
+                        SUPABASE_PUBLISHABLE_KEY
+                );
+
+                connection.setRequestProperty(
+                        "Authorization",
+                        "Bearer " +
+                                SUPABASE_PUBLISHABLE_KEY
+                );
+
+                connection.setRequestProperty(
+                        "Content-Type",
+                        "audio/3gpp"
+                );
+
+                connection.setRequestProperty(
+                        "x-upsert",
+                        "false"
+                );
+
+                InputStream input =
+                        new java.io.FileInputStream(
+                                audioFile
+                        );
+
+                OutputStream output =
+                        connection.getOutputStream();
+
+                byte[] buffer =
+                        new byte[8192];
+
+                int length;
+
+                while (
+                        (length =
+                                input.read(buffer))
+                                != -1
+                ) {
+
+                    output.write(
+                            buffer,
+                            0,
+                            length
+                    );
+                }
+
+                output.flush();
+                output.close();
+                input.close();
+
+                int responseCode =
+                        connection.getResponseCode();
+
+                if (responseCode >= 200 &&
+                        responseCode < 300) {
+
+                    String publicUrl =
+                            SUPABASE_URL +
+                                    "/storage/v1/object/public/" +
+                                    VOICE_BUCKET +
+                                    "/" +
+                                    filePath;
+
+                    runOnUiThread(() ->
+                            saveAudioMessage(
+                                    publicUrl
+                            )
+                    );
+
+                } else {
+
+                    InputStream errorStream =
+                            connection.getErrorStream();
+
+                    String errorMessage =
+                            readStream(
+                                    errorStream
+                            );
+
+                    runOnUiThread(() ->
+
+                            Toast.makeText(
+                                    this,
+                                    "خطای Supabase صدا: " +
+                                            responseCode +
+                                            "\n" +
+                                            errorMessage,
+                                    Toast.LENGTH_LONG
+                            ).show()
+                    );
+                }
+
+                connection.disconnect();
+
+            } catch (Exception e) {
+
+                runOnUiThread(() ->
 
                         Toast.makeText(
                                 this,
-                                "آپلود صدا ناموفق بود: "
-                                        + e.getMessage(),
+                                "آپلود صدا ناموفق بود:\n" +
+                                        e.getMessage(),
                                 Toast.LENGTH_LONG
                         ).show()
                 );
+            }
+
+        }).start();
     }
+
+    // =========================================================
+    // SAVE AUDIO MESSAGE
+    // =========================================================
 
     private void saveAudioMessage(
             String audioUrl
@@ -825,6 +1149,55 @@ public class ChatActivity extends Activity {
                 );
     }
 
+    // =========================================================
+    // READ ERROR
+    // =========================================================
+
+    private String readStream(
+            InputStream input
+    ) {
+
+        if (input == null) {
+            return "پاسخ خطا دریافت نشد";
+        }
+
+        try {
+
+            java.io.ByteArrayOutputStream output =
+                    new java.io.ByteArrayOutputStream();
+
+            byte[] buffer =
+                    new byte[1024];
+
+            int length;
+
+            while (
+                    (length =
+                            input.read(buffer))
+                            != -1
+            ) {
+
+                output.write(
+                        buffer,
+                        0,
+                        length
+                );
+            }
+
+            input.close();
+
+            return output.toString("UTF-8");
+
+        } catch (Exception e) {
+
+            return "جزئیات خطا قابل خواندن نیست";
+        }
+    }
+
+    // =========================================================
+    // LOAD MESSAGES
+    // =========================================================
+
     private void loadMessages() {
 
         db.collection("messages")
@@ -873,7 +1246,9 @@ public class ChatActivity extends Activity {
                                         );
 
                                 boolean mine =
-                                        myId.equals(senderId);
+                                        myId.equals(
+                                                senderId
+                                        );
 
                                 if ("audio".equals(type)) {
 
@@ -947,6 +1322,10 @@ public class ChatActivity extends Activity {
                 );
     }
 
+    // =========================================================
+    // TEXT DISPLAY
+    // =========================================================
+
     private void addTextMessage(
             String message,
             boolean mine
@@ -962,8 +1341,13 @@ public class ChatActivity extends Activity {
         );
 
         messageView.setTextSize(17);
-        messageView.setTextColor(Color.DKGRAY);
-        messageView.setGravity(Gravity.RIGHT);
+        messageView.setTextColor(
+                Color.DKGRAY
+        );
+
+        messageView.setGravity(
+                Gravity.RIGHT
+        );
 
         messageView.setPadding(
                 dp(15),
@@ -976,6 +1360,10 @@ public class ChatActivity extends Activity {
                 messageView
         );
     }
+
+    // =========================================================
+    // AUDIO DISPLAY
+    // =========================================================
 
     private void addAudioMessage(
             String audioUrl,
@@ -1005,6 +1393,10 @@ public class ChatActivity extends Activity {
                 )
         );
     }
+
+    // =========================================================
+    // IMAGE DISPLAY
+    // =========================================================
 
     private void addImageMessage(
             String imageUrl,
@@ -1037,6 +1429,7 @@ public class ChatActivity extends Activity {
                 new ImageView(this);
 
         imageView.setAdjustViewBounds(true);
+
         imageView.setScaleType(
                 ImageView.ScaleType.CENTER_CROP
         );
@@ -1055,28 +1448,28 @@ public class ChatActivity extends Activity {
         container.addView(label);
         container.addView(imageView);
 
-        messagesLayout.addView(container);
+        messagesLayout.addView(
+                container
+        );
 
         new Thread(() -> {
 
             try {
 
-                java.net.URL url =
-                        new java.net.URL(
-                                imageUrl
-                        );
+                URL url =
+                        new URL(imageUrl);
 
-                java.net.HttpURLConnection connection =
-                        (java.net.HttpURLConnection)
+                HttpURLConnection connection =
+                        (HttpURLConnection)
                                 url.openConnection();
 
                 connection.connect();
 
-                java.io.InputStream input =
+                InputStream input =
                         connection.getInputStream();
 
-                final android.graphics.Bitmap bitmap =
-                        android.graphics.BitmapFactory
+                Bitmap bitmap =
+                        BitmapFactory
                                 .decodeStream(input);
 
                 input.close();
@@ -1093,8 +1486,13 @@ public class ChatActivity extends Activity {
 
             } catch (Exception ignored) {
             }
+
         }).start();
     }
+
+    // =========================================================
+    // VIDEO DISPLAY
+    // =========================================================
 
     private void addVideoMessage(
             String videoUrl,
@@ -1166,6 +1564,10 @@ public class ChatActivity extends Activity {
         );
     }
 
+    // =========================================================
+    // OPEN MEDIA
+    // =========================================================
+
     private void openMediaUrl(
             String url
     ) {
@@ -1190,6 +1592,10 @@ public class ChatActivity extends Activity {
         }
     }
 
+    // =========================================================
+    // PLAY AUDIO
+    // =========================================================
+
     private void playAudio(
             String url
     ) {
@@ -1199,6 +1605,7 @@ public class ChatActivity extends Activity {
             if (mediaPlayer != null) {
 
                 mediaPlayer.release();
+
                 mediaPlayer = null;
             }
 
@@ -1217,6 +1624,7 @@ public class ChatActivity extends Activity {
                     mp -> {
 
                         mp.release();
+
                         mediaPlayer = null;
                     }
             );
@@ -1239,6 +1647,10 @@ public class ChatActivity extends Activity {
         }
     }
 
+    // =========================================================
+    // SCROLL
+    // =========================================================
+
     private void scrollToBottom() {
 
         if (scrollView != null) {
@@ -1250,6 +1662,10 @@ public class ChatActivity extends Activity {
             );
         }
     }
+
+    // =========================================================
+    // MICROPHONE PERMISSION
+    // =========================================================
 
     @Override
     public void onRequestPermissionsResult(
@@ -1284,6 +1700,10 @@ public class ChatActivity extends Activity {
         }
     }
 
+    // =========================================================
+    // DESTROY
+    // =========================================================
+
     @Override
     protected void onDestroy() {
 
@@ -1309,4 +1729,4 @@ public class ChatActivity extends Activity {
             mediaPlayer = null;
         }
     }
-    }
+}
