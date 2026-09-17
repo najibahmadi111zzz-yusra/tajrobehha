@@ -459,4 +459,5 @@ public class VoiceActivity extends Activity {
 
         super.onDestroy();
     }
-            }
+
+}
