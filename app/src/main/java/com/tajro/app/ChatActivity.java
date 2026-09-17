@@ -2,6 +2,7 @@ package com.tajro.app;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -41,7 +42,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ChatActivity extends Activity {
@@ -56,15 +59,13 @@ public class ChatActivity extends Activity {
     private static final String SUPABASE_URL =
             "https://gorbhuqmkjlkrklhasdh.supabase.co";
 
-    // اینجا Publishable Key خودت را قرار بده
+    // Publishable Key خودت را اینجا قرار بده
     private static final String SUPABASE_PUBLISHABLE_KEY =
             "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
 
-    // نام bucket عکس و ویدئو
     private static final String MEDIA_BUCKET =
             "chat_media";
 
-    // نام bucket صدا
     private static final String VOICE_BUCKET =
             "voice_messages";
 
@@ -397,6 +398,16 @@ public class ChatActivity extends Activity {
         data.put(
                 "timestamp",
                 FieldValue.serverTimestamp()
+        );
+
+        data.put(
+                "deletedForAll",
+                false
+        );
+
+        data.put(
+                "deletedFor",
+                new ArrayList<String>()
         );
 
         db.collection("messages")
@@ -737,6 +748,16 @@ public class ChatActivity extends Activity {
         data.put(
                 "timestamp",
                 FieldValue.serverTimestamp()
+        );
+
+        data.put(
+                "deletedForAll",
+                false
+        );
+
+        data.put(
+                "deletedFor",
+                new ArrayList<String>()
         );
 
         db.collection("messages")
@@ -1126,6 +1147,16 @@ public class ChatActivity extends Activity {
                 FieldValue.serverTimestamp()
         );
 
+        data.put(
+                "deletedForAll",
+                false
+        );
+
+        data.put(
+                "deletedFor",
+                new ArrayList<String>()
+        );
+
         db.collection("messages")
                 .add(data)
                 .addOnSuccessListener(
@@ -1236,6 +1267,29 @@ public class ChatActivity extends Activity {
                                     snapshots.getDocuments()
                             ) {
 
+                                Boolean deletedForAll =
+                                        document.getBoolean(
+                                                "deletedForAll"
+                                        );
+
+                                if (Boolean.TRUE.equals(
+                                        deletedForAll
+                                )) {
+                                    continue;
+                                }
+
+                                List<String> deletedFor =
+                                        (List<String>)
+                                                document.get(
+                                                        "deletedFor"
+                                                );
+
+                                if (deletedFor != null &&
+                                        deletedFor.contains(myId)) {
+
+                                    continue;
+                                }
+
                                 String type =
                                         document.getString(
                                                 "type"
@@ -1251,6 +1305,9 @@ public class ChatActivity extends Activity {
                                                 senderId
                                         );
 
+                                String documentId =
+                                        document.getId();
+
                                 if ("audio".equals(type)) {
 
                                     String audioUrl =
@@ -1262,7 +1319,9 @@ public class ChatActivity extends Activity {
 
                                         addAudioMessage(
                                                 audioUrl,
-                                                mine
+                                                mine,
+                                                documentId,
+                                                senderId
                                         );
                                     }
 
@@ -1279,7 +1338,9 @@ public class ChatActivity extends Activity {
 
                                         addImageMessage(
                                                 mediaUrl,
-                                                mine
+                                                mine,
+                                                documentId,
+                                                senderId
                                         );
                                     }
 
@@ -1296,7 +1357,9 @@ public class ChatActivity extends Activity {
 
                                         addVideoMessage(
                                                 mediaUrl,
-                                                mine
+                                                mine,
+                                                documentId,
+                                                senderId
                                         );
                                     }
 
@@ -1313,7 +1376,9 @@ public class ChatActivity extends Activity {
 
                                     addTextMessage(
                                             message,
-                                            mine
+                                            mine,
+                                            documentId,
+                                            senderId
                                     );
                                 }
                             }
@@ -1324,12 +1389,276 @@ public class ChatActivity extends Activity {
     }
 
     // =========================================================
+    // DELETE MENU
+    // =========================================================
+
+    private void showDeleteMenu(
+            String documentId,
+            String senderId,
+            String mediaUrl,
+            String type
+    ) {
+
+        if (auth.getCurrentUser() == null) {
+            return;
+        }
+
+        String myId =
+                auth.getCurrentUser().getUid();
+
+        boolean mine =
+                myId.equals(senderId);
+
+        if (mine) {
+
+            String[] options = {
+                    "🗑️ حذف برای من",
+                    "🗑️ حذف برای هر دو طرف",
+                    "لغو"
+            };
+
+            new AlertDialog.Builder(this)
+                    .setTitle("حذف پیام")
+                    .setItems(
+                            options,
+                            (dialog, which) -> {
+
+                                if (which == 0) {
+
+                                    deleteForMe(
+                                            documentId
+                                    );
+
+                                } else if (which == 1) {
+
+                                    new AlertDialog.Builder(this)
+                                            .setTitle(
+                                                    "حذف برای هر دو طرف؟"
+                                            )
+                                            .setMessage(
+                                                    "این پیام از چت هر دو طرف حذف می‌شود."
+                                            )
+                                            .setNegativeButton(
+                                                    "لغو",
+                                                    null
+                                            )
+                                            .setPositiveButton(
+                                                    "حذف",
+                                                    (d, w) ->
+                                                            deleteForBoth(
+                                                                    documentId,
+                                                                    mediaUrl,
+                                                                    type
+                                                            )
+                                            )
+                                            .show();
+                                }
+                            }
+                    )
+                    .show();
+
+        } else {
+
+            String[] options = {
+                    "🗑️ حذف برای من",
+                    "لغو"
+            };
+
+            new AlertDialog.Builder(this)
+                    .setTitle("حذف پیام")
+                    .setItems(
+                            options,
+                            (dialog, which) -> {
+
+                                if (which == 0) {
+
+                                    deleteForMe(
+                                            documentId
+                                    );
+                                }
+                            }
+                    )
+                    .show();
+        }
+    }
+
+    // =========================================================
+    // DELETE FOR ME
+    // =========================================================
+
+    private void deleteForMe(
+            String documentId
+    ) {
+
+        if (auth.getCurrentUser() == null) {
+            return;
+        }
+
+        String myId =
+                auth.getCurrentUser().getUid();
+
+        db.collection("messages")
+                .document(documentId)
+                .update(
+                        "deletedFor",
+                        FieldValue.arrayUnion(myId)
+                )
+                .addOnSuccessListener(
+                        unused ->
+                                Toast.makeText(
+                                        this,
+                                        "پیام برای شما حذف شد",
+                                        Toast.LENGTH_SHORT
+                                ).show()
+                )
+                .addOnFailureListener(e ->
+
+                        Toast.makeText(
+                                this,
+                                "حذف پیام ناموفق بود",
+                                Toast.LENGTH_LONG
+                        ).show()
+                );
+    }
+
+    // =========================================================
+    // DELETE FOR BOTH
+    // =========================================================
+
+    private void deleteForBoth(
+            String documentId,
+            String mediaUrl,
+            String type
+    ) {
+
+        db.collection("messages")
+                .document(documentId)
+                .update(
+                        "deletedForAll",
+                        true
+                )
+                .addOnSuccessListener(
+                        unused -> {
+
+                            Toast.makeText(
+                                    this,
+                                    "پیام برای هر دو طرف حذف شد",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+
+                            if (mediaUrl != null &&
+                                    !type.equals("text")) {
+
+                                deleteFileFromSupabase(
+                                        mediaUrl,
+                                        type
+                                );
+                            }
+                        }
+                )
+                .addOnFailureListener(e ->
+
+                        Toast.makeText(
+                                this,
+                                "حذف پیام ناموفق بود",
+                                Toast.LENGTH_LONG
+                        ).show()
+                );
+    }
+
+    // =========================================================
+    // DELETE FILE FROM SUPABASE
+    // =========================================================
+
+    private void deleteFileFromSupabase(
+            String publicUrl,
+            String type
+    ) {
+
+        new Thread(() -> {
+
+            try {
+
+                String bucket;
+
+                if ("audio".equals(type)) {
+
+                    bucket = VOICE_BUCKET;
+
+                } else {
+
+                    bucket = MEDIA_BUCKET;
+                }
+
+                String marker =
+                        "/storage/v1/object/public/" +
+                                bucket +
+                                "/";
+
+                int index =
+                        publicUrl.indexOf(marker);
+
+                if (index == -1) {
+                    return;
+                }
+
+                String filePath =
+                        publicUrl.substring(
+                                index + marker.length()
+                        );
+
+                filePath =
+                        Uri.decode(filePath);
+
+                String deleteUrl =
+                        SUPABASE_URL +
+                                "/storage/v1/object/" +
+                                bucket +
+                                "/" +
+                                filePath;
+
+                HttpURLConnection connection =
+                        (HttpURLConnection)
+                                new URL(deleteUrl)
+                                        .openConnection();
+
+                connection.setRequestMethod(
+                        "DELETE"
+                );
+
+                connection.setDoInput(true);
+
+                connection.setRequestProperty(
+                        "apikey",
+                        SUPABASE_PUBLISHABLE_KEY
+                );
+
+                connection.setRequestProperty(
+                        "Authorization",
+                        "Bearer " +
+                                SUPABASE_PUBLISHABLE_KEY
+                );
+
+                int responseCode =
+                        connection.getResponseCode();
+
+                connection.disconnect();
+
+            } catch (Exception ignored) {
+            }
+
+        }).start();
+    }
+
+    // =========================================================
     // TEXT DISPLAY
     // =========================================================
 
     private void addTextMessage(
             String message,
-            boolean mine
+            boolean mine,
+            String documentId,
+            String senderId
     ) {
 
         TextView messageView =
@@ -1342,6 +1671,7 @@ public class ChatActivity extends Activity {
         );
 
         messageView.setTextSize(17);
+
         messageView.setTextColor(
                 Color.DKGRAY
         );
@@ -1357,6 +1687,20 @@ public class ChatActivity extends Activity {
                 dp(12)
         );
 
+        messageView.setOnLongClickListener(
+                v -> {
+
+                    showDeleteMenu(
+                            documentId,
+                            senderId,
+                            null,
+                            "text"
+                    );
+
+                    return true;
+                }
+        );
+
         messagesLayout.addView(
                 messageView
         );
@@ -1368,7 +1712,9 @@ public class ChatActivity extends Activity {
 
     private void addAudioMessage(
             String audioUrl,
-            boolean mine
+            boolean mine,
+            String documentId,
+            String senderId
     ) {
 
         Button playButton =
@@ -1386,6 +1732,20 @@ public class ChatActivity extends Activity {
                 v -> playAudio(audioUrl)
         );
 
+        playButton.setOnLongClickListener(
+                v -> {
+
+                    showDeleteMenu(
+                            documentId,
+                            senderId,
+                            audioUrl,
+                            "audio"
+                    );
+
+                    return true;
+                }
+        );
+
         messagesLayout.addView(
                 playButton,
                 new LinearLayout.LayoutParams(
@@ -1401,7 +1761,9 @@ public class ChatActivity extends Activity {
 
     private void addImageMessage(
             String imageUrl,
-            boolean mine
+            boolean mine,
+            String documentId,
+            String senderId
     ) {
 
         LinearLayout container =
@@ -1444,6 +1806,31 @@ public class ChatActivity extends Activity {
 
         imageView.setOnClickListener(
                 v -> openMediaUrl(imageUrl)
+        );
+
+        View.OnLongClickListener deleteListener =
+                v -> {
+
+                    showDeleteMenu(
+                            documentId,
+                            senderId,
+                            imageUrl,
+                            "image"
+                    );
+
+                    return true;
+                };
+
+        imageView.setOnLongClickListener(
+                deleteListener
+        );
+
+        label.setOnLongClickListener(
+                deleteListener
+        );
+
+        container.setOnLongClickListener(
+                deleteListener
         );
 
         container.addView(label);
@@ -1497,7 +1884,9 @@ public class ChatActivity extends Activity {
 
     private void addVideoMessage(
             String videoUrl,
-            boolean mine
+            boolean mine,
+            String documentId,
+            String senderId
     ) {
 
         LinearLayout container =
@@ -1554,6 +1943,31 @@ public class ChatActivity extends Activity {
                             Toast.LENGTH_SHORT
                     ).show();
                 }
+        );
+
+        View.OnLongClickListener deleteListener =
+                v -> {
+
+                    showDeleteMenu(
+                            documentId,
+                            senderId,
+                            videoUrl,
+                            "video"
+                    );
+
+                    return true;
+                };
+
+        videoView.setOnLongClickListener(
+                deleteListener
+        );
+
+        label.setOnLongClickListener(
+                deleteListener
+        );
+
+        container.setOnLongClickListener(
+                deleteListener
         );
 
         container.addView(label);
