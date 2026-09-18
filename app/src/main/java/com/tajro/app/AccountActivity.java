@@ -14,10 +14,18 @@ import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class AccountActivity extends Activity {
 
     private FirebaseAuth auth;
+    private FirebaseFirestore db;
+
+    private EditText nameInput;
     private EditText emailInput;
     private EditText passwordInput;
     private TextView statusText;
@@ -29,6 +37,7 @@ public class AccountActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         auth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
 
         themeColor = ThemeManager.getThemeColor(this);
 
@@ -41,20 +50,39 @@ public class AccountActivity extends Activity {
         title.setText("👤 اکانت من");
         title.setTextSize(28);
         title.setTextColor(themeColor);
-        title.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
-        );
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setGravity(Gravity.CENTER);
-        title.setPadding(0, 0, 0, 35);
+        title.setPadding(0, 0, 0, 30);
+
+        // ==============================
+        // نام نمایشی
+        // ==============================
+
+        nameInput = new EditText(this);
+        nameInput.setHint("نام نمایشی شما");
+        nameInput.setSingleLine(true);
+
+        // ==============================
+        // ایمیل
+        // ==============================
 
         emailInput = new EditText(this);
         emailInput.setHint("ایمیل خود را وارد کنید");
         emailInput.setInputType(33);
+        emailInput.setSingleLine(true);
+
+        // ==============================
+        // رمز
+        // ==============================
 
         passwordInput = new EditText(this);
         passwordInput.setHint("رمز عبور");
         passwordInput.setInputType(129);
+        passwordInput.setSingleLine(true);
+
+        // ==============================
+        // دکمه‌ها
+        // ==============================
 
         Button registerButton = new Button(this);
         registerButton.setText("📝 ثبت‌نام");
@@ -64,6 +92,10 @@ public class AccountActivity extends Activity {
         loginButton.setText("🔐 ورود");
         styleButton(loginButton);
 
+        Button saveProfileButton = new Button(this);
+        saveProfileButton.setText("💾 ذخیره نام");
+        styleButton(saveProfileButton);
+
         Button logoutButton = new Button(this);
         logoutButton.setText("🚪 خروج");
         styleButton(logoutButton);
@@ -71,13 +103,15 @@ public class AccountActivity extends Activity {
         statusText = new TextView(this);
         statusText.setTextSize(17);
         statusText.setGravity(Gravity.CENTER);
-        statusText.setPadding(0, 30, 0, 20);
+        statusText.setPadding(0, 25, 0, 20);
 
         layout.addView(title);
+        layout.addView(nameInput);
         layout.addView(emailInput);
         layout.addView(passwordInput);
         layout.addView(registerButton);
         layout.addView(loginButton);
+        layout.addView(saveProfileButton);
         layout.addView(logoutButton);
         layout.addView(statusText);
 
@@ -85,15 +119,41 @@ public class AccountActivity extends Activity {
 
         showCurrentUser();
 
+        // ==============================
+        // ثبت نام
+        // ==============================
+
         registerButton.setOnClickListener(v ->
                 registerUser()
         );
+
+        // ==============================
+        // ورود
+        // ==============================
 
         loginButton.setOnClickListener(v ->
                 loginUser()
         );
 
+        // ==============================
+        // ذخیره پروفایل
+        // ==============================
+
+        saveProfileButton.setOnClickListener(v ->
+                saveProfile()
+        );
+
+        // ==============================
+        // خروج
+        // ==============================
+
         logoutButton.setOnClickListener(v -> {
+
+            FirebaseUser user = auth.getCurrentUser();
+
+            if (user != null) {
+                setUserOffline(user.getUid());
+            }
 
             auth.signOut();
 
@@ -125,6 +185,11 @@ public class AccountActivity extends Activity {
                 passwordInput.getText()
                         .toString();
 
+        String name =
+                nameInput.getText()
+                        .toString()
+                        .trim();
+
         if (email.isEmpty()
                 || password.isEmpty()) {
 
@@ -148,11 +213,27 @@ public class AccountActivity extends Activity {
             return;
         }
 
+        if (name.isEmpty()) {
+            name = email.split("@")[0];
+        }
+
+        final String finalName = name;
+
         auth.createUserWithEmailAndPassword(
                         email,
                         password
                 )
                 .addOnSuccessListener(authResult -> {
+
+                    FirebaseUser user =
+                            auth.getCurrentUser();
+
+                    if (user != null) {
+                        saveUserToFirestore(
+                                user,
+                                finalName
+                        );
+                    }
 
                     Toast.makeText(
                             AccountActivity.this,
@@ -205,6 +286,18 @@ public class AccountActivity extends Activity {
                 )
                 .addOnSuccessListener(authResult -> {
 
+                    FirebaseUser user =
+                            auth.getCurrentUser();
+
+                    if (user != null) {
+
+                        loadUserProfile(user);
+
+                        setUserOnline(
+                                user.getUid()
+                        );
+                    }
+
                     Toast.makeText(
                             AccountActivity.this,
                             "ورود موفق بود ✅",
@@ -225,6 +318,168 @@ public class AccountActivity extends Activity {
     }
 
     // ==================================
+    // ذخیره پروفایل
+    // ==================================
+
+    private void saveProfile() {
+
+        FirebaseUser user =
+                auth.getCurrentUser();
+
+        if (user == null) {
+
+            Toast.makeText(
+                    this,
+                    "ابتدا وارد حساب شوید",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
+        String name =
+                nameInput.getText()
+                        .toString()
+                        .trim();
+
+        if (name.isEmpty()) {
+
+            Toast.makeText(
+                    this,
+                    "نام نمایشی را وارد کنید",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
+        Map<String, Object> data =
+                new HashMap<>();
+
+        data.put("name", name);
+        data.put("email", user.getEmail());
+        data.put("userId", user.getUid());
+        data.put("updatedAt",
+                FieldValue.serverTimestamp());
+
+        db.collection("users")
+                .document(user.getUid())
+                .set(data)
+                .addOnSuccessListener(unused -> {
+
+                    Toast.makeText(
+                            AccountActivity.this,
+                            "نام شما ذخیره شد ✅",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                })
+                .addOnFailureListener(e -> {
+
+                    Toast.makeText(
+                            AccountActivity.this,
+                            "خطا در ذخیره نام: "
+                                    + e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show();
+                });
+    }
+
+    // ==================================
+    // ذخیره کاربر در Firestore
+    // ==================================
+
+    private void saveUserToFirestore(
+            FirebaseUser user,
+            String name
+    ) {
+
+        Map<String, Object> data =
+                new HashMap<>();
+
+        data.put("name", name);
+        data.put("email", user.getEmail());
+        data.put("userId", user.getUid());
+        data.put("online", true);
+        data.put("lastSeen",
+                FieldValue.serverTimestamp());
+        data.put("typingTo", "");
+
+        db.collection("users")
+                .document(user.getUid())
+                .set(data);
+    }
+
+    // ==================================
+    // آنلاین
+    // ==================================
+
+    private void setUserOnline(String uid) {
+
+        Map<String, Object> data =
+                new HashMap<>();
+
+        data.put("online", true);
+        data.put("lastSeen",
+                FieldValue.serverTimestamp());
+
+        db.collection("users")
+                .document(uid)
+                .set(
+                        data,
+                        com.google.firebase.firestore.SetOptions.merge()
+                );
+    }
+
+    // ==================================
+    // آفلاین
+    // ==================================
+
+    private void setUserOffline(String uid) {
+
+        Map<String, Object> data =
+                new HashMap<>();
+
+        data.put("online", false);
+        data.put("lastSeen",
+                FieldValue.serverTimestamp());
+        data.put("typingTo", "");
+
+        db.collection("users")
+                .document(uid)
+                .set(
+                        data,
+                        com.google.firebase.firestore.SetOptions.merge()
+                );
+    }
+
+    // ==================================
+    // خواندن پروفایل
+    // ==================================
+
+    private void loadUserProfile(
+            FirebaseUser user
+    ) {
+
+        db.collection("users")
+                .document(user.getUid())
+                .get()
+                .addOnSuccessListener(document -> {
+
+                    if (document.exists()) {
+
+                        String name =
+                                document.getString("name");
+
+                        if (name != null
+                                && !name.isEmpty()) {
+
+                            nameInput.setText(name);
+                        }
+                    }
+                });
+    }
+
+    // ==================================
     // نمایش وضعیت حساب
     // ==================================
 
@@ -235,23 +490,28 @@ public class AccountActivity extends Activity {
 
         if (user != null) {
 
-            // ==================================
-            // مخفی کردن اطلاعات شخصی
-            // ==================================
+            loadUserProfile(user);
+
+            setUserOnline(user.getUid());
 
             if (AppLockManager.isPersonalInfoHidden(this)) {
 
                 statusText.setText(
                         "✅ وارد شده‌اید\n\n" +
+                        "🟢 آنلاین\n\n" +
                         "👁️ اطلاعات شخصی شما مخفی است"
                 );
 
             } else {
 
+                String email =
+                        user.getEmail();
+
                 statusText.setText(
                         "✅ وارد شده‌اید\n\n" +
+                        "🟢 آنلاین\n\n" +
                         "ایمیل:\n" +
-                        user.getEmail()
+                        email
                 );
             }
 
