@@ -57,7 +57,7 @@ public class ChatActivity extends Activity {
      * فعلاً عمداً مقدار قبلی "Us" نگه داشته شده.
      */
     private static final String SUPABASE_PUBLISHABLE_KEY =
-            "Us";
+            "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
 
     private static final String MEDIA_BUCKET = "chat_media";
     private static final String VOICE_BUCKET = "voice_messages";
