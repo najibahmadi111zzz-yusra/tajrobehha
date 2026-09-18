@@ -9,12 +9,17 @@ workflows:
         - OPENROUTER
 
     scripts:
-      - name: Build Android APK
+      - name: Prepare Gradle
         script: |
-          set -e
           gradle wrapper --gradle-version 8.9
           chmod +x gradlew
+
+      - name: Get SHA1 and SHA-256
+        script: |
           ./gradlew signingReport
+
+      - name: Build Android APK
+        script: |
           ./gradlew assembleDebug
 
     artifacts:
