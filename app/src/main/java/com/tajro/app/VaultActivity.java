@@ -1,362 +1,1028 @@
 package com.tajro.app;
 
-import android.content.Context;
-import android.content.SharedPreferences;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.os.Bundle;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.text.InputType;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.Date;
+import java.util.Locale;
 
-public class ExchangeData {
+public class VaultActivity extends Activity {
 
-    private static final String PREF_NAME = "tajro_exchange_data";
+    private ExchangeData data;
 
-    private static final String KEY_TRANSACTIONS = "transactions";
-    private static final String KEY_CUSTOMERS = "customers";
-    private static final String KEY_CUSTODY = "customer_custody";
+    private TextView balanceText;
 
-    private static final String BALANCE_PREFIX = "balance_";
-    private static final String RATE_PREFIX = "rate_";
+    private EditText amountInput;
+    private EditText noteInput;
 
-    public static final String AFN = "افغانی";
-    public static final String USD = "دالر";
-    public static final String EUR = "یورو";
-    public static final String GBP = "پوند انگلیس";
-    public static final String SAR = "ریال سعودی";
-    public static final String AED = "درهم امارات";
-    public static final String IQD = "دینار عراق";
-    public static final String INR = "روپیه هند";
-    public static final String PKR = "روپیه پاکستانی";
-    public static final String TRY = "لیر ترکیه";
-    public static final String TOMAN = "تومان";
+    private EditText custodyNameInput;
+    private EditText custodyPhoneInput;
+    private EditText custodyAmountInput;
+    private EditText custodyNoteInput;
 
-    private static ExchangeData instance;
-    private final SharedPreferences prefs;
+    private Spinner currencySpinner;
+    private Spinner custodyCurrencySpinner;
 
-    private ExchangeData(Context context) {
-        prefs = context.getApplicationContext()
-                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    private int themeColor;
 
-        initializeDefaults();
-    }
+    private String[] currencies;
 
-    public static synchronized ExchangeData get(Context context) {
-        if (instance == null) {
-            instance = new ExchangeData(context);
-        }
-        return instance;
-    }
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-    public static String[] getCurrencies() {
-        return new String[]{
-                AFN,
-                USD,
-                EUR,
-                GBP,
-                SAR,
-                AED,
-                IQD,
-                INR,
-                PKR,
-                TRY,
-                TOMAN
-        };
-    }
+        data = ExchangeData.get(this);
 
-    public static String[] getCurrencyNames() {
-        return getCurrencies();
-    }
+        themeColor = ThemeManager.getThemeColor(this);
 
-    private void initializeDefaults() {
+        currencies = ExchangeData.getCurrencies();
 
-        initializeBalance(AFN, 0);
-        initializeBalance(USD, 0);
-        initializeBalance(EUR, 0);
-        initializeBalance(GBP, 0);
-        initializeBalance(SAR, 0);
-        initializeBalance(AED, 0);
-        initializeBalance(IQD, 0);
-        initializeBalance(INR, 0);
-        initializeBalance(PKR, 0);
-        initializeBalance(TRY, 0);
-        initializeBalance(TOMAN, 0);
+        buildScreen();
 
-        initializeRate(USD, 70);
-        initializeRate(EUR, 82);
-        initializeRate(GBP, 95);
-        initializeRate(SAR, 18.67);
-        initializeRate(AED, 19.05);
-        initializeRate(IQD, 0.054);
-        initializeRate(INR, 0.84);
-        initializeRate(PKR, 0.25);
-        initializeRate(TRY, 2);
-        initializeRate(TOMAN, 0.0015);
-    }
-
-    private void initializeBalance(String currency, double value) {
-        if (!prefs.contains(BALANCE_PREFIX + currency)) {
-            setBalance(currency, value);
-        }
-    }
-
-    private void initializeRate(String currency, double value) {
-        if (!prefs.contains(RATE_PREFIX + currency)) {
-            setRate(currency, value);
-        }
+        updateBalance();
     }
 
     // ==================================================
-    // موجودی صرافی
+    // صفحه اصلی
     // ==================================================
 
-    public double getBalance(String currency) {
-        return prefs.getFloat(
-                BALANCE_PREFIX + currency,
-                0
+    private void buildScreen() {
+
+        LinearLayout root = new LinearLayout(this);
+
+        root.setOrientation(LinearLayout.VERTICAL);
+
+        root.setPadding(
+                30,
+                30,
+                30,
+                30
         );
-    }
 
-    public void setBalance(String currency, double amount) {
-        if (currency == null || amount < 0) {
-            return;
-        }
-
-        prefs.edit()
-                .putFloat(
-                        BALANCE_PREFIX + currency,
-                        (float) amount
-                )
-                .apply();
-    }
-
-    public void addBalance(String currency, double amount) {
-        if (currency == null || amount <= 0) {
-            return;
-        }
-
-        setBalance(
-                currency,
-                getBalance(currency) + amount
+        root.setGravity(
+                Gravity.CENTER_HORIZONTAL
         );
-    }
 
-    public boolean subtractBalance(String currency, double amount) {
-        if (currency == null || amount <= 0) {
-            return false;
-        }
-
-        double current = getBalance(currency);
-
-        if (amount > current) {
-            return false;
-        }
-
-        setBalance(currency, current - amount);
-        return true;
-    }
-
-    // ==================================================
-    // نرخ
-    // ==================================================
-
-    public double getRate(String currency) {
-        return prefs.getFloat(
-                RATE_PREFIX + currency,
-                0
+        root.setBackgroundColor(
+                getLightThemeColor()
         );
+
+        TextView title = new TextView(this);
+
+        title.setText("🔐 گاوصندوق هوشمند");
+
+        title.setTextSize(26);
+
+        title.setTextColor(themeColor);
+
+        title.setGravity(Gravity.CENTER);
+
+        title.setPadding(
+                0,
+                10,
+                0,
+                20
+        );
+
+        root.addView(title);
+
+        TextView info = new TextView(this);
+
+        info.setText(
+                "محل امن برای ثبت دارایی‌های صرافی\n" +
+                "موجودی صرافی و امانت مشتریان کاملاً جدا هستند."
+        );
+
+        info.setTextSize(16);
+
+        info.setGravity(Gravity.CENTER);
+
+        info.setPadding(
+                0,
+                0,
+                0,
+                20
+        );
+
+        root.addView(info);
+
+        // ==========================================
+        // ارز گاوصندوق
+        // ==========================================
+
+        currencySpinner = new Spinner(this);
+
+        createCurrencyAdapter(currencySpinner);
+
+        root.addView(currencySpinner);
+
+        balanceText = new TextView(this);
+
+        balanceText.setTextSize(22);
+
+        balanceText.setTextColor(themeColor);
+
+        balanceText.setGravity(Gravity.CENTER);
+
+        balanceText.setPadding(
+                0,
+                20,
+                0,
+                20
+        );
+
+        root.addView(balanceText);
+
+        amountInput = new EditText(this);
+
+        amountInput.setHint("مبلغ");
+
+        amountInput.setInputType(
+                InputType.TYPE_CLASS_NUMBER |
+                InputType.TYPE_NUMBER_FLAG_DECIMAL
+        );
+
+        root.addView(amountInput);
+
+        noteInput = new EditText(this);
+
+        noteInput.setHint("یادداشت / دلیل");
+
+        root.addView(noteInput);
+
+        Button depositButton = new Button(this);
+
+        depositButton.setText(
+                "➕ گذاشتن در گاوصندوق"
+        );
+
+        styleButton(depositButton);
+
+        root.addView(depositButton);
+
+        Button withdrawButton = new Button(this);
+
+        withdrawButton.setText(
+                "➖ برداشت از گاوصندوق"
+        );
+
+        styleButton(withdrawButton);
+
+        root.addView(withdrawButton);
+
+        Button historyButton = new Button(this);
+
+        historyButton.setText(
+                "📋 تاریخچه گاوصندوق"
+        );
+
+        styleButton(historyButton);
+
+        root.addView(historyButton);
+
+        // ==========================================
+        // امانت مشتریان
+        // ==========================================
+
+        TextView custodyTitle = new TextView(this);
+
+        custodyTitle.setText(
+                "🔐 امانت مشتریان"
+        );
+
+        custodyTitle.setTextSize(22);
+
+        custodyTitle.setTextColor(themeColor);
+
+        custodyTitle.setGravity(Gravity.CENTER);
+
+        custodyTitle.setPadding(
+                0,
+                30,
+                0,
+                10
+        );
+
+        root.addView(custodyTitle);
+
+        TextView custodyInfo = new TextView(this);
+
+        custodyInfo.setText(
+                "امانت مشتری از دارایی صرافی جداست.\n" +
+                "ثبت امانت هیچ تغییری در موجودی خود صرافی ایجاد نمی‌کند."
+        );
+
+        custodyInfo.setTextSize(15);
+
+        custodyInfo.setGravity(Gravity.CENTER);
+
+        custodyInfo.setPadding(
+                0,
+                0,
+                0,
+                15
+        );
+
+        root.addView(custodyInfo);
+
+        Button addCustodyButton = new Button(this);
+
+        addCustodyButton.setText(
+                "🔐 ثبت امانت جدید"
+        );
+
+        styleButton(addCustodyButton);
+
+        root.addView(addCustodyButton);
+
+        Button custodyHistoryButton = new Button(this);
+
+        custodyHistoryButton.setText(
+                "📋 امانت‌های مشتریان"
+        );
+
+        styleButton(custodyHistoryButton);
+
+        root.addView(custodyHistoryButton);
+
+        // ==========================================
+        // بازگشت
+        // ==========================================
+
+        Button backButton = new Button(this);
+
+        backButton.setText(
+                "⬅️ بازگشت"
+        );
+
+        styleButton(backButton);
+
+        root.addView(backButton);
+
+        // ==========================================
+        // رویدادها
+        // ==========================================
+
+        currencySpinner.setOnItemSelectedListener(
+                new android.widget.AdapterView.OnItemSelectedListener() {
+
+                    @Override
+                    public void onItemSelected(
+                            android.widget.AdapterView<?> parent,
+                            View view,
+                            int position,
+                            long id
+                    ) {
+                        updateBalance();
+                    }
+
+                    @Override
+                    public void onNothingSelected(
+                            android.widget.AdapterView<?> parent
+                    ) {
+                    }
+                }
+        );
+
+        depositButton.setOnClickListener(
+                v -> deposit()
+        );
+
+        withdrawButton.setOnClickListener(
+                v -> withdraw()
+        );
+
+        historyButton.setOnClickListener(
+                v -> showHistory()
+        );
+
+        addCustodyButton.setOnClickListener(
+                v -> showAddCustodyDialog()
+        );
+
+        custodyHistoryButton.setOnClickListener(
+                v -> showCustodyHistory()
+        );
+
+        backButton.setOnClickListener(
+                v -> finish()
+        );
+
+        setContentView(root);
     }
 
-    public void setRate(String currency, double rate) {
-        if (currency == null || rate < 0) {
-            return;
+    // ==================================================
+    // ارز + پرچم
+    // ==================================================
+
+    private void createCurrencyAdapter(Spinner spinner) {
+
+        ArrayAdapter<String> adapter =
+                new ArrayAdapter<String>(
+                        this,
+                        android.R.layout.simple_spinner_item,
+                        currencies
+                ) {
+
+                    @Override
+                    public View getView(
+                            int position,
+                            View convertView,
+                            android.view.ViewGroup parent
+                    ) {
+
+                        TextView text =
+                                (TextView) super.getView(
+                                        position,
+                                        convertView,
+                                        parent
+                                );
+
+                        text.setText(
+                                getCurrencyFlag(
+                                        currencies[position]
+                                )
+                                        + " "
+                                        + currencies[position]
+                        );
+
+                        text.setTextSize(17);
+
+                        return text;
+                    }
+
+                    @Override
+                    public View getDropDownView(
+                            int position,
+                            View convertView,
+                            android.view.ViewGroup parent
+                    ) {
+
+                        TextView text =
+                                (TextView) super.getDropDownView(
+                                        position,
+                                        convertView,
+                                        parent
+                                );
+
+                        text.setText(
+                                getCurrencyFlag(
+                                        currencies[position]
+                                )
+                                        + " "
+                                        + currencies[position]
+                        );
+
+                        text.setTextSize(17);
+
+                        return text;
+                    }
+                };
+
+        adapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item
+        );
+
+        spinner.setAdapter(adapter);
+    }
+
+    private String getCurrencyFlag(String currency) {
+
+        if (ExchangeData.AFN.equals(currency))
+            return "🇦🇫";
+
+        if (ExchangeData.USD.equals(currency))
+            return "🇺🇸";
+
+        if (ExchangeData.EUR.equals(currency))
+            return "🇪🇺";
+
+        if (ExchangeData.GBP.equals(currency))
+            return "🇬🇧";
+
+        if (ExchangeData.SAR.equals(currency))
+            return "🇸🇦";
+
+        if (ExchangeData.AED.equals(currency))
+            return "🇦🇪";
+
+        if (ExchangeData.IQD.equals(currency))
+            return "🇮🇶";
+
+        if (ExchangeData.INR.equals(currency))
+            return "🇮🇳";
+
+        if (ExchangeData.PKR.equals(currency))
+            return "🇵🇰";
+
+        if (ExchangeData.TRY.equals(currency))
+            return "🇹🇷";
+
+        if (ExchangeData.TOMAN.equals(currency))
+            return "🇮🇷";
+
+        return "🌐";
+    }
+
+    // ==================================================
+    // گاوصندوق
+    // ==================================================
+
+    private String getSelectedCurrency() {
+
+        if (currencySpinner == null
+                || currencySpinner.getSelectedItem() == null) {
+            return ExchangeData.AFN;
         }
 
-        prefs.edit()
-                .putFloat(
-                        RATE_PREFIX + currency,
-                        (float) rate
-                )
-                .apply();
+        return currencySpinner
+                .getSelectedItem()
+                .toString();
     }
 
-    // ==================================================
-    // مشتری
-    // ==================================================
+    private double getAmount() {
 
-    public void saveCustomer(String name, String phone) {
+        String text =
+                amountInput.getText()
+                        .toString()
+                        .trim();
 
-        if (name == null || name.trim().isEmpty()) {
-            return;
+        if (text.isEmpty()) {
+            return 0;
         }
 
         try {
+            return Double.parseDouble(text);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
 
-            JSONArray customers = getCustomersArray();
+    private void deposit() {
 
-            for (int i = 0; i < customers.length(); i++) {
+        double amount = getAmount();
 
-                JSONObject old =
-                        customers.getJSONObject(i);
+        if (amount <= 0) {
 
-                if (old.optString("name").equals(name)
-                        && old.optString("phone").equals(phone)) {
-                    return;
+            Toast.makeText(
+                    this,
+                    "لطفاً مبلغ درست وارد کنید.",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
+        String currency = getSelectedCurrency();
+
+        data.addBalance(
+                currency,
+                amount
+        );
+
+        saveVaultRecord(
+                "ورود",
+                currency,
+                amount,
+                noteInput.getText().toString()
+        );
+
+        clearInputs();
+
+        updateBalance();
+
+        Toast.makeText(
+                this,
+                "مبلغ با موفقیت وارد گاوصندوق شد.",
+                Toast.LENGTH_SHORT
+        ).show();
+    }
+
+    private void withdraw() {
+
+        double amount = getAmount();
+
+        if (amount <= 0) {
+
+            Toast.makeText(
+                    this,
+                    "لطفاً مبلغ درست وارد کنید.",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
+        String currency = getSelectedCurrency();
+
+        boolean success =
+                data.subtractBalance(
+                        currency,
+                        amount
+                );
+
+        if (!success) {
+
+            double current =
+                    data.getBalance(currency);
+
+            Toast.makeText(
+                    this,
+                    "موجودی کافی نیست.\n" +
+                    "موجودی فعلی: "
+                            + formatNumber(current),
+                    Toast.LENGTH_LONG
+            ).show();
+
+            return;
+        }
+
+        saveVaultRecord(
+                "خروج",
+                currency,
+                amount,
+                noteInput.getText().toString()
+        );
+
+        clearInputs();
+
+        updateBalance();
+
+        Toast.makeText(
+                this,
+                "مبلغ از گاوصندوق برداشت شد.",
+                Toast.LENGTH_SHORT
+        ).show();
+    }
+
+    private void updateBalance() {
+
+        if (currencySpinner == null
+                || currencySpinner.getSelectedItem() == null
+                || balanceText == null) {
+            return;
+        }
+
+        String currency = getSelectedCurrency();
+
+        double balance =
+                data.getBalance(currency);
+
+        balanceText.setText(
+                getCurrencyFlag(currency)
+                        + " موجودی "
+                        + currency
+                        + "\n"
+                        + formatNumber(balance)
+        );
+    }
+
+    // ==================================================
+    // ثبت امانت
+    // ==================================================
+
+    private void showAddCustodyDialog() {
+
+        LinearLayout layout =
+                new LinearLayout(this);
+
+        layout.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        layout.setPadding(
+                35,
+                10,
+                35,
+                10
+        );
+
+        custodyNameInput =
+                new EditText(this);
+
+        custodyNameInput.setHint(
+                "نام مشتری"
+        );
+
+        custodyNameInput.setSingleLine(true);
+
+        layout.addView(
+                custodyNameInput
+        );
+
+        custodyPhoneInput =
+                new EditText(this);
+
+        custodyPhoneInput.setHint(
+                "شماره تلفن"
+        );
+
+        custodyPhoneInput.setInputType(
+                InputType.TYPE_CLASS_PHONE
+        );
+
+        custodyPhoneInput.setSingleLine(true);
+
+        layout.addView(
+                custodyPhoneInput
+        );
+
+        custodyCurrencySpinner =
+                new Spinner(this);
+
+        createCurrencyAdapter(
+                custodyCurrencySpinner
+        );
+
+        layout.addView(
+                custodyCurrencySpinner
+        );
+
+        custodyAmountInput =
+                new EditText(this);
+
+        custodyAmountInput.setHint(
+                "مبلغ امانت"
+        );
+
+        custodyAmountInput.setInputType(
+                InputType.TYPE_CLASS_NUMBER |
+                InputType.TYPE_NUMBER_FLAG_DECIMAL
+        );
+
+        custodyAmountInput.setSingleLine(true);
+
+        layout.addView(
+                custodyAmountInput
+        );
+
+        custodyNoteInput =
+                new EditText(this);
+
+        custodyNoteInput.setHint(
+                "یادداشت / توضیح امانت"
+        );
+
+        layout.addView(
+                custodyNoteInput
+        );
+
+        // فقط یک Dialog ساخته می‌شود.
+        final AlertDialog dialog =
+                new AlertDialog.Builder(this)
+                        .setTitle(
+                                "🔐 ثبت امانت مشتری"
+                        )
+                        .setMessage(
+                                "این مبلغ متعلق به مشتری است و " +
+                                "به موجودی خود صرافی اضافه نمی‌شود."
+                        )
+                        .setView(layout)
+                        .setNegativeButton(
+                                "انصراف",
+                                null
+                        )
+                        .setPositiveButton(
+                                "ثبت امانت",
+                                null
+                        )
+                        .create();
+
+        dialog.setOnShowListener(
+                d -> {
+
+                    Button positive =
+                            dialog.getButton(
+                                    AlertDialog.BUTTON_POSITIVE
+                            );
+
+                    positive.setOnClickListener(
+                            v -> {
+
+                                String name =
+                                        custodyNameInput
+                                                .getText()
+                                                .toString()
+                                                .trim();
+
+                                String phone =
+                                        custodyPhoneInput
+                                                .getText()
+                                                .toString()
+                                                .trim();
+
+                                if (custodyCurrencySpinner
+                                        .getSelectedItem() == null) {
+
+                                    Toast.makeText(
+                                            this,
+                                            "لطفاً ارز امانت را انتخاب کنید.",
+                                            Toast.LENGTH_SHORT
+                                    ).show();
+
+                                    return;
+                                }
+
+                                String currency =
+                                        custodyCurrencySpinner
+                                                .getSelectedItem()
+                                                .toString();
+
+                                String amountText =
+                                        custodyAmountInput
+                                                .getText()
+                                                .toString()
+                                                .trim();
+
+                                String note =
+                                        custodyNoteInput
+                                                .getText()
+                                                .toString()
+                                                .trim();
+
+                                if (name.isEmpty()) {
+
+                                    custodyNameInput.setError(
+                                            "نام مشتری را وارد کنید"
+                                    );
+
+                                    custodyNameInput.requestFocus();
+
+                                    return;
+                                }
+
+                                if (amountText.isEmpty()) {
+
+                                    custodyAmountInput.setError(
+                                            "مبلغ امانت را وارد کنید"
+                                    );
+
+                                    custodyAmountInput.requestFocus();
+
+                                    return;
+                                }
+
+                                double amount;
+
+                                try {
+
+                                    amount =
+                                            Double.parseDouble(
+                                                    amountText
+                                            );
+
+                                } catch (Exception e) {
+
+                                    custodyAmountInput.setError(
+                                            "مبلغ درست وارد کنید"
+                                    );
+
+                                    custodyAmountInput.requestFocus();
+
+                                    return;
+                                }
+
+                                if (amount <= 0) {
+
+                                    custodyAmountInput.setError(
+                                            "مبلغ باید بیشتر از صفر باشد"
+                                    );
+
+                                    custodyAmountInput.requestFocus();
+
+                                    return;
+                                }
+
+                                boolean saved =
+                                        data.saveCustody(
+                                                name,
+                                                phone,
+                                                currency,
+                                                amount,
+                                                note
+                                        );
+
+                                if (!saved) {
+
+                                    Toast.makeText(
+                                            this,
+                                            "ثبت امانت انجام نشد.",
+                                            Toast.LENGTH_SHORT
+                                    ).show();
+
+                                    return;
+                                }
+
+                                dialog.dismiss();
+
+                                Toast.makeText(
+                                        this,
+                                        "🔐 امانت با موفقیت ثبت شد.",
+                                        Toast.LENGTH_LONG
+                                ).show();
+                            }
+                    );
+                }
+        );
+
+        dialog.show();
+    }
+
+    // ==================================================
+    // تاریخچه امانت
+    // ==================================================
+
+    private void showCustodyHistory() {
+
+        try {
+
+            JSONArray records =
+                    data.getCustodyArray();
+
+            StringBuilder text =
+                    new StringBuilder();
+
+            if (records.length() == 0) {
+
+                text.append(
+                        "هنوز هیچ امانتی ثبت نشده است."
+                );
+
+            } else {
+
+                for (int i = records.length() - 1;
+                     i >= 0;
+                     i--) {
+
+                    JSONObject record =
+                            records.optJSONObject(i);
+
+                    if (record == null) {
+                        continue;
+                    }
+
+                    String name =
+                            record.optString(
+                                    "customerName"
+                            );
+
+                    String phone =
+                            record.optString(
+                                    "phone"
+                            );
+
+                    String currency =
+                            record.optString(
+                                    "currency"
+                            );
+
+                    double amount =
+                            record.optDouble(
+                                    "amount",
+                                    0
+                            );
+
+                    String status =
+                            record.optString(
+                                    "status",
+                                    "امانت نزد صرافی"
+                            );
+
+                    String note =
+                            record.optString(
+                                    "note"
+                            );
+
+                    long date =
+                            record.optLong(
+                                    "date",
+                                    0
+                            );
+
+                    text.append(
+                            "━━━━━━━━━━━━━━\n"
+                    );
+
+                    text.append(
+                            getCurrencyFlag(currency)
+                    )
+                            .append(" ")
+                            .append(currency)
+                            .append("\n");
+
+                    text.append(
+                            "👤 مشتری: "
+                    )
+                            .append(name)
+                            .append("\n");
+
+                    if (!phone.isEmpty()) {
+
+                        text.append(
+                                "📞 شماره: "
+                        )
+                                .append(phone)
+                                .append("\n");
+                    }
+
+                    text.append(
+                            "💰 مبلغ: "
+                    )
+                            .append(
+                                    formatNumber(amount)
+                            )
+                            .append("\n");
+
+                    text.append(
+                            "📌 وضعیت: "
+                    )
+                            .append(status)
+                            .append("\n");
+
+                    if (date > 0) {
+
+                        text.append(
+                                "📅 تاریخ: "
+                        )
+                                .append(
+                                        formatDate(date)
+                                )
+                                .append("\n");
+                    }
+
+                    if (!note.isEmpty()) {
+
+                        text.append(
+                                "📝 یادداشت: "
+                        )
+                                .append(note)
+                                .append("\n");
+                    }
                 }
             }
 
-            JSONObject customer = new JSONObject();
-
-            customer.put("name", name);
-            customer.put(
-                    "phone",
-                    phone == null ? "" : phone
-            );
-
-            customers.put(customer);
-
-            prefs.edit()
-                    .putString(
-                            KEY_CUSTOMERS,
-                            customers.toString()
+            new AlertDialog.Builder(this)
+                    .setTitle(
+                            "🔐 امانت‌های مشتریان"
                     )
-                    .apply();
+                    .setMessage(
+                            text.toString()
+                    )
+                    .setPositiveButton(
+                            "تحویل امانت",
+                            (dialog, which) ->
+                                    showReturnCustody()
+                    )
+                    .setNegativeButton(
+                            "بستن",
+                            null
+                    )
+                    .show();
 
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
+        } catch (Exception e) {
 
-    public JSONArray getCustomersArray() {
-
-        String data =
-                prefs.getString(
-                        KEY_CUSTOMERS,
-                        "[]"
-                );
-
-        try {
-            return new JSONArray(data);
-        } catch (JSONException e) {
-            return new JSONArray();
+            Toast.makeText(
+                    this,
+                    "خطا در خواندن امانت‌ها.",
+                    Toast.LENGTH_SHORT
+            ).show();
         }
     }
 
     // ==================================================
-    // امانت مشتریان
+    // تحویل امانت
     // ==================================================
 
-    public boolean saveCustody(
-            String customerName,
-            String phone,
-            String currency,
-            double amount,
-            String note
-    ) {
-
-        if (customerName == null
-                || customerName.trim().isEmpty()
-                || currency == null
-                || currency.trim().isEmpty()
-                || amount <= 0) {
-
-            return false;
-        }
-
-        try {
-
-            saveCustomer(customerName, phone);
-
-            JSONArray records =
-                    getCustodyArray();
-
-            JSONObject record =
-                    new JSONObject();
-
-            record.put(
-                    "id",
-                    System.currentTimeMillis()
-            );
-
-            record.put(
-                    "customerName",
-                    customerName.trim()
-            );
-
-            record.put(
-                    "phone",
-                    phone == null ? "" : phone.trim()
-            );
-
-            record.put(
-                    "currency",
-                    currency
-            );
-
-            record.put(
-                    "amount",
-                    amount
-            );
-
-            record.put(
-                    "note",
-                    note == null ? "" : note.trim()
-            );
-
-            record.put(
-                    "status",
-                    "امانت نزد صرافی"
-            );
-
-            record.put(
-                    "date",
-                    System.currentTimeMillis()
-            );
-
-            records.put(record);
-
-            prefs.edit()
-                    .putString(
-                            KEY_CUSTODY,
-                            records.toString()
-                    )
-                    .apply();
-
-            return true;
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public JSONArray getCustodyArray() {
-
-        String data =
-                prefs.getString(
-                        KEY_CUSTODY,
-                        "[]"
-                );
-
-        try {
-            return new JSONArray(data);
-        } catch (JSONException e) {
-            return new JSONArray();
-        }
-    }
-
-    public boolean returnCustody(long id) {
+    private void showReturnCustody() {
 
         try {
 
             JSONArray records =
-                    getCustodyArray();
+                    data.getCustodyArray();
 
-            boolean found = false;
+            ArrayList<Long> ids =
+                    new ArrayList<>();
+
+            ArrayList<String> items =
+                    new ArrayList<>();
 
             for (int i = 0;
                  i < records.length();
@@ -369,358 +1035,438 @@ public class ExchangeData {
                     continue;
                 }
 
-                if (record.optLong("id", 0) == id) {
+                String status =
+                        record.optString(
+                                "status",
+                                "امانت نزد صرافی"
+                        );
 
-                    record.put(
-                            "status",
-                            "تحویل داده شد"
-                    );
-
-                    record.put(
-                            "returnedDate",
-                            System.currentTimeMillis()
-                    );
-
-                    found = true;
-                    break;
+                if (!"امانت نزد صرافی".equals(status)) {
+                    continue;
                 }
+
+                long id =
+                        record.optLong(
+                                "id",
+                                0
+                        );
+
+                String name =
+                        record.optString(
+                                "customerName"
+                        );
+
+                String currency =
+                        record.optString(
+                                "currency"
+                        );
+
+                double amount =
+                        record.optDouble(
+                                "amount",
+                                0
+                        );
+
+                ids.add(id);
+
+                items.add(
+                        getCurrencyFlag(currency)
+                                + " "
+                                + name
+                                + " — "
+                                + formatNumber(amount)
+                                + " "
+                                + currency
+                );
             }
 
-            if (!found) {
-                return false;
+            if (items.isEmpty()) {
+
+                new AlertDialog.Builder(this)
+                        .setTitle(
+                                "تحویل امانت"
+                        )
+                        .setMessage(
+                                "امانت فعالی برای تحویل وجود ندارد."
+                        )
+                        .setPositiveButton(
+                                "باشه",
+                                null
+                        )
+                        .show();
+
+                return;
             }
 
-            prefs.edit()
-                    .putString(
-                            KEY_CUSTODY,
-                            records.toString()
+            String[] itemArray =
+                    items.toArray(
+                            new String[0]
+                    );
+
+            new AlertDialog.Builder(this)
+                    .setTitle(
+                            "📦 انتخاب امانت برای تحویل"
                     )
-                    .apply();
+                    .setItems(
+                            itemArray,
+                            (dialog, which) -> {
 
-            return true;
+                                long id =
+                                        ids.get(which);
+
+                                confirmReturnCustody(id);
+                            }
+                    )
+                    .setNegativeButton(
+                            "انصراف",
+                            null
+                    )
+                    .show();
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+
+            Toast.makeText(
+                    this,
+                    "خطا در خواندن امانت‌ها.",
+                    Toast.LENGTH_SHORT
+            ).show();
         }
     }
 
+    private void confirmReturnCustody(long id) {
+
+        new AlertDialog.Builder(this)
+                .setTitle(
+                        "⚠️ تأیید تحویل امانت"
+                )
+                .setMessage(
+                        "آیا مطمئن هستید که این امانت " +
+                        "به صاحب آن تحویل داده شده است؟\n\n" +
+                        "رکورد امانت حذف نمی‌شود و فقط " +
+                        "وضعیت آن به «تحویل داده شد» تغییر می‌کند."
+                )
+                .setNegativeButton(
+                        "خیر",
+                        null
+                )
+                .setPositiveButton(
+                        "بله، تحویل شد",
+                        (dialog, which) -> {
+
+                            boolean success =
+                                    data.returnCustody(id);
+
+                            if (success) {
+
+                                Toast.makeText(
+                                        this,
+                                        "✅ امانت تحویل داده شد.",
+                                        Toast.LENGTH_LONG
+                                ).show();
+
+                            } else {
+
+                                Toast.makeText(
+                                        this,
+                                        "ثبت تحویل امانت ناموفق بود.",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
+                        }
+                )
+                .show();
+    }
+
     // ==================================================
-    // معاملات
+    // تاریخچه گاوصندوق
     // ==================================================
 
-    public boolean saveTransaction(
-            String customerName,
-            String phone,
-            String currency,
+    private void saveVaultRecord(
             String type,
+            String currency,
             double amount,
-            double rate,
-            String accountStatus,
             String note
     ) {
 
-        if (amount <= 0
-                || rate <= 0
-                || currency == null
-                || type == null) {
+        android.content.SharedPreferences prefs =
+                getSharedPreferences(
+                        "tajro_vault_records",
+                        MODE_PRIVATE
+                );
 
-            return false;
-        }
-
-        double total = amount * rate;
-
-        try {
-
-            saveCustomer(customerName, phone);
-
-            JSONObject transaction =
-                    new JSONObject();
-
-            long id =
-                    System.currentTimeMillis();
-
-            transaction.put("id", id);
-
-            transaction.put(
-                    "customerName",
-                    customerName == null
-                            ? ""
-                            : customerName
-            );
-
-            transaction.put(
-                    "phone",
-                    phone == null
-                            ? ""
-                            : phone
-            );
-
-            transaction.put(
-                    "currency",
-                    currency
-            );
-
-            transaction.put(
-                    "type",
-                    type
-            );
-
-            transaction.put(
-                    "amount",
-                    amount
-            );
-
-            transaction.put(
-                    "rate",
-                    rate
-            );
-
-            transaction.put(
-                    "total",
-                    total
-            );
-
-            transaction.put(
-                    "accountStatus",
-                    accountStatus == null
-                            ? "نقدی"
-                            : accountStatus
-            );
-
-            transaction.put(
-                    "note",
-                    note == null
-                            ? ""
-                            : note
-            );
-
-            transaction.put(
-                    "date",
-                    System.currentTimeMillis()
-            );
-
-            JSONArray transactions =
-                    getTransactionsArray();
-
-            transactions.put(transaction);
-
-            prefs.edit()
-                    .putString(
-                            KEY_TRANSACTIONS,
-                            transactions.toString()
-                    )
-                    .apply();
-
-            return true;
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public JSONArray getTransactionsArray() {
-
-        String data =
+        String oldData =
                 prefs.getString(
-                        KEY_TRANSACTIONS,
+                        "records",
                         "[]"
                 );
 
         try {
-            return new JSONArray(data);
-        } catch (JSONException e) {
-            return new JSONArray();
+
+            JSONArray records =
+                    new JSONArray(oldData);
+
+            JSONObject record =
+                    new JSONObject();
+
+            record.put(
+                    "id",
+                    System.currentTimeMillis()
+            );
+
+            record.put(
+                    "type",
+                    type
+            );
+
+            record.put(
+                    "currency",
+                    currency
+            );
+
+            record.put(
+                    "amount",
+                    amount
+            );
+
+            record.put(
+                    "note",
+                    note == null ? "" : note
+            );
+
+            record.put(
+                    "date",
+                    System.currentTimeMillis()
+            );
+
+            records.put(record);
+
+            prefs.edit()
+                    .putString(
+                            "records",
+                            records.toString()
+                    )
+                    .apply();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
         }
     }
 
-    // ==================================================
-    // مشتریان
-    // ==================================================
+    private void showHistory() {
 
-    public List<String> getCustomerNames() {
+        android.content.SharedPreferences prefs =
+                getSharedPreferences(
+                        "tajro_vault_records",
+                        MODE_PRIVATE
+                );
 
-        Set<String> uniqueNames =
-                new HashSet<>();
+        String oldData =
+                prefs.getString(
+                        "records",
+                        "[]"
+                );
 
-        JSONArray customers =
-                getCustomersArray();
+        try {
 
-        for (int i = 0;
-             i < customers.length();
-             i++) {
+            JSONArray records =
+                    new JSONArray(oldData);
 
-            JSONObject customer =
-                    customers.optJSONObject(i);
+            StringBuilder text =
+                    new StringBuilder();
 
-            if (customer != null) {
+            if (records.length() == 0) {
 
-                String name =
-                        customer.optString("name");
+                text.append(
+                        "هنوز هیچ عملیاتی ثبت نشده است."
+                );
 
-                if (!name.isEmpty()) {
-                    uniqueNames.add(name);
+            } else {
+
+                for (int i = records.length() - 1;
+                     i >= 0;
+                     i--) {
+
+                    JSONObject record =
+                            records.getJSONObject(i);
+
+                    String type =
+                            record.optString("type");
+
+                    String currency =
+                            record.optString("currency");
+
+                    double amount =
+                            record.optDouble("amount");
+
+                    String note =
+                            record.optString("note");
+
+                    long date =
+                            record.optLong(
+                                    "date",
+                                    0
+                            );
+
+                    text.append(
+                            "────────────\n"
+                    );
+
+                    text.append(
+                            getCurrencyFlag(currency)
+                    )
+                            .append(" ")
+                            .append(type)
+                            .append("\n");
+
+                    text.append(
+                            "ارز: "
+                    )
+                            .append(currency)
+                            .append("\n");
+
+                    text.append(
+                            "مبلغ: "
+                    )
+                            .append(
+                                    formatNumber(amount)
+                            )
+                            .append("\n");
+
+                    if (date > 0) {
+
+                        text.append(
+                                "تاریخ: "
+                        )
+                                .append(
+                                        formatDate(date)
+                                )
+                                .append("\n");
+                    }
+
+                    if (!note.isEmpty()) {
+
+                        text.append(
+                                "یادداشت: "
+                        )
+                                .append(note)
+                                .append("\n");
+                    }
                 }
             }
-        }
 
-        return new ArrayList<>(uniqueNames);
-    }
-
-    public double getCustomerDebt(
-            String customerName
-    ) {
-
-        double debt = 0;
-
-        JSONArray transactions =
-                getTransactionsArray();
-
-        for (int i = 0;
-             i < transactions.length();
-             i++) {
-
-            JSONObject transaction =
-                    transactions.optJSONObject(i);
-
-            if (transaction == null) {
-                continue;
-            }
-
-            if (!transaction.optString(
-                    "customerName"
-            ).equals(customerName)) {
-                continue;
-            }
-
-            if ("بدهکار".equals(
-                    transaction.optString(
-                            "accountStatus"
+            new AlertDialog.Builder(this)
+                    .setTitle(
+                            "📋 تاریخچه گاوصندوق"
                     )
-            )) {
-
-                debt += transaction.optDouble(
-                        "total",
-                        0
-                );
-            }
-        }
-
-        return debt;
-    }
-
-    public double getCustomerCredit(
-            String customerName
-    ) {
-
-        double credit = 0;
-
-        JSONArray transactions =
-                getTransactionsArray();
-
-        for (int i = 0;
-             i < transactions.length();
-             i++) {
-
-            JSONObject transaction =
-                    transactions.optJSONObject(i);
-
-            if (transaction == null) {
-                continue;
-            }
-
-            if (!transaction.optString(
-                    "customerName"
-            ).equals(customerName)) {
-                continue;
-            }
-
-            if ("طلبکار".equals(
-                    transaction.optString(
-                            "accountStatus"
+                    .setMessage(
+                            text.toString()
                     )
-            )) {
+                    .setPositiveButton(
+                            "بستن",
+                            null
+                    )
+                    .show();
 
-                credit += transaction.optDouble(
-                        "total",
-                        0
-                );
-            }
+        } catch (Exception e) {
+
+            Toast.makeText(
+                    this,
+                    "خطا در خواندن تاریخچه.",
+                    Toast.LENGTH_SHORT
+            ).show();
         }
-
-        return credit;
-    }
-
-    public double getCustomerBalance(
-            String customerName
-    ) {
-
-        return getCustomerDebt(customerName)
-                - getCustomerCredit(customerName);
     }
 
     // ==================================================
-    // آمار
+    // ابزارها
     // ==================================================
 
-    public double getTotalBuy() {
-        return getTotalByType("خرید");
+    private String formatNumber(double number) {
+
+        return String.format(
+                Locale.US,
+                "%,.2f",
+                number
+        );
     }
 
-    public double getTotalSell() {
-        return getTotalByType("فروش");
-    }
+    private String formatDate(long time) {
 
-    private double getTotalByType(String type) {
+        try {
 
-        double total = 0;
+            SimpleDateFormat format =
+                    new SimpleDateFormat(
+                            "yyyy/MM/dd HH:mm",
+                            Locale.getDefault()
+                    );
 
-        JSONArray transactions =
-                getTransactionsArray();
+            return format.format(
+                    new Date(time)
+            );
 
-        for (int i = 0;
-             i < transactions.length();
-             i++) {
+        } catch (Exception e) {
 
-            JSONObject transaction =
-                    transactions.optJSONObject(i);
-
-            if (transaction == null) {
-                continue;
-            }
-
-            if (type.equals(
-                    transaction.optString("type")
-            )) {
-
-                total += transaction.optDouble(
-                        "total",
-                        0
-                );
-            }
+            return "";
         }
-
-        return total;
     }
 
-    public int getTransactionCount() {
-        return getTransactionsArray().length();
+    private void clearInputs() {
+
+        amountInput.setText("");
+
+        noteInput.setText("");
     }
 
-    public void clearTransactions() {
+    private void styleButton(Button button) {
 
-        prefs.edit()
-                .remove(KEY_TRANSACTIONS)
-                .apply();
+        GradientDrawable background =
+                new GradientDrawable();
+
+        background.setColor(themeColor);
+
+        background.setCornerRadius(24);
+
+        button.setBackground(background);
+
+        button.setTextColor(
+                Color.WHITE
+        );
     }
 
-    public void clearAllData() {
+    private int getLightThemeColor() {
 
-        prefs.edit()
-                .clear()
-                .apply();
+        int red =
+                Color.red(themeColor);
 
-        initializeDefaults();
+        int green =
+                Color.green(themeColor);
+
+        int blue =
+                Color.blue(themeColor);
+
+        red =
+                red
+                        + (255 - red)
+                        * 92
+                        / 100;
+
+        green =
+                green
+                        + (255 - green)
+                        * 92
+                        / 100;
+
+        blue =
+                blue
+                        + (255 - blue)
+                        * 92
+                        / 100;
+
+        return Color.rgb(
+                red,
+                green,
+                blue
+        );
     }
-                }
+            }
