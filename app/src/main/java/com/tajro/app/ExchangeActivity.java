@@ -25,6 +25,7 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class ExchangeActivity extends Activity {
@@ -65,10 +66,7 @@ public class ExchangeActivity extends Activity {
         );
     }
 
-    private TextView makeText(
-            String text,
-            float size
-    ) {
+    private TextView makeText(String text, float size) {
         TextView tv = new TextView(this);
 
         tv.setText(text);
@@ -84,9 +82,7 @@ public class ExchangeActivity extends Activity {
         return tv;
     }
 
-    private EditText makeInput(
-            String hint
-    ) {
+    private EditText makeInput(String hint) {
         EditText input = new EditText(this);
 
         input.setHint(hint);
@@ -102,9 +98,7 @@ public class ExchangeActivity extends Activity {
         return input;
     }
 
-    private Button makeButton(
-            String text
-    ) {
+    private Button makeButton(String text) {
         Button button = new Button(this);
 
         button.setText(text);
@@ -117,9 +111,7 @@ public class ExchangeActivity extends Activity {
     // پرچم ارز
     // =========================================================
 
-    private String getCurrencyFlag(
-            String currency
-    ) {
+    private String getCurrencyFlag(String currency) {
 
         if (ExchangeData.AFN.equals(currency)) {
             return "🇦🇫";
@@ -196,8 +188,7 @@ public class ExchangeActivity extends Activity {
                                 parent
                         );
 
-                String currency =
-                        items[position];
+                String currency = items[position];
 
                 tv.setText(
                         getCurrencyFlag(currency)
@@ -206,10 +197,7 @@ public class ExchangeActivity extends Activity {
                 );
 
                 tv.setTextSize(16);
-
-                tv.setTextColor(
-                        Color.DKGRAY
-                );
+                tv.setTextColor(Color.DKGRAY);
 
                 tv.setGravity(
                         Gravity.CENTER_VERTICAL
@@ -239,8 +227,7 @@ public class ExchangeActivity extends Activity {
                                 parent
                         );
 
-                String currency =
-                        items[position];
+                String currency = items[position];
 
                 tv.setText(
                         getCurrencyFlag(currency)
@@ -272,8 +259,7 @@ public class ExchangeActivity extends Activity {
 
     private void createScreen() {
 
-        ScrollView scrollView =
-                new ScrollView(this);
+        ScrollView scrollView = new ScrollView(this);
 
         LinearLayout main =
                 new LinearLayout(this);
@@ -297,9 +283,7 @@ public class ExchangeActivity extends Activity {
                         25
                 );
 
-        title.setGravity(
-                Gravity.CENTER
-        );
+        title.setGravity(Gravity.CENTER);
 
         main.addView(title);
 
@@ -309,9 +293,7 @@ public class ExchangeActivity extends Activity {
                         17
                 );
 
-        subtitle.setGravity(
-                Gravity.CENTER
-        );
+        subtitle.setGravity(Gravity.CENTER);
 
         main.addView(subtitle);
 
@@ -322,9 +304,7 @@ public class ExchangeActivity extends Activity {
         customerNameInput =
                 makeInput("نام مشتری");
 
-        main.addView(
-                customerNameInput
-        );
+        main.addView(customerNameInput);
 
         phoneInput =
                 makeInput("شماره تلفن");
@@ -333,9 +313,7 @@ public class ExchangeActivity extends Activity {
                 InputType.TYPE_CLASS_PHONE
         );
 
-        main.addView(
-                phoneInput
-        );
+        main.addView(phoneInput);
 
         // =====================================================
         // ارز
@@ -351,25 +329,18 @@ public class ExchangeActivity extends Activity {
         currencySpinner =
                 new Spinner(this);
 
-        ArrayAdapter<String>
-                currencyAdapter =
-                createCurrencyAdapter(
-                        currencies
-                );
+        ArrayAdapter<String> currencyAdapter =
+                createCurrencyAdapter(currencies);
 
-        currencyAdapter
-                .setDropDownViewResource(
-                        android.R.layout
-                                .simple_spinner_dropdown_item
-                );
+        currencyAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item
+        );
 
         currencySpinner.setAdapter(
                 currencyAdapter
         );
 
-        main.addView(
-                currencySpinner
-        );
+        main.addView(currencySpinner);
 
         // =====================================================
         // نوع معامله
@@ -390,77 +361,57 @@ public class ExchangeActivity extends Activity {
                 "فروش"
         };
 
-        ArrayAdapter<String>
-                typeAdapter =
+        ArrayAdapter<String> typeAdapter =
                 new ArrayAdapter<>(
                         this,
-                        android.R.layout
-                                .simple_spinner_item,
+                        android.R.layout.simple_spinner_item,
                         types
                 );
 
-        typeAdapter
-                .setDropDownViewResource(
-                        android.R.layout
-                                .simple_spinner_dropdown_item
-                );
-
-        typeSpinner.setAdapter(
-                typeAdapter
+        typeAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item
         );
 
-        main.addView(
-                typeSpinner
-        );
+        typeSpinner.setAdapter(typeAdapter);
+
+        main.addView(typeSpinner);
 
         // =====================================================
         // مقدار
         // =====================================================
 
         amountInput =
-                makeInput(
-                        "مقدار ارز"
-                );
+                makeInput("مقدار ارز");
 
         amountInput.setInputType(
                 InputType.TYPE_CLASS_NUMBER |
                         InputType.TYPE_NUMBER_FLAG_DECIMAL
         );
 
-        main.addView(
-                amountInput
-        );
+        main.addView(amountInput);
 
         // =====================================================
         // نرخ
         // =====================================================
 
         rateInput =
-                makeInput(
-                        "نرخ هر واحد به افغانی"
-                );
+                makeInput("نرخ هر واحد به افغانی");
 
         rateInput.setInputType(
                 InputType.TYPE_CLASS_NUMBER |
                         InputType.TYPE_NUMBER_FLAG_DECIMAL
         );
 
-        main.addView(
-                rateInput
-        );
+        main.addView(rateInput);
 
         // =====================================================
         // یادداشت
         // =====================================================
 
         noteInput =
-                makeInput(
-                        "یادداشت / توضیحات"
-                );
+                makeInput("یادداشت / توضیحات");
 
-        main.addView(
-                noteInput
-        );
+        main.addView(noteInput);
 
         // =====================================================
         // مجموع
@@ -472,13 +423,9 @@ public class ExchangeActivity extends Activity {
                         18
                 );
 
-        totalText.setGravity(
-                Gravity.CENTER
-        );
+        totalText.setGravity(Gravity.CENTER);
 
-        main.addView(
-                totalText
-        );
+        main.addView(totalText);
 
         // =====================================================
         // موجودی
@@ -490,26 +437,18 @@ public class ExchangeActivity extends Activity {
                         17
                 );
 
-        balanceText.setGravity(
-                Gravity.CENTER
-        );
+        balanceText.setGravity(Gravity.CENTER);
 
-        main.addView(
-                balanceText
-        );
+        main.addView(balanceText);
 
         // =====================================================
         // محاسبه
         // =====================================================
 
         Button calculateButton =
-                makeButton(
-                        "🧮 محاسبه"
-                );
+                makeButton("🧮 محاسبه");
 
-        main.addView(
-                calculateButton
-        );
+        main.addView(calculateButton);
 
         calculateButton.setOnClickListener(
                 v -> calculateTotal()
@@ -520,13 +459,9 @@ public class ExchangeActivity extends Activity {
         // =====================================================
 
         Button saveButton =
-                makeButton(
-                        "💾 ثبت معامله"
-        );
+                makeButton("💾 ثبت معامله");
 
-        main.addView(
-                saveButton
-        );
+        main.addView(saveButton);
 
         saveButton.setOnClickListener(
                 v -> saveTransaction()
@@ -537,13 +472,9 @@ public class ExchangeActivity extends Activity {
         // =====================================================
 
         Button historyButton =
-                makeButton(
-                        "📜 تاریخچه معاملات"
-                );
+                makeButton("📜 تاریخچه معاملات");
 
-        main.addView(
-                historyButton
-        );
+        main.addView(historyButton);
 
         historyButton.setOnClickListener(
                 v -> showHistory()
@@ -554,13 +485,9 @@ public class ExchangeActivity extends Activity {
         // =====================================================
 
         Button customersButton =
-                makeButton(
-                        "👤 مشتریان"
-                );
+                makeButton("👤 مشتریان");
 
-        main.addView(
-                customersButton
-        );
+        main.addView(customersButton);
 
         customersButton.setOnClickListener(
                 v -> showCustomers()
@@ -571,13 +498,9 @@ public class ExchangeActivity extends Activity {
         // =====================================================
 
         Button reportButton =
-                makeButton(
-                        "📊 گزارش صرافی"
-                );
+                makeButton("📊 گزارش صرافی");
 
-        main.addView(
-                reportButton
-        );
+        main.addView(reportButton);
 
         reportButton.setOnClickListener(
                 v -> showReport()
@@ -588,13 +511,9 @@ public class ExchangeActivity extends Activity {
         // =====================================================
 
         Button balancesButton =
-                makeButton(
-                        "💰 موجودی همه ارزها"
-                );
+                makeButton("💰 موجودی همه ارزها");
 
-        main.addView(
-                balancesButton
-        );
+        main.addView(balancesButton);
 
         balancesButton.setOnClickListener(
                 v -> showBalances()
@@ -605,13 +524,9 @@ public class ExchangeActivity extends Activity {
         // =====================================================
 
         Button converterButton =
-                makeButton(
-                        "🔄 تبدیل ارز"
-                );
+                makeButton("🔄 تبدیل ارز");
 
-        main.addView(
-                converterButton
-        );
+        main.addView(converterButton);
 
         converterButton.setOnClickListener(
                 v -> showConverter()
@@ -622,13 +537,9 @@ public class ExchangeActivity extends Activity {
         // =====================================================
 
         Button vaultButton =
-                makeButton(
-                        "🔐 گاوصندوق هوشمند"
-                );
+                makeButton("🔐 گاوصندوق هوشمند");
 
-        main.addView(
-                vaultButton
-        );
+        main.addView(vaultButton);
 
         vaultButton.setOnClickListener(
                 v -> {
@@ -658,13 +569,9 @@ public class ExchangeActivity extends Activity {
         // =====================================================
 
         Button settingsButton =
-                makeButton(
-                        "⚙️ تنظیمات"
-                );
+                makeButton("⚙️ تنظیمات");
 
-        main.addView(
-                settingsButton
-        );
+        main.addView(settingsButton);
 
         settingsButton.setOnClickListener(
                 v -> showSettings()
@@ -674,34 +581,30 @@ public class ExchangeActivity extends Activity {
         // تغییر ارز
         // =====================================================
 
-        currencySpinner
-                .setOnItemSelectedListener(
-                        new AdapterView
-                                .OnItemSelectedListener() {
+        currencySpinner.setOnItemSelectedListener(
+                new AdapterView.OnItemSelectedListener() {
 
-                            @Override
-                            public void onItemSelected(
-                                    AdapterView<?> parent,
-                                    View view,
-                                    int position,
-                                    long id
-                            ) {
+                    @Override
+                    public void onItemSelected(
+                            AdapterView<?> parent,
+                            View view,
+                            int position,
+                            long id
+                    ) {
 
-                                updateBalance();
-                                updateRate();
-                            }
+                        updateBalance();
+                        updateRate();
+                    }
 
-                            @Override
-                            public void onNothingSelected(
-                                    AdapterView<?> parent
-                            ) {
-                            }
-                        }
-                );
-
-        setContentView(
-                scrollView
+                    @Override
+                    public void onNothingSelected(
+                            AdapterView<?> parent
+                    ) {
+                    }
+                }
         );
+
+        setContentView(scrollView);
 
         updateBalance();
         updateRate();
@@ -718,8 +621,7 @@ public class ExchangeActivity extends Activity {
         }
 
         Object selected =
-                currencySpinner
-                        .getSelectedItem();
+                currencySpinner.getSelectedItem();
 
         if (selected == null) {
             return;
@@ -731,14 +633,11 @@ public class ExchangeActivity extends Activity {
         if (ExchangeData.AFN.equals(currency)) {
 
             rateInput.setText("1");
-
             return;
         }
 
         double rate =
-                exchangeData.getRate(
-                        currency
-                );
+                exchangeData.getRate(currency);
 
         if (rate > 0) {
 
@@ -763,8 +662,7 @@ public class ExchangeActivity extends Activity {
         }
 
         Object selected =
-                currencySpinner
-                        .getSelectedItem();
+                currencySpinner.getSelectedItem();
 
         if (selected == null) {
             return;
@@ -774,9 +672,7 @@ public class ExchangeActivity extends Activity {
                 selected.toString();
 
         double balance =
-                exchangeData.getBalance(
-                        currency
-                );
+                exchangeData.getBalance(currency);
 
         balanceText.setText(
                 "موجودی " +
@@ -816,7 +712,6 @@ public class ExchangeActivity extends Activity {
                     amount <= 0 ||
                     rate <= 0
             ) {
-
                 throw new Exception();
             }
 
@@ -857,15 +752,30 @@ public class ExchangeActivity extends Activity {
                         .toString()
                         .trim();
 
+        Object currencyObject =
+                currencySpinner.getSelectedItem();
+
+        Object typeObject =
+                typeSpinner.getSelectedItem();
+
+        if (
+                currencyObject == null ||
+                typeObject == null
+        ) {
+            Toast.makeText(
+                    this,
+                    "ارز و نوع معامله را انتخاب کنید",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
         String currency =
-                currencySpinner
-                        .getSelectedItem()
-                        .toString();
+                currencyObject.toString();
 
         String type =
-                typeSpinner
-                        .getSelectedItem()
-                        .toString();
+                typeObject.toString();
 
         String amountText =
                 amountInput
@@ -884,6 +794,10 @@ public class ExchangeActivity extends Activity {
                         .getText()
                         .toString()
                         .trim();
+
+        // -----------------------------------------------------
+        // بررسی مقدار
+        // -----------------------------------------------------
 
         if (amountText.isEmpty()) {
 
@@ -913,16 +827,28 @@ public class ExchangeActivity extends Activity {
         try {
 
             amount =
-                    Double.parseDouble(
-                            amountText
-                    );
+                    Double.parseDouble(amountText);
 
             rate =
-                    Double.parseDouble(
-                            rateText
-                    );
+                    Double.parseDouble(rateText);
 
         } catch (Exception e) {
+
+            Toast.makeText(
+                    this,
+                    "مقدار یا نرخ نادرست است",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
+        if (
+                Double.isNaN(amount) ||
+                Double.isInfinite(amount) ||
+                Double.isNaN(rate) ||
+                Double.isInfinite(rate)
+        ) {
 
             Toast.makeText(
                     this,
@@ -948,7 +874,7 @@ public class ExchangeActivity extends Activity {
         }
 
         // -----------------------------------------------------
-        // افغانی به عنوان ارز پایه
+        // افغانی ارز پایه است
         // -----------------------------------------------------
 
         if (ExchangeData.AFN.equals(currency)) {
@@ -966,16 +892,32 @@ public class ExchangeActivity extends Activity {
                 amount * rate;
 
         // -----------------------------------------------------
-        // خرید
-        // صرافی ارز را از مشتری می‌خرد
+        // موجودی فعلی را قبل از هر تغییری می‌خوانیم
+        // -----------------------------------------------------
+
+        double afnBalance =
+                exchangeData.getBalance(
+                        ExchangeData.AFN
+                );
+
+        double currencyBalance =
+                exchangeData.getBalance(
+                        currency
+                );
+
+        // -----------------------------------------------------
+        // بررسی موجودی
         // -----------------------------------------------------
 
         if ("خرید".equals(type)) {
 
-            double afnBalance =
-                    exchangeData.getBalance(
-                            ExchangeData.AFN
-                    );
+            /*
+             * در خرید:
+             * صرافی ارز را از مشتری می‌گیرد
+             * و در مقابل افغانی پرداخت می‌کند.
+             *
+             * بنابراین افغانی باید کافی باشد.
+             */
 
             if (afnBalance < total) {
 
@@ -988,28 +930,14 @@ public class ExchangeActivity extends Activity {
                 return;
             }
 
-            exchangeData.setBalance(
-                    ExchangeData.AFN,
-                    afnBalance - total
-            );
+        } else {
 
-            exchangeData.addBalance(
-                    currency,
-                    amount
-            );
-        }
-
-        // -----------------------------------------------------
-        // فروش
-        // صرافی ارز را به مشتری می‌فروشد
-        // -----------------------------------------------------
-
-        else {
-
-            double currencyBalance =
-                    exchangeData.getBalance(
-                            currency
-                    );
+            /*
+             * در فروش:
+             * صرافی ارز خارجی را به مشتری می‌دهد.
+             *
+             * بنابراین موجودی همان ارز باید کافی باشد.
+             */
 
             if (currencyBalance < amount) {
 
@@ -1023,25 +951,12 @@ public class ExchangeActivity extends Activity {
 
                 return;
             }
-
-            exchangeData.subtractBalance(
-                    currency,
-                    amount
-            );
-
-            exchangeData.addBalance(
-                    ExchangeData.AFN,
-                    total
-            );
         }
 
-        // ذخیره آخرین نرخ
-        exchangeData.setRate(
-                currency,
-                rate
-        );
-
+        // -----------------------------------------------------
         // ثبت معامله در تاریخچه
+        // -----------------------------------------------------
+
         boolean saved =
                 exchangeData.saveTransaction(
                         customerName,
@@ -1058,12 +973,54 @@ public class ExchangeActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "خطا در ثبت معامله",
+                    "خطا در ثبت معامله؛ موجودی تغییر نکرد.",
                     Toast.LENGTH_LONG
             ).show();
 
             return;
         }
+
+        // -----------------------------------------------------
+        // فقط بعد از ثبت موفق، موجودی تغییر می‌کند
+        // -----------------------------------------------------
+
+        if ("خرید".equals(type)) {
+
+            exchangeData.setBalance(
+                    ExchangeData.AFN,
+                    afnBalance - total
+            );
+
+            exchangeData.addBalance(
+                    currency,
+                    amount
+            );
+
+        } else {
+
+            exchangeData.setBalance(
+                    currency,
+                    currencyBalance - amount
+            );
+
+            exchangeData.addBalance(
+                    ExchangeData.AFN,
+                    total
+            );
+        }
+
+        // -----------------------------------------------------
+        // ذخیره آخرین نرخ
+        // -----------------------------------------------------
+
+        exchangeData.setRate(
+                currency,
+                rate
+        );
+
+        // -----------------------------------------------------
+        // بروزرسانی صفحه
+        // -----------------------------------------------------
 
         totalText.setText(
                 "مجموع: " +
@@ -1074,7 +1031,7 @@ public class ExchangeActivity extends Activity {
         updateBalance();
 
         // -----------------------------------------------------
-        // شناسه و تاریخ رسید
+        // ساخت رسید
         // -----------------------------------------------------
 
         long transactionId =
@@ -1082,10 +1039,6 @@ public class ExchangeActivity extends Activity {
 
         String date =
                 formatDate(transactionId);
-
-        // -----------------------------------------------------
-        // ساخت رسید
-        // -----------------------------------------------------
 
         String receipt =
                 createReceiptText(
@@ -1101,9 +1054,19 @@ public class ExchangeActivity extends Activity {
                         date
                 );
 
-        // پاک کردن ورودی‌های قابل پاک شدن
+        // -----------------------------------------------------
+        // بسیار مهم:
+        // پاک کردن فرم برای مشتری بعدی
+        // -----------------------------------------------------
+
+        customerNameInput.setText("");
+        phoneInput.setText("");
         amountInput.setText("");
+        rateInput.setText("");
         noteInput.setText("");
+
+        // نرخ پیش‌فرض ارز انتخاب‌شده دوباره نمایش داده شود
+        updateRate();
 
         Toast.makeText(
                 this,
@@ -1112,9 +1075,7 @@ public class ExchangeActivity extends Activity {
         ).show();
 
         // نمایش رسید
-        showTransactionReceipt(
-                receipt
-        );
+        showTransactionReceipt(receipt);
     }
 
     // =========================================================
@@ -1157,9 +1118,7 @@ public class ExchangeActivity extends Activity {
                 "🆔 شناسه معامله: "
         );
 
-        receipt.append(
-                transactionId
-        );
+        receipt.append(transactionId);
 
         receipt.append("\n");
 
@@ -1167,9 +1126,7 @@ public class ExchangeActivity extends Activity {
                 "📅 تاریخ: "
         );
 
-        receipt.append(
-                date
-        );
+        receipt.append(date);
 
         receipt.append("\n\n");
 
@@ -1191,9 +1148,7 @@ public class ExchangeActivity extends Activity {
                     "📱 تلفن: "
             );
 
-            receipt.append(
-                    phone
-            );
+            receipt.append(phone);
 
             receipt.append("\n");
         }
@@ -1204,9 +1159,7 @@ public class ExchangeActivity extends Activity {
                 "🔄 نوع معامله: "
         );
 
-        receipt.append(
-                type
-        );
+        receipt.append(type);
 
         receipt.append("\n");
 
@@ -1220,9 +1173,7 @@ public class ExchangeActivity extends Activity {
 
         receipt.append(" ");
 
-        receipt.append(
-                currency
-        );
+        receipt.append(currency);
 
         receipt.append("\n");
 
@@ -1272,9 +1223,7 @@ public class ExchangeActivity extends Activity {
                     "📝 یادداشت: "
             );
 
-            receipt.append(
-                    note
-            );
+            receipt.append(note);
 
             receipt.append("\n");
         }
@@ -1314,13 +1263,9 @@ public class ExchangeActivity extends Activity {
                         16
                 );
 
-        receiptView.setTextIsSelectable(
-                true
-        );
+        receiptView.setTextIsSelectable(true);
 
-        receiptView.setGravity(
-                Gravity.RIGHT
-        );
+        receiptView.setGravity(Gravity.RIGHT);
 
         receiptView.setPadding(
                 dp(18),
@@ -1332,18 +1277,12 @@ public class ExchangeActivity extends Activity {
         ScrollView scrollView =
                 new ScrollView(this);
 
-        scrollView.addView(
-                receiptView
-        );
+        scrollView.addView(receiptView);
 
         AlertDialog dialog =
                 new AlertDialog.Builder(this)
-                        .setTitle(
-                                "🧾 رسید معامله"
-                        )
-                        .setView(
-                                scrollView
-                        )
+                        .setTitle("🧾 رسید معامله")
+                        .setView(scrollView)
                         .setNegativeButton(
                                 "بستن",
                                 null
@@ -1372,15 +1311,11 @@ public class ExchangeActivity extends Activity {
                             );
 
                     copyButton.setOnClickListener(
-                            v -> copyReceipt(
-                                    receipt
-                            )
+                            v -> copyReceipt(receipt)
                     );
 
                     shareButton.setOnClickListener(
-                            v -> shareReceipt(
-                                    receipt
-                            )
+                            v -> shareReceipt(receipt)
                     );
                 }
         );
@@ -1392,9 +1327,7 @@ public class ExchangeActivity extends Activity {
     // کپی رسید
     // =========================================================
 
-    private void copyReceipt(
-            String receipt
-    ) {
+    private void copyReceipt(String receipt) {
 
         ClipboardManager clipboard =
                 (ClipboardManager)
@@ -1410,9 +1343,7 @@ public class ExchangeActivity extends Activity {
                             receipt
                     );
 
-            clipboard.setPrimaryClip(
-                    clip
-            );
+            clipboard.setPrimaryClip(clip);
 
             Toast.makeText(
                     this,
@@ -1426,18 +1357,12 @@ public class ExchangeActivity extends Activity {
     // اشتراک‌گذاری رسید
     // =========================================================
 
-    private void shareReceipt(
-            String receipt
-    ) {
+    private void shareReceipt(String receipt) {
 
         Intent shareIntent =
-                new Intent(
-                        Intent.ACTION_SEND
-                );
+                new Intent(Intent.ACTION_SEND);
 
-        shareIntent.setType(
-                "text/plain"
-        );
+        shareIntent.setType("text/plain");
 
         shareIntent.putExtra(
                 Intent.EXTRA_TITLE,
@@ -1484,8 +1409,7 @@ public class ExchangeActivity extends Activity {
     private void showHistory() {
 
         JSONArray transactions =
-                exchangeData
-                        .getTransactionsArray();
+                exchangeData.getTransactionsArray();
 
         if (
                 transactions == null ||
@@ -1493,9 +1417,7 @@ public class ExchangeActivity extends Activity {
         ) {
 
             new AlertDialog.Builder(this)
-                    .setTitle(
-                            "📜 تاریخچه معاملات"
-                    )
+                    .setTitle("📜 تاریخچه معاملات")
                     .setMessage(
                             "هنوز معامله‌ای ثبت نشده است."
                     )
@@ -1523,15 +1445,13 @@ public class ExchangeActivity extends Activity {
         );
 
         for (
-                int i =
-                        transactions.length() - 1;
+                int i = transactions.length() - 1;
                 i >= 0;
                 i--
         ) {
 
             JSONObject transaction =
-                    transactions
-                            .optJSONObject(i);
+                    transactions.optJSONObject(i);
 
             if (transaction == null) {
                 continue;
@@ -1656,9 +1576,7 @@ public class ExchangeActivity extends Activity {
         scroll.addView(list);
 
         new AlertDialog.Builder(this)
-                .setTitle(
-                        "📜 تاریخچه معاملات"
-                )
+                .setTitle("📜 تاریخچه معاملات")
                 .setView(scroll)
                 .setPositiveButton(
                         "بستن",
@@ -1673,9 +1591,8 @@ public class ExchangeActivity extends Activity {
 
     private void showCustomers() {
 
-        java.util.List<String> names =
-                exchangeData
-                        .getCustomerNames();
+        List<String> names =
+                exchangeData.getCustomerNames();
 
         if (
                 names == null ||
@@ -1702,26 +1619,16 @@ public class ExchangeActivity extends Activity {
         for (String name : names) {
 
             double debt =
-                    exchangeData
-                            .getCustomerDebt(
-                                    name
-                            );
+                    exchangeData.getCustomerDebt(name);
 
             double credit =
-                    exchangeData
-                            .getCustomerCredit(
-                                    name
-                            );
+                    exchangeData.getCustomerCredit(name);
 
             double balance =
-                    exchangeData
-                            .getCustomerBalance(
-                                    name
-                            );
+                    exchangeData.getCustomerBalance(name);
 
             text.append(
-                    "👤 " +
-                            name
+                    "👤 " + name
             );
 
             text.append(
@@ -1739,18 +1646,12 @@ public class ExchangeActivity extends Activity {
                             formatNumber(balance)
             );
 
-            text.append(
-                    "\n\n"
-            );
+            text.append("\n\n");
         }
 
         new AlertDialog.Builder(this)
-                .setTitle(
-                        "👤 مشتریان"
-                )
-                .setMessage(
-                        text.toString()
-                )
+                .setTitle("👤 مشتریان")
+                .setMessage(text.toString())
                 .setPositiveButton(
                         "بستن",
                         null
@@ -1771,8 +1672,7 @@ public class ExchangeActivity extends Activity {
                 exchangeData.getTotalSell();
 
         int count =
-                exchangeData
-                        .getTransactionCount();
+                exchangeData.getTransactionCount();
 
         double difference =
                 sell - buy;
@@ -1796,12 +1696,8 @@ public class ExchangeActivity extends Activity {
                         " افغانی";
 
         new AlertDialog.Builder(this)
-                .setTitle(
-                        "📊 گزارش"
-                )
-                .setMessage(
-                        report
-                )
+                .setTitle("📊 گزارش")
+                .setMessage(report)
                 .setPositiveButton(
                         "بستن",
                         null
@@ -1818,20 +1714,13 @@ public class ExchangeActivity extends Activity {
         StringBuilder text =
                 new StringBuilder();
 
-        for (String currency :
-                currencies) {
+        for (String currency : currencies) {
 
             double balance =
-                    exchangeData
-                            .getBalance(
-                                    currency
-                            );
+                    exchangeData.getBalance(currency);
 
             double rate =
-                    exchangeData
-                            .getRate(
-                                    currency
-                            );
+                    exchangeData.getRate(currency);
 
             text.append(
                     getCurrencyFlag(currency) +
@@ -1849,18 +1738,12 @@ public class ExchangeActivity extends Activity {
                             formatNumber(rate)
             );
 
-            text.append(
-                    "\n\n"
-            );
+            text.append("\n\n");
         }
 
         new AlertDialog.Builder(this)
-                .setTitle(
-                        "💰 موجودی همه ارزها"
-                )
-                .setMessage(
-                        text.toString()
-                )
+                .setTitle("💰 موجودی همه ارزها")
+                .setMessage(text.toString())
                 .setPositiveButton(
                         "بستن",
                         null
@@ -1894,50 +1777,25 @@ public class ExchangeActivity extends Activity {
         Spinner toSpinner =
                 new Spinner(this);
 
-        // -----------------------------------------------------
-        // ارز مبدأ با پرچم
-        // -----------------------------------------------------
+        ArrayAdapter<String> adapterFrom =
+                createCurrencyAdapter(currencies);
 
-        ArrayAdapter<String>
-                adapterFrom =
-                createCurrencyAdapter(
-                        currencies
-                );
-
-        adapterFrom
-                .setDropDownViewResource(
-                        android.R.layout
-                                .simple_spinner_dropdown_item
-                );
-
-        // -----------------------------------------------------
-        // ارز مقصد با پرچم
-        // -----------------------------------------------------
-
-        ArrayAdapter<String>
-                adapterTo =
-                createCurrencyAdapter(
-                        currencies
-                );
-
-        adapterTo
-                .setDropDownViewResource(
-                        android.R.layout
-                                .simple_spinner_dropdown_item
-                );
-
-        fromSpinner.setAdapter(
-                adapterFrom
+        adapterFrom.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item
         );
 
-        toSpinner.setAdapter(
-                adapterTo
+        ArrayAdapter<String> adapterTo =
+                createCurrencyAdapter(currencies);
+
+        adapterTo.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item
         );
+
+        fromSpinner.setAdapter(adapterFrom);
+        toSpinner.setAdapter(adapterTo);
 
         EditText amount =
-                makeInput(
-                        "مقدار برای تبدیل"
-                );
+                makeInput("مقدار برای تبدیل");
 
         amount.setInputType(
                 InputType.TYPE_CLASS_NUMBER |
@@ -1951,43 +1809,23 @@ public class ExchangeActivity extends Activity {
                 );
 
         Button convert =
-                makeButton(
-                        "🔄 تبدیل"
-                );
+                makeButton("🔄 تبدیل");
 
         layout.addView(
-                makeText(
-                        "از ارز",
-                        15
-                )
+                makeText("از ارز", 15)
         );
 
-        layout.addView(
-                fromSpinner
-        );
+        layout.addView(fromSpinner);
 
         layout.addView(
-                makeText(
-                        "به ارز",
-                        15
-                )
+                makeText("به ارز", 15)
         );
 
-        layout.addView(
-                toSpinner
-        );
+        layout.addView(toSpinner);
 
-        layout.addView(
-                amount
-        );
-
-        layout.addView(
-                convert
-        );
-
-        layout.addView(
-                result
-        );
+        layout.addView(amount);
+        layout.addView(convert);
+        layout.addView(result);
 
         convert.setOnClickListener(
                 v -> {
@@ -2001,6 +1839,10 @@ public class ExchangeActivity extends Activity {
                                                 .trim()
                                 );
 
+                        if (value <= 0) {
+                            throw new Exception();
+                        }
+
                         String from =
                                 fromSpinner
                                         .getSelectedItem()
@@ -2012,20 +1854,15 @@ public class ExchangeActivity extends Activity {
                                         .toString();
 
                         double fromRate =
-                                getRateToAFN(
-                                        from
-                                );
+                                getRateToAFN(from);
 
                         double toRate =
-                                getRateToAFN(
-                                        to
-                                );
+                                getRateToAFN(to);
 
                         if (
                                 fromRate <= 0 ||
                                 toRate <= 0
                         ) {
-
                             throw new Exception();
                         }
 
@@ -2037,9 +1874,7 @@ public class ExchangeActivity extends Activity {
 
                         result.setText(
                                 "نتیجه: " +
-                                        formatNumber(
-                                                converted
-                                        ) +
+                                        formatNumber(converted) +
                                         " " +
                                         getCurrencyFlag(to) +
                                         " " +
@@ -2058,9 +1893,7 @@ public class ExchangeActivity extends Activity {
         );
 
         new AlertDialog.Builder(this)
-                .setTitle(
-                        "🔄 تبدیل ارز"
-                )
+                .setTitle("🔄 تبدیل ارز")
                 .setView(layout)
                 .setPositiveButton(
                         "بستن",
@@ -2073,22 +1906,13 @@ public class ExchangeActivity extends Activity {
     // نرخ تبدیل به افغانی
     // =========================================================
 
-    private double getRateToAFN(
-            String currency
-    ) {
+    private double getRateToAFN(String currency) {
 
-        if (
-                ExchangeData.AFN.equals(
-                        currency
-                )
-        ) {
-
+        if (ExchangeData.AFN.equals(currency)) {
             return 1;
         }
 
-        return exchangeData.getRate(
-                currency
-        );
+        return exchangeData.getRate(currency);
     }
 
     // =========================================================
@@ -2103,19 +1927,14 @@ public class ExchangeActivity extends Activity {
         };
 
         new AlertDialog.Builder(this)
-                .setTitle(
-                        "⚙️ تنظیمات صرافی"
-                )
+                .setTitle("⚙️ تنظیمات صرافی")
                 .setItems(
                         options,
                         (dialog, which) -> {
 
                             if (which == 0) {
-
                                 confirmClearTransactions();
-
                             } else {
-
                                 confirmClearAllData();
                             }
                         }
@@ -2134,9 +1953,7 @@ public class ExchangeActivity extends Activity {
     private void confirmClearTransactions() {
 
         new AlertDialog.Builder(this)
-                .setTitle(
-                        "⚠️ هشدار"
-                )
+                .setTitle("⚠️ هشدار")
                 .setMessage(
                         "آیا مطمئن هستید که تاریخچه معاملات حذف شود؟"
                 )
@@ -2149,9 +1966,7 @@ public class ExchangeActivity extends Activity {
                         (dialog, which) -> {
 
                             new AlertDialog.Builder(this)
-                                    .setTitle(
-                                            "تأیید نهایی"
-                                    )
+                                    .setTitle("تأیید نهایی")
                                     .setMessage(
                                             "این عملیات تاریخچه معاملات را حذف می‌کند."
                                     )
@@ -2186,9 +2001,7 @@ public class ExchangeActivity extends Activity {
     private void confirmClearAllData() {
 
         new AlertDialog.Builder(this)
-                .setTitle(
-                        "⚠️ هشدار بسیار مهم"
-                )
+                .setTitle("⚠️ هشدار بسیار مهم")
                 .setMessage(
                         "تمام موجودی‌ها، معاملات، مشتریان و نرخ‌ها حذف می‌شوند."
                 )
@@ -2201,9 +2014,7 @@ public class ExchangeActivity extends Activity {
                         (dialog, which) -> {
 
                             new AlertDialog.Builder(this)
-                                    .setTitle(
-                                            "تأیید نهایی"
-                                    )
+                                    .setTitle("تأیید نهایی")
                                     .setMessage(
                                             "آیا واقعاً می‌خواهید تمام اطلاعات صرافی پاک شود؟"
                                     )
@@ -2238,13 +2049,9 @@ public class ExchangeActivity extends Activity {
     // فرمت عدد
     // =========================================================
 
-    private String formatNumber(
-            double value
-    ) {
+    private String formatNumber(double value) {
 
-        if (
-                value == Math.floor(value)
-        ) {
+        if (value == Math.floor(value)) {
 
             return String.format(
                     Locale.US,
@@ -2264,9 +2071,7 @@ public class ExchangeActivity extends Activity {
     // تاریخ
     // =========================================================
 
-    private String formatDate(
-            long timestamp
-    ) {
+    private String formatDate(long timestamp) {
 
         if (timestamp <= 0) {
             return "";
@@ -2298,4 +2103,4 @@ public class ExchangeActivity extends Activity {
             updateRate();
         }
     }
-}
+            }
