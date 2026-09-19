@@ -28,7 +28,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.*;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
@@ -37,6 +42,7 @@ public class ChatActivity extends Activity {
 
     private static final int MIC = 1001;
     private static final int PICK = 1002;
+    private static final int PICK_PROFILE = 1003;
 
     private static final String SUPABASE_URL =
             "https://gorbhuqmkjlkrklhasdh.supabase.co";
@@ -65,6 +71,8 @@ public class ChatActivity extends Activity {
 
     private TextView titleText;
     private TextView statusText;
+
+    private ImageView headerAvatar;
 
     private MediaRecorder recorder;
     private MediaPlayer player;
@@ -334,6 +342,65 @@ public class ChatActivity extends Activity {
                 )
         );
 
+        // =====================================================
+        // PROFILE PHOTO BUTTON
+        // =====================================================
+
+        Button profileButton =
+                new Button(this);
+
+        profileButton.setText(
+                "👤 عکس پروفایل من"
+        );
+
+        profileButton.setTextSize(15);
+
+        profileButton.setTextColor(
+                Color.WHITE
+        );
+
+        GradientDrawable profileBg =
+                new GradientDrawable();
+
+        profileBg.setColor(
+                themeColor
+        );
+
+        profileBg.setCornerRadius(
+                dp(25)
+        );
+
+        profileButton.setBackground(
+                profileBg
+        );
+
+        profileButton.setOnClickListener(
+                v ->
+                        chooseProfilePhoto()
+        );
+
+        LinearLayout.LayoutParams pp =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(50)
+                );
+
+        pp.setMargins(
+                dp(5),
+                0,
+                dp(5),
+                dp(10)
+        );
+
+        root.addView(
+                profileButton,
+                pp
+        );
+
+        // =====================================================
+        // USERS LIST
+        // =====================================================
+
         ScrollView usersScroll =
                 new ScrollView(this);
 
@@ -458,6 +525,11 @@ public class ChatActivity extends Activity {
                                                                     "name"
                                                             );
 
+                                                    String photoUrl =
+                                                            userDoc.getString(
+                                                                    "photoUrl"
+                                                            );
+
                                                     if (
                                                             name == null ||
                                                             name.trim()
@@ -470,7 +542,8 @@ public class ChatActivity extends Activity {
 
                                                     addUserItem(
                                                             id,
-                                                            name
+                                                            name,
+                                                            photoUrl
                                                     );
                                                 }
                                         )
@@ -478,7 +551,8 @@ public class ChatActivity extends Activity {
                                                 e ->
                                                         addUserItem(
                                                                 id,
-                                                                fallback
+                                                                fallback,
+                                                                null
                                                         )
                                         );
                             }
@@ -494,7 +568,8 @@ public class ChatActivity extends Activity {
 
     private void addUserItem(
             String uid,
-            String name) {
+            String name,
+            String photoUrl) {
 
         LinearLayout card =
                 new LinearLayout(this);
@@ -551,15 +626,38 @@ public class ChatActivity extends Activity {
 
         card.setLayoutParams(cp);
 
-        TextView avatar =
-                new TextView(this);
+        // =====================================================
+        // USER PROFILE IMAGE
+        // =====================================================
 
-        avatar.setText("👤");
+        ImageView avatar =
+                new ImageView(this);
 
-        avatar.setTextSize(28);
+        avatar.setScaleType(
+                ImageView.ScaleType.CENTER_CROP
+        );
 
-        avatar.setGravity(
-                Gravity.CENTER
+        GradientDrawable avatarBg =
+                new GradientDrawable();
+
+        avatarBg.setColor(
+                Color.rgb(
+                        235,
+                        248,
+                        250
+                )
+        );
+
+        avatarBg.setCornerRadius(
+                dp(50)
+        );
+
+        avatar.setBackground(
+                avatarBg
+        );
+
+        avatar.setImageResource(
+                android.R.drawable.ic_menu_myplaces
         );
 
         card.addView(
@@ -569,6 +667,17 @@ public class ChatActivity extends Activity {
                         dp(55)
                 )
         );
+
+        if (
+                photoUrl != null &&
+                !photoUrl.trim().isEmpty()
+        ) {
+
+            loadImageIntoView(
+                    photoUrl,
+                    avatar
+            );
+        }
 
         LinearLayout texts =
                 new LinearLayout(this);
@@ -635,6 +744,256 @@ public class ChatActivity extends Activity {
         );
 
         usersLayout.addView(card);
+    }
+
+    // =========================================================
+    // PROFILE PHOTO PICKER
+    // =========================================================
+
+    private void chooseProfilePhoto() {
+
+        Intent i =
+                new Intent(
+                        Intent.ACTION_OPEN_DOCUMENT
+                );
+
+        i.addCategory(
+                Intent.CATEGORY_OPENABLE
+        );
+
+        i.setType("image/*");
+
+        startActivityForResult(
+                i,
+                PICK_PROFILE
+        );
+    }
+
+    private void uploadProfilePhoto(
+            Uri uri) {
+
+        if (myId == null) {
+
+            toast(
+                    "کاربر وارد نشده است"
+            );
+
+            return;
+        }
+
+        toast(
+                "👤 در حال ارسال عکس پروفایل..."
+        );
+
+        new Thread(() -> {
+
+            try {
+
+                String file =
+                        "profile_" +
+                        System.currentTimeMillis() +
+                        ".jpg";
+
+                String path =
+                        "profiles/" +
+                        myId +
+                        "/" +
+                        file;
+
+                String url =
+                        SUPABASE_URL +
+                        "/storage/v1/object/" +
+                        MEDIA_BUCKET +
+                        "/" +
+                        path;
+
+                HttpURLConnection c =
+                        (HttpURLConnection)
+                                new URL(url)
+                                        .openConnection();
+
+                c.setRequestMethod("POST");
+
+                c.setDoOutput(true);
+
+                c.setRequestProperty(
+                        "apikey",
+                        SUPABASE_PUBLISHABLE_KEY
+                );
+
+                c.setRequestProperty(
+                        "Authorization",
+                        "Bearer " +
+                                SUPABASE_PUBLISHABLE_KEY
+                );
+
+                c.setRequestProperty(
+                        "Content-Type",
+                        "image/jpeg"
+                );
+
+                c.setRequestProperty(
+                        "x-upsert",
+                        "true"
+                );
+
+                InputStream in =
+                        getContentResolver()
+                                .openInputStream(uri);
+
+                if (in == null)
+                    throw new IOException(
+                            "فایل قابل خواندن نیست"
+                    );
+
+                OutputStream out =
+                        c.getOutputStream();
+
+                byte[] buffer =
+                        new byte[8192];
+
+                int n;
+
+                while (
+                        (n =
+                                in.read(buffer)) != -1
+                ) {
+
+                    out.write(
+                            buffer,
+                            0,
+                            n
+                    );
+                }
+
+                out.flush();
+
+                out.close();
+
+                in.close();
+
+                int code =
+                        c.getResponseCode();
+
+                if (
+                        code >= 200 &&
+                        code < 300
+                ) {
+
+                    String publicUrl =
+                            SUPABASE_URL +
+                            "/storage/v1/object/public/" +
+                            MEDIA_BUCKET +
+                            "/" +
+                            path;
+
+                    db.collection("users")
+                            .document(myId)
+                            .set(
+                                    Collections.singletonMap(
+                                            "photoUrl",
+                                            publicUrl
+                                    ),
+                                    SetOptions.merge()
+                            )
+                            .addOnSuccessListener(
+                                    x -> {
+
+                                        toast(
+                                                "✅ عکس پروفایل ذخیره شد"
+                                        );
+
+                                        showUsers();
+                                    }
+                            )
+                            .addOnFailureListener(
+                                    e ->
+                                            toast(
+                                                    "ذخیره پروفایل ناموفق بود"
+                                            )
+                            );
+
+                } else {
+
+                    String error =
+                            read(
+                                    c.getErrorStream()
+                            );
+
+                    runOnUiThread(
+                            () ->
+                                    toast(
+                                            "خطای Supabase: " +
+                                            code +
+                                            "\n" +
+                                            error
+                                    )
+                    );
+                }
+
+                c.disconnect();
+
+            } catch (Exception e) {
+
+                runOnUiThread(
+                        () ->
+                                toast(
+                                        "ارسال عکس پروفایل ناموفق بود:\n" +
+                                        e.getMessage()
+                                )
+                );
+            }
+
+        }).start();
+    }
+
+    // =========================================================
+    // IMAGE LOADER
+    // =========================================================
+
+    private void loadImageIntoView(
+            String url,
+            ImageView imageView) {
+
+        new Thread(() -> {
+
+            try {
+
+                HttpURLConnection c =
+                        (HttpURLConnection)
+                                new URL(url)
+                                        .openConnection();
+
+                c.connect();
+
+                InputStream in =
+                        c.getInputStream();
+
+                Bitmap bm =
+                        BitmapFactory
+                                .decodeStream(in);
+
+                in.close();
+
+                c.disconnect();
+
+                runOnUiThread(
+                        () -> {
+
+                            if (
+                                    bm != null &&
+                                    imageView != null
+                            ) {
+
+                                imageView.setImageBitmap(
+                                        bm
+                                );
+                            }
+                        }
+                );
+
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     // =========================================================
@@ -774,19 +1133,38 @@ public class ChatActivity extends Activity {
                 )
         );
 
-        TextView avatar =
-                new TextView(this);
+        // =====================================================
+        // HEADER PROFILE PHOTO
+        // =====================================================
 
-        avatar.setText("👤");
+        headerAvatar =
+                new ImageView(this);
 
-        avatar.setTextSize(25);
+        headerAvatar.setScaleType(
+                ImageView.ScaleType.CENTER_CROP
+        );
 
-        avatar.setGravity(
-                Gravity.CENTER
+        GradientDrawable hab =
+                new GradientDrawable();
+
+        hab.setColor(
+                Color.WHITE
+        );
+
+        hab.setCornerRadius(
+                dp(50)
+        );
+
+        headerAvatar.setBackground(
+                hab
+        );
+
+        headerAvatar.setImageResource(
+                android.R.drawable.ic_menu_myplaces
         );
 
         header.addView(
-                avatar,
+                headerAvatar,
                 new LinearLayout.LayoutParams(
                         dp(50),
                         dp(50)
@@ -1439,10 +1817,22 @@ public class ChatActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
+        /*
+         * مهم:
+         * کل عرض را می‌گیرد تا راست و چپ واقعاً
+         * نسبت به صفحه اعمال شود.
+         */
         row.setGravity(
                 mine
                         ? Gravity.RIGHT
                         : Gravity.LEFT
+        );
+
+        row.setLayoutParams(
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                )
         );
 
         LinearLayout bubble =
@@ -1568,19 +1958,22 @@ public class ChatActivity extends Activity {
 
         bubble.addView(info);
 
-        row.addView(
-                bubble,
+        LinearLayout.LayoutParams bp =
                 new LinearLayout.LayoutParams(
                         dp(260),
                         -2
-                )
-        );
+                );
 
-        row.setPadding(
+        bp.setMargins(
                 dp(4),
                 dp(3),
                 dp(4),
                 dp(3)
+        );
+
+        row.addView(
+                bubble,
+                bp
         );
 
         View.OnLongClickListener listener =
@@ -1698,7 +2091,6 @@ public class ChatActivity extends Activity {
         );
 
         if (
-                requestCode != PICK ||
                 resultCode != RESULT_OK ||
                 data == null ||
                 data.getData() == null
@@ -1707,6 +2099,24 @@ public class ChatActivity extends Activity {
 
         Uri uri =
                 data.getData();
+
+        // =====================================================
+        // PROFILE PHOTO
+        // =====================================================
+
+        if (requestCode == PICK_PROFILE) {
+
+            uploadProfilePhoto(uri);
+
+            return;
+        }
+
+        // =====================================================
+        // CHAT MEDIA
+        // =====================================================
+
+        if (requestCode != PICK)
+            return;
 
         String mime =
                 getContentResolver()
@@ -2096,7 +2506,7 @@ public class ChatActivity extends Activity {
             voiceButton.setText("🎤");
 
             toast(
-                    "📤 در حال ارسال صدا..."
+                    "در حال ارسال صدا..."
             );
 
             uploadAudio();
@@ -2368,13 +2778,48 @@ public class ChatActivity extends Activity {
         LinearLayout row =
                 createMediaRow(mine);
 
+        LinearLayout bubble =
+                new LinearLayout(this);
+
+        bubble.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        bubble.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        bubble.setPadding(
+                dp(8),
+                dp(5),
+                dp(8),
+                dp(5)
+        );
+
+        GradientDrawable bg =
+                new GradientDrawable();
+
+        bg.setColor(
+                mine
+                        ? Color.rgb(
+                                12,
+                                91,
+                                120
+                        )
+                        : Color.WHITE
+        );
+
+        bg.setCornerRadius(
+                dp(22)
+        );
+
+        bubble.setBackground(bg);
+
         TextView label =
                 new TextView(this);
 
         label.setText(
-                mine
-                        ? "📤 🎙️ پیام صوتی شما"
-                        : "📥 🎙️ پیام صوتی دریافتی"
+                "پیام صوتی"
         );
 
         label.setTextSize(15);
@@ -2389,24 +2834,23 @@ public class ChatActivity extends Activity {
                 Gravity.CENTER_VERTICAL
         );
 
-        row.addView(
+        bubble.addView(
                 label,
                 new LinearLayout.LayoutParams(
-                        0,
-                        dp(50),
-                        1
+                        dp(110),
+                        dp(50)
                 )
         );
 
         Button play =
-                makeRoundButton("▶️");
+                makeRoundButton("▶");
 
         play.setOnClickListener(
                 v ->
                         playAudio(url)
         );
 
-        row.addView(
+        bubble.addView(
                 play,
                 new LinearLayout.LayoutParams(
                         dp(50),
@@ -2414,22 +2858,14 @@ public class ChatActivity extends Activity {
                 )
         );
 
-        /*
-         * 🗑️ سطل حذف از ابتدا وجود ندارد.
-         * با لمس خود پیام ظاهر می‌شود.
-         */
-        row.setOnClickListener(
-                v ->
-                        showMediaDeleteButton(
-                                row,
-                                id,
-                                sender,
-                                url,
-                                "audio"
-                        )
+        row.addView(
+                bubble
         );
 
-        row.setOnLongClickListener(
+        /*
+         * حذف فقط با نگه‌داشتن روی پیام.
+         */
+        View.OnLongClickListener deleteListener =
                 v -> {
 
                     showDeleteMenu(
@@ -2440,7 +2876,18 @@ public class ChatActivity extends Activity {
                     );
 
                     return true;
-                }
+                };
+
+        row.setOnLongClickListener(
+                deleteListener
+        );
+
+        bubble.setOnLongClickListener(
+                deleteListener
+        );
+
+        label.setOnLongClickListener(
+                deleteListener
         );
 
         messagesLayout.addView(row);
@@ -2472,13 +2919,39 @@ public class ChatActivity extends Activity {
                         : Gravity.LEFT
         );
 
+        GradientDrawable contentBg =
+                new GradientDrawable();
+
+        contentBg.setColor(
+                mine
+                        ? Color.rgb(
+                                12,
+                                91,
+                                120
+                        )
+                        : Color.WHITE
+        );
+
+        contentBg.setCornerRadius(
+                dp(18)
+        );
+
+        content.setBackground(
+                contentBg
+        );
+
+        content.setPadding(
+                dp(5),
+                dp(5),
+                dp(5),
+                dp(5)
+        );
+
         TextView label =
                 new TextView(this);
 
         label.setText(
-                mine
-                        ? "📤 عکس روان‌شده شما"
-                        : "📥 عکس دریافتی"
+                "عکس"
         );
 
         label.setTextSize(14);
@@ -2521,47 +2994,22 @@ public class ChatActivity extends Activity {
         );
 
         /*
-         * با لمس عکس، سطل حذف ظاهر می‌شود.
-         *
-         * برای حذف دائمی سطل کنار عکس استفاده نشده.
+         * لمس عادی عکس فقط عکس را باز می‌کند.
+         * هیچ سطل زباله‌ای ظاهر نمی‌شود.
          */
         image.setOnClickListener(
                 v ->
-                        showMediaDeleteButton(
-                                row,
-                                id,
-                                sender,
-                                url,
-                                "image"
-                        )
+                        openUrl(url)
         );
 
         content.addView(image);
 
-        row.addView(
-                content,
-                new LinearLayout.LayoutParams(
-                        0,
-                        -2,
-                        1
-                )
-        );
+        row.addView(content);
 
         /*
-         * لمس قسمت دیگر پیام هم سطل را نشان می‌دهد.
+         * حذف فقط با نگه‌داشتن.
          */
-        row.setOnClickListener(
-                v ->
-                        showMediaDeleteButton(
-                                row,
-                                id,
-                                sender,
-                                url,
-                                "image"
-                        )
-        );
-
-        row.setOnLongClickListener(
+        View.OnLongClickListener deleteListener =
                 v -> {
 
                     showDeleteMenu(
@@ -2572,95 +3020,29 @@ public class ChatActivity extends Activity {
                     );
 
                     return true;
-                }
+                };
+
+        row.setOnLongClickListener(
+                deleteListener
+        );
+
+        content.setOnLongClickListener(
+                deleteListener
+        );
+
+        label.setOnLongClickListener(
+                deleteListener
+        );
+
+        image.setOnLongClickListener(
+                deleteListener
         );
 
         messagesLayout.addView(row);
 
-        new Thread(() -> {
-
-            try {
-
-                HttpURLConnection c =
-                        (HttpURLConnection)
-                                new URL(url)
-                                        .openConnection();
-
-                c.connect();
-
-                InputStream in =
-                        c.getInputStream();
-
-                Bitmap bm =
-                        BitmapFactory
-                                .decodeStream(in);
-
-                in.close();
-
-                c.disconnect();
-
-                runOnUiThread(
-                        () -> {
-
-                            if (bm != null)
-                                image.setImageBitmap(bm);
-                        }
-                );
-
-            } catch (Exception ignored) {}
-        }).start();
-    }
-
-    // =========================================================
-    // MEDIA DELETE BUTTON
-    // =========================================================
-
-    private void showMediaDeleteButton(
-            LinearLayout row,
-            String id,
-            String sender,
-            String url,
-            String type) {
-
-        /*
-         * اگر سطل قبلاً اضافه شده،
-         * دوباره اضافه نشود.
-         */
-        if (
-                "delete_button_added"
-                        .equals(row.getTag())
-        )
-            return;
-
-        Button delete =
-                makeRoundButton("🗑️");
-
-        delete.setOnClickListener(
-                v -> {
-
-                    showDeleteMenu(
-                            id,
-                            sender,
-                            url,
-                            type
-                    );
-
-                    row.removeView(delete);
-
-                    row.setTag(null);
-                }
-        );
-
-        row.addView(
-                delete,
-                new LinearLayout.LayoutParams(
-                        dp(50),
-                        dp(50)
-                )
-        );
-
-        row.setTag(
-                "delete_button_added"
+        loadImageIntoView(
+                url,
+                image
         );
     }
 
@@ -2684,6 +3066,61 @@ public class ChatActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
+        box.setGravity(
+                mine
+                        ? Gravity.RIGHT
+                        : Gravity.LEFT
+        );
+
+        GradientDrawable boxBg =
+                new GradientDrawable();
+
+        boxBg.setColor(
+                mine
+                        ? Color.rgb(
+                                12,
+                                91,
+                                120
+                        )
+                        : Color.WHITE
+        );
+
+        boxBg.setCornerRadius(
+                dp(18)
+        );
+
+        box.setBackground(boxBg);
+
+        box.setPadding(
+                dp(5),
+                dp(5),
+                dp(5),
+                dp(5)
+        );
+
+        TextView label =
+                new TextView(this);
+
+        label.setText(
+                "ویدیو"
+        );
+
+        label.setTextSize(14);
+
+        label.setTextColor(
+                mine
+                        ? Color.WHITE
+                        : Color.DKGRAY
+        );
+
+        label.setGravity(
+                mine
+                        ? Gravity.RIGHT
+                        : Gravity.LEFT
+        );
+
+        box.addView(label);
+
         VideoView video =
                 new VideoView(this);
 
@@ -2704,7 +3141,7 @@ public class ChatActivity extends Activity {
                 new Button(this);
 
         play.setText(
-                "▶️ پخش ویدیو"
+                "▶ پخش ویدیو"
         );
 
         play.setOnClickListener(
@@ -2714,40 +3151,13 @@ public class ChatActivity extends Activity {
 
         box.addView(play);
 
-        row.addView(
-                box,
-                new LinearLayout.LayoutParams(
-                        0,
-                        -2,
-                        1
-                )
-        );
+        row.addView(box);
 
         /*
-         * بخش ویدیو طبق نسخه قبلی حفظ شده است.
+         * هیچ سطل زباله‌ای کنار ویدیو وجود ندارد.
+         * حذف فقط با نگه‌داشتن روی پیام.
          */
-        Button delete =
-                makeRoundButton("🗑");
-
-        delete.setOnClickListener(
-                v ->
-                        showDeleteMenu(
-                                id,
-                                sender,
-                                url,
-                                "video"
-                        )
-        );
-
-        row.addView(
-                delete,
-                new LinearLayout.LayoutParams(
-                        dp(50),
-                        dp(50)
-                )
-        );
-
-        row.setOnLongClickListener(
+        View.OnLongClickListener deleteListener =
                 v -> {
 
                     showDeleteMenu(
@@ -2758,7 +3168,22 @@ public class ChatActivity extends Activity {
                     );
 
                     return true;
-                }
+                };
+
+        row.setOnLongClickListener(
+                deleteListener
+        );
+
+        box.setOnLongClickListener(
+                deleteListener
+        );
+
+        label.setOnLongClickListener(
+                deleteListener
+        );
+
+        video.setOnLongClickListener(
+                deleteListener
         );
 
         messagesLayout.addView(row);
@@ -2778,6 +3203,11 @@ public class ChatActivity extends Activity {
                 LinearLayout.HORIZONTAL
         );
 
+        /*
+         * کل عرض صفحه را می‌گیرد.
+         * بنابراین mine واقعاً راست و incoming واقعاً چپ
+         * قرار می‌گیرد.
+         */
         row.setGravity(
                 mine
                         ? Gravity.RIGHT
@@ -2981,6 +3411,27 @@ public class ChatActivity extends Activity {
                             ? "آخرین حضور: " +
                               formatTime(last)
                             : "🔴 آفلاین"
+            );
+        }
+
+        // =====================================================
+        // RECEIVER PROFILE PHOTO
+        // =====================================================
+
+        String photoUrl =
+                snap.getString(
+                        "photoUrl"
+                );
+
+        if (
+                photoUrl != null &&
+                !photoUrl.trim().isEmpty() &&
+                headerAvatar != null
+        ) {
+
+            loadImageIntoView(
+                    photoUrl,
+                    headerAvatar
             );
         }
     }
