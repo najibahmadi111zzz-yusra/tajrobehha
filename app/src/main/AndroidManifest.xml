@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- اجازه نمایش اعلان در Android 13 و بالاتر -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".TajroApplication"
         android:theme="@style/AppTheme"
@@ -58,6 +61,17 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="false" />
+
+        <!-- دریافت اعلان‌های Firebase -->
+        <service
+            android:name=".TajroFirebaseMessagingService"
+            android:exported="false">
+
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+
+        </service>
 
         <activity
             android:name=".MainActivity"
