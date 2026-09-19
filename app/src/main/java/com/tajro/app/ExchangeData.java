@@ -18,6 +18,7 @@ public class ExchangeData {
 
     private static final String KEY_TRANSACTIONS = "transactions";
     private static final String KEY_CUSTOMERS = "customers";
+    private static final String KEY_CUSTODY = "customer_custody";
 
     private static final String BALANCE_PREFIX = "balance_";
     private static final String RATE_PREFIX = "rate_";
@@ -64,7 +65,6 @@ public class ExchangeData {
 
     private void initializeDefaults() {
 
-        // موجودی اولیه همه ارزها صفر است.
         initializeBalance(AFN, 0);
         initializeBalance(USD, 0);
         initializeBalance(EUR, 0);
@@ -326,6 +326,147 @@ public class ExchangeData {
         } catch (JSONException e) {
             return new JSONArray();
         }
+    }
+
+    // ==================================================
+    // امانت مشتریان
+    // ==================================================
+
+    public boolean saveCustody(
+            String customerName,
+            String phone,
+            String currency,
+            double amount,
+            String note
+    ) {
+
+        if (customerName == null
+                || customerName.trim().isEmpty()
+                || currency == null
+                || amount <= 0) {
+            return false;
+        }
+
+        try {
+
+            JSONArray records = getCustodyArray();
+
+            JSONObject record = new JSONObject();
+
+            record.put(
+                    "id",
+                    System.currentTimeMillis()
+            );
+
+            record.put(
+                    "customerName",
+                    customerName.trim()
+            );
+
+            record.put(
+                    "phone",
+                    phone == null ? "" : phone.trim()
+            );
+
+            record.put(
+                    "currency",
+                    currency
+            );
+
+            record.put(
+                    "amount",
+                    amount
+            );
+
+            record.put(
+                    "note",
+                    note == null ? "" : note.trim()
+            );
+
+            record.put(
+                    "status",
+                    "امانت نزد صرافی"
+            );
+
+            record.put(
+                    "date",
+                    System.currentTimeMillis()
+            );
+
+            records.put(record);
+
+            prefs.edit()
+                    .putString(
+                            KEY_CUSTODY,
+                            records.toString()
+                    )
+                    .apply();
+
+            return true;
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public JSONArray getCustodyArray() {
+
+        String data = prefs.getString(
+                KEY_CUSTODY,
+                "[]"
+        );
+
+        try {
+            return new JSONArray(data);
+        } catch (JSONException e) {
+            return new JSONArray();
+        }
+    }
+
+    public boolean returnCustody(long id) {
+
+        try {
+
+            JSONArray records = getCustodyArray();
+
+            for (int i = 0; i < records.length(); i++) {
+
+                JSONObject record =
+                        records.optJSONObject(i);
+
+                if (record == null) {
+                    continue;
+                }
+
+                if (record.optLong("id", 0) == id) {
+
+                    record.put(
+                            "status",
+                            "تحویل داده شد"
+                    );
+
+                    record.put(
+                            "returnDate",
+                            System.currentTimeMillis()
+                    );
+
+                    prefs.edit()
+                            .putString(
+                                    KEY_CUSTODY,
+                                    records.toString()
+                            )
+                            .apply();
+
+                    return true;
+                }
+            }
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     // ==================================================
