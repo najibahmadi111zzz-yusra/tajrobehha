@@ -45,7 +45,7 @@ public class ChatActivity extends Activity {
      * 🔑 کلید Supabase خودت را اینجا قرار بده.
      */
     private static final String SUPABASE_PUBLISHABLE_KEY =
-            "s";
+            "sS";
 
     private static final String MEDIA_BUCKET = "chat_media";
     private static final String VOICE_BUCKET = "voice_messages";
