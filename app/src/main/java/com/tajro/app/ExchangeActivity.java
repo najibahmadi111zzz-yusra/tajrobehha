@@ -2,6 +2,8 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -520,7 +522,7 @@ public class ExchangeActivity extends Activity {
         Button saveButton =
                 makeButton(
                         "💾 ثبت معامله"
-                );
+        );
 
         main.addView(
                 saveButton
@@ -1071,14 +1073,408 @@ public class ExchangeActivity extends Activity {
 
         updateBalance();
 
+        // -----------------------------------------------------
+        // شناسه و تاریخ رسید
+        // -----------------------------------------------------
+
+        long transactionId =
+                System.currentTimeMillis();
+
+        String date =
+                formatDate(transactionId);
+
+        // -----------------------------------------------------
+        // ساخت رسید
+        // -----------------------------------------------------
+
+        String receipt =
+                createReceiptText(
+                        transactionId,
+                        customerName,
+                        phone,
+                        currency,
+                        type,
+                        amount,
+                        rate,
+                        total,
+                        note,
+                        date
+                );
+
+        // پاک کردن ورودی‌های قابل پاک شدن
+        amountInput.setText("");
+        noteInput.setText("");
+
         Toast.makeText(
                 this,
                 "✅ معامله با موفقیت ثبت شد",
-                Toast.LENGTH_LONG
+                Toast.LENGTH_SHORT
         ).show();
 
-        amountInput.setText("");
-        noteInput.setText("");
+        // نمایش رسید
+        showTransactionReceipt(
+                receipt
+        );
+    }
+
+    // =========================================================
+    // ساخت متن رسید
+    // =========================================================
+
+    private String createReceiptText(
+            long transactionId,
+            String customerName,
+            String phone,
+            String currency,
+            String type,
+            double amount,
+            double rate,
+            double total,
+            String note,
+            String date
+    ) {
+
+        StringBuilder receipt =
+                new StringBuilder();
+
+        receipt.append(
+                "━━━━━━━━━━━━━━━━━━━━\n"
+        );
+
+        receipt.append(
+                "       💱 تجربه‌ها\n"
+        );
+
+        receipt.append(
+                "       🧾 رسید معامله\n"
+        );
+
+        receipt.append(
+                "━━━━━━━━━━━━━━━━━━━━\n\n"
+        );
+
+        receipt.append(
+                "🆔 شناسه معامله: "
+        );
+
+        receipt.append(
+                transactionId
+        );
+
+        receipt.append("\n");
+
+        receipt.append(
+                "📅 تاریخ: "
+        );
+
+        receipt.append(
+                date
+        );
+
+        receipt.append("\n\n");
+
+        receipt.append(
+                "👤 مشتری: "
+        );
+
+        receipt.append(
+                customerName.isEmpty()
+                        ? "بدون نام"
+                        : customerName
+        );
+
+        receipt.append("\n");
+
+        if (!phone.isEmpty()) {
+
+            receipt.append(
+                    "📱 تلفن: "
+            );
+
+            receipt.append(
+                    phone
+            );
+
+            receipt.append("\n");
+        }
+
+        receipt.append("\n");
+
+        receipt.append(
+                "🔄 نوع معامله: "
+        );
+
+        receipt.append(
+                type
+        );
+
+        receipt.append("\n");
+
+        receipt.append(
+                "💱 ارز: "
+        );
+
+        receipt.append(
+                getCurrencyFlag(currency)
+        );
+
+        receipt.append(" ");
+
+        receipt.append(
+                currency
+        );
+
+        receipt.append("\n");
+
+        receipt.append(
+                "📦 مقدار: "
+        );
+
+        receipt.append(
+                formatNumber(amount)
+        );
+
+        receipt.append("\n");
+
+        receipt.append(
+                "📈 نرخ هر واحد: "
+        );
+
+        receipt.append(
+                formatNumber(rate)
+        );
+
+        receipt.append(
+                " افغانی"
+        );
+
+        receipt.append("\n");
+
+        receipt.append(
+                "💰 مبلغ نهایی: "
+        );
+
+        receipt.append(
+                formatNumber(total)
+        );
+
+        receipt.append(
+                " افغانی"
+        );
+
+        receipt.append("\n");
+
+        if (!note.isEmpty()) {
+
+            receipt.append("\n");
+
+            receipt.append(
+                    "📝 یادداشت: "
+            );
+
+            receipt.append(
+                    note
+            );
+
+            receipt.append("\n");
+        }
+
+        receipt.append("\n");
+
+        receipt.append(
+                "💵 وضعیت حساب: نقدی\n"
+        );
+
+        receipt.append(
+                "━━━━━━━━━━━━━━━━━━━━\n"
+        );
+
+        receipt.append(
+                "        تشکر از شما 🌹\n"
+        );
+
+        receipt.append(
+                "━━━━━━━━━━━━━━━━━━━━"
+        );
+
+        return receipt.toString();
+    }
+
+    // =========================================================
+    // نمایش رسید
+    // =========================================================
+
+    private void showTransactionReceipt(
+            String receipt
+    ) {
+
+        TextView receiptView =
+                makeText(
+                        receipt,
+                        16
+                );
+
+        receiptView.setTextIsSelectable(
+                true
+        );
+
+        receiptView.setGravity(
+                Gravity.RIGHT
+        );
+
+        receiptView.setPadding(
+                dp(18),
+                dp(15),
+                dp(18),
+                dp(15)
+        );
+
+        ScrollView scrollView =
+                new ScrollView(this);
+
+        scrollView.addView(
+                receiptView
+        );
+
+        AlertDialog dialog =
+                new AlertDialog.Builder(this)
+                        .setTitle(
+                                "🧾 رسید معامله"
+                        )
+                        .setView(
+                                scrollView
+                        )
+                        .setNegativeButton(
+                                "بستن",
+                                null
+                        )
+                        .setNeutralButton(
+                                "📋 کپی",
+                                null
+                        )
+                        .setPositiveButton(
+                                "📤 اشتراک‌گذاری",
+                                null
+                        )
+                        .create();
+
+        dialog.setOnShowListener(
+                d -> {
+
+                    Button copyButton =
+                            dialog.getButton(
+                                    AlertDialog.BUTTON_NEUTRAL
+                            );
+
+                    Button shareButton =
+                            dialog.getButton(
+                                    AlertDialog.BUTTON_POSITIVE
+                            );
+
+                    copyButton.setOnClickListener(
+                            v -> copyReceipt(
+                                    receipt
+                            )
+                    );
+
+                    shareButton.setOnClickListener(
+                            v -> shareReceipt(
+                                    receipt
+                            )
+                    );
+                }
+        );
+
+        dialog.show();
+    }
+
+    // =========================================================
+    // کپی رسید
+    // =========================================================
+
+    private void copyReceipt(
+            String receipt
+    ) {
+
+        ClipboardManager clipboard =
+                (ClipboardManager)
+                        getSystemService(
+                                CLIPBOARD_SERVICE
+                        );
+
+        if (clipboard != null) {
+
+            ClipData clip =
+                    ClipData.newPlainText(
+                            "رسید معامله تجربه‌ها",
+                            receipt
+                    );
+
+            clipboard.setPrimaryClip(
+                    clip
+            );
+
+            Toast.makeText(
+                    this,
+                    "📋 رسید کپی شد",
+                    Toast.LENGTH_SHORT
+            ).show();
+        }
+    }
+
+    // =========================================================
+    // اشتراک‌گذاری رسید
+    // =========================================================
+
+    private void shareReceipt(
+            String receipt
+    ) {
+
+        Intent shareIntent =
+                new Intent(
+                        Intent.ACTION_SEND
+                );
+
+        shareIntent.setType(
+                "text/plain"
+        );
+
+        shareIntent.putExtra(
+                Intent.EXTRA_TITLE,
+                "🧾 رسید معامله تجربه‌ها"
+        );
+
+        shareIntent.putExtra(
+                Intent.EXTRA_SUBJECT,
+                "رسید معامله تجربه‌ها"
+        );
+
+        shareIntent.putExtra(
+                Intent.EXTRA_TEXT,
+                receipt
+        );
+
+        if (
+                shareIntent.resolveActivity(
+                        getPackageManager()
+                ) != null
+        ) {
+
+            startActivity(
+                    Intent.createChooser(
+                            shareIntent,
+                            "📤 ارسال رسید با..."
+                    )
+            );
+
+        } else {
+
+            Toast.makeText(
+                    this,
+                    "برنامه‌ای برای اشتراک‌گذاری پیدا نشد",
+                    Toast.LENGTH_LONG
+            ).show();
+        }
     }
 
     // =========================================================
@@ -1499,7 +1895,7 @@ public class ExchangeActivity extends Activity {
                 new Spinner(this);
 
         // -----------------------------------------------------
-        // لیست ارز مبدأ با پرچم
+        // ارز مبدأ با پرچم
         // -----------------------------------------------------
 
         ArrayAdapter<String>
@@ -1515,7 +1911,7 @@ public class ExchangeActivity extends Activity {
                 );
 
         // -----------------------------------------------------
-        // لیست ارز مقصد با پرچم
+        // ارز مقصد با پرچم
         // -----------------------------------------------------
 
         ArrayAdapter<String>
@@ -1672,6 +2068,10 @@ public class ExchangeActivity extends Activity {
                 )
                 .show();
     }
+
+    // =========================================================
+    // نرخ تبدیل به افغانی
+    // =========================================================
 
     private double getRateToAFN(
             String currency
@@ -1898,4 +2298,4 @@ public class ExchangeActivity extends Activity {
             updateRate();
         }
     }
-            }
+}
