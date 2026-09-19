@@ -1,3 +1,4 @@
+import android.text.method.PasswordTransformationMethod;
 package com.tajro.app;
 
 import android.app.Activity;
@@ -75,10 +76,14 @@ public class AccountActivity extends Activity {
         // رمز
         // ==============================
 
-        passwordInput = new EditText(this);
-        passwordInput.setHint("رمز عبور");
-        passwordInput.setInputType(129);
-        passwordInput.setSingleLine(true);
+passwordInput = new EditText(this);
+passwordInput.setHint("رمز عبور");
+passwordInput.setSingleLine(true);
+passwordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+        android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+passwordInput.setTransformationMethod(
+        PasswordTransformationMethod.getInstance()
+);
 
         // ==============================
         // دکمه‌ها
