@@ -1,4 +1,3 @@
-import android.text.method.PasswordTransformationMethod;
 package com.tajro.app;
 
 import android.app.Activity;
@@ -6,13 +5,13 @@ import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.text.method.PasswordTransformationMethod;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldValue;
