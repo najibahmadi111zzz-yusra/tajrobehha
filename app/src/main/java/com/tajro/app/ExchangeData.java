@@ -22,10 +22,6 @@ public class ExchangeData {
     private static final String BALANCE_PREFIX = "balance_";
     private static final String RATE_PREFIX = "rate_";
 
-    // ==================================================
-    // ۱۱ ارز اصلی صرافی
-    // ==================================================
-
     public static final String AFN = "افغانی";
     public static final String USD = "دالر";
     public static final String EUR = "یورو";
@@ -39,64 +35,37 @@ public class ExchangeData {
     public static final String TOMAN = "تومان";
 
     private static ExchangeData instance;
-
     private final SharedPreferences prefs;
 
     private ExchangeData(Context context) {
-
-        prefs = context
-                .getApplicationContext()
-                .getSharedPreferences(
-                        PREF_NAME,
-                        Context.MODE_PRIVATE
-                );
+        prefs = context.getApplicationContext()
+                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
 
         initializeDefaults();
     }
 
     public static synchronized ExchangeData get(Context context) {
-
         if (instance == null) {
             instance = new ExchangeData(context);
         }
-
         return instance;
     }
 
-    // ==================================================
-    // لیست مرکزی ارزها
-    // ==================================================
-
     public static String[] getCurrencies() {
-
-        return new String[] {
-                AFN,
-                USD,
-                EUR,
-                GBP,
-                SAR,
-                AED,
-                IQD,
-                INR,
-                PKR,
-                TRY,
-                TOMAN
+        return new String[]{
+                AFN, USD, EUR, GBP, SAR, AED,
+                IQD, INR, PKR, TRY, TOMAN
         };
     }
 
     public static String[] getCurrencyNames() {
-
         return getCurrencies();
     }
 
-    // ==================================================
-    // اطلاعات اولیه
-    // ==================================================
-
     private void initializeDefaults() {
 
-        // موجودی اولیه
-        initializeBalance(AFN, 100000);
+        // موجودی اولیه همه ارزها صفر است.
+        initializeBalance(AFN, 0);
         initializeBalance(USD, 0);
         initializeBalance(EUR, 0);
         initializeBalance(GBP, 0);
@@ -107,9 +76,6 @@ public class ExchangeData {
         initializeBalance(PKR, 0);
         initializeBalance(TRY, 0);
         initializeBalance(TOMAN, 0);
-
-        // نرخ‌های نمونه اولیه به افغانی
-        // این نرخ‌ها زنده نیستند و بعداً قابل تغییر هستند.
 
         initializeRate(USD, 70);
         initializeRate(EUR, 82);
@@ -123,56 +89,33 @@ public class ExchangeData {
         initializeRate(TOMAN, 0.0015);
     }
 
-    private void initializeBalance(
-            String currency,
-            double defaultValue
-    ) {
-
-        if (!prefs.contains(
-                BALANCE_PREFIX + currency
-        )) {
-
-            setBalance(
-                    currency,
-                    defaultValue
-            );
+    private void initializeBalance(String currency, double value) {
+        if (!prefs.contains(BALANCE_PREFIX + currency)) {
+            setBalance(currency, value);
         }
     }
 
-    private void initializeRate(
-            String currency,
-            double defaultValue
-    ) {
-
-        if (!prefs.contains(
-                RATE_PREFIX + currency
-        )) {
-
-            setRate(
-                    currency,
-                    defaultValue
-            );
+    private void initializeRate(String currency, double value) {
+        if (!prefs.contains(RATE_PREFIX + currency)) {
+            setRate(currency, value);
         }
     }
 
     // ==================================================
-    // موجودی ارزها
+    // موجودی
     // ==================================================
 
-    public double getBalance(
-            String currency
-    ) {
-
+    public double getBalance(String currency) {
         return prefs.getFloat(
                 BALANCE_PREFIX + currency,
                 0
         );
     }
 
-    public void setBalance(
-            String currency,
-            double amount
-    ) {
+    public void setBalance(String currency, double amount) {
+        if (currency == null || amount < 0) {
+            return;
+        }
 
         prefs.edit()
                 .putFloat(
@@ -182,68 +125,45 @@ public class ExchangeData {
                 .apply();
     }
 
-    public void addBalance(
-            String currency,
-            double amount
-    ) {
-
-        if (amount <= 0) {
+    public void addBalance(String currency, double amount) {
+        if (currency == null || amount <= 0) {
             return;
         }
 
-        double current =
-                getBalance(currency);
-
         setBalance(
                 currency,
-                current + amount
+                getBalance(currency) + amount
         );
     }
 
-    public boolean subtractBalance(
-            String currency,
-            double amount
-    ) {
-
-        if (amount <= 0) {
+    public boolean subtractBalance(String currency, double amount) {
+        if (currency == null || amount <= 0) {
             return false;
         }
 
-        double current =
-                getBalance(currency);
+        double current = getBalance(currency);
 
         if (amount > current) {
             return false;
         }
 
-        setBalance(
-                currency,
-                current - amount
-        );
-
+        setBalance(currency, current - amount);
         return true;
     }
 
     // ==================================================
-    // نرخ ارز
+    // نرخ
     // ==================================================
 
-    public double getRate(
-            String currency
-    ) {
-
+    public double getRate(String currency) {
         return prefs.getFloat(
                 RATE_PREFIX + currency,
                 0
         );
     }
 
-    public void setRate(
-            String currency,
-            double rate
-    ) {
-
-        if (rate < 0) {
+    public void setRate(String currency, double rate) {
+        if (currency == null || rate < 0) {
             return;
         }
 
@@ -256,66 +176,37 @@ public class ExchangeData {
     }
 
     // ==================================================
-    // ثبت مشتری
+    // مشتری
     // ==================================================
 
-    public void saveCustomer(
-            String name,
-            String phone
-    ) {
+    public void saveCustomer(String name, String phone) {
 
-        if (
-                name == null ||
-                name.trim().isEmpty()
-        ) {
-
+        if (name == null || name.trim().isEmpty()) {
             return;
         }
 
         try {
+            JSONArray customers = getCustomersArray();
 
-            JSONArray customers =
-                    getCustomersArray();
+            for (int i = 0; i < customers.length(); i++) {
 
-            for (
-                    int i = 0;
-                    i < customers.length();
-                    i++
-            ) {
+                JSONObject old = customers.getJSONObject(i);
 
-                JSONObject old =
-                        customers.getJSONObject(i);
-
-                if (
-                        old.optString("name")
-                                .equals(name)
-                        &&
-                        old.optString("phone")
-                                .equals(phone)
-                ) {
-
+                if (old.optString("name").equals(name)
+                        && old.optString("phone").equals(phone)) {
                     return;
                 }
             }
 
-            JSONObject customer =
-                    new JSONObject();
+            JSONObject customer = new JSONObject();
 
-            customer.put(
-                    "name",
-                    name
-            );
-
+            customer.put("name", name);
             customer.put(
                     "phone",
-                    phone == null
-                            ? ""
-                            : phone
+                    phone == null ? "" : phone
             );
 
-            customers.put(
-                    customer
-            );
+            customers.put(customer);
 
             prefs.edit()
                     .putString(
@@ -325,33 +216,26 @@ public class ExchangeData {
                     .apply();
 
         } catch (JSONException e) {
-
             e.printStackTrace();
         }
     }
 
     public JSONArray getCustomersArray() {
 
-        String data =
-                prefs.getString(
-                        KEY_CUSTOMERS,
-                        "[]"
-                );
+        String data = prefs.getString(
+                KEY_CUSTOMERS,
+                "[]"
+        );
 
         try {
-
-            return new JSONArray(
-                    data
-            );
-
+            return new JSONArray(data);
         } catch (JSONException e) {
-
             return new JSONArray();
         }
     }
 
     // ==================================================
-    // ثبت معامله
+    // معامله
     // ==================================================
 
     public boolean saveTransaction(
@@ -365,102 +249,55 @@ public class ExchangeData {
             String note
     ) {
 
-        if (
-                amount <= 0 ||
+        if (amount <= 0 ||
                 rate <= 0 ||
                 currency == null ||
-                type == null
-        ) {
-
+                type == null) {
             return false;
         }
 
-        double total =
-                amount * rate;
+        double total = amount * rate;
 
         try {
 
-            // ثبت مشتری
-            saveCustomer(
-                    customerName,
-                    phone
-            );
+            saveCustomer(customerName, phone);
 
-            JSONObject transaction =
-                    new JSONObject();
+            JSONObject transaction = new JSONObject();
 
-            long id =
-                    System.currentTimeMillis();
+            long id = System.currentTimeMillis();
 
-            transaction.put(
-                    "id",
-                    id
-            );
-
+            transaction.put("id", id);
             transaction.put(
                     "customerName",
-                    customerName == null
-                            ? ""
-                            : customerName
+                    customerName == null ? "" : customerName
             );
-
             transaction.put(
                     "phone",
-                    phone == null
-                            ? ""
-                            : phone
+                    phone == null ? "" : phone
             );
-
-            transaction.put(
-                    "currency",
-                    currency
-            );
-
-            transaction.put(
-                    "type",
-                    type
-            );
-
-            transaction.put(
-                    "amount",
-                    amount
-            );
-
-            transaction.put(
-                    "rate",
-                    rate
-            );
-
-            transaction.put(
-                    "total",
-                    total
-            );
-
+            transaction.put("currency", currency);
+            transaction.put("type", type);
+            transaction.put("amount", amount);
+            transaction.put("rate", rate);
+            transaction.put("total", total);
             transaction.put(
                     "accountStatus",
                     accountStatus == null
                             ? "نقدی"
                             : accountStatus
             );
-
             transaction.put(
                     "note",
-                    note == null
-                            ? ""
-                            : note
+                    note == null ? "" : note
             );
-
             transaction.put(
                     "date",
                     System.currentTimeMillis()
             );
 
-            JSONArray transactions =
-                    getTransactionsArray();
+            JSONArray transactions = getTransactionsArray();
 
-            transactions.put(
-                    transaction
-            );
+            transactions.put(transaction);
 
             prefs.edit()
                     .putString(
@@ -472,54 +309,36 @@ public class ExchangeData {
             return true;
 
         } catch (JSONException e) {
-
             e.printStackTrace();
-
             return false;
         }
     }
 
-    // ==================================================
-    // تمام معاملات
-    // ==================================================
-
     public JSONArray getTransactionsArray() {
 
-        String data =
-                prefs.getString(
-                        KEY_TRANSACTIONS,
-                        "[]"
-                );
+        String data = prefs.getString(
+                KEY_TRANSACTIONS,
+                "[]"
+        );
 
         try {
-
-            return new JSONArray(
-                    data
-            );
-
+            return new JSONArray(data);
         } catch (JSONException e) {
-
             return new JSONArray();
         }
     }
 
     // ==================================================
-    // نام مشتریان
+    // مشتریان
     // ==================================================
 
     public List<String> getCustomerNames() {
 
-        Set<String> uniqueNames =
-                new HashSet<>();
+        Set<String> uniqueNames = new HashSet<>();
 
-        JSONArray customers =
-                getCustomersArray();
+        JSONArray customers = getCustomersArray();
 
-        for (
-                int i = 0;
-                i < customers.length();
-                i++
-        ) {
+        for (int i = 0; i < customers.length(); i++) {
 
             JSONObject customer =
                     customers.optJSONObject(i);
@@ -527,42 +346,25 @@ public class ExchangeData {
             if (customer != null) {
 
                 String name =
-                        customer.optString(
-                                "name"
-                        );
+                        customer.optString("name");
 
                 if (!name.isEmpty()) {
-
-                    uniqueNames.add(
-                            name
-                    );
+                    uniqueNames.add(name);
                 }
             }
         }
 
-        return new ArrayList<>(
-                uniqueNames
-        );
+        return new ArrayList<>(uniqueNames);
     }
 
-    // ==================================================
-    // حساب مشتری
-    // ==================================================
-
-    public double getCustomerDebt(
-            String customerName
-    ) {
+    public double getCustomerDebt(String customerName) {
 
         double debt = 0;
 
         JSONArray transactions =
                 getTransactionsArray();
 
-        for (
-                int i = 0;
-                i < transactions.length();
-                i++
-        ) {
+        for (int i = 0; i < transactions.length(); i++) {
 
             JSONObject transaction =
                     transactions.optJSONObject(i);
@@ -571,50 +373,35 @@ public class ExchangeData {
                 continue;
             }
 
-            if (
-                    !transaction
-                            .optString(
-                                    "customerName"
-                            )
-                            .equals(customerName)
-            ) {
-
+            if (!transaction.optString(
+                    "customerName"
+            ).equals(customerName)) {
                 continue;
             }
 
-            if (
-                    "بدهکار".equals(
-                            transaction.optString(
-                                    "accountStatus"
-                            )
+            if ("بدهکار".equals(
+                    transaction.optString(
+                            "accountStatus"
                     )
-            ) {
-
-                debt +=
-                        transaction.optDouble(
-                                "total",
-                                0
-                        );
+            )) {
+                debt += transaction.optDouble(
+                        "total",
+                        0
+                );
             }
         }
 
         return debt;
     }
 
-    public double getCustomerCredit(
-            String customerName
-    ) {
+    public double getCustomerCredit(String customerName) {
 
         double credit = 0;
 
         JSONArray transactions =
                 getTransactionsArray();
 
-        for (
-                int i = 0;
-                i < transactions.length();
-                i++
-        ) {
+        for (int i = 0; i < transactions.length(); i++) {
 
             JSONObject transaction =
                     transactions.optJSONObject(i);
@@ -623,81 +410,53 @@ public class ExchangeData {
                 continue;
             }
 
-            if (
-                    !transaction
-                            .optString(
-                                    "customerName"
-                            )
-                            .equals(customerName)
-            ) {
-
+            if (!transaction.optString(
+                    "customerName"
+            ).equals(customerName)) {
                 continue;
             }
 
-            if (
-                    "طلبکار".equals(
-                            transaction.optString(
-                                    "accountStatus"
-                            )
+            if ("طلبکار".equals(
+                    transaction.optString(
+                            "accountStatus"
                     )
-            ) {
-
-                credit +=
-                        transaction.optDouble(
-                                "total",
-                                0
-                        );
+            )) {
+                credit += transaction.optDouble(
+                        "total",
+                        0
+                );
             }
         }
 
         return credit;
     }
 
-    public double getCustomerBalance(
-            String customerName
-    ) {
+    public double getCustomerBalance(String customerName) {
 
-        return getCustomerDebt(
-                customerName
-        )
-                -
-                getCustomerCredit(
-                        customerName
-                );
+        return getCustomerDebt(customerName)
+                - getCustomerCredit(customerName);
     }
 
     // ==================================================
-    // آمار معاملات
+    // آمار
     // ==================================================
 
     public double getTotalBuy() {
-
-        return getTotalByType(
-                "خرید"
-        );
+        return getTotalByType("خرید");
     }
 
     public double getTotalSell() {
-
-        return getTotalByType(
-                "فروش"
-        );
+        return getTotalByType("فروش");
     }
 
-    private double getTotalByType(
-            String type
-    ) {
+    private double getTotalByType(String type) {
 
         double total = 0;
 
         JSONArray transactions =
                 getTransactionsArray();
 
-        for (
-                int i = 0;
-                i < transactions.length();
-                i++
-        ) {
+        for (int i = 0; i < transactions.length(); i++) {
 
             JSONObject transaction =
                     transactions.optJSONObject(i);
@@ -706,19 +465,13 @@ public class ExchangeData {
                 continue;
             }
 
-            if (
-                    type.equals(
-                            transaction.optString(
-                                    "type"
-                            )
-                    )
-            ) {
-
-                total +=
-                        transaction.optDouble(
-                                "total",
-                                0
-                        );
+            if (type.equals(
+                    transaction.optString("type")
+            )) {
+                total += transaction.optDouble(
+                        "total",
+                        0
+                );
             }
         }
 
@@ -726,27 +479,14 @@ public class ExchangeData {
     }
 
     public int getTransactionCount() {
-
-        return getTransactionsArray()
-                .length();
+        return getTransactionsArray().length();
     }
-
-    // ==================================================
-    // پاک کردن معاملات
-    // ==================================================
 
     public void clearTransactions() {
-
         prefs.edit()
-                .remove(
-                        KEY_TRANSACTIONS
-                )
+                .remove(KEY_TRANSACTIONS)
                 .apply();
     }
-
-    // ==================================================
-    // پاک کردن تمام اطلاعات صرافی
-    // ==================================================
 
     public void clearAllData() {
 
@@ -756,4 +496,4 @@ public class ExchangeData {
 
         initializeDefaults();
     }
-}
+            }
