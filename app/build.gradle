@@ -50,6 +50,9 @@ dependencies {
     implementation 'com.google.firebase:firebase-storage'
     implementation 'com.google.firebase:firebase-appcheck-debug'
 
+    // Firebase Cloud Messaging
+    implementation 'com.google.firebase:firebase-messaging'
+
     implementation 'com.google.guava:guava:31.0.1-android'
 
     // Unity Ads
