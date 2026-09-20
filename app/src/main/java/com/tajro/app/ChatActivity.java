@@ -40,8 +40,10 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -62,18 +64,12 @@ public class ChatActivity extends Activity {
     private static final int PICK_MEDIA = 1002;
     private static final int PICK_PROFILE = 1003;
 
-    /*
-     * Supabase
-     *
-     * فقط Publishable Key را استفاده می‌کنیم.
-     * Secret Key را هرگز داخل برنامه نگذار.
-     */
     private static final String SUPABASE_URL =
             "https://gorbhuqmkjlkrklhasdh.supabase.co";
 
     /*
-     * اگر در فایل واقعی کلید Publishable صحیح داری،
-     * همان کلید صحیح خودت را اینجا نگه دار.
+     * اینجا همان Publishable Key واقعی فعلی خودت را نگه دار.
+     * Secret Key را هرگز اینجا قرار نده.
      */
     private static final String SUPABASE_PUBLISHABLE_KEY =
             "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
@@ -183,10 +179,28 @@ public class ChatActivity extends Activity {
                 user.getUid()
         );
 
-        data.put(
-                "email",
-                user.getEmail()
-        );
+        if (user.getEmail() != null) {
+            data.put(
+                    "email",
+                    user.getEmail()
+            );
+        }
+
+        if (user.getPhoneNumber() != null) {
+            data.put(
+                    "phoneNumber",
+                    user.getPhoneNumber()
+            );
+        }
+
+        if (user.getDisplayName() != null &&
+                !user.getDisplayName().trim().isEmpty()) {
+
+            data.put(
+                    "name",
+                    user.getDisplayName()
+            );
+        }
 
         data.put(
                 "online",
@@ -207,8 +221,7 @@ public class ChatActivity extends Activity {
                 .document(user.getUid())
                 .set(
                         data,
-                        com.google.firebase.firestore.SetOptions
-                                .merge()
+                        SetOptions.merge()
                 );
     }
 
@@ -309,14 +322,35 @@ public class ChatActivity extends Activity {
         );
 
         header.setPadding(
-                16,
-                16,
-                16,
-                16
+                10,
+                12,
+                10,
+                12
         );
 
         header.setBackgroundColor(
                 themeColor
+        );
+
+        Button myProfile =
+                makeButton("👤");
+
+        myProfile.setTextSize(22);
+
+        myProfile.setContentDescription(
+                "پروفایل من"
+        );
+
+        myProfile.setOnClickListener(
+                v -> showOwnProfile()
+        );
+
+        header.addView(
+                myProfile,
+                new LinearLayout.LayoutParams(
+                        58,
+                        55
+                )
         );
 
         TextView title =
@@ -328,6 +362,10 @@ public class ChatActivity extends Activity {
 
         title.setTypeface(
                 Typeface.DEFAULT_BOLD
+        );
+
+        title.setGravity(
+                Gravity.CENTER
         );
 
         header.addView(
@@ -360,7 +398,7 @@ public class ChatActivity extends Activity {
 
         TextView info =
                 makeText(
-                        "برای گفتگو روی کاربر بزنید؛ برای مدیریت کاربر لمس طولانی کنید.",
+                        "برای گفتگو روی کاربر بزنید؛ برای دیدن پروفایل روی عکس یا نام بزنید.",
                         16,
                         Color.DKGRAY
                 );
@@ -486,10 +524,6 @@ public class ChatActivity extends Activity {
 
                             usersContainer.removeAllViews();
 
-                            /*
-                             * جلوگیری از نمایش تکراری:
-                             * کلید اصلی همیشه UID است.
-                             */
                             Map<String, DocumentSnapshot> uniqueUsers =
                                     new HashMap<>();
 
@@ -518,10 +552,6 @@ public class ChatActivity extends Activity {
                                     continue;
                                 }
 
-                                /*
-                                 * اگر دو سند قدیمی برای یک UID وجود
-                                 * داشته باشد، فقط یکی نمایش داده می‌شود.
-                                 */
                                 uniqueUsers.put(
                                         uid,
                                         doc
@@ -735,8 +765,8 @@ public class ChatActivity extends Activity {
         card.addView(
                 avatar,
                 new LinearLayout.LayoutParams(
-                        65,
-                        65
+                        68,
+                        68
                 )
         );
 
@@ -883,6 +913,24 @@ public class ChatActivity extends Activity {
                 )
         );
 
+        /*
+         * عکس یا نام = پروفایل
+         */
+        avatar.setOnClickListener(
+                v -> showUserProfile(
+                        finalUid
+                )
+        );
+
+        nameText.setOnClickListener(
+                v -> showUserProfile(
+                        finalUid
+                )
+        );
+
+        /*
+         * لمس قسمت خالی کارت = چت
+         */
         card.setOnClickListener(
                 v -> openPrivateChat(
                         finalUid,
@@ -919,6 +967,7 @@ public class ChatActivity extends Activity {
     ) {
 
         String[] options = {
+                "👤 دیدن پروفایل",
                 "💬 باز کردن چت",
                 "🚫 بلاک کردن",
                 "🗑️ حذف از فهرست من",
@@ -932,6 +981,10 @@ public class ChatActivity extends Activity {
                         (dialog, which) -> {
 
                             if (which == 0) {
+
+                                showUserProfile(uid);
+
+                            } else if (which == 1) {
 
                                 db.collection("users")
                                         .document(uid)
@@ -952,14 +1005,14 @@ public class ChatActivity extends Activity {
                                                 }
                                         );
 
-                            } else if (which == 1) {
+                            } else if (which == 2) {
 
                                 blockUserFromList(
                                         uid,
                                         name
                                 );
 
-                            } else if (which == 2) {
+                            } else if (which == 3) {
 
                                 confirmDeleteUser(
                                         uid,
@@ -969,6 +1022,285 @@ public class ChatActivity extends Activity {
                         }
                 )
                 .show();
+    }
+
+    private void showUserProfile(
+            String uid
+    ) {
+
+        if (uid == null ||
+                uid.trim().isEmpty()) {
+            return;
+        }
+
+        db.collection("users")
+                .document(uid)
+                .get()
+                .addOnSuccessListener(
+                        doc -> {
+
+                            if (!doc.exists()) {
+
+                                Toast.makeText(
+                                        this,
+                                        "پروفایل کاربر پیدا نشد",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                                return;
+                            }
+
+                            showProfileDialog(
+                                    doc,
+                                    false
+                            );
+                        }
+                )
+                .addOnFailureListener(
+                        e -> Toast.makeText(
+                                this,
+                                "خطای دریافت پروفایل: " +
+                                        e.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show()
+                );
+    }
+
+    private void showOwnProfile() {
+
+        if (myId == null) {
+            return;
+        }
+
+        db.collection("users")
+                .document(myId)
+                .get()
+                .addOnSuccessListener(
+                        doc -> {
+
+                            if (doc.exists()) {
+
+                                showProfileDialog(
+                                        doc,
+                                        true
+                                );
+
+                            } else {
+
+                                ensureUserProfile();
+
+                                db.collection("users")
+                                        .document(myId)
+                                        .get()
+                                        .addOnSuccessListener(
+                                                newDoc ->
+                                                        showProfileDialog(
+                                                                newDoc,
+                                                                true
+                                                        )
+                                        );
+                            }
+                        }
+                )
+                .addOnFailureListener(
+                        e -> Toast.makeText(
+                                this,
+                                "خطای دریافت پروفایل: " +
+                                        e.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show()
+                );
+    }
+
+    private void showProfileDialog(
+            DocumentSnapshot doc,
+            boolean ownProfile
+    ) {
+
+        String name =
+                doc.getString("name");
+
+        if (name == null ||
+                name.trim().isEmpty()) {
+
+            name = "کاربر";
+        }
+
+        String email =
+                doc.getString("email");
+
+        String phone =
+                doc.getString("phoneNumber");
+
+        String photoUrl =
+                doc.getString("photoUrl");
+
+        LinearLayout layout =
+                new LinearLayout(this);
+
+        layout.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        layout.setGravity(
+                Gravity.CENTER_HORIZONTAL
+        );
+
+        layout.setPadding(
+                25,
+                20,
+                25,
+                10
+        );
+
+        ImageView profileImage =
+                new ImageView(this);
+
+        profileImage.setImageResource(
+                android.R.drawable.ic_menu_myplaces
+        );
+
+        profileImage.setScaleType(
+                ImageView.ScaleType.CENTER_CROP
+        );
+
+        profileImage.setBackground(
+                roundedBackground(
+                        Color.LTGRAY,
+                        300
+                )
+        );
+
+        profileImage.setPadding(
+                5,
+                5,
+                5,
+                5
+        );
+
+        layout.addView(
+                profileImage,
+                new LinearLayout.LayoutParams(
+                        180,
+                        180
+                )
+        );
+
+        if (photoUrl != null &&
+                !photoUrl.trim().isEmpty()) {
+
+            loadImage(
+                    photoUrl,
+                    profileImage
+            );
+        }
+
+        TextView nameText =
+                makeText(
+                        "👤 " + name,
+                        21,
+                        Color.rgb(
+                                25,
+                                25,
+                                25
+                        )
+                );
+
+        nameText.setTypeface(
+                Typeface.DEFAULT_BOLD
+        );
+
+        nameText.setGravity(
+                Gravity.CENTER
+        );
+
+        nameText.setPadding(
+                5,
+                18,
+                5,
+                8
+        );
+
+        layout.addView(
+                nameText
+        );
+
+        if (email != null &&
+                !email.trim().isEmpty()) {
+
+            TextView emailText =
+                    makeText(
+                            "📧 " + email,
+                            17,
+                            Color.DKGRAY
+                    );
+
+            emailText.setGravity(
+                    Gravity.CENTER
+            );
+
+            emailText.setPadding(
+                    5,
+                    5,
+                    5,
+                    5
+            );
+
+            layout.addView(
+                    emailText
+            );
+        }
+
+        if (phone != null &&
+                !phone.trim().isEmpty()) {
+
+            TextView phoneText =
+                    makeText(
+                            "📱 " + phone,
+                            17,
+                            Color.DKGRAY
+                    );
+
+            phoneText.setGravity(
+                    Gravity.CENTER
+            );
+
+            phoneText.setPadding(
+                    5,
+                    5,
+                    5,
+                    5
+            );
+
+            layout.addView(
+                    phoneText
+            );
+        }
+
+        AlertDialog dialog =
+                new AlertDialog.Builder(this)
+                        .setTitle(
+                                ownProfile
+                                        ? "👤 پروفایل من"
+                                        : "👤 پروفایل کاربر"
+                        )
+                        .setView(layout)
+                        .setNegativeButton(
+                                "بستن",
+                                null
+                        )
+                        .create();
+
+        if (ownProfile) {
+
+            dialog.setButton(
+                    AlertDialog.BUTTON_POSITIVE,
+                    "🖼️ تغییر عکس",
+                    (d, which) -> pickProfilePhoto()
+            );
+        }
+
+        dialog.show();
     }
 
     private void blockUserFromList(
@@ -1247,6 +1579,10 @@ public class ChatActivity extends Activity {
                 5
         );
 
+        headerAvatar.setOnClickListener(
+                v -> showUserProfile(receiverId)
+        );
+
         header.addView(
                 headerAvatar,
                 new LinearLayout.LayoutParams(
@@ -1297,6 +1633,10 @@ public class ChatActivity extends Activity {
 
         titleText.setTypeface(
                 Typeface.DEFAULT_BOLD
+        );
+
+        titleText.setOnClickListener(
+                v -> showUserProfile(receiverId)
         );
 
         titleBox.addView(
@@ -1405,6 +1745,10 @@ public class ChatActivity extends Activity {
                 android.R.drawable.ic_menu_gallery
         );
 
+        mediaButton.setScaleType(
+                ImageView.ScaleType.CENTER_INSIDE
+        );
+
         mediaButton.setBackgroundColor(
                 Color.TRANSPARENT
         );
@@ -1475,6 +1819,10 @@ public class ChatActivity extends Activity {
                 android.R.drawable.ic_btn_speak_now
         );
 
+        voiceButton.setScaleType(
+                ImageView.ScaleType.CENTER_INSIDE
+        );
+
         voiceButton.setBackgroundColor(
                 Color.TRANSPARENT
         );
@@ -1503,6 +1851,10 @@ public class ChatActivity extends Activity {
 
         sendButton.setImageResource(
                 android.R.drawable.ic_menu_send
+        );
+
+        sendButton.setScaleType(
+                ImageView.ScaleType.CENTER_INSIDE
         );
 
         sendButton.setBackgroundColor(
@@ -2786,6 +3138,7 @@ public class ChatActivity extends Activity {
                         : "🚫 بلاک کردن";
 
         String[] options = {
+                "👤 دیدن پروفایل",
                 blockText,
                 "🗑️ حذف کاربر از فهرست من",
                 "🔄 تازه‌سازی پیام‌ها",
@@ -2800,20 +3153,24 @@ public class ChatActivity extends Activity {
 
                             if (which == 0) {
 
+                                showUserProfile(receiverId);
+
+                            } else if (which == 1) {
+
                                 if (blocked) {
                                     unblockUser();
                                 } else {
                                     blockUser();
                                 }
 
-                            } else if (which == 1) {
+                            } else if (which == 2) {
 
                                 confirmDeleteUser(
                                         receiverId,
                                         receiverName
                                 );
 
-                            } else if (which == 2) {
+                            } else if (which == 3) {
 
                                 listenMessages();
                             }
@@ -2919,6 +3276,11 @@ public class ChatActivity extends Activity {
                 Intent.CATEGORY_OPENABLE
         );
 
+        intent.addFlags(
+                Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        );
+
         startActivityForResult(
                 intent,
                 PICK_MEDIA
@@ -2936,6 +3298,11 @@ public class ChatActivity extends Activity {
 
         intent.addCategory(
                 Intent.CATEGORY_OPENABLE
+        );
+
+        intent.addFlags(
+                Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
         );
 
         startActivityForResult(
@@ -2966,6 +3333,21 @@ public class ChatActivity extends Activity {
         Uri uri =
                 data.getData();
 
+        try {
+
+            if ((data.getFlags() &
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0) {
+
+                getContentResolver()
+                        .takePersistableUriPermission(
+                                uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        );
+            }
+
+        } catch (Exception ignored) {
+        }
+
         if (requestCode == PICK_MEDIA) {
 
             uploadMedia(uri);
@@ -2975,12 +3357,6 @@ public class ChatActivity extends Activity {
             uploadProfilePhoto(uri);
         }
     }
-
-    /*
-     * ============================
-     * SUPABASE STORAGE
-     * ============================
-     */
 
     private String encodePath(
             String path
@@ -3033,6 +3409,61 @@ public class ChatActivity extends Activity {
                 encodePath(path);
     }
 
+    private String readErrorResponse(
+            HttpURLConnection connection
+    ) {
+
+        InputStream errorStream = null;
+
+        try {
+
+            errorStream =
+                    connection.getErrorStream();
+
+            if (errorStream == null) {
+                return "";
+            }
+
+            java.io.ByteArrayOutputStream buffer =
+                    new java.io.ByteArrayOutputStream();
+
+            byte[] data =
+                    new byte[4096];
+
+            int n;
+
+            while (
+                    (n = errorStream.read(data)) != -1
+            ) {
+
+                buffer.write(
+                        data,
+                        0,
+                        n
+                );
+            }
+
+            return buffer.toString(
+                    "UTF-8"
+            );
+
+        } catch (Exception e) {
+
+            return "";
+
+        } finally {
+
+            try {
+
+                if (errorStream != null) {
+                    errorStream.close();
+                }
+
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
     private void uploadToSupabase(
             Uri uri,
             String bucket,
@@ -3071,6 +3502,9 @@ public class ChatActivity extends Activity {
                                 (HttpURLConnection)
                                         url.openConnection();
 
+                        /*
+                         * POST برای Storage Supabase.
+                         */
                         connection.setRequestMethod(
                                 "POST"
                         );
@@ -3084,11 +3518,11 @@ public class ChatActivity extends Activity {
                         );
 
                         connection.setConnectTimeout(
-                                20000
+                                30000
                         );
 
                         connection.setReadTimeout(
-                                30000
+                                60000
                         );
 
                         connection.setRequestProperty(
@@ -3112,11 +3546,31 @@ public class ChatActivity extends Activity {
                                 "true"
                         );
 
-                        input =
-                                getContentResolver()
-                                        .openInputStream(uri);
+                        /*
+                         * برای صدا Uri.fromFile داریم،
+                         * بنابراین مستقیم از FileInputStream
+                         * استفاده می‌کنیم.
+                         */
+                        if ("file".equals(
+                                uri.getScheme()
+                        )) {
+
+                            input =
+                                    new FileInputStream(
+                                            new File(
+                                                    uri.getPath()
+                                            )
+                                    );
+
+                        } else {
+
+                            input =
+                                    getContentResolver()
+                                            .openInputStream(uri);
+                        }
 
                         if (input == null) {
+
                             throw new Exception(
                                     "فایل قابل خواندن نیست"
                             );
@@ -3166,13 +3620,29 @@ public class ChatActivity extends Activity {
 
                         } else {
 
+                            String body =
+                                    readErrorResponse(
+                                            connection
+                                    );
+
                             String errorText =
                                     "HTTP " +
                                             responseCode;
 
+                            if (body != null &&
+                                    !body.trim().isEmpty()) {
+
+                                errorText +=
+                                        "\n" +
+                                                body;
+                            }
+
+                            String finalError =
+                                    errorText;
+
                             runOnUiThread(
                                     () -> callback.onError(
-                                            errorText
+                                            finalError
                                     )
                             );
                         }
@@ -3305,6 +3775,11 @@ public class ChatActivity extends Activity {
         } else if (image) {
 
             extension = ".jpg";
+
+        } else if (mime != null &&
+                mime.equals("video/3gpp")) {
+
+            extension = ".3gp";
 
         } else {
 
@@ -3566,9 +4041,14 @@ public class ChatActivity extends Activity {
             return;
         }
 
+        boolean stopped =
+                false;
+
         try {
 
             recorder.stop();
+
+            stopped = true;
 
         } catch (Exception ignored) {
         }
@@ -3584,9 +4064,23 @@ public class ChatActivity extends Activity {
 
         recording = false;
 
-        voiceButton.setImageResource(
-                android.R.drawable.ic_btn_speak_now
-        );
+        if (voiceButton != null) {
+
+            voiceButton.setImageResource(
+                    android.R.drawable.ic_btn_speak_now
+            );
+        }
+
+        if (!stopped) {
+
+            Toast.makeText(
+                    this,
+                    "ضبط صدا خیلی کوتاه بود یا کامل نشد",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
 
         if (audioPath != null) {
 
@@ -3650,11 +4144,16 @@ public class ChatActivity extends Activity {
                 Toast.LENGTH_SHORT
         ).show();
 
+        /*
+         * برای m4a از octet-stream استفاده می‌کنیم
+         * تا خطای 400 مربوط به MIME کمتر شود.
+         * خود فایل همچنان m4a است.
+         */
         uploadToSupabase(
                 uri,
                 VOICE_BUCKET,
                 objectPath,
-                "audio/mp4",
+                "application/octet-stream",
                 new SupabaseUploadCallback() {
 
                     @Override
@@ -3861,19 +4360,33 @@ public class ChatActivity extends Activity {
                             String publicUrl
                     ) {
 
+                        Map<String, Object> update =
+                                new HashMap<>();
+
+                        update.put(
+                                "photoUrl",
+                                publicUrl
+                        );
+
                         db.collection("users")
                                 .document(myId)
-                                .update(
-                                        "photoUrl",
-                                        publicUrl
+                                .set(
+                                        update,
+                                        SetOptions.merge()
                                 )
                                 .addOnSuccessListener(
-                                        v ->
-                                                Toast.makeText(
-                                                        ChatActivity.this,
-                                                        "عکس پروفایل ذخیره شد",
-                                                        Toast.LENGTH_SHORT
-                                                ).show()
+                                        v -> {
+
+                                            Toast.makeText(
+                                                    ChatActivity.this,
+                                                    "عکس پروفایل ذخیره شد ✅",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
+
+                                            showOwnProfile();
+
+                                            loadUsers();
+                                        }
                                 )
                                 .addOnFailureListener(
                                         e ->
@@ -4107,8 +4620,7 @@ public class ChatActivity extends Activity {
                     .document(myId)
                     .set(
                             data,
-                            com.google.firebase.firestore.SetOptions
-                                    .merge()
+                            SetOptions.merge()
                     );
         }
     }
@@ -4142,8 +4654,7 @@ public class ChatActivity extends Activity {
                     .document(myId)
                     .set(
                             data,
-                            com.google.firebase.firestore.SetOptions
-                                    .merge()
+                            SetOptions.merge()
                     );
         }
     }
