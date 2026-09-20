@@ -1,4 +1,4 @@
-  package com.tajro.app;
+package com.tajro.app;
 
 import android.Manifest;
 import android.app.Activity;
@@ -39,13 +39,11 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -65,14 +63,13 @@ private static final int PICK_MEDIA = 1002;
 private static final int PICK_PROFILE = 1003;
 
 /*
- * نکته مهم:
- * این کلید باید همان Publishable Key فعلی خودت باشد.
+ * این باید همان Publishable Key فعلی خودت باشد.
  * Secret Key را هرگز اینجا نگذار.
  */
 private static final String SUPABASE_URL =
         "https://gorbhuqmkjlkrklhasdh.supabase.co";
 
-private static final String SUPABASE_PUBLISHABLE_KEY = 
+private static final String SUPABASE_PUBLISHABLE_KEY =
         "ss";
 
 private static final String CHAT_BUCKET = "chat_media";
@@ -105,8 +102,14 @@ private boolean recording = false;
 private boolean typing = false;
 private boolean blocked = false;
 
+/*
+ * مهم:
+ * پیام‌های ارسالی و دریافتی جداگانه شنیده می‌شوند
+ * تا با Firestore Rules فعلی سازگار باشند.
+ */
 private ListenerRegistration sentMessageListener;
 private ListenerRegistration receivedMessageListener;
+
 private ListenerRegistration receiverListener;
 private ListenerRegistration typingListener;
 private ListenerRegistration blockListener;
@@ -142,7 +145,13 @@ protected void onCreate(Bundle savedInstanceState) {
                 Toast.LENGTH_LONG
         ).show();
 
-        startActivity(new Intent(this, AccountActivity.class));
+        startActivity(
+                new Intent(
+                        this,
+                        AccountActivity.class
+                )
+        );
+
         finish();
         return;
     }
@@ -166,21 +175,30 @@ private void ensureUserProfile() {
     data.put("userId", user.getUid());
     data.put("email", user.getEmail());
     data.put("online", true);
-    data.put("lastSeen", FieldValue.serverTimestamp());
+    data.put(
+            "lastSeen",
+            FieldValue.serverTimestamp()
+    );
     data.put("typingTo", "");
 
     db.collection("users")
             .document(user.getUid())
-            .set(data, com.google.firebase.firestore.SetOptions.merge());
+            .set(
+                    data,
+                    com.google.firebase.firestore.SetOptions.merge()
+            );
 }
 
 private GradientDrawable roundedBackground(
         int color,
         float radius
 ) {
-    GradientDrawable drawable = new GradientDrawable();
+    GradientDrawable drawable =
+            new GradientDrawable();
+
     drawable.setColor(color);
     drawable.setCornerRadius(radius);
+
     return drawable;
 }
 
@@ -190,28 +208,33 @@ private TextView makeText(
         int color
 ) {
     TextView tv = new TextView(this);
+
     tv.setText(text);
     tv.setTextSize(size);
     tv.setTextColor(color);
     tv.setGravity(Gravity.CENTER_VERTICAL);
     tv.setTypeface(Typeface.DEFAULT);
+
     return tv;
 }
 
 private Button makeButton(String text) {
     Button button = new Button(this);
+
     button.setText(text);
     button.setTextSize(14);
     button.setTextColor(Color.WHITE);
     button.setAllCaps(false);
     button.setGravity(Gravity.CENTER);
     button.setPadding(18, 8, 18, 8);
+
     button.setBackground(
             roundedBackground(
                     themeColor,
                     18
             )
     );
+
     return button;
 }
 
@@ -219,22 +242,47 @@ private void createUsersScreen() {
     insideChat = false;
 
     root = new LinearLayout(this);
-    root.setOrientation(LinearLayout.VERTICAL);
-    root.setBackgroundColor(Color.rgb(235, 248, 250));
 
-    LinearLayout header = new LinearLayout(this);
-    header.setOrientation(LinearLayout.HORIZONTAL);
-    header.setGravity(Gravity.CENTER_VERTICAL);
-    header.setPadding(16, 16, 16, 16);
-    header.setBackgroundColor(themeColor);
-
-    TextView title = makeText(
-            "💬 کاربران",
-            21,
-            Color.WHITE
+    root.setOrientation(
+            LinearLayout.VERTICAL
     );
 
-    title.setTypeface(Typeface.DEFAULT_BOLD);
+    root.setBackgroundColor(
+            Color.rgb(235, 248, 250)
+    );
+
+    LinearLayout header =
+            new LinearLayout(this);
+
+    header.setOrientation(
+            LinearLayout.HORIZONTAL
+    );
+
+    header.setGravity(
+            Gravity.CENTER_VERTICAL
+    );
+
+    header.setPadding(
+            16,
+            16,
+            16,
+            16
+    );
+
+    header.setBackgroundColor(
+            themeColor
+    );
+
+    TextView title =
+            makeText(
+                    "💬 کاربران",
+                    21,
+                    Color.WHITE
+            );
+
+    title.setTypeface(
+            Typeface.DEFAULT_BOLD
+    );
 
     header.addView(
             title,
@@ -245,8 +293,12 @@ private void createUsersScreen() {
             )
     );
 
-    Button refresh = makeButton("🔄");
-    refresh.setOnClickListener(v -> loadUsers());
+    Button refresh =
+            makeButton("🔄");
+
+    refresh.setOnClickListener(
+            v -> loadUsers()
+    );
 
     header.addView(
             refresh,
@@ -258,21 +310,38 @@ private void createUsersScreen() {
 
     root.addView(header);
 
-    TextView info = makeText(
-            "برای گفتگو روی کاربر بزنید؛ برای مدیریت کاربر لمس طولانی کنید.",
-            14,
-            Color.DKGRAY
-    );
+    TextView info =
+            makeText(
+                    "برای گفتگو روی کاربر بزنید؛ برای مدیریت کاربر لمس طولانی کنید.",
+                    14,
+                    Color.DKGRAY
+            );
 
-    info.setPadding(18, 14, 18, 10);
+    info.setPadding(
+            18,
+            14,
+            18,
+            10
+    );
 
     root.addView(info);
 
-    ScrollView scroll = new ScrollView(this);
+    ScrollView scroll =
+            new ScrollView(this);
 
-    usersContainer = new LinearLayout(this);
-    usersContainer.setOrientation(LinearLayout.VERTICAL);
-    usersContainer.setPadding(12, 5, 12, 25);
+    usersContainer =
+            new LinearLayout(this);
+
+    usersContainer.setOrientation(
+            LinearLayout.VERTICAL
+    );
+
+    usersContainer.setPadding(
+            12,
+            5,
+            12,
+            25
+    );
 
     scroll.addView(usersContainer);
 
@@ -289,160 +358,236 @@ private void createUsersScreen() {
 }
 
 private void loadUsers() {
-    if (myId == null) {
+    if (myId == null ||
+            usersContainer == null) {
         return;
     }
 
     usersContainer.removeAllViews();
 
-    TextView loading = makeText(
-            "در حال دریافت کاربران...",
-            16,
-            Color.DKGRAY
-    );
+    TextView loading =
+            makeText(
+                    "در حال دریافت کاربران...",
+                    16,
+                    Color.DKGRAY
+            );
 
     loading.setGravity(Gravity.CENTER);
-    loading.setPadding(10, 30, 10, 30);
+
+    loading.setPadding(
+            10,
+            30,
+            10,
+            30
+    );
 
     usersContainer.addView(loading);
 
     db.collection("hiddenUsers")
-            .whereEqualTo("ownerId", myId)
+            .whereEqualTo(
+                    "ownerId",
+                    myId
+            )
             .get()
-            .addOnSuccessListener(hiddenSnapshot -> {
+            .addOnSuccessListener(
+                    hiddenSnapshot -> {
 
-                hiddenUserIds.clear();
+                        hiddenUserIds.clear();
 
-                for (DocumentSnapshot doc :
-                        hiddenSnapshot.getDocuments()) {
+                        for (
+                                DocumentSnapshot doc :
+                                hiddenSnapshot.getDocuments()
+                        ) {
 
-                    String hiddenId =
-                            doc.getString("hiddenUserId");
+                            String hiddenId =
+                                    doc.getString(
+                                            "hiddenUserId"
+                                    );
 
-                    if (hiddenId != null) {
-                        hiddenUserIds.add(hiddenId);
-                    }
-                }
-
-                loadVisibleUsers();
-
-            })
-            .addOnFailureListener(e -> {
-
-                hiddenUserIds.clear();
-
-                loadVisibleUsers();
-            });
-}
-
-private void loadVisibleUsers() {
-    db.collection("users")
-            .get()
-            .addOnSuccessListener(snapshot -> {
-
-                usersContainer.removeAllViews();
-
-                List<DocumentSnapshot> users =
-                        new ArrayList<>();
-
-                for (DocumentSnapshot doc :
-                        snapshot.getDocuments()) {
-
-                    String uid = doc.getId();
-
-                    if (uid.equals(myId)) {
-                        continue;
-                    }
-
-                    if (hiddenUserIds.contains(uid)) {
-                        continue;
-                    }
-
-                    users.add(doc);
-                }
-
-                Collections.sort(
-                        users,
-                        new Comparator<DocumentSnapshot>() {
-                            @Override
-                            public int compare(
-                                    DocumentSnapshot a,
-                                    DocumentSnapshot b
-                            ) {
-                                String nameA =
-                                        a.getString("name");
-
-                                String nameB =
-                                        b.getString("name");
-
-                                if (nameA == null) {
-                                    nameA = "";
-                                }
-
-                                if (nameB == null) {
-                                    nameB = "";
-                                }
-
-                                return nameA.compareToIgnoreCase(
-                                        nameB
+                            if (hiddenId != null) {
+                                hiddenUserIds.add(
+                                        hiddenId
                                 );
                             }
                         }
-                );
 
-                if (users.isEmpty()) {
+                        loadVisibleUsers();
+                    }
+            )
+            .addOnFailureListener(
+                    e -> {
 
-                    TextView empty = makeText(
-                            "هنوز کاربر دیگری برای گفتگو وجود ندارد.",
-                            16,
-                            Color.DKGRAY
-                    );
+                        hiddenUserIds.clear();
 
-                    empty.setGravity(Gravity.CENTER);
-                    empty.setPadding(15, 40, 15, 40);
-
-                    usersContainer.addView(empty);
-                    return;
-                }
-
-                for (DocumentSnapshot doc : users) {
-                    addUserItem(doc);
-                }
-
-            })
-            .addOnFailureListener(e -> {
-
-                usersContainer.removeAllViews();
-
-                TextView error = makeText(
-                        "خطای دریافت کاربران\n" +
-                                e.getMessage(),
-                        15,
-                        Color.RED
-                );
-
-                error.setPadding(15, 30, 15, 30);
-
-                usersContainer.addView(error);
-            });
+                        loadVisibleUsers();
+                    }
+            );
 }
 
-private void addUserItem(DocumentSnapshot doc) {
+private void loadVisibleUsers() {
+
+    db.collection("users")
+            .get()
+            .addOnSuccessListener(
+                    snapshot -> {
+
+                        usersContainer.removeAllViews();
+
+                        List<DocumentSnapshot> users =
+                                new ArrayList<>();
+
+                        for (
+                                DocumentSnapshot doc :
+                                snapshot.getDocuments()
+                        ) {
+
+                            String uid =
+                                    doc.getId();
+
+                            if (uid.equals(myId)) {
+                                continue;
+                            }
+
+                            if (hiddenUserIds.contains(uid)) {
+                                continue;
+                            }
+
+                            users.add(doc);
+                        }
+
+                        Collections.sort(
+                                users,
+                                new Comparator<DocumentSnapshot>() {
+                                    @Override
+                                    public int compare(
+                                            DocumentSnapshot a,
+                                            DocumentSnapshot b
+                                    ) {
+
+                                        String nameA =
+                                                a.getString("name");
+
+                                        String nameB =
+                                                b.getString("name");
+
+                                        if (nameA == null) {
+                                            nameA = "";
+                                        }
+
+                                        if (nameB == null) {
+                                            nameB = "";
+                                        }
+
+                                        return nameA.compareToIgnoreCase(
+                                                nameB
+                                        );
+                                    }
+                                }
+                        );
+
+                        if (users.isEmpty()) {
+
+                            TextView empty =
+                                    makeText(
+                                            "هنوز کاربر دیگری برای گفتگو وجود ندارد.",
+                                            16,
+                                            Color.DKGRAY
+                                    );
+
+                            empty.setGravity(
+                                    Gravity.CENTER
+                            );
+
+                            empty.setPadding(
+                                    15,
+                                    40,
+                                    15,
+                                    40
+                            );
+
+                            usersContainer.addView(empty);
+
+                            return;
+                        }
+
+                        for (
+                                DocumentSnapshot doc :
+                                users
+                        ) {
+
+                            addUserItem(doc);
+                        }
+                    }
+            )
+            .addOnFailureListener(
+                    e -> {
+
+                        usersContainer.removeAllViews();
+
+                        TextView error =
+                                makeText(
+                                        "خطای دریافت کاربران\n" +
+                                                e.getMessage(),
+                                        15,
+                                        Color.RED
+                                );
+
+                        error.setPadding(
+                                15,
+                                30,
+                                15,
+                                30
+                        );
+
+                        usersContainer.addView(error);
+                    }
+            );
+}
+
+private void addUserItem(
+        DocumentSnapshot doc
+) {
 
     String uid = doc.getId();
 
-    String name = doc.getString("name");
+    String name =
+            doc.getString("name");
 
-    if (name == null || name.trim().isEmpty()) {
+    if (name == null ||
+            name.trim().isEmpty()) {
+
         name = "کاربر";
     }
 
-    String photoUrl = doc.getString("photoUrl");
+    /*
+     * برای جلوگیری از خطای Java در lambda،
+     * نام نهایی را جدا نگه می‌داریم.
+     */
+    final String finalName = name;
 
-    LinearLayout card = new LinearLayout(this);
-    card.setOrientation(LinearLayout.HORIZONTAL);
-    card.setGravity(Gravity.CENTER_VERTICAL);
-    card.setPadding(14, 12, 14, 12);
+    String photoUrl =
+            doc.getString("photoUrl");
+
+    final String finalPhotoUrl = photoUrl;
+
+    LinearLayout card =
+            new LinearLayout(this);
+
+    card.setOrientation(
+            LinearLayout.HORIZONTAL
+    );
+
+    card.setGravity(
+            Gravity.CENTER_VERTICAL
+    );
+
+    card.setPadding(
+            14,
+            12,
+            14,
+            12
+    );
+
     card.setBackground(
             roundedBackground(
                     Color.WHITE,
@@ -456,22 +601,42 @@ private void addUserItem(DocumentSnapshot doc) {
                     ViewGroup.LayoutParams.WRAP_CONTENT
             );
 
-    cardParams.setMargins(0, 7, 0, 7);
+    cardParams.setMargins(
+            0,
+            7,
+            0,
+            7
+    );
 
-    usersContainer.addView(card, cardParams);
+    usersContainer.addView(
+            card,
+            cardParams
+    );
 
-    ImageView avatar = new ImageView(this);
+    ImageView avatar =
+            new ImageView(this);
+
     avatar.setImageResource(
             android.R.drawable.ic_menu_myplaces
     );
-    avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+    avatar.setScaleType(
+            ImageView.ScaleType.CENTER_CROP
+    );
+
     avatar.setBackground(
             roundedBackground(
                     Color.LTGRAY,
                     100
             )
     );
-    avatar.setPadding(8, 8, 8, 8);
+
+    avatar.setPadding(
+            8,
+            8,
+            8,
+            8
+    );
 
     card.addView(
             avatar,
@@ -481,15 +646,26 @@ private void addUserItem(DocumentSnapshot doc) {
             )
     );
 
-    LinearLayout nameBox = new LinearLayout(this);
-    nameBox.setOrientation(LinearLayout.VERTICAL);
-    nameBox.setPadding(14, 0, 8, 0);
+    LinearLayout nameBox =
+            new LinearLayout(this);
 
-    TextView nameText = makeText(
-            name,
-            17,
-            Color.rgb(25, 25, 25)
+    nameBox.setOrientation(
+            LinearLayout.VERTICAL
     );
+
+    nameBox.setPadding(
+            14,
+            0,
+            8,
+            0
+    );
+
+    TextView nameText =
+            makeText(
+                    finalName,
+                    17,
+                    Color.rgb(25, 25, 25)
+            );
 
     nameText.setTypeface(
             Typeface.DEFAULT,
@@ -498,11 +674,12 @@ private void addUserItem(DocumentSnapshot doc) {
 
     nameBox.addView(nameText);
 
-    TextView hint = makeText(
-            "برای گفتگو لمس کنید",
-            12,
-            Color.GRAY
-    );
+    TextView hint =
+            makeText(
+                    "برای گفتگو لمس کنید",
+                    12,
+                    Color.GRAY
+            );
 
     nameBox.addView(hint);
 
@@ -515,8 +692,11 @@ private void addUserItem(DocumentSnapshot doc) {
             )
     );
 
-    Button menu = makeButton("⋮");
+    Button menu =
+            makeButton("⋮");
+
     menu.setTextColor(themeColor);
+
     menu.setBackground(
             roundedBackground(
                     Color.TRANSPARENT,
@@ -527,7 +707,7 @@ private void addUserItem(DocumentSnapshot doc) {
     menu.setOnClickListener(
             v -> showUserManagementMenu(
                     uid,
-                    name
+                    finalName
             )
     );
 
@@ -539,9 +719,6 @@ private void addUserItem(DocumentSnapshot doc) {
             )
     );
 
-    String finalName = name;
-    String finalPhotoUrl = photoUrl;
-
     card.setOnClickListener(
             v -> openPrivateChat(
                     uid,
@@ -550,15 +727,17 @@ private void addUserItem(DocumentSnapshot doc) {
             )
     );
 
-    card.setOnLongClickListener(v -> {
+    card.setOnLongClickListener(
+            v -> {
 
-        showUserManagementMenu(
-                uid,
-                finalName
-        );
+                showUserManagementMenu(
+                        uid,
+                        finalName
+                );
 
-        return true;
-    });
+                return true;
+            }
+    );
 
     if (photoUrl != null &&
             !photoUrl.trim().isEmpty()) {
@@ -593,19 +772,21 @@ private void showUserManagementMenu(
                             db.collection("users")
                                     .document(uid)
                                     .get()
-                                    .addOnSuccessListener(doc -> {
+                                    .addOnSuccessListener(
+                                            doc -> {
 
-                                        String photo =
-                                                doc.getString(
-                                                        "photoUrl"
+                                                String photo =
+                                                        doc.getString(
+                                                                "photoUrl"
+                                                        );
+
+                                                openPrivateChat(
+                                                        uid,
+                                                        name,
+                                                        photo
                                                 );
-
-                                        openPrivateChat(
-                                                uid,
-                                                name,
-                                                photo
-                                        );
-                                    });
+                                            }
+                                    );
 
                         } else if (which == 1) {
 
@@ -637,32 +818,39 @@ private void blockUserFromList(
     Map<String, Object> data =
             new HashMap<>();
 
-    data.put("blockerId", myId);
-    data.put("blockedId", uid);
-    data.put("timestamp",
-            FieldValue.serverTimestamp());
+    data.put(
+            "blockerId",
+            myId
+    );
+
+    data.put(
+            "blockedId",
+            uid
+    );
+
+    data.put(
+            "timestamp",
+            FieldValue.serverTimestamp()
+    );
 
     db.collection("blocks")
             .document(blockId)
             .set(data)
-            .addOnSuccessListener(v -> {
-
-                Toast.makeText(
-                        this,
-                        name + " بلاک شد",
-                        Toast.LENGTH_SHORT
-                ).show();
-
-            })
-            .addOnFailureListener(e -> {
-
-                Toast.makeText(
-                        this,
-                        "خطای بلاک: " +
-                                e.getMessage(),
-                        Toast.LENGTH_LONG
-                ).show();
-            });
+            .addOnSuccessListener(
+                    v -> Toast.makeText(
+                            this,
+                            name + " بلاک شد",
+                            Toast.LENGTH_SHORT
+                    ).show()
+            )
+            .addOnFailureListener(
+                    e -> Toast.makeText(
+                            this,
+                            "خطای بلاک: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
+            );
 }
 
 private void confirmDeleteUser(
@@ -704,9 +892,21 @@ private void deleteUserFromMyList(
     Map<String, Object> data =
             new HashMap<>();
 
-    data.put("ownerId", myId);
-    data.put("hiddenUserId", uid);
-    data.put("name", name);
+    data.put(
+            "ownerId",
+            myId
+    );
+
+    data.put(
+            "hiddenUserId",
+            uid
+    );
+
+    data.put(
+            "name",
+            name
+    );
+
     data.put(
             "timestamp",
             FieldValue.serverTimestamp()
@@ -715,35 +915,36 @@ private void deleteUserFromMyList(
     db.collection("hiddenUsers")
             .document(hiddenId)
             .set(data)
-            .addOnSuccessListener(v -> {
+            .addOnSuccessListener(
+                    v -> {
 
-                hiddenUserIds.add(uid);
+                        hiddenUserIds.add(uid);
 
-                Toast.makeText(
-                        this,
-                        "کاربر از فهرست شما حذف شد",
-                        Toast.LENGTH_SHORT
-                ).show();
+                        Toast.makeText(
+                                this,
+                                "کاربر از فهرست شما حذف شد",
+                                Toast.LENGTH_SHORT
+                        ).show();
 
-                if (insideChat &&
-                        uid.equals(receiverId)) {
+                        if (insideChat &&
+                                uid.equals(receiverId)) {
 
-                    showUsers();
-                } else {
+                            showUsers();
 
-                    loadUsers();
-                }
+                        } else {
 
-            })
-            .addOnFailureListener(e -> {
-
-                Toast.makeText(
-                        this,
-                        "خطای حذف کاربر: " +
-                                e.getMessage(),
-                        Toast.LENGTH_LONG
-                ).show();
-            });
+                            loadUsers();
+                        }
+                    }
+            )
+            .addOnFailureListener(
+                    e -> Toast.makeText(
+                            this,
+                            "خطای حذف کاربر: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
+            );
 }
 
 private void openPrivateChat(
@@ -752,7 +953,8 @@ private void openPrivateChat(
         String photoUrl
 ) {
 
-    if (uid == null || uid.trim().isEmpty()) {
+    if (uid == null ||
+            uid.trim().isEmpty()) {
         return;
     }
 
@@ -793,7 +995,9 @@ private void createChatScreen(
         String photoUrl
 ) {
 
-    root = new LinearLayout(this);
+    root =
+            new LinearLayout(this);
+
     root.setOrientation(
             LinearLayout.VERTICAL
     );
@@ -828,6 +1032,7 @@ private void createChatScreen(
             makeButton("‹");
 
     back.setTextSize(30);
+
     back.setBackgroundColor(
             Color.TRANSPARENT
     );
@@ -926,6 +1131,7 @@ private void createChatScreen(
             makeButton("⋮");
 
     menu.setTextSize(25);
+
     menu.setBackgroundColor(
             Color.TRANSPARENT
     );
@@ -1165,6 +1371,28 @@ private void createChatScreen(
     setContentView(root);
 }
 
+/*
+ * =========================================================
+ * اصلاح اصلی دریافت پیام
+ * =========================================================
+ *
+ * Query قبلی فقط:
+ *
+ * whereEqualTo("chatId", currentChatId)
+ *
+ * بود و با Firestore Rules فعلی مجاز نبود.
+ *
+ * حالا پیام‌ها دو دسته دریافت می‌شوند:
+ *
+ * 1. پیام‌هایی که من فرستاده‌ام:
+ *    chatId + senderId = myId
+ *
+ * 2. پیام‌هایی که من دریافت کرده‌ام:
+ *    chatId + receiverId = myId
+ *
+ * بنابراین Rules می‌تواند هویت کاربر را بررسی کند.
+ */
+
 private void listenMessages() {
 
     if (currentChatId == null ||
@@ -1174,21 +1402,15 @@ private void listenMessages() {
 
     if (sentMessageListener != null) {
         sentMessageListener.remove();
+        sentMessageListener = null;
     }
 
     if (receivedMessageListener != null) {
         receivedMessageListener.remove();
+        receivedMessageListener = null;
     }
 
     messageCache.clear();
-
-    /*
-     * مهم:
-     * دیگر از query فقط با chatId استفاده نمی‌کنیم.
-     *
-     * چون Rules می‌خواهند senderId یا receiverId
-     * حتماً با auth.uid مطابقت داشته باشد.
-     */
 
     sentMessageListener =
             db.collection("messages")
@@ -1273,13 +1495,16 @@ private void applyMessageChanges(
         QuerySnapshot snapshot
 ) {
 
-    for (DocumentChange change :
-            snapshot.getDocumentChanges()) {
+    for (
+            DocumentChange change :
+            snapshot.getDocumentChanges()
+    ) {
 
         DocumentSnapshot doc =
                 change.getDocument();
 
-        String id = doc.getId();
+        String id =
+                doc.getId();
 
         if (change.getType() ==
                 DocumentChange.Type.REMOVED) {
@@ -1296,6 +1521,13 @@ private void applyMessageChanges(
     }
 }
 
+/*
+ * فقط پیام‌هایی که در Query دریافتی هستند
+ * به عنوان خوانده‌شده علامت می‌خورند.
+ *
+ * بنابراین دیگر Query جداگانه فقط با chatId
+ * برای mark-as-read نداریم.
+ */
 private void markUnreadFromSnapshot(
         QuerySnapshot snapshot
 ) {
@@ -1304,13 +1536,15 @@ private void markUnreadFromSnapshot(
         return;
     }
 
-    for (DocumentSnapshot doc :
-            snapshot.getDocuments()) {
+    for (
+            DocumentSnapshot doc :
+            snapshot.getDocuments()
+    ) {
 
         Boolean read =
                 doc.getBoolean("read");
 
-        if (read != null && read) {
+        if (Boolean.TRUE.equals(read)) {
             continue;
         }
 
@@ -1346,12 +1580,17 @@ private void renderMessages() {
                 ) {
 
                     com.google.firebase.Timestamp ta =
-                            a.getTimestamp("timestamp");
+                            a.getTimestamp(
+                                    "timestamp"
+                            );
 
                     com.google.firebase.Timestamp tb =
-                            b.getTimestamp("timestamp");
+                            b.getTimestamp(
+                                    "timestamp"
+                            );
 
-                    if (ta == null && tb == null) {
+                    if (ta == null &&
+                            tb == null) {
                         return 0;
                     }
 
@@ -1368,7 +1607,10 @@ private void renderMessages() {
             }
     );
 
-    for (DocumentSnapshot doc : list) {
+    for (
+            DocumentSnapshot doc :
+            list
+    ) {
 
         renderOneMessage(doc);
     }
@@ -1391,13 +1633,15 @@ private void renderOneMessage(
         return;
     }
 
-    ArrayList<String> deletedFor =
-            (ArrayList<String>)
+    List<String> deletedFor =
+            (List<String>)
                     doc.get("deletedFor");
 
     boolean deletedForAll =
             Boolean.TRUE.equals(
-                    doc.getBoolean("deletedForAll")
+                    doc.getBoolean(
+                            "deletedForAll"
+                    )
             );
 
     if (deletedForAll) {
@@ -1547,7 +1791,7 @@ private void addMessageBubble(
                     getResources()
                             .getDisplayMetrics()
                             .widthPixels
-                    * 0.78
+                            * 0.78
             )
     );
 
@@ -1661,7 +1905,6 @@ private void addMediaMessage(
                             "ویدیو: " + url,
                             Toast.LENGTH_SHORT
                     ).show();
-
                 }
             }
     );
@@ -1733,9 +1976,12 @@ private void showDeleteMenu(
     List<String> options =
             new ArrayList<>();
 
-    options.add("🗑️ حذف برای من");
+    options.add(
+            "🗑️ حذف برای من"
+    );
 
     if (mine) {
+
         options.add(
                 "🗑️ حذف برای همه"
         );
@@ -1779,7 +2025,9 @@ private void deleteForMe(
             .document(messageId)
             .update(
                     "deletedFor",
-                    FieldValue.arrayUnion(myId)
+                    FieldValue.arrayUnion(
+                            myId
+                    )
             )
             .addOnFailureListener(
                     e -> Toast.makeText(
@@ -2047,7 +2295,9 @@ private void setTyping(
     );
 
     String valueToSave =
-            value ? receiverId : "";
+            value
+                    ? receiverId
+                    : "";
 
     db.collection("users")
             .document(myId)
@@ -2141,9 +2391,7 @@ private void showChatMenu() {
     };
 
     new AlertDialog.Builder(this)
-            .setTitle(
-                    receiverName
-            )
+            .setTitle(receiverName)
             .setItems(
                     options,
                     (dialog, which) -> {
@@ -2318,15 +2566,11 @@ protected void onActivityResult(
 
     if (requestCode == PICK_MEDIA) {
 
-        uploadMedia(
-                uri
-        );
+        uploadMedia(uri);
 
     } else if (requestCode == PICK_PROFILE) {
 
-        uploadProfilePhoto(
-                uri
-        );
+        uploadProfilePhoto(uri);
     }
 }
 
@@ -2384,15 +2628,16 @@ private void uploadMedia(
 
     ref.putFile(uri)
             .addOnSuccessListener(
-                    task -> ref.getDownloadUrl()
-                            .addOnSuccessListener(
-                                    downloadUri ->
-                                            saveMediaMessage(
-                                                    type,
-                                                    downloadUri
-                                                            .toString()
-                                            )
-                            )
+                    task ->
+                            ref.getDownloadUrl()
+                                    .addOnSuccessListener(
+                                            downloadUri ->
+                                                    saveMediaMessage(
+                                                            type,
+                                                            downloadUri
+                                                                    .toString()
+                                                    )
+                                    )
             )
             .addOnFailureListener(
                     e -> Toast.makeText(
@@ -2543,6 +2788,7 @@ private void startRecording() {
         );
 
         recorder.prepare();
+
         recorder.start();
 
         recording = true;
@@ -2600,9 +2846,7 @@ private void stopRecording() {
 
     if (audioPath != null) {
 
-        uploadVoice(
-                audioPath
-        );
+        uploadVoice(audioPath);
     }
 }
 
@@ -2751,9 +2995,7 @@ private void playAudio(
         player =
                 new MediaPlayer();
 
-        player.setDataSource(
-                url
-        );
+        player.setDataSource(url);
 
         player.setOnPreparedListener(
                 MediaPlayer::start
@@ -2813,31 +3055,32 @@ private void uploadProfilePhoto(
 
     ref.putFile(uri)
             .addOnSuccessListener(
-                    task -> ref.getDownloadUrl()
-                            .addOnSuccessListener(
-                                    downloadUri -> {
+                    task ->
+                            ref.getDownloadUrl()
+                                    .addOnSuccessListener(
+                                            downloadUri -> {
 
-                                        db.collection(
-                                                "users"
-                                        )
-                                                .document(
-                                                        myId
+                                                db.collection(
+                                                        "users"
                                                 )
-                                                .update(
-                                                        "photoUrl",
-                                                        downloadUri
-                                                                .toString()
-                                                )
-                                                .addOnSuccessListener(
-                                                        v ->
-                                                                Toast.makeText(
-                                                                        this,
-                                                                        "عکس پروفایل ذخیره شد",
-                                                                        Toast.LENGTH_SHORT
-                                                                ).show()
-                                                );
-                                    }
-                            )
+                                                        .document(
+                                                                myId
+                                                        )
+                                                        .update(
+                                                                "photoUrl",
+                                                                downloadUri
+                                                                        .toString()
+                                                        )
+                                                        .addOnSuccessListener(
+                                                                v ->
+                                                                        Toast.makeText(
+                                                                                this,
+                                                                                "عکس پروفایل ذخیره شد",
+                                                                                Toast.LENGTH_SHORT
+                                                                        ).show()
+                                                        );
+                                            }
+                                    )
             )
             .addOnFailureListener(
                     e -> Toast.makeText(
@@ -2924,27 +3167,37 @@ private void showUsers() {
 private void removeListeners() {
 
     if (sentMessageListener != null) {
+
         sentMessageListener.remove();
+
         sentMessageListener = null;
     }
 
     if (receivedMessageListener != null) {
+
         receivedMessageListener.remove();
+
         receivedMessageListener = null;
     }
 
     if (receiverListener != null) {
+
         receiverListener.remove();
+
         receiverListener = null;
     }
 
     if (typingListener != null) {
+
         typingListener.remove();
+
         typingListener = null;
     }
 
     if (blockListener != null) {
+
         blockListener.remove();
+
         blockListener = null;
     }
 }
