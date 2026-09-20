@@ -63,14 +63,17 @@ private static final int PICK_MEDIA = 1002;
 private static final int PICK_PROFILE = 1003;
 
 /*
- * این باید همان Publishable Key فعلی خودت باشد.
- * Secret Key را هرگز اینجا نگذار.
+ * این دو مقدار را تغییر نده.
+ * Secret Key را هرگز داخل برنامه نگذار.
+ *
+ * اگر Publishable Key فعلی خودت در فایل اصلی متفاوت است،
+ * همان Publishable Key درست قبلی خودت را اینجا نگه دار.
  */
 private static final String SUPABASE_URL =
         "https://gorbhuqmkjlkrklhasdh.supabase.co";
 
 private static final String SUPABASE_PUBLISHABLE_KEY =
-        "ss";
+        "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
 
 private static final String CHAT_BUCKET = "chat_media";
 private static final String VOICE_BUCKET = "voice_messages";
@@ -83,7 +86,9 @@ private LinearLayout root;
 private LinearLayout usersContainer;
 private LinearLayout messagesContainer;
 private ScrollView messagesScroll;
+
 private EditText messageInput;
+
 private ImageButton sendButton;
 private ImageButton mediaButton;
 private ImageButton voiceButton;
@@ -91,6 +96,7 @@ private ImageButton voiceButton;
 private TextView titleText;
 private TextView statusText;
 private ImageView headerAvatar;
+private TextView headerOnlineDot;
 
 private String myId;
 private String receiverId;
@@ -102,14 +108,8 @@ private boolean recording = false;
 private boolean typing = false;
 private boolean blocked = false;
 
-/*
- * مهم:
- * پیام‌های ارسالی و دریافتی جداگانه شنیده می‌شوند
- * تا با Firestore Rules فعلی سازگار باشند.
- */
 private ListenerRegistration sentMessageListener;
 private ListenerRegistration receivedMessageListener;
-
 private ListenerRegistration receiverListener;
 private ListenerRegistration typingListener;
 private ListenerRegistration blockListener;
@@ -159,7 +159,9 @@ protected void onCreate(Bundle savedInstanceState) {
     myId = user.getUid();
 
     ensureUserProfile();
+
     createUsersScreen();
+
     loadUsers();
 }
 
@@ -170,22 +172,40 @@ private void ensureUserProfile() {
         return;
     }
 
-    Map<String, Object> data = new HashMap<>();
+    Map<String, Object> data =
+            new HashMap<>();
 
-    data.put("userId", user.getUid());
-    data.put("email", user.getEmail());
-    data.put("online", true);
+    data.put(
+            "userId",
+            user.getUid()
+    );
+
+    data.put(
+            "email",
+            user.getEmail()
+    );
+
+    data.put(
+            "online",
+            true
+    );
+
     data.put(
             "lastSeen",
             FieldValue.serverTimestamp()
     );
-    data.put("typingTo", "");
+
+    data.put(
+            "typingTo",
+            ""
+    );
 
     db.collection("users")
             .document(user.getUid())
             .set(
                     data,
-                    com.google.firebase.firestore.SetOptions.merge()
+                    com.google.firebase.firestore.SetOptions
+                            .merge()
             );
 }
 
@@ -207,7 +227,8 @@ private TextView makeText(
         float size,
         int color
 ) {
-    TextView tv = new TextView(this);
+    TextView tv =
+            new TextView(this);
 
     tv.setText(text);
     tv.setTextSize(size);
@@ -218,15 +239,23 @@ private TextView makeText(
     return tv;
 }
 
-private Button makeButton(String text) {
-    Button button = new Button(this);
+private Button makeButton(
+        String text
+) {
+    Button button =
+            new Button(this);
 
     button.setText(text);
-    button.setTextSize(14);
+    button.setTextSize(15);
     button.setTextColor(Color.WHITE);
     button.setAllCaps(false);
     button.setGravity(Gravity.CENTER);
-    button.setPadding(18, 8, 18, 8);
+    button.setPadding(
+            18,
+            8,
+            18,
+            8
+    );
 
     button.setBackground(
             roundedBackground(
@@ -239,9 +268,11 @@ private Button makeButton(String text) {
 }
 
 private void createUsersScreen() {
+
     insideChat = false;
 
-    root = new LinearLayout(this);
+    root =
+            new LinearLayout(this);
 
     root.setOrientation(
             LinearLayout.VERTICAL
@@ -276,7 +307,7 @@ private void createUsersScreen() {
     TextView title =
             makeText(
                     "💬 کاربران",
-                    21,
+                    22,
                     Color.WHITE
             );
 
@@ -296,6 +327,8 @@ private void createUsersScreen() {
     Button refresh =
             makeButton("🔄");
 
+    refresh.setTextSize(19);
+
     refresh.setOnClickListener(
             v -> loadUsers()
     );
@@ -303,8 +336,8 @@ private void createUsersScreen() {
     header.addView(
             refresh,
             new LinearLayout.LayoutParams(
-                    55,
-                    50
+                    58,
+                    52
             )
     );
 
@@ -313,13 +346,13 @@ private void createUsersScreen() {
     TextView info =
             makeText(
                     "برای گفتگو روی کاربر بزنید؛ برای مدیریت کاربر لمس طولانی کنید.",
-                    14,
+                    15,
                     Color.DKGRAY
             );
 
     info.setPadding(
             18,
-            14,
+            15,
             18,
             10
     );
@@ -343,7 +376,9 @@ private void createUsersScreen() {
             25
     );
 
-    scroll.addView(usersContainer);
+    scroll.addView(
+            usersContainer
+    );
 
     root.addView(
             scroll,
@@ -358,6 +393,7 @@ private void createUsersScreen() {
 }
 
 private void loadUsers() {
+
     if (myId == null ||
             usersContainer == null) {
         return;
@@ -368,11 +404,13 @@ private void loadUsers() {
     TextView loading =
             makeText(
                     "در حال دریافت کاربران...",
-                    16,
+                    17,
                     Color.DKGRAY
             );
 
-    loading.setGravity(Gravity.CENTER);
+    loading.setGravity(
+            Gravity.CENTER
+    );
 
     loading.setPadding(
             10,
@@ -381,7 +419,9 @@ private void loadUsers() {
             30
     );
 
-    usersContainer.addView(loading);
+    usersContainer.addView(
+            loading
+    );
 
     db.collection("hiddenUsers")
             .whereEqualTo(
@@ -394,10 +434,8 @@ private void loadUsers() {
 
                         hiddenUserIds.clear();
 
-                        for (
-                                DocumentSnapshot doc :
-                                hiddenSnapshot.getDocuments()
-                        ) {
+                        for (DocumentSnapshot doc :
+                                hiddenSnapshot.getDocuments()) {
 
                             String hiddenId =
                                     doc.getString(
@@ -436,10 +474,8 @@ private void loadVisibleUsers() {
                         List<DocumentSnapshot> users =
                                 new ArrayList<>();
 
-                        for (
-                                DocumentSnapshot doc :
-                                snapshot.getDocuments()
-                        ) {
+                        for (DocumentSnapshot doc :
+                                snapshot.getDocuments()) {
 
                             String uid =
                                     doc.getId();
@@ -490,7 +526,7 @@ private void loadVisibleUsers() {
                             TextView empty =
                                     makeText(
                                             "هنوز کاربر دیگری برای گفتگو وجود ندارد.",
-                                            16,
+                                            17,
                                             Color.DKGRAY
                                     );
 
@@ -505,15 +541,15 @@ private void loadVisibleUsers() {
                                     40
                             );
 
-                            usersContainer.addView(empty);
+                            usersContainer.addView(
+                                    empty
+                            );
 
                             return;
                         }
 
-                        for (
-                                DocumentSnapshot doc :
-                                users
-                        ) {
+                        for (DocumentSnapshot doc :
+                                users) {
 
                             addUserItem(doc);
                         }
@@ -528,7 +564,7 @@ private void loadVisibleUsers() {
                                 makeText(
                                         "خطای دریافت کاربران\n" +
                                                 e.getMessage(),
-                                        15,
+                                        16,
                                         Color.RED
                                 );
 
@@ -539,7 +575,9 @@ private void loadVisibleUsers() {
                                 30
                         );
 
-                        usersContainer.addView(error);
+                        usersContainer.addView(
+                                error
+                        );
                     }
             );
 }
@@ -548,7 +586,8 @@ private void addUserItem(
         DocumentSnapshot doc
 ) {
 
-    String uid = doc.getId();
+    String uid =
+            doc.getId();
 
     String name =
             doc.getString("name");
@@ -559,16 +598,11 @@ private void addUserItem(
         name = "کاربر";
     }
 
-    /*
-     * برای جلوگیری از خطای Java در lambda،
-     * نام نهایی را جدا نگه می‌داریم.
-     */
-    final String finalName = name;
-
     String photoUrl =
             doc.getString("photoUrl");
 
-    final String finalPhotoUrl = photoUrl;
+    Boolean online =
+            doc.getBoolean("online");
 
     LinearLayout card =
             new LinearLayout(this);
@@ -613,6 +647,13 @@ private void addUserItem(
             cardParams
     );
 
+    LinearLayout avatarBox =
+            new LinearLayout(this);
+
+    avatarBox.setGravity(
+            Gravity.CENTER
+    );
+
     ImageView avatar =
             new ImageView(this);
 
@@ -638,11 +679,47 @@ private void addUserItem(
             8
     );
 
-    card.addView(
+    avatarBox.addView(
             avatar,
             new LinearLayout.LayoutParams(
                     60,
                     60
+            )
+    );
+
+    if (Boolean.TRUE.equals(online)) {
+
+        View greenDot =
+                new View(this);
+
+        greenDot.setBackground(
+                roundedBackground(
+                        Color.rgb(20, 190, 70),
+                        50
+                )
+        );
+
+        LinearLayout.LayoutParams dotParams =
+                new LinearLayout.LayoutParams(
+                        15,
+                        15
+                );
+
+        dotParams.gravity =
+                Gravity.BOTTOM |
+                        Gravity.RIGHT;
+
+        avatarBox.addView(
+                greenDot,
+                dotParams
+        );
+    }
+
+    card.addView(
+            avatarBox,
+            new LinearLayout.LayoutParams(
+                    66,
+                    66
             )
     );
 
@@ -662,26 +739,33 @@ private void addUserItem(
 
     TextView nameText =
             makeText(
-                    finalName,
-                    17,
+                    name,
+                    18,
                     Color.rgb(25, 25, 25)
             );
 
     nameText.setTypeface(
-            Typeface.DEFAULT,
-            Typeface.BOLD
+            Typeface.DEFAULT_BOLD
     );
 
-    nameBox.addView(nameText);
+    nameBox.addView(
+            nameText
+    );
 
     TextView hint =
             makeText(
-                    "برای گفتگو لمس کنید",
-                    12,
-                    Color.GRAY
+                    Boolean.TRUE.equals(online)
+                            ? "🟢 آنلاین"
+                            : "⚪ آفلاین",
+                    14,
+                    Boolean.TRUE.equals(online)
+                            ? Color.rgb(15, 150, 55)
+                            : Color.GRAY
             );
 
-    nameBox.addView(hint);
+    nameBox.addView(
+            hint
+    );
 
     card.addView(
             nameBox,
@@ -695,6 +779,8 @@ private void addUserItem(
     Button menu =
             makeButton("⋮");
 
+    menu.setTextSize(23);
+
     menu.setTextColor(themeColor);
 
     menu.setBackground(
@@ -703,6 +789,12 @@ private void addUserItem(
                     15
             )
     );
+
+    final String finalName =
+            name;
+
+    final String finalPhotoUrl =
+            photoUrl;
 
     menu.setOnClickListener(
             v -> showUserManagementMenu(
@@ -837,11 +929,16 @@ private void blockUserFromList(
             .document(blockId)
             .set(data)
             .addOnSuccessListener(
-                    v -> Toast.makeText(
-                            this,
-                            name + " بلاک شد",
-                            Toast.LENGTH_SHORT
-                    ).show()
+                    v -> {
+
+                        Toast.makeText(
+                                this,
+                                name + " بلاک شد",
+                                Toast.LENGTH_SHORT
+                        ).show();
+
+                        loadUsers();
+                    }
             )
             .addOnFailureListener(
                     e -> Toast.makeText(
@@ -1031,7 +1128,7 @@ private void createChatScreen(
     Button back =
             makeButton("‹");
 
-    back.setTextSize(30);
+    back.setTextSize(31);
 
     back.setBackgroundColor(
             Color.TRANSPARENT
@@ -1047,6 +1144,13 @@ private void createChatScreen(
                     55,
                     55
             )
+    );
+
+    LinearLayout headerAvatarBox =
+            new LinearLayout(this);
+
+    headerAvatarBox.setGravity(
+            Gravity.CENTER
     );
 
     headerAvatar =
@@ -1074,11 +1178,38 @@ private void createChatScreen(
             5
     );
 
-    header.addView(
+    headerAvatarBox.addView(
             headerAvatar,
             new LinearLayout.LayoutParams(
                     50,
                     50
+            )
+    );
+
+    headerOnlineDot =
+            makeText(
+                    "●",
+                    20,
+                    Color.GRAY
+            );
+
+    headerOnlineDot.setGravity(
+            Gravity.CENTER
+    );
+
+    headerAvatarBox.addView(
+            headerOnlineDot,
+            new LinearLayout.LayoutParams(
+                    22,
+                    50
+            )
+    );
+
+    header.addView(
+            headerAvatarBox,
+            new LinearLayout.LayoutParams(
+                    72,
+                    55
             )
     );
 
@@ -1099,7 +1230,7 @@ private void createChatScreen(
     titleText =
             makeText(
                     receiverName,
-                    18,
+                    19,
                     Color.WHITE
             );
 
@@ -1107,16 +1238,20 @@ private void createChatScreen(
             Typeface.DEFAULT_BOLD
     );
 
-    titleBox.addView(titleText);
+    titleBox.addView(
+            titleText
+    );
 
     statusText =
             makeText(
                     "در حال اتصال...",
-                    12,
+                    14,
                     Color.WHITE
             );
 
-    titleBox.addView(statusText);
+    titleBox.addView(
+            statusText
+    );
 
     header.addView(
             titleBox,
@@ -1130,7 +1265,7 @@ private void createChatScreen(
     Button menu =
             makeButton("⋮");
 
-    menu.setTextSize(25);
+    menu.setTextSize(26);
 
     menu.setBackgroundColor(
             Color.TRANSPARENT
@@ -1162,9 +1297,9 @@ private void createChatScreen(
 
     messagesContainer.setPadding(
             10,
+            12,
             10,
-            10,
-            15
+            18
     );
 
     messagesScroll.addView(
@@ -1220,8 +1355,8 @@ private void createChatScreen(
     inputBar.addView(
             mediaButton,
             new LinearLayout.LayoutParams(
-                    45,
-                    50
+                    48,
+                    52
             )
     );
 
@@ -1232,7 +1367,7 @@ private void createChatScreen(
             "پیام خود را بنویسید..."
     );
 
-    messageInput.setTextSize(15);
+    messageInput.setTextSize(17);
 
     messageInput.setSingleLine(false);
 
@@ -1240,9 +1375,9 @@ private void createChatScreen(
 
     messageInput.setPadding(
             15,
-            8,
+            9,
             15,
-            8
+            9
     );
 
     messageInput.setBackground(
@@ -1279,8 +1414,8 @@ private void createChatScreen(
     inputBar.addView(
             voiceButton,
             new LinearLayout.LayoutParams(
-                    48,
-                    50
+                    50,
+                    52
             )
     );
 
@@ -1306,8 +1441,8 @@ private void createChatScreen(
     inputBar.addView(
             sendButton,
             new LinearLayout.LayoutParams(
-                    48,
-                    50
+                    50,
+                    52
             )
     );
 
@@ -1372,27 +1507,13 @@ private void createChatScreen(
 }
 
 /*
- * =========================================================
- * اصلاح اصلی دریافت پیام
- * =========================================================
+ * اصلاح اصلی دریافت پیام:
  *
- * Query قبلی فقط:
+ * Query اول فقط پیام‌هایی را می‌گیرد که خود من فرستاده‌ام.
+ * Query دوم فقط پیام‌هایی را می‌گیرد که برای خود من آمده‌اند.
  *
- * whereEqualTo("chatId", currentChatId)
- *
- * بود و با Firestore Rules فعلی مجاز نبود.
- *
- * حالا پیام‌ها دو دسته دریافت می‌شوند:
- *
- * 1. پیام‌هایی که من فرستاده‌ام:
- *    chatId + senderId = myId
- *
- * 2. پیام‌هایی که من دریافت کرده‌ام:
- *    chatId + receiverId = myId
- *
- * بنابراین Rules می‌تواند هویت کاربر را بررسی کند.
+ * این دقیقاً با Firestore Rules فعلی سازگار است.
  */
-
 private void listenMessages() {
 
     if (currentChatId == null ||
@@ -1402,12 +1523,10 @@ private void listenMessages() {
 
     if (sentMessageListener != null) {
         sentMessageListener.remove();
-        sentMessageListener = null;
     }
 
     if (receivedMessageListener != null) {
         receivedMessageListener.remove();
-        receivedMessageListener = null;
     }
 
     messageCache.clear();
@@ -1495,10 +1614,8 @@ private void applyMessageChanges(
         QuerySnapshot snapshot
 ) {
 
-    for (
-            DocumentChange change :
-            snapshot.getDocumentChanges()
-    ) {
+    for (DocumentChange change :
+            snapshot.getDocumentChanges()) {
 
         DocumentSnapshot doc =
                 change.getDocument();
@@ -1521,13 +1638,6 @@ private void applyMessageChanges(
     }
 }
 
-/*
- * فقط پیام‌هایی که در Query دریافتی هستند
- * به عنوان خوانده‌شده علامت می‌خورند.
- *
- * بنابراین دیگر Query جداگانه فقط با chatId
- * برای mark-as-read نداریم.
- */
 private void markUnreadFromSnapshot(
         QuerySnapshot snapshot
 ) {
@@ -1536,10 +1646,8 @@ private void markUnreadFromSnapshot(
         return;
     }
 
-    for (
-            DocumentSnapshot doc :
-            snapshot.getDocuments()
-    ) {
+    for (DocumentSnapshot doc :
+            snapshot.getDocuments()) {
 
         Boolean read =
                 doc.getBoolean("read");
@@ -1548,6 +1656,10 @@ private void markUnreadFromSnapshot(
             continue;
         }
 
+        /*
+         * چون این Query فقط receiverId == myId است،
+         * طبق Rules فعلی اجازه update داریم.
+         */
         db.collection("messages")
                 .document(doc.getId())
                 .update(
@@ -1580,14 +1692,10 @@ private void renderMessages() {
                 ) {
 
                     com.google.firebase.Timestamp ta =
-                            a.getTimestamp(
-                                    "timestamp"
-                            );
+                            a.getTimestamp("timestamp");
 
                     com.google.firebase.Timestamp tb =
-                            b.getTimestamp(
-                                    "timestamp"
-                            );
+                            b.getTimestamp("timestamp");
 
                     if (ta == null &&
                             tb == null) {
@@ -1607,10 +1715,8 @@ private void renderMessages() {
             }
     );
 
-    for (
-            DocumentSnapshot doc :
-            list
-    ) {
+    for (DocumentSnapshot doc :
+            list) {
 
         renderOneMessage(doc);
     }
@@ -1633,15 +1739,33 @@ private void renderOneMessage(
         return;
     }
 
+    Object deletedObject =
+            doc.get("deletedFor");
+
     List<String> deletedFor =
-            (List<String>)
-                    doc.get("deletedFor");
+            new ArrayList<>();
+
+    if (deletedObject instanceof List) {
+
+        try {
+
+            for (Object item :
+                    (List<?>) deletedObject) {
+
+                if (item != null) {
+                    deletedFor.add(
+                            String.valueOf(item)
+                    );
+                }
+            }
+
+        } catch (Exception ignored) {
+        }
+    }
 
     boolean deletedForAll =
             Boolean.TRUE.equals(
-                    doc.getBoolean(
-                            "deletedForAll"
-                    )
+                    doc.getBoolean("deletedForAll")
             );
 
     if (deletedForAll) {
@@ -1649,15 +1773,14 @@ private void renderOneMessage(
         addMessageBubble(
                 "🚫 این پیام برای همه حذف شده است",
                 senderId.equals(myId),
-                false
+                false,
+                null
         );
 
         return;
     }
 
-    if (deletedFor != null &&
-            deletedFor.contains(myId)) {
-
+    if (deletedFor.contains(myId)) {
         return;
     }
 
@@ -1670,6 +1793,11 @@ private void renderOneMessage(
 
     boolean mine =
             senderId.equals(myId);
+
+    boolean read =
+            Boolean.TRUE.equals(
+                    doc.getBoolean("read")
+            );
 
     if ("text".equals(type)) {
 
@@ -1684,7 +1812,8 @@ private void renderOneMessage(
                 text,
                 mine,
                 true,
-                doc.getId()
+                doc.getId(),
+                read
         );
 
     } else if ("image".equals(type)) {
@@ -1696,7 +1825,8 @@ private void renderOneMessage(
                 url,
                 mine,
                 false,
-                doc.getId()
+                doc.getId(),
+                read
         );
 
     } else if ("video".equals(type)) {
@@ -1708,7 +1838,8 @@ private void renderOneMessage(
                 url,
                 mine,
                 true,
-                doc.getId()
+                doc.getId(),
+                read
         );
 
     } else if ("audio".equals(type)) {
@@ -1719,7 +1850,8 @@ private void renderOneMessage(
         addAudioMessage(
                 url,
                 mine,
-                doc.getId()
+                doc.getId(),
+                read
         );
 
     } else {
@@ -1735,7 +1867,8 @@ private void renderOneMessage(
                 text,
                 mine,
                 true,
-                doc.getId()
+                doc.getId(),
+                read
         );
     }
 }
@@ -1750,7 +1883,8 @@ private void addMessageBubble(
             text,
             mine,
             allowMenu,
-            null
+            null,
+            false
     );
 }
 
@@ -1761,8 +1895,35 @@ private void addMessageBubble(
         String messageId
 ) {
 
+    addMessageBubble(
+            text,
+            mine,
+            allowMenu,
+            messageId,
+            false
+    );
+}
+
+/*
+ * نمایش وضعیت پیام:
+ *
+ * ✓  = ارسال شده
+ * ✓✓ سبز = خوانده شده
+ */
+private void addMessageBubble(
+        String text,
+        boolean mine,
+        boolean allowMenu,
+        String messageId,
+        boolean read
+) {
+
     LinearLayout row =
             new LinearLayout(this);
+
+    row.setOrientation(
+            LinearLayout.HORIZONTAL
+    );
 
     row.setGravity(
             mine
@@ -1770,20 +1931,47 @@ private void addMessageBubble(
                     : Gravity.LEFT
     );
 
+    LinearLayout bubbleBox =
+            new LinearLayout(this);
+
+    bubbleBox.setOrientation(
+            LinearLayout.VERTICAL
+    );
+
+    bubbleBox.setPadding(
+            16,
+            10,
+            13,
+            8
+    );
+
+    bubbleBox.setBackground(
+            roundedBackground(
+                    mine
+                            ? themeColor
+                            : Color.WHITE,
+                    22
+            )
+    );
+
     TextView bubble =
             makeText(
                     text,
-                    15,
+                    17,
                     mine
                             ? Color.WHITE
-                            : Color.rgb(30, 30, 30)
+                            : Color.rgb(
+                                    30,
+                                    30,
+                                    30
+                            )
             );
 
     bubble.setPadding(
-            16,
-            11,
-            16,
-            11
+            0,
+            0,
+            0,
+            2
     );
 
     bubble.setMaxWidth(
@@ -1795,16 +1983,44 @@ private void addMessageBubble(
             )
     );
 
-    bubble.setBackground(
-            roundedBackground(
-                    mine
-                            ? themeColor
-                            : Color.WHITE,
-                    22
-            )
+    bubbleBox.addView(
+            bubble
     );
 
-    row.addView(bubble);
+    if (mine &&
+            messageId != null) {
+
+        TextView check =
+                makeText(
+                        read
+                                ? "✓✓"
+                                : "✓",
+                        14,
+                        read
+                                ? Color.rgb(
+                                        50,
+                                        220,
+                                        90
+                                )
+                                : Color.WHITE
+                );
+
+        check.setGravity(
+                Gravity.RIGHT
+        );
+
+        check.setTypeface(
+                Typeface.DEFAULT_BOLD
+        );
+
+        bubbleBox.addView(
+                check
+        );
+    }
+
+    row.addView(
+            bubbleBox
+    );
 
     LinearLayout.LayoutParams params =
             new LinearLayout.LayoutParams(
@@ -1827,7 +2043,7 @@ private void addMessageBubble(
     if (allowMenu &&
             messageId != null) {
 
-        bubble.setOnLongClickListener(
+        bubbleBox.setOnLongClickListener(
                 v -> {
 
                     showDeleteMenu(
@@ -1845,7 +2061,8 @@ private void addMediaMessage(
         String url,
         boolean mine,
         boolean video,
-        String messageId
+        String messageId,
+        boolean read
 ) {
 
     if (url == null ||
@@ -1856,10 +2073,21 @@ private void addMediaMessage(
     LinearLayout row =
             new LinearLayout(this);
 
+    row.setOrientation(
+            LinearLayout.HORIZONTAL
+    );
+
     row.setGravity(
             mine
                     ? Gravity.RIGHT
                     : Gravity.LEFT
+    );
+
+    LinearLayout box =
+            new LinearLayout(this);
+
+    box.setOrientation(
+            LinearLayout.VERTICAL
     );
 
     ImageView image =
@@ -1880,7 +2108,7 @@ private void addMediaMessage(
             )
     );
 
-    row.addView(
+    box.addView(
             image,
             new LinearLayout.LayoutParams(
                     230,
@@ -1888,7 +2116,35 @@ private void addMediaMessage(
             )
     );
 
-    messagesContainer.addView(row);
+    if (mine) {
+
+        TextView check =
+                makeText(
+                        read
+                                ? "✓✓"
+                                : "✓",
+                        14,
+                        read
+                                ? Color.rgb(
+                                        50,
+                                        220,
+                                        90
+                                )
+                                : themeColor
+                );
+
+        check.setGravity(
+                Gravity.RIGHT
+        );
+
+        box.addView(check);
+    }
+
+    row.addView(box);
+
+    messagesContainer.addView(
+            row
+    );
 
     loadImage(
             url,
@@ -1902,7 +2158,7 @@ private void addMediaMessage(
 
                     Toast.makeText(
                             this,
-                            "ویدیو: " + url,
+                            "ویدیو انتخاب شد",
                             Toast.LENGTH_SHORT
                     ).show();
                 }
@@ -1925,7 +2181,8 @@ private void addMediaMessage(
 private void addAudioMessage(
         String url,
         boolean mine,
-        String messageId
+        String messageId,
+        boolean read
 ) {
 
     if (url == null ||
@@ -1936,10 +2193,21 @@ private void addAudioMessage(
     LinearLayout row =
             new LinearLayout(this);
 
+    row.setOrientation(
+            LinearLayout.HORIZONTAL
+    );
+
     row.setGravity(
             mine
                     ? Gravity.RIGHT
                     : Gravity.LEFT
+    );
+
+    LinearLayout box =
+            new LinearLayout(this);
+
+    box.setOrientation(
+            LinearLayout.HORIZONTAL
     );
 
     Button play =
@@ -1947,8 +2215,45 @@ private void addAudioMessage(
                     "▶️ پخش پیام صوتی"
             );
 
+    play.setTextSize(16);
+
     play.setOnClickListener(
             v -> playAudio(url)
+    );
+
+    box.addView(play);
+
+    if (mine) {
+
+        TextView check =
+                makeText(
+                        read
+                                ? "✓✓"
+                                : "✓",
+                        14,
+                        read
+                                ? Color.rgb(
+                                        50,
+                                        220,
+                                        90
+                                )
+                                : themeColor
+                );
+
+        check.setPadding(
+                8,
+                0,
+                4,
+                0
+        );
+
+        box.addView(check);
+    }
+
+    row.addView(box);
+
+    messagesContainer.addView(
+            row
     );
 
     play.setOnLongClickListener(
@@ -1962,10 +2267,6 @@ private void addAudioMessage(
                 return true;
             }
     );
-
-    row.addView(play);
-
-    messagesContainer.addView(row);
 }
 
 private void showDeleteMenu(
@@ -2025,9 +2326,7 @@ private void deleteForMe(
             .document(messageId)
             .update(
                     "deletedFor",
-                    FieldValue.arrayUnion(
-                            myId
-                    )
+                    FieldValue.arrayUnion(myId)
             )
             .addOnFailureListener(
                     e -> Toast.makeText(
@@ -2146,15 +2445,12 @@ private void sendText() {
                     }
             )
             .addOnFailureListener(
-                    e -> {
-
-                        Toast.makeText(
-                                this,
-                                "خطای ارسال پیام: " +
-                                        e.getMessage(),
-                                Toast.LENGTH_LONG
-                        ).show();
-                    }
+                    e -> Toast.makeText(
+                            this,
+                            "خطای ارسال پیام: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
             );
 }
 
@@ -2185,20 +2481,11 @@ private void listenReceiver() {
                                                 "online"
                                         );
 
-                                if (Boolean.TRUE.equals(
-                                        online
-                                )) {
-
-                                    statusText.setText(
-                                            "آنلاین"
-                                    );
-
-                                } else {
-
-                                    statusText.setText(
-                                            "آفلاین"
-                                    );
-                                }
+                                updateOnlineStatus(
+                                        Boolean.TRUE.equals(
+                                                online
+                                        )
+                                );
 
                                 String photo =
                                         doc.getString(
@@ -2215,6 +2502,66 @@ private void listenReceiver() {
                                 }
                             }
                     );
+}
+
+private void updateOnlineStatus(
+        boolean online
+) {
+
+    if (statusText == null) {
+        return;
+    }
+
+    if (online) {
+
+        statusText.setText(
+                "● آنلاین"
+        );
+
+        statusText.setTextColor(
+                Color.rgb(
+                        70,
+                        255,
+                        100
+                )
+        );
+
+        if (headerOnlineDot != null) {
+
+            headerOnlineDot.setText(
+                    "●"
+            );
+
+            headerOnlineDot.setTextColor(
+                    Color.rgb(
+                            50,
+                            240,
+                            80
+                    )
+            );
+        }
+
+    } else {
+
+        statusText.setText(
+                "● آفلاین"
+        );
+
+        statusText.setTextColor(
+                Color.LTGRAY
+        );
+
+        if (headerOnlineDot != null) {
+
+            headerOnlineDot.setText(
+                    "●"
+            );
+
+            headerOnlineDot.setTextColor(
+                    Color.GRAY
+            );
+        }
+    }
 }
 
 private void listenTyping() {
@@ -2250,7 +2597,11 @@ private void listenTyping() {
                                         )) {
 
                                     statusText.setText(
-                                            "در حال نوشتن..."
+                                            "✍️ در حال نوشتن..."
+                                    );
+
+                                    statusText.setTextColor(
+                                            Color.WHITE
                                     );
 
                                 } else {
@@ -2260,20 +2611,11 @@ private void listenTyping() {
                                                     "online"
                                             );
 
-                                    if (Boolean.TRUE.equals(
-                                            online
-                                    )) {
-
-                                        statusText.setText(
-                                                "آنلاین"
-                                        );
-
-                                    } else {
-
-                                        statusText.setText(
-                                                "آفلاین"
-                                        );
-                                    }
+                                    updateOnlineStatus(
+                                            Boolean.TRUE.equals(
+                                                    online
+                                            )
+                                    );
                                 }
                             }
                     );
@@ -2354,11 +2696,23 @@ private void listenBlockStatus() {
                                             "🚫 بلاک شده"
                                     );
 
+                                    statusText.setTextColor(
+                                            Color.WHITE
+                                    );
+
                                     messageInput.setEnabled(
                                             false
                                     );
 
                                     sendButton.setEnabled(
+                                            false
+                                    );
+
+                                    mediaButton.setEnabled(
+                                            false
+                                    );
+
+                                    voiceButton.setEnabled(
                                             false
                                     );
 
@@ -2369,6 +2723,14 @@ private void listenBlockStatus() {
                                     );
 
                                     sendButton.setEnabled(
+                                            true
+                                    );
+
+                                    mediaButton.setEnabled(
+                                            true
+                                    );
+
+                                    voiceButton.setEnabled(
                                             true
                                     );
                                 }
@@ -2589,6 +2951,10 @@ private void uploadMedia(
         return;
     }
 
+    if (uri == null) {
+        return;
+    }
+
     String mime =
             getContentResolver()
                     .getType(uri);
@@ -2596,6 +2962,21 @@ private void uploadMedia(
     boolean image =
             mime != null &&
                     mime.startsWith("image/");
+
+    boolean video =
+            mime != null &&
+                    mime.startsWith("video/");
+
+    if (!image && !video) {
+
+        Toast.makeText(
+                this,
+                "فقط عکس یا ویدیو انتخاب کنید",
+                Toast.LENGTH_LONG
+        ).show();
+
+        return;
+    }
 
     String type =
             image
@@ -2628,16 +3009,23 @@ private void uploadMedia(
 
     ref.putFile(uri)
             .addOnSuccessListener(
-                    task ->
-                            ref.getDownloadUrl()
-                                    .addOnSuccessListener(
-                                            downloadUri ->
-                                                    saveMediaMessage(
-                                                            type,
-                                                            downloadUri
-                                                                    .toString()
-                                                    )
-                                    )
+                    task -> ref.getDownloadUrl()
+                            .addOnSuccessListener(
+                                    downloadUri ->
+                                            saveMediaMessage(
+                                                    type,
+                                                    downloadUri
+                                                            .toString()
+                                            )
+                            )
+                            .addOnFailureListener(
+                                    e -> Toast.makeText(
+                                            this,
+                                            "فایل آپلود شد ولی لینک دریافت نشد: " +
+                                                    e.getMessage(),
+                                            Toast.LENGTH_LONG
+                                    ).show()
+                            )
             )
             .addOnFailureListener(
                     e -> Toast.makeText(
@@ -2653,6 +3041,11 @@ private void saveMediaMessage(
         String type,
         String url
 ) {
+
+    if (currentChatId == null ||
+            receiverId == null) {
+        return;
+    }
 
     Map<String, Object> message =
             new HashMap<>();
@@ -2704,10 +3097,17 @@ private void saveMediaMessage(
 
     db.collection("messages")
             .add(message)
+            .addOnSuccessListener(
+                    doc -> Toast.makeText(
+                            this,
+                            "فایل ارسال شد ✅",
+                            Toast.LENGTH_SHORT
+                    ).show()
+            )
             .addOnFailureListener(
                     e -> Toast.makeText(
                             this,
-                            "خطای ذخیره پیام: " +
+                            "خطای ذخیره پیام فایل: " +
                                     e.getMessage(),
                             Toast.LENGTH_LONG
                     ).show()
@@ -2799,13 +3199,23 @@ private void startRecording() {
 
         Toast.makeText(
                 this,
-                "🎤 در حال ضبط...",
+                "🎤 در حال ضبط... دوباره بزنید تا ارسال شود",
                 Toast.LENGTH_SHORT
         ).show();
 
     } catch (Exception e) {
 
         recording = false;
+
+        if (recorder != null) {
+
+            try {
+                recorder.release();
+            } catch (Exception ignored) {
+            }
+
+            recorder = null;
+        }
 
         Toast.makeText(
                 this,
@@ -2819,7 +3229,9 @@ private void startRecording() {
 private void stopRecording() {
 
     if (recorder == null) {
+
         recording = false;
+
         return;
     }
 
@@ -2838,6 +3250,7 @@ private void stopRecording() {
     }
 
     recorder = null;
+
     recording = false;
 
     voiceButton.setImageResource(
@@ -2846,7 +3259,9 @@ private void stopRecording() {
 
     if (audioPath != null) {
 
-        uploadVoice(audioPath);
+        uploadVoice(
+                audioPath
+        );
     }
 }
 
@@ -2858,15 +3273,28 @@ private void uploadVoice(
         return;
     }
 
-    File file =
-            new File(path);
-
-    if (!file.exists()) {
+    if (path == null ||
+            path.trim().isEmpty()) {
 
         Toast.makeText(
                 this,
-                "فایل صوتی پیدا نشد",
+                "مسیر فایل صوتی خالی است",
                 Toast.LENGTH_SHORT
+        ).show();
+
+        return;
+    }
+
+    File file =
+            new File(path);
+
+    if (!file.exists() ||
+            file.length() == 0) {
+
+        Toast.makeText(
+                this,
+                "فایل صوتی پیدا نشد یا خالی است",
+                Toast.LENGTH_LONG
         ).show();
 
         return;
@@ -2905,6 +3333,14 @@ private void uploadVoice(
                                                                     .toString()
                                                     )
                                     )
+                                    .addOnFailureListener(
+                                            e -> Toast.makeText(
+                                                    this,
+                                                    "صدا آپلود شد ولی لینک دریافت نشد: " +
+                                                            e.getMessage(),
+                                                    Toast.LENGTH_LONG
+                                            ).show()
+                                    )
             )
             .addOnFailureListener(
                     e -> Toast.makeText(
@@ -2919,6 +3355,11 @@ private void uploadVoice(
 private void saveAudioMessage(
         String url
 ) {
+
+    if (currentChatId == null ||
+            receiverId == null) {
+        return;
+    }
 
     Map<String, Object> message =
             new HashMap<>();
@@ -2970,6 +3411,30 @@ private void saveAudioMessage(
 
     db.collection("messages")
             .add(message)
+            .addOnSuccessListener(
+                    doc -> {
+
+                        Toast.makeText(
+                                this,
+                                "پیام صوتی ارسال شد ✅",
+                                Toast.LENGTH_SHORT
+                        ).show();
+
+                        try {
+
+                            File file =
+                                    new File(
+                                            audioPath
+                                    );
+
+                            if (file.exists()) {
+                                file.delete();
+                            }
+
+                        } catch (Exception ignored) {
+                        }
+                    }
+            )
             .addOnFailureListener(
                     e -> Toast.makeText(
                             this,
@@ -2995,7 +3460,9 @@ private void playAudio(
         player =
                 new MediaPlayer();
 
-        player.setDataSource(url);
+        player.setDataSource(
+                url
+        );
 
         player.setOnPreparedListener(
                 MediaPlayer::start
@@ -3055,32 +3522,40 @@ private void uploadProfilePhoto(
 
     ref.putFile(uri)
             .addOnSuccessListener(
-                    task ->
-                            ref.getDownloadUrl()
-                                    .addOnSuccessListener(
-                                            downloadUri -> {
+                    task -> ref.getDownloadUrl()
+                            .addOnSuccessListener(
+                                    downloadUri -> {
 
-                                                db.collection(
-                                                        "users"
+                                        db.collection(
+                                                "users"
+                                        )
+                                                .document(
+                                                        myId
                                                 )
-                                                        .document(
-                                                                myId
-                                                        )
-                                                        .update(
-                                                                "photoUrl",
-                                                                downloadUri
-                                                                        .toString()
-                                                        )
-                                                        .addOnSuccessListener(
-                                                                v ->
-                                                                        Toast.makeText(
-                                                                                this,
-                                                                                "عکس پروفایل ذخیره شد",
-                                                                                Toast.LENGTH_SHORT
-                                                                        ).show()
-                                                        );
-                                            }
-                                    )
+                                                .update(
+                                                        "photoUrl",
+                                                        downloadUri
+                                                                .toString()
+                                                )
+                                                .addOnSuccessListener(
+                                                        v ->
+                                                                Toast.makeText(
+                                                                        this,
+                                                                        "عکس پروفایل ذخیره شد",
+                                                                        Toast.LENGTH_SHORT
+                                                                ).show()
+                                                )
+                                                .addOnFailureListener(
+                                                        e ->
+                                                                Toast.makeText(
+                                                                        this,
+                                                                        "خطای ذخیره عکس پروفایل: " +
+                                                                                e.getMessage(),
+                                                                        Toast.LENGTH_LONG
+                                                                ).show()
+                                                );
+                                    }
+                            )
             )
             .addOnFailureListener(
                     e -> Toast.makeText(
@@ -3100,12 +3575,18 @@ private void loadImage(
     new Thread(
             () -> {
 
+                HttpURLConnection connection =
+                        null;
+
+                InputStream input =
+                        null;
+
                 try {
 
                     URL imageUrl =
                             new URL(url);
 
-                    HttpURLConnection connection =
+                    connection =
                             (HttpURLConnection)
                                     imageUrl.openConnection();
 
@@ -3117,9 +3598,13 @@ private void loadImage(
                             8000
                     );
 
+                    connection.setDoInput(
+                            true
+                    );
+
                     connection.connect();
 
-                    InputStream input =
+                    input =
                             connection.getInputStream();
 
                     Bitmap bitmap =
@@ -3127,19 +3612,37 @@ private void loadImage(
                                     input
                             );
 
-                    input.close();
-
                     if (bitmap != null) {
 
                         runOnUiThread(
-                                () ->
+                                () -> {
+
+                                    if (!isFinishing()) {
+
                                         imageView.setImageBitmap(
                                                 bitmap
-                                        )
+                                        );
+                                    }
+                                }
                         );
                     }
 
                 } catch (Exception ignored) {
+
+                } finally {
+
+                    try {
+
+                        if (input != null) {
+                            input.close();
+                        }
+
+                    } catch (Exception ignored) {
+                    }
+
+                    if (connection != null) {
+                        connection.disconnect();
+                    }
                 }
 
             }
@@ -3161,6 +3664,7 @@ private void showUsers() {
     messageCache.clear();
 
     createUsersScreen();
+
     loadUsers();
 }
 
@@ -3351,5 +3855,4 @@ public void onBackPressed() {
         super.onBackPressed();
     }
 }
-
-}
+                }
