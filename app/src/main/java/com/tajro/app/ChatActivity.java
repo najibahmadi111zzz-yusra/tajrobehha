@@ -119,8 +119,11 @@ public class ChatActivity extends Activity {
 
     private final Handler typingHandler = new Handler();
 
-    private final Map<String, DocumentSnapshot> messageCache = new HashMap<>();
-    private final Set<String> hiddenUserIds = new HashSet<>();
+    private final Map<String, DocumentSnapshot> messageCache =
+            new HashMap<>();
+
+    private final Set<String> hiddenUserIds =
+            new HashSet<>();
 
     private int themeColor = Color.rgb(12, 91, 120);
 
@@ -142,6 +145,7 @@ public class ChatActivity extends Activity {
         FirebaseUser user = auth.getCurrentUser();
 
         if (user == null) {
+
             Toast.makeText(
                     this,
                     "لطفاً اول وارد حساب شوید",
@@ -169,8 +173,10 @@ public class ChatActivity extends Activity {
     private int dp(int value) {
         return (int) (
                 value *
-                getResources().getDisplayMetrics().density +
-                0.5f
+                        getResources()
+                                .getDisplayMetrics()
+                                .density +
+                        0.5f
         );
     }
 
@@ -178,10 +184,12 @@ public class ChatActivity extends Activity {
             int color,
             float radius
     ) {
+
         GradientDrawable d =
                 new GradientDrawable();
 
         d.setColor(color);
+
         d.setCornerRadius(
                 dp((int) radius)
         );
@@ -193,6 +201,7 @@ public class ChatActivity extends Activity {
             String value,
             int size
     ) {
+
         TextView t =
                 new TextView(this);
 
@@ -266,6 +275,7 @@ public class ChatActivity extends Activity {
         data.put("typingTo", "");
 
         if (user.getPhoneNumber() != null) {
+
             data.put(
                     "phoneNumber",
                     user.getPhoneNumber()
@@ -273,7 +283,9 @@ public class ChatActivity extends Activity {
         }
 
         if (user.getDisplayName() != null &&
-                !user.getDisplayName().trim().isEmpty()) {
+                !user.getDisplayName()
+                        .trim()
+                        .isEmpty()) {
 
             data.put(
                     "name",
@@ -557,6 +569,7 @@ public class ChatActivity extends Activity {
                                     DocumentSnapshot d :
                                     users
                             ) {
+
                                 addUserItem(d);
                             }
                         }
@@ -600,11 +613,6 @@ public class ChatActivity extends Activity {
         Boolean online =
                 d.getBoolean("online");
 
-        /*
-         * مهم:
-         * این سه مقدار final شده‌اند تا داخل
-         * lambda ها بدون خطای Java استفاده شوند.
-         */
         final String finalUid = uid;
         final String finalName = name;
         final String finalPhotoUrl = photoUrl;
@@ -649,11 +657,11 @@ public class ChatActivity extends Activity {
         ImageView avatar =
                 avatarView(76);
 
-        if (photoUrl != null &&
-                !photoUrl.isEmpty()) {
+        if (finalPhotoUrl != null &&
+                !finalPhotoUrl.isEmpty()) {
 
             loadImage(
-                    photoUrl,
+                    finalPhotoUrl,
                     avatar
             );
         }
@@ -685,7 +693,7 @@ public class ChatActivity extends Activity {
 
         TextView nameText =
                 text(
-                        name,
+                        finalName,
                         17
                 );
 
@@ -955,6 +963,7 @@ public class ChatActivity extends Activity {
         );
 
         if (!uid.equals(myId)) {
+
             change.setVisibility(
                     View.GONE
             );
@@ -1387,6 +1396,7 @@ public class ChatActivity extends Activity {
 
         if (snapshot == null ||
                 messagesContainer == null) {
+
             return;
         }
 
@@ -1405,6 +1415,10 @@ public class ChatActivity extends Activity {
     }
 
     private void renderMessages() {
+
+        if (messagesContainer == null) {
+            return;
+        }
 
         messagesContainer.removeAllViews();
 
@@ -1429,6 +1443,7 @@ public class ChatActivity extends Activity {
 
                     if (ta == null &&
                             tb == null) {
+
                         return 0;
                     }
 
@@ -1448,32 +1463,56 @@ public class ChatActivity extends Activity {
                 DocumentSnapshot d :
                 list
         ) {
+
             renderOneMessage(d);
         }
 
-        messagesScroll.post(
-                () ->
-                        messagesScroll.fullScroll(
-                                View.FOCUS_DOWN
-                        )
-        );
+        if (messagesScroll != null) {
+
+            messagesScroll.post(
+                    () ->
+                            messagesScroll.fullScroll(
+                                    View.FOCUS_DOWN
+                            )
+            );
+        }
+    }
+
+    private boolean isDeletedForMe(
+            DocumentSnapshot d
+    ) {
+
+        List<String> deletedFor =
+                (List<String>)
+                        d.get("deletedFor");
+
+        return deletedFor != null &&
+                deletedFor.contains(myId);
     }
 
     private void renderOneMessage(
             DocumentSnapshot d
     ) {
 
+        if (isDeletedForMe(d)) {
+            return;
+        }
+
         Boolean deleted =
                 d.getBoolean(
                         "deletedForAll"
                 );
+
+        String sender =
+                d.getString("senderId");
 
         if (deleted != null &&
                 deleted) {
 
             addSimpleMessage(
                     "پیام حذف شد",
-                    d.getString("senderId")
+                    sender,
+                    d.getId()
             );
 
             return;
@@ -1492,6 +1531,7 @@ public class ChatActivity extends Activity {
                     d.getString("message");
 
             if (message == null) {
+
                 message =
                         d.getString("text");
             }
@@ -1502,7 +1542,7 @@ public class ChatActivity extends Activity {
 
             addTextMessage(
                     message,
-                    d.getString("senderId"),
+                    sender,
                     d.getId()
             );
 
@@ -1512,9 +1552,12 @@ public class ChatActivity extends Activity {
                     d.getString("mediaUrl");
 
             if (url != null) {
+
                 addMediaMessage(
                         url,
-                        false
+                        false,
+                        sender,
+                        d.getId()
                 );
             }
 
@@ -1524,9 +1567,12 @@ public class ChatActivity extends Activity {
                     d.getString("mediaUrl");
 
             if (url != null) {
+
                 addMediaMessage(
                         url,
-                        true
+                        true,
+                        sender,
+                        d.getId()
                 );
             }
 
@@ -1536,20 +1582,26 @@ public class ChatActivity extends Activity {
                     d.getString("audioUrl");
 
             if (url != null) {
-                addAudioMessage(url);
+
+                addAudioMessage(
+                        url,
+                        sender,
+                        d.getId()
+                );
             }
         }
     }
 
     private void addSimpleMessage(
             String message,
-            String sender
+            String sender,
+            String messageId
     ) {
 
         addTextMessage(
                 message,
                 sender,
-                null
+                messageId
         );
     }
 
@@ -1615,14 +1667,11 @@ public class ChatActivity extends Activity {
 
         if (messageId != null) {
 
-            String finalMessageId =
-                    messageId;
-
             bubble.setOnLongClickListener(
                     v -> {
 
                         showDeleteMenu(
-                                finalMessageId
+                                messageId
                         );
 
                         return true;
@@ -1633,7 +1682,9 @@ public class ChatActivity extends Activity {
 
     private void addMediaMessage(
             String url,
-            boolean video
+            boolean video,
+            String sender,
+            String messageId
     ) {
 
         ImageView image =
@@ -1672,8 +1723,13 @@ public class ChatActivity extends Activity {
                         dp(300)
                 );
 
+        boolean mine =
+                myId.equals(sender);
+
         p.gravity =
-                Gravity.START;
+                mine
+                        ? Gravity.END
+                        : Gravity.START;
 
         p.setMargins(
                 dp(6),
@@ -1694,10 +1750,26 @@ public class ChatActivity extends Activity {
                             showImageViewer(url)
             );
         }
+
+        if (messageId != null) {
+
+            image.setOnLongClickListener(
+                    v -> {
+
+                        showDeleteMenu(
+                                messageId
+                        );
+
+                        return true;
+                    }
+            );
+        }
     }
 
     private void addAudioMessage(
-            String url
+            String url,
+            String sender,
+            String messageId
     ) {
 
         Button play =
@@ -1713,11 +1785,19 @@ public class ChatActivity extends Activity {
                 v -> playAudio(url)
         );
 
+        boolean mine =
+                myId.equals(sender);
+
         LinearLayout.LayoutParams p =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
+
+        p.gravity =
+                mine
+                        ? Gravity.END
+                        : Gravity.START;
 
         p.setMargins(
                 dp(6),
@@ -1730,6 +1810,20 @@ public class ChatActivity extends Activity {
                 play,
                 p
         );
+
+        if (messageId != null) {
+
+            play.setOnLongClickListener(
+                    v -> {
+
+                        showDeleteMenu(
+                                messageId
+                        );
+
+                        return true;
+                    }
+            );
+        }
     }
 
     private void showDeleteMenu(
@@ -1747,10 +1841,13 @@ public class ChatActivity extends Activity {
                         (d, which) -> {
 
                             if (which == 0) {
+
                                 deleteForMe(
                                         messageId
                                 );
+
                             } else {
+
                                 deleteForAll(
                                         messageId
                                 );
@@ -1771,6 +1868,25 @@ public class ChatActivity extends Activity {
                         FieldValue.arrayUnion(
                                 myId
                         )
+                )
+                .addOnSuccessListener(
+                        x -> {
+
+                            messageCache.remove(
+                                    messageId
+                            );
+
+                            renderMessages();
+
+                        }
+                )
+                .addOnFailureListener(
+                        e ->
+                                Toast.makeText(
+                                        this,
+                                        "حذف پیام ناموفق بود",
+                                        Toast.LENGTH_SHORT
+                                ).show()
                 );
     }
 
@@ -1783,6 +1899,17 @@ public class ChatActivity extends Activity {
                 .update(
                         "deletedForAll",
                         true
+                )
+                .addOnSuccessListener(
+                        x -> renderMessages()
+                )
+                .addOnFailureListener(
+                        e ->
+                                Toast.makeText(
+                                        this,
+                                        "حذف پیام ناموفق بود",
+                                        Toast.LENGTH_SHORT
+                                ).show()
                 );
     }
 
@@ -2111,6 +2238,7 @@ public class ChatActivity extends Activity {
         if (resultCode != RESULT_OK ||
                 data == null ||
                 data.getData() == null) {
+
             return;
         }
 
@@ -2168,6 +2296,7 @@ public class ChatActivity extends Activity {
                         .getType(uri);
 
         if (mime == null) {
+
             mime =
                     "application/octet-stream";
         }
@@ -2194,29 +2323,37 @@ public class ChatActivity extends Activity {
         if (image) {
 
             if (mime.contains("png")) {
+
                 ext = "png";
+
             } else if (mime.contains("webp")) {
+
                 ext = "webp";
+
             } else {
+
                 ext = "jpg";
             }
 
         } else {
 
             if (mime.contains("3gp")) {
+
                 ext = "3gp";
+
             } else {
+
                 ext = "mp4";
             }
         }
 
         String objectPath =
                 "chat/" +
-                System.currentTimeMillis() +
-                "_" +
-                myId +
-                "." +
-                ext;
+                        System.currentTimeMillis() +
+                        "_" +
+                        myId +
+                        "." +
+                        ext;
 
         String finalMime =
                 mime;
@@ -2317,14 +2454,25 @@ public class ChatActivity extends Activity {
         );
 
         db.collection("messages")
-                .add(data);
+                .add(data)
+                .addOnFailureListener(
+                        e ->
+                                Toast.makeText(
+                                        this,
+                                        "خطا در ذخیره پیام فایل",
+                                        Toast.LENGTH_SHORT
+                                ).show()
+                );
     }
 
     private void toggleRecording() {
 
         if (recording) {
+
             stopRecording();
+
         } else {
+
             startRecording();
         }
     }
@@ -2607,7 +2755,15 @@ public class ChatActivity extends Activity {
         );
 
         db.collection("messages")
-                .add(data);
+                .add(data)
+                .addOnFailureListener(
+                        e ->
+                                Toast.makeText(
+                                        this,
+                                        "خطا در ذخیره پیام صوتی",
+                                        Toast.LENGTH_SHORT
+                                ).show()
+                );
     }
 
     private void playAudio(
@@ -2819,9 +2975,19 @@ public class ChatActivity extends Activity {
                                 60000
                         );
 
+                        /*
+                         * Publishable Key:
+                         * همان کلید عمومی Supabase است.
+                         */
                         connection.setRequestProperty(
                                 "apikey",
                                 SUPABASE_PUBLISHABLE_KEY
+                        );
+
+                        connection.setRequestProperty(
+                                "Authorization",
+                                "Bearer " +
+                                        SUPABASE_PUBLISHABLE_KEY
                         );
 
                         connection.setRequestProperty(
@@ -3220,6 +3386,12 @@ public class ChatActivity extends Activity {
                                 SUPABASE_PUBLISHABLE_KEY
                         );
 
+                        connection.setRequestProperty(
+                                "Authorization",
+                                "Bearer " +
+                                        SUPABASE_PUBLISHABLE_KEY
+                        );
+
                         InputStream input =
                                 connection
                                         .getInputStream();
@@ -3369,6 +3541,12 @@ public class ChatActivity extends Activity {
                                 SUPABASE_PUBLISHABLE_KEY
                         );
 
+                        connection.setRequestProperty(
+                                "Authorization",
+                                "Bearer " +
+                                        SUPABASE_PUBLISHABLE_KEY
+                        );
+
                         InputStream input =
                                 connection
                                         .getInputStream();
@@ -3507,6 +3685,7 @@ public class ChatActivity extends Activity {
                                 e.getMessage();
 
                         if (error == null) {
+
                             error =
                                     "خطا در ذخیره عکس";
                         }
