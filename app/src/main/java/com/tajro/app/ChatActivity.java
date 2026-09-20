@@ -142,11 +142,19 @@ public class ChatActivity extends Activity {
         FirebaseUser user = auth.getCurrentUser();
 
         if (user == null) {
-            Toast.makeText(this, "لطفاً اول وارد حساب شوید", Toast.LENGTH_LONG).show();
+            Toast.makeText(
+                    this,
+                    "لطفاً اول وارد حساب شوید",
+                    Toast.LENGTH_LONG
+            ).show();
+
             try {
-                startActivity(new Intent(this, AccountActivity.class));
+                startActivity(
+                        new Intent(this, AccountActivity.class)
+                );
             } catch (Exception ignored) {
             }
+
             finish();
             return;
         }
@@ -159,115 +167,272 @@ public class ChatActivity extends Activity {
     }
 
     private int dp(int value) {
-        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+        return (int) (
+                value *
+                getResources().getDisplayMetrics().density +
+                0.5f
+        );
     }
 
-    private GradientDrawable bg(int color, float radius) {
-        GradientDrawable d = new GradientDrawable();
+    private GradientDrawable bg(
+            int color,
+            float radius
+    ) {
+        GradientDrawable d =
+                new GradientDrawable();
+
         d.setColor(color);
-        d.setCornerRadius(dp((int) radius));
+        d.setCornerRadius(
+                dp((int) radius)
+        );
+
         return d;
     }
 
-    private TextView text(String value, int size) {
-        TextView t = new TextView(this);
+    private TextView text(
+            String value,
+            int size
+    ) {
+        TextView t =
+                new TextView(this);
+
         t.setText(value);
         t.setTextSize(size);
         t.setTextColor(Color.DKGRAY);
-        t.setPadding(dp(8), dp(6), dp(8), dp(6));
+
+        t.setPadding(
+                dp(8),
+                dp(6),
+                dp(8),
+                dp(6)
+        );
+
         return t;
     }
 
     private ImageView avatarView(int size) {
-        ImageView image = new ImageView(this);
+
+        ImageView image =
+                new ImageView(this);
+
         image.setLayoutParams(
-                new LinearLayout.LayoutParams(dp(size), dp(size))
+                new LinearLayout.LayoutParams(
+                        dp(size),
+                        dp(size)
+                )
         );
-        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        image.setImageResource(android.R.drawable.ic_menu_gallery);
-        image.setBackground(bg(Color.LTGRAY, 50));
+
+        image.setScaleType(
+                ImageView.ScaleType.CENTER_CROP
+        );
+
+        image.setImageResource(
+                android.R.drawable.ic_menu_gallery
+        );
+
+        image.setBackground(
+                bg(Color.LTGRAY, 50)
+        );
+
         return image;
     }
 
     private void ensureUserProfile() {
-        FirebaseUser user = auth.getCurrentUser();
+
+        FirebaseUser user =
+                auth.getCurrentUser();
+
         if (user == null) return;
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data =
+                new HashMap<>();
+
         data.put("userId", myId);
-        data.put("email", user.getEmail() == null ? "" : user.getEmail());
+
+        data.put(
+                "email",
+                user.getEmail() == null
+                        ? ""
+                        : user.getEmail()
+        );
+
         data.put("online", true);
-        data.put("lastSeen", FieldValue.serverTimestamp());
+
+        data.put(
+                "lastSeen",
+                FieldValue.serverTimestamp()
+        );
+
         data.put("typingTo", "");
 
         if (user.getPhoneNumber() != null) {
-            data.put("phoneNumber", user.getPhoneNumber());
+            data.put(
+                    "phoneNumber",
+                    user.getPhoneNumber()
+            );
         }
 
         if (user.getDisplayName() != null &&
                 !user.getDisplayName().trim().isEmpty()) {
-            data.put("name", user.getDisplayName());
+
+            data.put(
+                    "name",
+                    user.getDisplayName()
+            );
         }
 
         db.collection("users")
                 .document(myId)
-                .set(data, SetOptions.merge());
+                .set(
+                        data,
+                        SetOptions.merge()
+                );
     }
 
     private void createUsersScreen() {
 
         insideChat = false;
 
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(235, 248, 250));
+        root =
+                new LinearLayout(this);
 
-        LinearLayout header = new LinearLayout(this);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(dp(10), dp(8), dp(10), dp(8));
-        header.setBackgroundColor(themeColor);
+        root.setOrientation(
+                LinearLayout.VERTICAL
+        );
 
-        ImageButton profile = new ImageButton(this);
-        profile.setImageResource(android.R.drawable.ic_menu_myplaces);
-        profile.setBackgroundColor(Color.TRANSPARENT);
-        profile.setOnClickListener(v -> showMyProfile());
+        root.setBackgroundColor(
+                Color.rgb(235, 248, 250)
+        );
 
-        header.addView(profile,
-                new LinearLayout.LayoutParams(dp(48), dp(48)));
+        LinearLayout header =
+                new LinearLayout(this);
 
-        titleText = text("💬 کاربران", 21);
-        titleText.setTextColor(Color.WHITE);
-        titleText.setTypeface(null, Typeface.BOLD);
+        header.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        header.setPadding(
+                dp(10),
+                dp(8),
+                dp(10),
+                dp(8)
+        );
+
+        header.setBackgroundColor(
+                themeColor
+        );
+
+        ImageButton profile =
+                new ImageButton(this);
+
+        profile.setImageResource(
+                android.R.drawable.ic_menu_myplaces
+        );
+
+        profile.setBackgroundColor(
+                Color.TRANSPARENT
+        );
+
+        profile.setOnClickListener(
+                v -> showMyProfile()
+        );
+
+        header.addView(
+                profile,
+                new LinearLayout.LayoutParams(
+                        dp(48),
+                        dp(48)
+                )
+        );
+
+        titleText =
+                text("💬 کاربران", 21);
+
+        titleText.setTextColor(
+                Color.WHITE
+        );
+
+        titleText.setTypeface(
+                null,
+                Typeface.BOLD
+        );
 
         LinearLayout.LayoutParams titleParams =
-                new LinearLayout.LayoutParams(0, -2, 1);
-        header.addView(titleText, titleParams);
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                );
 
-        ImageButton refresh = new ImageButton(this);
-        refresh.setImageResource(android.R.drawable.ic_popup_sync);
-        refresh.setBackgroundColor(Color.TRANSPARENT);
-        refresh.setOnClickListener(v -> loadUsers());
+        header.addView(
+                titleText,
+                titleParams
+        );
 
-        header.addView(refresh,
-                new LinearLayout.LayoutParams(dp(48), dp(48)));
+        ImageButton refresh =
+                new ImageButton(this);
+
+        refresh.setImageResource(
+                android.R.drawable.ic_popup_sync
+        );
+
+        refresh.setBackgroundColor(
+                Color.TRANSPARENT
+        );
+
+        refresh.setOnClickListener(
+                v -> loadUsers()
+        );
+
+        header.addView(
+                refresh,
+                new LinearLayout.LayoutParams(
+                        dp(48),
+                        dp(48)
+                )
+        );
 
         root.addView(header);
 
-        TextView info = text(
-                "یک کاربر را انتخاب کنید تا چت خصوصی باز شود.",
-                14
+        TextView info =
+                text(
+                        "یک کاربر را انتخاب کنید تا چت خصوصی باز شود.",
+                        14
+                );
+
+        info.setGravity(
+                Gravity.CENTER
         );
-        info.setGravity(Gravity.CENTER);
+
         root.addView(info);
 
-        ScrollView scroll = new ScrollView(this);
-        usersContainer = new LinearLayout(this);
-        usersContainer.setOrientation(LinearLayout.VERTICAL);
-        usersContainer.setPadding(dp(8), dp(4), dp(8), dp(12));
+        ScrollView scroll =
+                new ScrollView(this);
+
+        usersContainer =
+                new LinearLayout(this);
+
+        usersContainer.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        usersContainer.setPadding(
+                dp(8),
+                dp(4),
+                dp(8),
+                dp(12)
+        );
 
         scroll.addView(usersContainer);
-        root.addView(scroll,
-                new LinearLayout.LayoutParams(-1, 0, 1));
+
+        root.addView(
+                scroll,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        0,
+                        1
+                )
+        );
 
         setContentView(root);
     }
@@ -279,135 +444,285 @@ public class ChatActivity extends Activity {
         usersContainer.removeAllViews();
 
         db.collection("hiddenUsers")
-                .whereEqualTo("ownerId", myId)
+                .whereEqualTo(
+                        "ownerId",
+                        myId
+                )
                 .get()
-                .addOnSuccessListener(snapshot -> {
+                .addOnSuccessListener(
+                        snapshot -> {
 
-                    hiddenUserIds.clear();
+                            hiddenUserIds.clear();
 
-                    for (DocumentSnapshot d : snapshot.getDocuments()) {
-                        String id = d.getString("hiddenUserId");
-                        if (id != null) hiddenUserIds.add(id);
-                    }
+                            for (
+                                    DocumentSnapshot d :
+                                    snapshot.getDocuments()
+                            ) {
 
-                    loadVisibleUsers();
-                })
-                .addOnFailureListener(e -> loadVisibleUsers());
+                                String id =
+                                        d.getString(
+                                                "hiddenUserId"
+                                        );
+
+                                if (id != null) {
+                                    hiddenUserIds.add(id);
+                                }
+                            }
+
+                            loadVisibleUsers();
+                        }
+                )
+                .addOnFailureListener(
+                        e -> loadVisibleUsers()
+                );
     }
 
     private void loadVisibleUsers() {
 
         db.collection("users")
                 .get()
-                .addOnSuccessListener(snapshot -> {
+                .addOnSuccessListener(
+                        snapshot -> {
 
-                    usersContainer.removeAllViews();
+                            usersContainer
+                                    .removeAllViews();
 
-                    List<DocumentSnapshot> users =
-                            new ArrayList<>();
+                            List<DocumentSnapshot> users =
+                                    new ArrayList<>();
 
-                    Set<String> ids = new HashSet<>();
+                            Set<String> ids =
+                                    new HashSet<>();
 
-                    for (DocumentSnapshot d : snapshot.getDocuments()) {
+                            for (
+                                    DocumentSnapshot d :
+                                    snapshot.getDocuments()
+                            ) {
 
-                        String id = d.getId();
+                                String id =
+                                        d.getId();
 
-                        if (id.equals(myId)) continue;
-                        if (hiddenUserIds.contains(id)) continue;
-                        if (!ids.add(id)) continue;
+                                if (id.equals(myId)) {
+                                    continue;
+                                }
 
-                        users.add(d);
-                    }
+                                if (hiddenUserIds
+                                        .contains(id)) {
+                                    continue;
+                                }
 
-                    Collections.sort(users,
-                            Comparator.comparing(
-                                    d -> {
-                                        String n = d.getString("name");
-                                        return n == null ? "" : n;
-                                    },
-                                    String.CASE_INSENSITIVE_ORDER
-                            ));
+                                if (!ids.add(id)) {
+                                    continue;
+                                }
 
-                    if (users.isEmpty()) {
-                        TextView empty = text(
-                                "هنوز کاربر دیگری پیدا نشد.",
-                                16
-                        );
-                        empty.setGravity(Gravity.CENTER);
-                        usersContainer.addView(empty);
-                        return;
-                    }
+                                users.add(d);
+                            }
 
-                    for (DocumentSnapshot d : users) {
-                        addUserItem(d);
-                    }
-                })
-                .addOnFailureListener(e ->
-                        Toast.makeText(
-                                this,
-                                "خطا در دریافت کاربران",
-                                Toast.LENGTH_SHORT
-                        ).show()
+                            Collections.sort(
+                                    users,
+                                    Comparator.comparing(
+                                            d -> {
+
+                                                String n =
+                                                        d.getString(
+                                                                "name"
+                                                        );
+
+                                                return n == null
+                                                        ? ""
+                                                        : n;
+                                            },
+                                            String.CASE_INSENSITIVE_ORDER
+                                    )
+                            );
+
+                            if (users.isEmpty()) {
+
+                                TextView empty =
+                                        text(
+                                                "هنوز کاربر دیگری پیدا نشد.",
+                                                16
+                                        );
+
+                                empty.setGravity(
+                                        Gravity.CENTER
+                                );
+
+                                usersContainer
+                                        .addView(empty);
+
+                                return;
+                            }
+
+                            for (
+                                    DocumentSnapshot d :
+                                    users
+                            ) {
+                                addUserItem(d);
+                            }
+                        }
+                )
+                .addOnFailureListener(
+                        e ->
+                                Toast.makeText(
+                                        this,
+                                        "خطا در دریافت کاربران",
+                                        Toast.LENGTH_SHORT
+                                ).show()
                 );
     }
 
-    private void addUserItem(DocumentSnapshot d) {
+    private void addUserItem(
+            DocumentSnapshot d
+    ) {
 
-        String uid = d.getId();
-        String name = d.getString("name");
+        String uid =
+                d.getId();
 
-        if (name == null || name.trim().isEmpty()) {
-            name = d.getString("email");
+        String name =
+                d.getString("name");
+
+        if (name == null ||
+                name.trim().isEmpty()) {
+
+            name =
+                    d.getString("email");
         }
 
-        if (name == null || name.trim().isEmpty()) {
+        if (name == null ||
+                name.trim().isEmpty()) {
+
             name = "کاربر";
         }
 
-        String photoUrl = d.getString("photoUrl");
-        Boolean online = d.getBoolean("online");
+        String photoUrl =
+                d.getString("photoUrl");
 
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.HORIZONTAL);
-        card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setPadding(dp(10), dp(8), dp(10), dp(8));
-        card.setBackground(bg(Color.WHITE, 18));
+        Boolean online =
+                d.getBoolean("online");
+
+        /*
+         * مهم:
+         * این سه مقدار final شده‌اند تا داخل
+         * lambda ها بدون خطای Java استفاده شوند.
+         */
+        final String finalUid = uid;
+        final String finalName = name;
+        final String finalPhotoUrl = photoUrl;
+
+        LinearLayout card =
+                new LinearLayout(this);
+
+        card.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        card.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        card.setPadding(
+                dp(10),
+                dp(8),
+                dp(10),
+                dp(8)
+        );
+
+        card.setBackground(
+                bg(Color.WHITE, 18)
+        );
 
         LinearLayout.LayoutParams cp =
-                new LinearLayout.LayoutParams(-1, -2);
-        cp.setMargins(0, dp(5), 0, dp(5));
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                );
+
+        cp.setMargins(
+                0,
+                dp(5),
+                0,
+                dp(5)
+        );
+
         card.setLayoutParams(cp);
 
-        ImageView avatar = avatarView(76);
+        ImageView avatar =
+                avatarView(76);
 
-        if (photoUrl != null && !photoUrl.isEmpty()) {
-            loadImage(photoUrl, avatar);
+        if (photoUrl != null &&
+                !photoUrl.isEmpty()) {
+
+            loadImage(
+                    photoUrl,
+                    avatar
+            );
         }
 
-        avatar.setOnClickListener(v ->
-                showProfileDialog(uid, name, photoUrl));
+        avatar.setOnClickListener(
+                v ->
+                        showProfileDialog(
+                                finalUid,
+                                finalName,
+                                finalPhotoUrl
+                        )
+        );
 
         card.addView(avatar);
 
-        LinearLayout info = new LinearLayout(this);
-        info.setOrientation(LinearLayout.VERTICAL);
-        info.setPadding(dp(10), 0, dp(5), 0);
+        LinearLayout info =
+                new LinearLayout(this);
 
-        TextView nameText = text(name, 17);
-        nameText.setTypeface(null, Typeface.BOLD);
-
-        LinearLayout statusRow = new LinearLayout(this);
-        statusRow.setGravity(Gravity.CENTER_VERTICAL);
-
-        TextView dot = text(online != null && online ? "●" : "○", 14);
-        dot.setTextColor(online != null && online
-                ? Color.rgb(0, 160, 70)
-                : Color.GRAY);
-
-        TextView status = text(
-                online != null && online ? " آنلاین" : " آفلاین",
-                13
+        info.setOrientation(
+                LinearLayout.VERTICAL
         );
+
+        info.setPadding(
+                dp(10),
+                0,
+                dp(5),
+                0
+        );
+
+        TextView nameText =
+                text(
+                        name,
+                        17
+                );
+
+        nameText.setTypeface(
+                null,
+                Typeface.BOLD
+        );
+
+        LinearLayout statusRow =
+                new LinearLayout(this);
+
+        statusRow.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        TextView dot =
+                text(
+                        online != null &&
+                                online
+                                ? "●"
+                                : "○",
+                        14
+                );
+
+        dot.setTextColor(
+                online != null && online
+                        ? Color.rgb(0, 160, 70)
+                        : Color.GRAY
+        );
+
+        TextView status =
+                text(
+                        online != null && online
+                                ? " آنلاین"
+                                : " آفلاین",
+                        13
+                );
 
         statusRow.addView(dot);
         statusRow.addView(status);
@@ -415,19 +730,45 @@ public class ChatActivity extends Activity {
         info.addView(nameText);
         info.addView(statusRow);
 
-        card.addView(info,
-                new LinearLayout.LayoutParams(0, -2, 1));
+        card.addView(
+                info,
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                )
+        );
 
-        TextView menu = text("⋮", 26);
-        menu.setGravity(Gravity.CENTER);
-        menu.setOnClickListener(v ->
-                showUserMenu(uid, name));
+        TextView menu =
+                text("⋮", 26);
 
-        card.addView(menu,
-                new LinearLayout.LayoutParams(dp(40), dp(60)));
+        menu.setGravity(
+                Gravity.CENTER
+        );
+
+        menu.setOnClickListener(
+                v ->
+                        showUserMenu(
+                                finalUid,
+                                finalName
+                        )
+        );
+
+        card.addView(
+                menu,
+                new LinearLayout.LayoutParams(
+                        dp(40),
+                        dp(60)
+                )
+        );
 
         View.OnClickListener open =
-                v -> openPrivateChat(uid, name, photoUrl);
+                v ->
+                        openPrivateChat(
+                                finalUid,
+                                finalName,
+                                finalPhotoUrl
+                        );
 
         card.setOnClickListener(open);
         nameText.setOnClickListener(open);
@@ -436,7 +777,10 @@ public class ChatActivity extends Activity {
         usersContainer.addView(card);
     }
 
-    private void showUserMenu(String uid, String name) {
+    private void showUserMenu(
+            String uid,
+            String name
+    ) {
 
         String[] items = {
                 "👁 مخفی کردن کاربر",
@@ -445,52 +789,94 @@ public class ChatActivity extends Activity {
 
         new AlertDialog.Builder(this)
                 .setTitle(name)
-                .setItems(items, (d, which) -> {
+                .setItems(
+                        items,
+                        (d, which) -> {
 
-                    if (which == 0) {
-                        Map<String, Object> data = new HashMap<>();
-                        data.put("ownerId", myId);
-                        data.put("hiddenUserId", uid);
+                            if (which == 0) {
 
-                        db.collection("hiddenUsers")
-                                .add(data)
-                                .addOnSuccessListener(x -> loadUsers());
+                                Map<String, Object> data =
+                                        new HashMap<>();
 
-                    } else {
-                        Map<String, Object> data = new HashMap<>();
-                        data.put("ownerId", myId);
-                        data.put("blockedUserId", uid);
+                                data.put(
+                                        "ownerId",
+                                        myId
+                                );
 
-                        db.collection("blocks")
-                                .add(data)
-                                .addOnSuccessListener(x ->
-                                        Toast.makeText(
-                                                this,
-                                                "کاربر بلاک شد",
-                                                Toast.LENGTH_SHORT
-                                        ).show());
-                    }
-                })
+                                data.put(
+                                        "hiddenUserId",
+                                        uid
+                                );
+
+                                db.collection(
+                                                "hiddenUsers"
+                                        )
+                                        .add(data)
+                                        .addOnSuccessListener(
+                                                x -> loadUsers()
+                                        );
+
+                            } else {
+
+                                Map<String, Object> data =
+                                        new HashMap<>();
+
+                                data.put(
+                                        "ownerId",
+                                        myId
+                                );
+
+                                data.put(
+                                        "blockedUserId",
+                                        uid
+                                );
+
+                                db.collection("blocks")
+                                        .add(data)
+                                        .addOnSuccessListener(
+                                                x ->
+                                                        Toast.makeText(
+                                                                this,
+                                                                "کاربر بلاک شد",
+                                                                Toast.LENGTH_SHORT
+                                                        ).show()
+                                        );
+                            }
+                        }
+                )
                 .show();
     }
 
     private void showMyProfile() {
 
-        FirebaseUser user = auth.getCurrentUser();
+        FirebaseUser user =
+                auth.getCurrentUser();
+
         if (user == null) return;
 
         db.collection("users")
                 .document(myId)
                 .get()
-                .addOnSuccessListener(d -> {
+                .addOnSuccessListener(
+                        d -> {
 
-                    String name = d.getString("name");
-                    String photo = d.getString("photoUrl");
+                            String name =
+                                    d.getString("name");
 
-                    if (name == null) name = "کاربر";
+                            String photo =
+                                    d.getString("photoUrl");
 
-                    showProfileDialog(myId, name, photo);
-                });
+                            if (name == null) {
+                                name = "کاربر";
+                            }
+
+                            showProfileDialog(
+                                    myId,
+                                    name,
+                                    photo
+                            );
+                        }
+                );
     }
 
     private void showProfileDialog(
@@ -499,38 +885,84 @@ public class ChatActivity extends Activity {
             String photoUrl
     ) {
 
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setGravity(Gravity.CENTER);
-        box.setPadding(dp(20), dp(15), dp(20), dp(15));
+        LinearLayout box =
+                new LinearLayout(this);
 
-        ImageView image = avatarView(220);
+        box.setOrientation(
+                LinearLayout.VERTICAL
+        );
 
-        if (photoUrl != null && !photoUrl.isEmpty()) {
-            loadImage(photoUrl, image);
+        box.setGravity(
+                Gravity.CENTER
+        );
+
+        box.setPadding(
+                dp(20),
+                dp(15),
+                dp(20),
+                dp(15)
+        );
+
+        ImageView image =
+                avatarView(220);
+
+        if (photoUrl != null &&
+                !photoUrl.isEmpty()) {
+
+            loadImage(
+                    photoUrl,
+                    image
+            );
         }
 
-        image.setOnClickListener(v -> {
-            if (photoUrl != null && !photoUrl.isEmpty()) {
-                showImageViewer(photoUrl);
-            }
-        });
+        image.setOnClickListener(
+                v -> {
+
+                    if (photoUrl != null &&
+                            !photoUrl.isEmpty()) {
+
+                        showImageViewer(
+                                photoUrl
+                        );
+                    }
+                }
+        );
 
         box.addView(image);
 
-        TextView nameText = text(name, 20);
-        nameText.setGravity(Gravity.CENTER);
-        nameText.setTypeface(null, Typeface.BOLD);
+        TextView nameText =
+                text(
+                        name,
+                        20
+                );
+
+        nameText.setGravity(
+                Gravity.CENTER
+        );
+
+        nameText.setTypeface(
+                null,
+                Typeface.BOLD
+        );
+
         box.addView(nameText);
 
-        Button change = new Button(this);
-        change.setText("📷 تغییر عکس پروفایل");
+        Button change =
+                new Button(this);
+
+        change.setText(
+                "📷 تغییر عکس پروفایل"
+        );
 
         if (!uid.equals(myId)) {
-            change.setVisibility(View.GONE);
+            change.setVisibility(
+                    View.GONE
+            );
         }
 
-        change.setOnClickListener(v -> pickProfilePhoto());
+        change.setOnClickListener(
+                v -> pickProfilePhoto()
+        );
 
         box.addView(change);
 
@@ -538,7 +970,10 @@ public class ChatActivity extends Activity {
                 new AlertDialog.Builder(this)
                         .setTitle("پروفایل")
                         .setView(box)
-                        .setPositiveButton("بستن", null)
+                        .setPositiveButton(
+                                "بستن",
+                                null
+                        )
                         .create();
 
         dialog.show();
@@ -552,170 +987,357 @@ public class ChatActivity extends Activity {
 
         receiverId = uid;
         receiverName = name;
-        currentChatId = makeChatId(myId, receiverId);
+
+        currentChatId =
+                makeChatId(
+                        myId,
+                        receiverId
+                );
 
         messageCache.clear();
+
         insideChat = true;
         blocked = false;
 
         createChatScreen(photoUrl);
+
         listenMessages();
         listenReceiver();
         listenTyping();
         listenBlock();
     }
 
-    private String makeChatId(String a, String b) {
+    private String makeChatId(
+            String a,
+            String b
+    ) {
+
         if (a.compareTo(b) < 0) {
             return a + "_" + b;
         }
+
         return b + "_" + a;
     }
 
-    private void createChatScreen(String photoUrl) {
+    private void createChatScreen(
+            String photoUrl
+    ) {
 
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(235, 248, 250));
+        root =
+                new LinearLayout(this);
 
-        LinearLayout header = new LinearLayout(this);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(dp(6), dp(6), dp(6), dp(6));
-        header.setBackgroundColor(themeColor);
+        root.setOrientation(
+                LinearLayout.VERTICAL
+        );
 
-        ImageButton back = new ImageButton(this);
-        back.setImageResource(android.R.drawable.ic_media_previous);
-        back.setBackgroundColor(Color.TRANSPARENT);
-        back.setOnClickListener(v -> showUsers());
+        root.setBackgroundColor(
+                Color.rgb(235, 248, 250)
+        );
 
-        header.addView(back,
-                new LinearLayout.LayoutParams(dp(48), dp(48)));
+        LinearLayout header =
+                new LinearLayout(this);
 
-        headerAvatar = avatarView(62);
+        header.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
 
-        if (photoUrl != null && !photoUrl.isEmpty()) {
-            loadImage(photoUrl, headerAvatar);
+        header.setPadding(
+                dp(6),
+                dp(6),
+                dp(6),
+                dp(6)
+        );
+
+        header.setBackgroundColor(
+                themeColor
+        );
+
+        ImageButton back =
+                new ImageButton(this);
+
+        back.setImageResource(
+                android.R.drawable.ic_media_previous
+        );
+
+        back.setBackgroundColor(
+                Color.TRANSPARENT
+        );
+
+        back.setOnClickListener(
+                v -> showUsers()
+        );
+
+        header.addView(
+                back,
+                new LinearLayout.LayoutParams(
+                        dp(48),
+                        dp(48)
+                )
+        );
+
+        headerAvatar =
+                avatarView(62);
+
+        if (photoUrl != null &&
+                !photoUrl.isEmpty()) {
+
+            loadImage(
+                    photoUrl,
+                    headerAvatar
+            );
         }
 
-        headerAvatar.setOnClickListener(v -> {
-            if (photoUrl != null && !photoUrl.isEmpty()) {
-                showImageViewer(photoUrl);
-            }
-        });
+        headerAvatar.setOnClickListener(
+                v -> {
+
+                    if (photoUrl != null &&
+                            !photoUrl.isEmpty()) {
+
+                        showImageViewer(
+                                photoUrl
+                        );
+                    }
+                }
+        );
 
         header.addView(headerAvatar);
 
-        LinearLayout titles = new LinearLayout(this);
-        titles.setOrientation(LinearLayout.VERTICAL);
-        titles.setPadding(dp(8), 0, 0, 0);
+        LinearLayout titles =
+                new LinearLayout(this);
 
-        titleText = text(receiverName, 18);
-        titleText.setTextColor(Color.WHITE);
-        titleText.setTypeface(null, Typeface.BOLD);
+        titles.setOrientation(
+                LinearLayout.VERTICAL
+        );
 
-        statusText = text("در حال بررسی...", 13);
-        statusText.setTextColor(Color.WHITE);
+        titles.setPadding(
+                dp(8),
+                0,
+                0,
+                0
+        );
+
+        titleText =
+                text(
+                        receiverName,
+                        18
+                );
+
+        titleText.setTextColor(
+                Color.WHITE
+        );
+
+        titleText.setTypeface(
+                null,
+                Typeface.BOLD
+        );
+
+        statusText =
+                text(
+                        "در حال بررسی...",
+                        13
+                );
+
+        statusText.setTextColor(
+                Color.WHITE
+        );
 
         titles.addView(titleText);
         titles.addView(statusText);
 
-        header.addView(titles,
-                new LinearLayout.LayoutParams(0, -2, 1));
+        header.addView(
+                titles,
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                )
+        );
 
-        headerOnlineDot = text("●", 15);
-        headerOnlineDot.setTextColor(Color.GRAY);
+        headerOnlineDot =
+                text("●", 15);
 
-        header.addView(headerOnlineDot);
+        headerOnlineDot.setTextColor(
+                Color.GRAY
+        );
+
+        header.addView(
+                headerOnlineDot
+        );
 
         root.addView(header);
 
-        messagesScroll = new ScrollView(this);
+        messagesScroll =
+                new ScrollView(this);
 
-        messagesContainer = new LinearLayout(this);
-        messagesContainer.setOrientation(LinearLayout.VERTICAL);
-        messagesContainer.setPadding(
-                dp(8), dp(8), dp(8), dp(8)
+        messagesContainer =
+                new LinearLayout(this);
+
+        messagesContainer.setOrientation(
+                LinearLayout.VERTICAL
         );
 
-        messagesScroll.addView(messagesContainer);
+        messagesContainer.setPadding(
+                dp(8),
+                dp(8),
+                dp(8),
+                dp(8)
+        );
 
-        root.addView(messagesScroll,
+        messagesScroll.addView(
+                messagesContainer
+        );
+
+        root.addView(
+                messagesScroll,
                 new LinearLayout.LayoutParams(
-                        -1, 0, 1
-                ));
+                        -1,
+                        0,
+                        1
+                )
+        );
 
-        LinearLayout bottom = new LinearLayout(this);
-        bottom.setGravity(Gravity.CENTER_VERTICAL);
-        bottom.setPadding(dp(6), dp(5), dp(6), dp(5));
-        bottom.setBackgroundColor(Color.WHITE);
+        LinearLayout bottom =
+                new LinearLayout(this);
 
-        mediaButton = new ImageButton(this);
+        bottom.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        bottom.setPadding(
+                dp(6),
+                dp(5),
+                dp(6),
+                dp(5)
+        );
+
+        bottom.setBackgroundColor(
+                Color.WHITE
+        );
+
+        mediaButton =
+                new ImageButton(this);
+
         mediaButton.setImageResource(
                 android.R.drawable.ic_menu_gallery
         );
-        mediaButton.setBackgroundColor(Color.TRANSPARENT);
-        mediaButton.setOnClickListener(v -> pickMedia());
 
-        bottom.addView(mediaButton,
-                new LinearLayout.LayoutParams(dp(50), dp(50)));
+        mediaButton.setBackgroundColor(
+                Color.TRANSPARENT
+        );
 
-        messageInput = new EditText(this);
-        messageInput.setHint("پیام خود را بنویسید...");
+        mediaButton.setOnClickListener(
+                v -> pickMedia()
+        );
+
+        bottom.addView(
+                mediaButton,
+                new LinearLayout.LayoutParams(
+                        dp(50),
+                        dp(50)
+                )
+        );
+
+        messageInput =
+                new EditText(this);
+
+        messageInput.setHint(
+                "پیام خود را بنویسید..."
+        );
+
         messageInput.setTextSize(15);
         messageInput.setSingleLine(false);
 
         bottom.addView(
                 messageInput,
-                new LinearLayout.LayoutParams(0, -2, 1)
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                )
         );
 
-        voiceButton = new ImageButton(this);
+        voiceButton =
+                new ImageButton(this);
+
         voiceButton.setImageResource(
                 android.R.drawable.ic_btn_speak_now
         );
-        voiceButton.setBackgroundColor(Color.TRANSPARENT);
-        voiceButton.setOnClickListener(v -> toggleRecording());
 
-        bottom.addView(voiceButton,
-                new LinearLayout.LayoutParams(dp(52), dp(52)));
+        voiceButton.setBackgroundColor(
+                Color.TRANSPARENT
+        );
 
-        sendButton = new ImageButton(this);
+        voiceButton.setOnClickListener(
+                v -> toggleRecording()
+        );
+
+        bottom.addView(
+                voiceButton,
+                new LinearLayout.LayoutParams(
+                        dp(52),
+                        dp(52)
+                )
+        );
+
+        sendButton =
+                new ImageButton(this);
+
         sendButton.setImageResource(
                 android.R.drawable.ic_menu_send
         );
-        sendButton.setBackgroundColor(Color.TRANSPARENT);
-        sendButton.setOnClickListener(v -> sendText());
 
-        bottom.addView(sendButton,
-                new LinearLayout.LayoutParams(dp(52), dp(52)));
+        sendButton.setBackgroundColor(
+                Color.TRANSPARENT
+        );
+
+        sendButton.setOnClickListener(
+                v -> sendText()
+        );
+
+        bottom.addView(
+                sendButton,
+                new LinearLayout.LayoutParams(
+                        dp(52),
+                        dp(52)
+                )
+        );
 
         root.addView(bottom);
 
-        messageInput.addTextChangedListener(new TextWatcher() {
+        messageInput.addTextChangedListener(
+                new TextWatcher() {
 
-            @Override
-            public void beforeTextChanged(
-                    CharSequence s,
-                    int start,
-                    int count,
-                    int after
-            ) {
-            }
+                    @Override
+                    public void beforeTextChanged(
+                            CharSequence s,
+                            int start,
+                            int count,
+                            int after
+                    ) {
+                    }
 
-            @Override
-            public void onTextChanged(
-                    CharSequence s,
-                    int start,
-                    int before,
-                    int count
-            ) {
-                updateTyping(!s.toString().trim().isEmpty());
-            }
+                    @Override
+                    public void onTextChanged(
+                            CharSequence s,
+                            int start,
+                            int before,
+                            int count
+                    ) {
 
-            @Override
-            public void afterTextChanged(Editable s) {
-            }
-        });
+                        updateTyping(
+                                !s.toString()
+                                        .trim()
+                                        .isEmpty()
+                        );
+                    }
+
+                    @Override
+                    public void afterTextChanged(
+                            Editable s
+                    ) {
+                    }
+                }
+        );
 
         setContentView(root);
     }
@@ -726,26 +1348,53 @@ public class ChatActivity extends Activity {
 
         sentMessageListener =
                 db.collection("messages")
-                        .whereEqualTo("chatId", currentChatId)
-                        .whereEqualTo("senderId", myId)
+                        .whereEqualTo(
+                                "chatId",
+                                currentChatId
+                        )
+                        .whereEqualTo(
+                                "senderId",
+                                myId
+                        )
                         .addSnapshotListener(
-                                (snapshot, error) -> handleMessages(snapshot)
+                                (snapshot, error) ->
+                                        handleMessages(
+                                                snapshot
+                                        )
                         );
 
         receivedMessageListener =
                 db.collection("messages")
-                        .whereEqualTo("chatId", currentChatId)
-                        .whereEqualTo("receiverId", myId)
+                        .whereEqualTo(
+                                "chatId",
+                                currentChatId
+                        )
+                        .whereEqualTo(
+                                "receiverId",
+                                myId
+                        )
                         .addSnapshotListener(
-                                (snapshot, error) -> handleMessages(snapshot)
+                                (snapshot, error) ->
+                                        handleMessages(
+                                                snapshot
+                                        )
                         );
     }
 
-    private void handleMessages(QuerySnapshot snapshot) {
+    private void handleMessages(
+            QuerySnapshot snapshot
+    ) {
 
-        if (snapshot == null || messagesContainer == null) return;
+        if (snapshot == null ||
+                messagesContainer == null) {
+            return;
+        }
 
-        for (DocumentChange change : snapshot.getDocumentChanges()) {
+        for (
+                DocumentChange change :
+                snapshot.getDocumentChanges()
+        ) {
+
             messageCache.put(
                     change.getDocument().getId(),
                     change.getDocument()
@@ -760,55 +1409,96 @@ public class ChatActivity extends Activity {
         messagesContainer.removeAllViews();
 
         List<DocumentSnapshot> list =
-                new ArrayList<>(messageCache.values());
+                new ArrayList<>(
+                        messageCache.values()
+                );
 
-        Collections.sort(list,
+        Collections.sort(
+                list,
                 (a, b) -> {
-                    com.google.firebase.Timestamp ta =
-                            a.getTimestamp("timestamp");
-                    com.google.firebase.Timestamp tb =
-                            b.getTimestamp("timestamp");
 
-                    if (ta == null && tb == null) return 0;
-                    if (ta == null) return -1;
-                    if (tb == null) return 1;
+                    com.google.firebase.Timestamp ta =
+                            a.getTimestamp(
+                                    "timestamp"
+                            );
+
+                    com.google.firebase.Timestamp tb =
+                            b.getTimestamp(
+                                    "timestamp"
+                            );
+
+                    if (ta == null &&
+                            tb == null) {
+                        return 0;
+                    }
+
+                    if (ta == null) {
+                        return -1;
+                    }
+
+                    if (tb == null) {
+                        return 1;
+                    }
 
                     return ta.compareTo(tb);
-                });
+                }
+        );
 
-        for (DocumentSnapshot d : list) {
+        for (
+                DocumentSnapshot d :
+                list
+        ) {
             renderOneMessage(d);
         }
 
-        messagesScroll.post(() ->
-                messagesScroll.fullScroll(View.FOCUS_DOWN));
+        messagesScroll.post(
+                () ->
+                        messagesScroll.fullScroll(
+                                View.FOCUS_DOWN
+                        )
+        );
     }
 
-    private void renderOneMessage(DocumentSnapshot d) {
+    private void renderOneMessage(
+            DocumentSnapshot d
+    ) {
 
-        Boolean deleted = d.getBoolean("deletedForAll");
+        Boolean deleted =
+                d.getBoolean(
+                        "deletedForAll"
+                );
 
-        if (deleted != null && deleted) {
+        if (deleted != null &&
+                deleted) {
+
             addSimpleMessage(
                     "پیام حذف شد",
                     d.getString("senderId")
             );
+
             return;
         }
 
-        String type = d.getString("type");
+        String type =
+                d.getString("type");
 
-        if (type == null) type = "text";
+        if (type == null) {
+            type = "text";
+        }
 
         if ("text".equals(type)) {
 
-            String message = d.getString("message");
+            String message =
+                    d.getString("message");
 
             if (message == null) {
-                message = d.getString("text");
+                message =
+                        d.getString("text");
             }
 
-            if (message == null) message = "";
+            if (message == null) {
+                message = "";
+            }
 
             addTextMessage(
                     message,
@@ -818,23 +1508,32 @@ public class ChatActivity extends Activity {
 
         } else if ("image".equals(type)) {
 
-            String url = d.getString("mediaUrl");
+            String url =
+                    d.getString("mediaUrl");
 
             if (url != null) {
-                addMediaMessage(url, false);
+                addMediaMessage(
+                        url,
+                        false
+                );
             }
 
         } else if ("video".equals(type)) {
 
-            String url = d.getString("mediaUrl");
+            String url =
+                    d.getString("mediaUrl");
 
             if (url != null) {
-                addMediaMessage(url, true);
+                addMediaMessage(
+                        url,
+                        true
+                );
             }
 
         } else if ("audio".equals(type)) {
 
-            String url = d.getString("audioUrl");
+            String url =
+                    d.getString("audioUrl");
 
             if (url != null) {
                 addAudioMessage(url);
@@ -847,7 +1546,11 @@ public class ChatActivity extends Activity {
             String sender
     ) {
 
-        addTextMessage(message, sender, null);
+        addTextMessage(
+                message,
+                sender,
+                null
+        );
     }
 
     private void addTextMessage(
@@ -856,12 +1559,19 @@ public class ChatActivity extends Activity {
             String messageId
     ) {
 
-        TextView bubble = text(message, 16);
+        TextView bubble =
+                text(
+                        message,
+                        16
+                );
 
-        boolean mine = myId.equals(sender);
+        boolean mine =
+                myId.equals(sender);
 
         bubble.setTextColor(
-                mine ? Color.WHITE : Color.DKGRAY
+                mine
+                        ? Color.WHITE
+                        : Color.DKGRAY
         );
 
         bubble.setBackground(
@@ -874,7 +1584,10 @@ public class ChatActivity extends Activity {
         );
 
         bubble.setPadding(
-                dp(13), dp(9), dp(13), dp(9)
+                dp(13),
+                dp(9),
+                dp(13),
+                dp(9)
         );
 
         LinearLayout.LayoutParams p =
@@ -884,22 +1597,37 @@ public class ChatActivity extends Activity {
                 );
 
         p.setMargins(
-                dp(8), dp(4), dp(8), dp(4)
+                dp(8),
+                dp(4),
+                dp(8),
+                dp(4)
         );
 
-        p.gravity = mine
-                ? Gravity.END
-                : Gravity.START;
+        p.gravity =
+                mine
+                        ? Gravity.END
+                        : Gravity.START;
 
-        messagesContainer.addView(bubble, p);
+        messagesContainer.addView(
+                bubble,
+                p
+        );
 
         if (messageId != null) {
-            String finalMessageId = messageId;
 
-            bubble.setOnLongClickListener(v -> {
-                showDeleteMenu(finalMessageId);
-                return true;
-            });
+            String finalMessageId =
+                    messageId;
+
+            bubble.setOnLongClickListener(
+                    v -> {
+
+                        showDeleteMenu(
+                                finalMessageId
+                        );
+
+                        return true;
+                    }
+            );
         }
     }
 
@@ -908,7 +1636,8 @@ public class ChatActivity extends Activity {
             boolean video
     ) {
 
-        ImageView image = new ImageView(this);
+        ImageView image =
+                new ImageView(this);
 
         image.setLayoutParams(
                 new LinearLayout.LayoutParams(
@@ -917,11 +1646,25 @@ public class ChatActivity extends Activity {
                 )
         );
 
-        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        image.setBackground(bg(Color.WHITE, 14));
-        image.setPadding(dp(2), dp(2), dp(2), dp(2));
+        image.setScaleType(
+                ImageView.ScaleType.CENTER_CROP
+        );
 
-        loadImage(url, image);
+        image.setBackground(
+                bg(Color.WHITE, 14)
+        );
+
+        image.setPadding(
+                dp(2),
+                dp(2),
+                dp(2),
+                dp(2)
+        );
+
+        loadImage(
+                url,
+                image
+        );
 
         LinearLayout.LayoutParams p =
                 new LinearLayout.LayoutParams(
@@ -929,23 +1672,46 @@ public class ChatActivity extends Activity {
                         dp(300)
                 );
 
-        p.gravity = Gravity.START;
-        p.setMargins(dp(6), dp(5), dp(6), dp(5));
+        p.gravity =
+                Gravity.START;
 
-        messagesContainer.addView(image, p);
+        p.setMargins(
+                dp(6),
+                dp(5),
+                dp(6),
+                dp(5)
+        );
+
+        messagesContainer.addView(
+                image,
+                p
+        );
 
         if (!video) {
-            image.setOnClickListener(v ->
-                    showImageViewer(url));
+
+            image.setOnClickListener(
+                    v ->
+                            showImageViewer(url)
+            );
         }
     }
 
-    private void addAudioMessage(String url) {
+    private void addAudioMessage(
+            String url
+    ) {
 
-        Button play = new Button(this);
-        play.setText("▶️ پخش پیام صوتی");
+        Button play =
+                new Button(this);
+
+        play.setText(
+                "▶️ پخش پیام صوتی"
+        );
+
         play.setTextSize(14);
-        play.setOnClickListener(v -> playAudio(url));
+
+        play.setOnClickListener(
+                v -> playAudio(url)
+        );
 
         LinearLayout.LayoutParams p =
                 new LinearLayout.LayoutParams(
@@ -953,12 +1719,22 @@ public class ChatActivity extends Activity {
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
 
-        p.setMargins(dp(6), dp(4), dp(6), dp(4));
+        p.setMargins(
+                dp(6),
+                dp(4),
+                dp(6),
+                dp(4)
+        );
 
-        messagesContainer.addView(play, p);
+        messagesContainer.addView(
+                play,
+                p
+        );
     }
 
-    private void showDeleteMenu(String messageId) {
+    private void showDeleteMenu(
+            String messageId
+    ) {
 
         String[] items = {
                 "حذف برای من",
@@ -966,28 +1742,41 @@ public class ChatActivity extends Activity {
         };
 
         new AlertDialog.Builder(this)
-                .setItems(items, (d, which) -> {
+                .setItems(
+                        items,
+                        (d, which) -> {
 
-                    if (which == 0) {
-                        deleteForMe(messageId);
-                    } else {
-                        deleteForAll(messageId);
-                    }
-                })
+                            if (which == 0) {
+                                deleteForMe(
+                                        messageId
+                                );
+                            } else {
+                                deleteForAll(
+                                        messageId
+                                );
+                            }
+                        }
+                )
                 .show();
     }
 
-    private void deleteForMe(String messageId) {
+    private void deleteForMe(
+            String messageId
+    ) {
 
         db.collection("messages")
                 .document(messageId)
                 .update(
                         "deletedFor",
-                        FieldValue.arrayUnion(myId)
+                        FieldValue.arrayUnion(
+                                myId
+                        )
                 );
     }
 
-    private void deleteForAll(String messageId) {
+    private void deleteForAll(
+            String messageId
+    ) {
 
         db.collection("messages")
                 .document(messageId)
@@ -1000,63 +1789,131 @@ public class ChatActivity extends Activity {
     private void sendText() {
 
         if (blocked) {
+
             Toast.makeText(
                     this,
                     "این کاربر بلاک شده است",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
-        if (messageInput == null) return;
+        if (messageInput == null) {
+            return;
+        }
 
         String message =
-                messageInput.getText().toString().trim();
+                messageInput
+                        .getText()
+                        .toString()
+                        .trim();
 
-        if (message.isEmpty()) return;
+        if (message.isEmpty()) {
+            return;
+        }
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data =
+                new HashMap<>();
 
-        data.put("chatId", currentChatId);
-        data.put("senderId", myId);
-        data.put("receiverId", receiverId);
-        data.put("type", "text");
-        data.put("message", message);
-        data.put("timestamp", FieldValue.serverTimestamp());
-        data.put("read", false);
-        data.put("deletedForAll", false);
-        data.put("deletedFor", new ArrayList<>());
+        data.put(
+                "chatId",
+                currentChatId
+        );
+
+        data.put(
+                "senderId",
+                myId
+        );
+
+        data.put(
+                "receiverId",
+                receiverId
+        );
+
+        data.put(
+                "type",
+                "text"
+        );
+
+        data.put(
+                "message",
+                message
+        );
+
+        data.put(
+                "timestamp",
+                FieldValue.serverTimestamp()
+        );
+
+        data.put(
+                "read",
+                false
+        );
+
+        data.put(
+                "deletedForAll",
+                false
+        );
+
+        data.put(
+                "deletedFor",
+                new ArrayList<>()
+        );
 
         db.collection("messages")
                 .add(data)
-                .addOnSuccessListener(x ->
-                        messageInput.setText(""))
-                .addOnFailureListener(e ->
-                        Toast.makeText(
-                                this,
-                                "خطا در ارسال پیام",
-                                Toast.LENGTH_SHORT
-                        ).show());
+                .addOnSuccessListener(
+                        x ->
+                                messageInput
+                                        .setText("")
+                )
+                .addOnFailureListener(
+                        e ->
+                                Toast.makeText(
+                                        this,
+                                        "خطا در ارسال پیام",
+                                        Toast.LENGTH_SHORT
+                                ).show()
+                );
     }
 
-    private void updateTyping(boolean value) {
+    private void updateTyping(
+            boolean value
+    ) {
 
-        if (receiverId == null) return;
+        if (receiverId == null) {
+            return;
+        }
 
         typing = value;
 
         db.collection("users")
                 .document(myId)
-                .update("typingTo", value ? receiverId : "");
+                .update(
+                        "typingTo",
+                        value
+                                ? receiverId
+                                : ""
+                );
 
-        typingHandler.removeCallbacksAndMessages(null);
+        typingHandler
+                .removeCallbacksAndMessages(
+                        null
+                );
 
         if (value) {
+
             typingHandler.postDelayed(
                     () -> {
+
                         db.collection("users")
                                 .document(myId)
-                                .update("typingTo", "");
+                                .update(
+                                        "typingTo",
+                                        ""
+                                );
+
                         typing = false;
                     },
                     2500
@@ -1076,21 +1933,42 @@ public class ChatActivity extends Activity {
                         .addSnapshotListener(
                                 (d, error) -> {
 
-                                    if (d == null || !d.exists()) return;
+                                    if (d == null ||
+                                            !d.exists()) {
+                                        return;
+                                    }
 
                                     Boolean online =
-                                            d.getBoolean("online");
+                                            d.getBoolean(
+                                                    "online"
+                                            );
 
-                                    if (online != null && online) {
-                                        statusText.setText("آنلاین");
-                                        headerOnlineDot.setTextColor(
-                                                Color.rgb(0, 180, 70)
+                                    if (online != null &&
+                                            online) {
+
+                                        statusText.setText(
+                                                "آنلاین"
                                         );
+
+                                        headerOnlineDot
+                                                .setTextColor(
+                                                        Color.rgb(
+                                                                0,
+                                                                180,
+                                                                70
+                                                        )
+                                                );
+
                                     } else {
-                                        statusText.setText("آفلاین");
-                                        headerOnlineDot.setTextColor(
-                                                Color.GRAY
+
+                                        statusText.setText(
+                                                "آفلاین"
                                         );
+
+                                        headerOnlineDot
+                                                .setTextColor(
+                                                        Color.GRAY
+                                                );
                                     }
                                 }
                         );
@@ -1108,15 +1986,28 @@ public class ChatActivity extends Activity {
                         .addSnapshotListener(
                                 (d, error) -> {
 
-                                    if (d == null || !d.exists()) return;
+                                    if (d == null ||
+                                            !d.exists()) {
+                                        return;
+                                    }
 
                                     String typingTo =
-                                            d.getString("typingTo");
+                                            d.getString(
+                                                    "typingTo"
+                                            );
 
-                                    if (receiverId.equals(myId)) return;
+                                    if (receiverId
+                                            .equals(myId)) {
+                                        return;
+                                    }
 
-                                    if (myId.equals(typingTo)) {
-                                        statusText.setText("در حال نوشتن...");
+                                    if (myId.equals(
+                                            typingTo
+                                    )) {
+
+                                        statusText.setText(
+                                                "در حال نوشتن..."
+                                        );
                                     }
                                 }
                         );
@@ -1130,8 +2021,14 @@ public class ChatActivity extends Activity {
 
         blockListener =
                 db.collection("blocks")
-                        .whereEqualTo("ownerId", myId)
-                        .whereEqualTo("blockedUserId", receiverId)
+                        .whereEqualTo(
+                                "ownerId",
+                                myId
+                        )
+                        .whereEqualTo(
+                                "blockedUserId",
+                                receiverId
+                        )
                         .addSnapshotListener(
                                 (snapshot, error) -> {
 
@@ -1145,7 +2042,9 @@ public class ChatActivity extends Activity {
     private void pickMedia() {
 
         Intent intent =
-                new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                new Intent(
+                        Intent.ACTION_OPEN_DOCUMENT
+                );
 
         intent.setType("*/*");
 
@@ -1166,23 +2065,34 @@ public class ChatActivity extends Activity {
                 Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
         );
 
-        startActivityForResult(intent, PICK_MEDIA);
+        startActivityForResult(
+                intent,
+                PICK_MEDIA
+        );
     }
 
     private void pickProfilePhoto() {
 
         Intent intent =
-                new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                new Intent(
+                        Intent.ACTION_OPEN_DOCUMENT
+                );
 
         intent.setType("image/*");
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        intent.addCategory(
+                Intent.CATEGORY_OPENABLE
+        );
 
         intent.addFlags(
                 Intent.FLAG_GRANT_READ_URI_PERMISSION |
                 Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
         );
 
-        startActivityForResult(intent, PICK_PROFILE);
+        startActivityForResult(
+                intent,
+                PICK_PROFILE
+        );
     }
 
     @Override
@@ -1204,25 +2114,32 @@ public class ChatActivity extends Activity {
             return;
         }
 
-        Uri uri = data.getData();
+        Uri uri =
+                data.getData();
 
         try {
-            getContentResolver().takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-            );
+
+            getContentResolver()
+                    .takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    );
+
         } catch (Exception ignored) {
         }
 
         if (requestCode == PICK_MEDIA) {
+
             uploadMedia(uri);
 
         } else if (requestCode == PICK_PROFILE) {
+
             uploadProfilePhoto(uri);
 
         } else if (requestCode == REQUEST_SAVE) {
 
             if (pendingSaveUrl != null) {
+
                 saveImageToGallery(
                         pendingSaveUrl,
                         pendingSaveName
@@ -1231,43 +2148,66 @@ public class ChatActivity extends Activity {
         }
     }
 
-    private void uploadMedia(Uri uri) {
+    private void uploadMedia(
+            Uri uri
+    ) {
 
         if (blocked) {
+
             Toast.makeText(
                     this,
                     "این کاربر بلاک شده است",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
         String mime =
-                getContentResolver().getType(uri);
+                getContentResolver()
+                        .getType(uri);
 
-        if (mime == null) mime = "application/octet-stream";
+        if (mime == null) {
+            mime =
+                    "application/octet-stream";
+        }
 
-        boolean image = mime.startsWith("image/");
-        boolean video = mime.startsWith("video/");
+        boolean image =
+                mime.startsWith("image/");
+
+        boolean video =
+                mime.startsWith("video/");
 
         if (!image && !video) {
+
             Toast.makeText(
                     this,
                     "این نوع فایل پشتیبانی نمی‌شود",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
         String ext;
 
         if (image) {
-            if (mime.contains("png")) ext = "png";
-            else if (mime.contains("webp")) ext = "webp";
-            else ext = "jpg";
+
+            if (mime.contains("png")) {
+                ext = "png";
+            } else if (mime.contains("webp")) {
+                ext = "webp";
+            } else {
+                ext = "jpg";
+            }
+
         } else {
-            if (mime.contains("3gp")) ext = "3gp";
-            else ext = "mp4";
+
+            if (mime.contains("3gp")) {
+                ext = "3gp";
+            } else {
+                ext = "mp4";
+            }
         }
 
         String objectPath =
@@ -1278,7 +2218,8 @@ public class ChatActivity extends Activity {
                 "." +
                 ext;
 
-        String finalMime = mime;
+        String finalMime =
+                mime;
 
         Toast.makeText(
                 this,
@@ -1294,18 +2235,27 @@ public class ChatActivity extends Activity {
                 new SupabaseUploadCallback() {
 
                     @Override
-                    public void onSuccess(String url) {
+                    public void onSuccess(
+                            String url
+                    ) {
+
                         saveMediaMessage(
-                                image ? "image" : "video",
+                                image
+                                        ? "image"
+                                        : "video",
                                 url
                         );
                     }
 
                     @Override
-                    public void onError(String error) {
+                    public void onError(
+                            String error
+                    ) {
+
                         Toast.makeText(
                                 ChatActivity.this,
-                                "خطای ارسال:\n" + error,
+                                "خطای ارسال:\n" +
+                                        error,
                                 Toast.LENGTH_LONG
                         ).show();
                     }
@@ -1318,17 +2268,53 @@ public class ChatActivity extends Activity {
             String url
     ) {
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data =
+                new HashMap<>();
 
-        data.put("chatId", currentChatId);
-        data.put("senderId", myId);
-        data.put("receiverId", receiverId);
-        data.put("type", type);
-        data.put("mediaUrl", url);
-        data.put("timestamp", FieldValue.serverTimestamp());
-        data.put("read", false);
-        data.put("deletedForAll", false);
-        data.put("deletedFor", new ArrayList<>());
+        data.put(
+                "chatId",
+                currentChatId
+        );
+
+        data.put(
+                "senderId",
+                myId
+        );
+
+        data.put(
+                "receiverId",
+                receiverId
+        );
+
+        data.put(
+                "type",
+                type
+        );
+
+        data.put(
+                "mediaUrl",
+                url
+        );
+
+        data.put(
+                "timestamp",
+                FieldValue.serverTimestamp()
+        );
+
+        data.put(
+                "read",
+                false
+        );
+
+        data.put(
+                "deletedForAll",
+                false
+        );
+
+        data.put(
+                "deletedFor",
+                new ArrayList<>()
+        );
 
         db.collection("messages")
                 .add(data);
@@ -1346,11 +2332,13 @@ public class ChatActivity extends Activity {
     private void startRecording() {
 
         if (blocked) {
+
             Toast.makeText(
                     this,
                     "این کاربر بلاک شده است",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
@@ -1376,13 +2364,15 @@ public class ChatActivity extends Activity {
                     new File(
                             getCacheDir(),
                             "voice_" +
-                            System.currentTimeMillis() +
-                            ".m4a"
+                                    System.currentTimeMillis() +
+                                    ".m4a"
                     );
 
-            audioPath = file.getAbsolutePath();
+            audioPath =
+                    file.getAbsolutePath();
 
-            recorder = new MediaRecorder();
+            recorder =
+                    new MediaRecorder();
 
             recorder.setAudioSource(
                     MediaRecorder.AudioSource.MIC
@@ -1396,7 +2386,9 @@ public class ChatActivity extends Activity {
                     MediaRecorder.AudioEncoder.AAC
             );
 
-            recorder.setOutputFile(audioPath);
+            recorder.setOutputFile(
+                    audioPath
+            );
 
             recorder.prepare();
             recorder.start();
@@ -1419,7 +2411,8 @@ public class ChatActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "خطا در شروع ضبط: " + e.getMessage(),
+                    "خطا در شروع ضبط: " +
+                            e.getMessage(),
                     Toast.LENGTH_LONG
             ).show();
 
@@ -1429,13 +2422,18 @@ public class ChatActivity extends Activity {
 
     private void stopRecording() {
 
-        if (recorder == null) return;
+        if (recorder == null) {
+            return;
+        }
 
         try {
+
             recorder.stop();
+
         } catch (Exception e) {
 
             recording = false;
+
             releaseRecorder();
 
             Toast.makeText(
@@ -1448,6 +2446,7 @@ public class ChatActivity extends Activity {
         }
 
         recording = false;
+
         releaseRecorder();
 
         voiceButton.setImageResource(
@@ -1460,46 +2459,58 @@ public class ChatActivity extends Activity {
     private void releaseRecorder() {
 
         try {
+
             if (recorder != null) {
+
                 recorder.reset();
                 recorder.release();
             }
+
         } catch (Exception ignored) {
         }
 
         recorder = null;
     }
 
-    private void uploadVoice(String path) {
+    private void uploadVoice(
+            String path
+    ) {
 
         if (path == null) {
+
             Toast.makeText(
                     this,
                     "فایل صوتی پیدا نشد",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
-        File file = new File(path);
+        File file =
+                new File(path);
 
-        if (!file.exists() || file.length() <= 0) {
+        if (!file.exists() ||
+                file.length() <= 0) {
+
             Toast.makeText(
                     this,
                     "فایل صوتی خالی است",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
         String fileName =
                 System.currentTimeMillis() +
-                "_" +
-                myId +
-                ".m4a";
+                        "_" +
+                        myId +
+                        ".m4a";
 
         String objectPath =
-                "voice/" + fileName;
+                "voice/" +
+                        fileName;
 
         Toast.makeText(
                 this,
@@ -1515,7 +2526,9 @@ public class ChatActivity extends Activity {
                 new SupabaseUploadCallback() {
 
                     @Override
-                    public void onSuccess(String url) {
+                    public void onSuccess(
+                            String url
+                    ) {
 
                         saveAudioMessage(url);
 
@@ -1526,7 +2539,9 @@ public class ChatActivity extends Activity {
                     }
 
                     @Override
-                    public void onError(String error) {
+                    public void onError(
+                            String error
+                    ) {
 
                         Toast.makeText(
                                 ChatActivity.this,
@@ -1539,34 +2554,76 @@ public class ChatActivity extends Activity {
         );
     }
 
-    private void saveAudioMessage(String url) {
+    private void saveAudioMessage(
+            String url
+    ) {
 
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data =
+                new HashMap<>();
 
-        data.put("chatId", currentChatId);
-        data.put("senderId", myId);
-        data.put("receiverId", receiverId);
-        data.put("type", "audio");
-        data.put("audioUrl", url);
-        data.put("timestamp", FieldValue.serverTimestamp());
-        data.put("read", false);
-        data.put("deletedForAll", false);
-        data.put("deletedFor", new ArrayList<>());
+        data.put(
+                "chatId",
+                currentChatId
+        );
+
+        data.put(
+                "senderId",
+                myId
+        );
+
+        data.put(
+                "receiverId",
+                receiverId
+        );
+
+        data.put(
+                "type",
+                "audio"
+        );
+
+        data.put(
+                "audioUrl",
+                url
+        );
+
+        data.put(
+                "timestamp",
+                FieldValue.serverTimestamp()
+        );
+
+        data.put(
+                "read",
+                false
+        );
+
+        data.put(
+                "deletedForAll",
+                false
+        );
+
+        data.put(
+                "deletedFor",
+                new ArrayList<>()
+        );
 
         db.collection("messages")
                 .add(data);
     }
 
-    private void playAudio(String url) {
+    private void playAudio(
+            String url
+    ) {
 
         try {
 
             if (player != null) {
+
                 player.release();
                 player = null;
             }
 
-            player = new MediaPlayer();
+            player =
+                    new MediaPlayer();
 
             player.setDataSource(url);
 
@@ -1576,6 +2633,7 @@ public class ChatActivity extends Activity {
 
             player.setOnCompletionListener(
                     mp -> {
+
                         mp.release();
                         player = null;
                     }
@@ -1583,11 +2641,13 @@ public class ChatActivity extends Activity {
 
             player.setOnErrorListener(
                     (mp, what, extra) -> {
+
                         Toast.makeText(
                                 this,
                                 "پخش صدا ناموفق بود",
                                 Toast.LENGTH_SHORT
                         ).show();
+
                         return true;
                     }
             );
@@ -1604,35 +2664,45 @@ public class ChatActivity extends Activity {
         }
     }
 
-    private void uploadProfilePhoto(Uri uri) {
+    private void uploadProfilePhoto(
+            Uri uri
+    ) {
 
         String mime =
-                getContentResolver().getType(uri);
+                getContentResolver()
+                        .getType(uri);
 
         if (mime == null ||
                 !mime.startsWith("image/")) {
+
             mime = "image/jpeg";
         }
 
         String ext;
 
         if (mime.contains("png")) {
+
             ext = "png";
+
         } else if (mime.contains("webp")) {
+
             ext = "webp";
+
         } else {
+
             ext = "jpg";
         }
 
         String objectPath =
                 "profiles/profile_" +
-                myId +
-                "_" +
-                System.currentTimeMillis() +
-                "." +
-                ext;
+                        myId +
+                        "_" +
+                        System.currentTimeMillis() +
+                        "." +
+                        ext;
 
-        String finalMime = mime;
+        String finalMime =
+                mime;
 
         Toast.makeText(
                 this,
@@ -1648,12 +2718,17 @@ public class ChatActivity extends Activity {
                 new SupabaseUploadCallback() {
 
                     @Override
-                    public void onSuccess(String url) {
+                    public void onSuccess(
+                            String url
+                    ) {
 
                         Map<String, Object> data =
                                 new HashMap<>();
 
-                        data.put("photoUrl", url);
+                        data.put(
+                                "photoUrl",
+                                url
+                        );
 
                         db.collection("users")
                                 .document(myId)
@@ -1661,20 +2736,24 @@ public class ChatActivity extends Activity {
                                         data,
                                         SetOptions.merge()
                                 )
-                                .addOnSuccessListener(x -> {
+                                .addOnSuccessListener(
+                                        x -> {
 
-                                    Toast.makeText(
-                                            ChatActivity.this,
-                                            "عکس پروفایل ذخیره شد",
-                                            Toast.LENGTH_SHORT
-                                    ).show();
+                                            Toast.makeText(
+                                                    ChatActivity.this,
+                                                    "عکس پروفایل ذخیره شد",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
 
-                                    loadUsers();
-                                });
+                                            loadUsers();
+                                        }
+                                );
                     }
 
                     @Override
-                    public void onError(String error) {
+                    public void onError(
+                            String error
+                    ) {
 
                         Toast.makeText(
                                 ChatActivity.this,
@@ -1695,208 +2774,282 @@ public class ChatActivity extends Activity {
             SupabaseUploadCallback callback
     ) {
 
-        new Thread(() -> {
+        new Thread(
+                () -> {
 
-            HttpURLConnection connection = null;
-            InputStream input = null;
-            OutputStream output = null;
+                    HttpURLConnection connection =
+                            null;
 
-            try {
+                    InputStream input =
+                            null;
 
-                String endpoint =
-                        SUPABASE_URL +
-                        "/storage/v1/object/" +
-                        bucket +
-                        "/" +
-                        encodePath(objectPath);
+                    OutputStream output =
+                            null;
 
-                URL url = new URL(endpoint);
+                    try {
 
-                connection =
-                        (HttpURLConnection)
-                                url.openConnection();
+                        String endpoint =
+                                SUPABASE_URL +
+                                        "/storage/v1/object/" +
+                                        bucket +
+                                        "/" +
+                                        encodePath(
+                                                objectPath
+                                        );
 
-                connection.setRequestMethod("POST");
-                connection.setDoOutput(true);
-                connection.setDoInput(true);
+                        URL url =
+                                new URL(endpoint);
 
-                connection.setConnectTimeout(30000);
-                connection.setReadTimeout(60000);
+                        connection =
+                                (HttpURLConnection)
+                                        url.openConnection();
 
-                /*
-                 * مهم:
-                 * فقط publishable key در apikey.
-                 * Authorization: Bearer عمداً استفاده نشده.
-                 */
-                connection.setRequestProperty(
-                        "apikey",
-                        SUPABASE_PUBLISHABLE_KEY
-                );
-
-                connection.setRequestProperty(
-                        "Accept",
-                        "application/json"
-                );
-
-                connection.setRequestProperty(
-                        "Content-Type",
-                        contentType
-                );
-
-                connection.setRequestProperty(
-                        "x-upsert",
-                        "true"
-                );
-
-                long size = -1;
-
-                if ("file".equals(uri.getScheme())) {
-
-                    File file =
-                            new File(uri.getPath());
-
-                    if (!file.exists()) {
-                        throw new Exception(
-                                "فایل وجود ندارد"
+                        connection.setRequestMethod(
+                                "POST"
                         );
-                    }
 
-                    if (file.length() <= 0) {
-                        throw new Exception(
-                                "فایل خالی است"
+                        connection.setDoOutput(true);
+                        connection.setDoInput(true);
+
+                        connection.setConnectTimeout(
+                                30000
                         );
-                    }
 
-                    size = file.length();
-
-                    input =
-                            new FileInputStream(file);
-
-                } else {
-
-                    input =
-                            getContentResolver()
-                                    .openInputStream(uri);
-
-                    if (input == null) {
-                        throw new Exception(
-                                "فایل قابل خواندن نیست"
+                        connection.setReadTimeout(
+                                60000
                         );
-                    }
 
-                    size = getUriSize(uri);
-                }
+                        connection.setRequestProperty(
+                                "apikey",
+                                SUPABASE_PUBLISHABLE_KEY
+                        );
 
-                /*
-                 * اگر اندازه فایل مشخص باشد،
-                 * ارسال به صورت fixed length انجام می‌شود.
-                 * این برای فایل صوتی مهم است.
-                 */
-                if (size > 0) {
-                    connection.setFixedLengthStreamingMode(size);
-                }
+                        connection.setRequestProperty(
+                                "Accept",
+                                "application/json"
+                        );
 
-                output =
-                        connection.getOutputStream();
+                        connection.setRequestProperty(
+                                "Content-Type",
+                                contentType
+                        );
 
-                byte[] buffer = new byte[8192];
-                int count;
+                        connection.setRequestProperty(
+                                "x-upsert",
+                                "true"
+                        );
 
-                while ((count = input.read(buffer)) != -1) {
-                    output.write(buffer, 0, count);
-                }
+                        long size = -1;
 
-                output.flush();
-                output.close();
-                output = null;
+                        if ("file".equals(
+                                uri.getScheme()
+                        )) {
 
-                int code =
-                        connection.getResponseCode();
+                            File file =
+                                    new File(
+                                            uri.getPath()
+                                    );
 
-                if (code >= 200 && code < 300) {
+                            if (!file.exists()) {
 
-                    String publicUrl =
-                            getSupabasePublicUrl(
-                                    bucket,
-                                    objectPath
+                                throw new Exception(
+                                        "فایل وجود ندارد"
+                                );
+                            }
+
+                            if (file.length() <= 0) {
+
+                                throw new Exception(
+                                        "فایل خالی است"
+                                );
+                            }
+
+                            size =
+                                    file.length();
+
+                            input =
+                                    new FileInputStream(
+                                            file
+                                    );
+
+                        } else {
+
+                            input =
+                                    getContentResolver()
+                                            .openInputStream(
+                                                    uri
+                                            );
+
+                            if (input == null) {
+
+                                throw new Exception(
+                                        "فایل قابل خواندن نیست"
+                                );
+                            }
+
+                            size =
+                                    getUriSize(uri);
+                        }
+
+                        if (size > 0) {
+
+                            connection
+                                    .setFixedLengthStreamingMode(
+                                            size
+                                    );
+                        }
+
+                        output =
+                                connection
+                                        .getOutputStream();
+
+                        byte[] buffer =
+                                new byte[8192];
+
+                        int count;
+
+                        while (
+                                (count =
+                                        input.read(
+                                                buffer
+                                        )) != -1
+                        ) {
+
+                            output.write(
+                                    buffer,
+                                    0,
+                                    count
+                            );
+                        }
+
+                        output.flush();
+                        output.close();
+                        output = null;
+
+                        int code =
+                                connection
+                                        .getResponseCode();
+
+                        if (code >= 200 &&
+                                code < 300) {
+
+                            String publicUrl =
+                                    getSupabasePublicUrl(
+                                            bucket,
+                                            objectPath
+                                    );
+
+                            runOnUiThread(
+                                    () ->
+                                            callback.onSuccess(
+                                                    publicUrl
+                                            )
                             );
 
-                    runOnUiThread(() ->
-                            callback.onSuccess(publicUrl));
+                        } else {
 
-                } else {
+                            String body =
+                                    readErrorResponse(
+                                            connection
+                                    );
 
-                    String body =
-                            readErrorResponse(connection);
+                            String message =
+                                    "HTTP " +
+                                            code +
+                                            " " +
+                                            connection
+                                                    .getResponseMessage();
 
-                    String message =
-                            "HTTP " +
-                            code +
-                            " " +
-                            connection.getResponseMessage();
+                            if (body != null &&
+                                    !body.trim()
+                                            .isEmpty()) {
 
-                    if (body != null &&
-                            !body.trim().isEmpty()) {
-                        message += "\n" + body;
+                                message +=
+                                        "\n" +
+                                                body;
+                            }
+
+                            String finalMessage =
+                                    message;
+
+                            runOnUiThread(
+                                    () ->
+                                            callback.onError(
+                                                    finalMessage
+                                            )
+                            );
+                        }
+
+                    } catch (Exception e) {
+
+                        String message =
+                                e.getMessage();
+
+                        if (message == null ||
+                                message.trim()
+                                        .isEmpty()) {
+
+                            message =
+                                    e.getClass()
+                                            .getSimpleName();
+                        }
+
+                        String finalMessage =
+                                message;
+
+                        runOnUiThread(
+                                () ->
+                                        callback.onError(
+                                                finalMessage
+                                        )
+                        );
+
+                    } finally {
+
+                        try {
+
+                            if (output != null) {
+                                output.close();
+                            }
+
+                        } catch (Exception ignored) {
+                        }
+
+                        try {
+
+                            if (input != null) {
+                                input.close();
+                            }
+
+                        } catch (Exception ignored) {
+                        }
+
+                        if (connection != null) {
+                            connection.disconnect();
+                        }
                     }
 
-                    String finalMessage = message;
-
-                    runOnUiThread(() ->
-                            callback.onError(finalMessage));
                 }
-
-            } catch (Exception e) {
-
-                String message =
-                        e.getMessage();
-
-                if (message == null ||
-                        message.trim().isEmpty()) {
-                    message =
-                            e.getClass()
-                                    .getSimpleName();
-                }
-
-                String finalMessage = message;
-
-                runOnUiThread(() ->
-                        callback.onError(finalMessage));
-
-            } finally {
-
-                try {
-                    if (output != null) output.close();
-                } catch (Exception ignored) {
-                }
-
-                try {
-                    if (input != null) input.close();
-                } catch (Exception ignored) {
-                }
-
-                if (connection != null) {
-                    connection.disconnect();
-                }
-            }
-
-        }).start();
+        ).start();
     }
 
-    private long getUriSize(Uri uri) {
+    private long getUriSize(
+            Uri uri
+    ) {
 
         try {
 
             android.database.Cursor cursor =
-                    getContentResolver().query(
-                            uri,
-                            new String[]{
-                                    OpenableColumns.SIZE
-                            },
-                            null,
-                            null,
-                            null
-                    );
+                    getContentResolver()
+                            .query(
+                                    uri,
+                                    new String[]{
+                                            OpenableColumns.SIZE
+                                    },
+                                    null,
+                                    null,
+                                    null
+                            );
 
             if (cursor != null) {
 
@@ -1912,11 +3065,14 @@ public class ChatActivity extends Activity {
                         if (index >= 0 &&
                                 !cursor.isNull(index)) {
 
-                            return cursor.getLong(index);
+                            return cursor.getLong(
+                                    index
+                            );
                         }
                     }
 
                 } finally {
+
                     cursor.close();
                 }
             }
@@ -1931,17 +3087,23 @@ public class ChatActivity extends Activity {
             HttpURLConnection connection
     ) {
 
-        InputStream stream = null;
+        InputStream stream =
+                null;
 
         try {
 
-            stream = connection.getErrorStream();
+            stream =
+                    connection.getErrorStream();
 
             if (stream == null) {
-                stream = connection.getInputStream();
+
+                stream =
+                        connection.getInputStream();
             }
 
-            if (stream == null) return "";
+            if (stream == null) {
+                return "";
+            }
 
             java.util.Scanner scanner =
                     new java.util.Scanner(
@@ -1960,14 +3122,19 @@ public class ChatActivity extends Activity {
         } finally {
 
             try {
-                if (stream != null) stream.close();
+
+                if (stream != null) {
+                    stream.close();
+                }
+
             } catch (Exception ignored) {
             }
         }
     }
 
-    private String encodePath(String path)
-            throws Exception {
+    private String encodePath(
+            String path
+    ) throws Exception {
 
         String[] parts =
                 path.split("/");
@@ -1975,15 +3142,24 @@ public class ChatActivity extends Activity {
         StringBuilder result =
                 new StringBuilder();
 
-        for (int i = 0; i < parts.length; i++) {
+        for (
+                int i = 0;
+                i < parts.length;
+                i++
+        ) {
 
-            if (i > 0) result.append("/");
+            if (i > 0) {
+                result.append("/");
+            }
 
             result.append(
                     URLEncoder.encode(
                             parts[i],
                             "UTF-8"
-                    ).replace("+", "%20")
+                    ).replace(
+                            "+",
+                            "%20"
+                    )
             );
         }
 
@@ -2018,52 +3194,71 @@ public class ChatActivity extends Activity {
             ImageView imageView
     ) {
 
-        new Thread(() -> {
+        new Thread(
+                () -> {
 
-            HttpURLConnection connection = null;
+                    HttpURLConnection connection =
+                            null;
 
-            try {
+                    try {
 
-                connection =
-                        (HttpURLConnection)
-                                new URL(url)
-                                        .openConnection();
+                        connection =
+                                (HttpURLConnection)
+                                        new URL(url)
+                                                .openConnection();
 
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(30000);
+                        connection.setConnectTimeout(
+                                15000
+                        );
 
-                connection.setRequestProperty(
-                        "apikey",
-                        SUPABASE_PUBLISHABLE_KEY
-                );
+                        connection.setReadTimeout(
+                                30000
+                        );
 
-                InputStream input =
-                        connection.getInputStream();
+                        connection.setRequestProperty(
+                                "apikey",
+                                SUPABASE_PUBLISHABLE_KEY
+                        );
 
-                Bitmap bitmap =
-                        BitmapFactory.decodeStream(input);
+                        InputStream input =
+                                connection
+                                        .getInputStream();
 
-                input.close();
+                        Bitmap bitmap =
+                                BitmapFactory
+                                        .decodeStream(
+                                                input
+                                        );
 
-                if (bitmap != null) {
+                        input.close();
 
-                    runOnUiThread(() ->
-                            imageView.setImageBitmap(bitmap));
+                        if (bitmap != null) {
+
+                            runOnUiThread(
+                                    () ->
+                                            imageView
+                                                    .setImageBitmap(
+                                                            bitmap
+                                                    )
+                            );
+                        }
+
+                    } catch (Exception ignored) {
+
+                    } finally {
+
+                        if (connection != null) {
+                            connection.disconnect();
+                        }
+                    }
+
                 }
-
-            } catch (Exception ignored) {
-
-            } finally {
-
-                if (connection != null) {
-                    connection.disconnect();
-                }
-            }
-
-        }).start();
+        ).start();
     }
 
-    private void showImageViewer(String url) {
+    private void showImageViewer(
+            String url
+    ) {
 
         LinearLayout box =
                 new LinearLayout(this);
@@ -2072,9 +3267,15 @@ public class ChatActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        box.setGravity(Gravity.CENTER);
+        box.setGravity(
+                Gravity.CENTER
+        );
+
         box.setPadding(
-                dp(8), dp(8), dp(8), dp(8)
+                dp(8),
+                dp(8),
+                dp(8),
+                dp(8)
         );
 
         ImageView image =
@@ -2095,7 +3296,9 @@ public class ChatActivity extends Activity {
         Button save =
                 new Button(this);
 
-        save.setText("💾 ذخیره عکس در گالری");
+        save.setText(
+                "💾 ذخیره عکس در گالری"
+        );
 
         box.addView(
                 save,
@@ -2105,27 +3308,36 @@ public class ChatActivity extends Activity {
                 )
         );
 
-        loadImage(url, image);
+        loadImage(
+                url,
+                image
+        );
 
-        save.setOnClickListener(v -> {
+        save.setOnClickListener(
+                v -> {
 
-            pendingSaveUrl = url;
+                    pendingSaveUrl =
+                            url;
 
-            pendingSaveName =
-                    "tajrobehha_" +
-                    System.currentTimeMillis() +
-                    ".jpg";
+                    pendingSaveName =
+                            "tajrobehha_" +
+                                    System.currentTimeMillis() +
+                                    ".jpg";
 
-            saveImageToGallery(
-                    pendingSaveUrl,
-                    pendingSaveName
-            );
-        });
+                    saveImageToGallery(
+                            pendingSaveUrl,
+                            pendingSaveName
+                    );
+                }
+        );
 
         new AlertDialog.Builder(this)
                 .setTitle("تصویر")
                 .setView(box)
-                .setPositiveButton("بستن", null)
+                .setPositiveButton(
+                        "بستن",
+                        null
+                )
                 .show();
     }
 
@@ -2134,170 +3346,199 @@ public class ChatActivity extends Activity {
             String fileName
     ) {
 
-        new Thread(() -> {
+        new Thread(
+                () -> {
 
-            try {
+                    try {
 
-                HttpURLConnection connection =
-                        (HttpURLConnection)
-                                new URL(url)
-                                        .openConnection();
+                        HttpURLConnection connection =
+                                (HttpURLConnection)
+                                        new URL(url)
+                                                .openConnection();
 
-                connection.setConnectTimeout(20000);
-                connection.setReadTimeout(30000);
+                        connection.setConnectTimeout(
+                                20000
+                        );
 
-                connection.setRequestProperty(
-                        "apikey",
-                        SUPABASE_PUBLISHABLE_KEY
-                );
+                        connection.setReadTimeout(
+                                30000
+                        );
 
-                InputStream input =
-                        connection.getInputStream();
+                        connection.setRequestProperty(
+                                "apikey",
+                                SUPABASE_PUBLISHABLE_KEY
+                        );
 
-                if (Build.VERSION.SDK_INT >=
-                        Build.VERSION_CODES.Q) {
+                        InputStream input =
+                                connection
+                                        .getInputStream();
 
-                    ContentValues values =
-                            new ContentValues();
+                        if (Build.VERSION.SDK_INT >=
+                                Build.VERSION_CODES.Q) {
 
-                    values.put(
-                            MediaStore.Images.Media.DISPLAY_NAME,
-                            fileName
-                    );
+                            ContentValues values =
+                                    new ContentValues();
 
-                    values.put(
-                            MediaStore.Images.Media.MIME_TYPE,
-                            "image/jpeg"
-                    );
+                            values.put(
+                                    MediaStore.Images.Media
+                                            .DISPLAY_NAME,
+                                    fileName
+                            );
 
-                    values.put(
-                            MediaStore.Images.Media.RELATIVE_PATH,
-                            Environment.DIRECTORY_PICTURES +
-                                    "/تجربه‌ها"
-                    );
+                            values.put(
+                                    MediaStore.Images.Media
+                                            .MIME_TYPE,
+                                    "image/jpeg"
+                            );
 
-                    values.put(
-                            MediaStore.Images.Media.IS_PENDING,
-                            1
-                    );
+                            values.put(
+                                    MediaStore.Images.Media
+                                            .RELATIVE_PATH,
+                                    Environment
+                                            .DIRECTORY_PICTURES +
+                                            "/تجربه‌ها"
+                            );
 
-                    Uri imageUri =
+                            values.put(
+                                    MediaStore.Images.Media
+                                            .IS_PENDING,
+                                    1
+                            );
+
+                            Uri imageUri =
+                                    getContentResolver()
+                                            .insert(
+                                                    MediaStore.Images.Media
+                                                            .getContentUri(
+                                                                    MediaStore
+                                                                            .VOLUME_EXTERNAL_PRIMARY
+                                                            ),
+                                                    values
+                                            );
+
+                            if (imageUri == null) {
+
+                                throw new Exception(
+                                        "گالری قابل دسترسی نیست"
+                                );
+                            }
+
+                            OutputStream output =
+                                    getContentResolver()
+                                            .openOutputStream(
+                                                    imageUri
+                                            );
+
+                            if (output == null) {
+
+                                throw new Exception(
+                                        "فضای ذخیره‌سازی باز نشد"
+                                );
+                            }
+
+                            byte[] buffer =
+                                    new byte[8192];
+
+                            int count;
+
+                            while (
+                                    (count =
+                                            input.read(
+                                                    buffer
+                                            )) != -1
+                            ) {
+
+                                output.write(
+                                        buffer,
+                                        0,
+                                        count
+                                );
+                            }
+
+                            output.flush();
+                            output.close();
+                            input.close();
+
+                            ContentValues done =
+                                    new ContentValues();
+
+                            done.put(
+                                    MediaStore.Images.Media
+                                            .IS_PENDING,
+                                    0
+                            );
+
                             getContentResolver()
-                                    .insert(
-                                            MediaStore.Images.Media
-                                                    .getContentUri(
-                                                            MediaStore.VOLUME_EXTERNAL_PRIMARY
-                                                    ),
-                                            values
+                                    .update(
+                                            imageUri,
+                                            done,
+                                            null,
+                                            null
                                     );
 
-                    if (imageUri == null) {
-                        throw new Exception(
-                                "گالری قابل دسترسی نیست"
+                            runOnUiThread(
+                                    () ->
+                                            Toast.makeText(
+                                                    this,
+                                                    "✅ عکس در گالری ذخیره شد",
+                                                    Toast.LENGTH_SHORT
+                                            ).show()
+                            );
+
+                        } else {
+
+                            input.close();
+
+                            runOnUiThread(
+                                    () ->
+                                            Toast.makeText(
+                                                    this,
+                                                    "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمی‌شود",
+                                                    Toast.LENGTH_LONG
+                                            ).show()
+                            );
+                        }
+
+                        connection.disconnect();
+
+                    } catch (Exception e) {
+
+                        String error =
+                                e.getMessage();
+
+                        if (error == null) {
+                            error =
+                                    "خطا در ذخیره عکس";
+                        }
+
+                        String finalError =
+                                error;
+
+                        runOnUiThread(
+                                () ->
+                                        Toast.makeText(
+                                                this,
+                                                "خطای ذخیره عکس:\n" +
+                                                        finalError,
+                                                Toast.LENGTH_LONG
+                                        ).show()
                         );
                     }
 
-                    OutputStream output =
-                            getContentResolver()
-                                    .openOutputStream(
-                                            imageUri
-                                    );
-
-                    if (output == null) {
-                        throw new Exception(
-                                "فضای ذخیره‌سازی باز نشد"
-                        );
-                    }
-
-                    byte[] buffer =
-                            new byte[8192];
-
-                    int count;
-
-                    while ((count =
-                            input.read(buffer)) != -1) {
-
-                        output.write(
-                                buffer,
-                                0,
-                                count
-                        );
-                    }
-
-                    output.flush();
-                    output.close();
-                    input.close();
-
-                    ContentValues done =
-                            new ContentValues();
-
-                    done.put(
-                            MediaStore.Images.Media.IS_PENDING,
-                            0
-                    );
-
-                    getContentResolver().update(
-                            imageUri,
-                            done,
-                            null,
-                            null
-                    );
-
-                    runOnUiThread(() ->
-                            Toast.makeText(
-                                    this,
-                                    "✅ عکس در گالری ذخیره شد",
-                                    Toast.LENGTH_SHORT
-                            ).show()
-                    );
-
-                } else {
-
-                    input.close();
-
-                    runOnUiThread(() ->
-                            Toast.makeText(
-                                    this,
-                                    "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمی‌شود",
-                                    Toast.LENGTH_LONG
-                            ).show()
-                    );
                 }
-
-                connection.disconnect();
-
-            } catch (Exception e) {
-
-                String error =
-                        e.getMessage();
-
-                if (error == null) {
-                    error = "خطا در ذخیره عکس";
-                }
-
-                String finalError = error;
-
-                runOnUiThread(() ->
-                        Toast.makeText(
-                                this,
-                                "خطای ذخیره عکس:\n" +
-                                        finalError,
-                                Toast.LENGTH_LONG
-                        ).show()
-                );
-            }
-
-        }).start();
+        ).start();
     }
 
     private void removeMessageListeners() {
 
         if (sentMessageListener != null) {
+
             sentMessageListener.remove();
             sentMessageListener = null;
         }
 
         if (receivedMessageListener != null) {
+
             receivedMessageListener.remove();
             receivedMessageListener = null;
         }
@@ -2308,16 +3549,19 @@ public class ChatActivity extends Activity {
         removeMessageListeners();
 
         if (receiverListener != null) {
+
             receiverListener.remove();
             receiverListener = null;
         }
 
         if (typingListener != null) {
+
             typingListener.remove();
             typingListener = null;
         }
 
         if (blockListener != null) {
+
             blockListener.remove();
             blockListener = null;
         }
@@ -2340,6 +3584,7 @@ public class ChatActivity extends Activity {
 
     @Override
     protected void onResume() {
+
         super.onResume();
 
         if (myId != null) {
@@ -2348,10 +3593,15 @@ public class ChatActivity extends Activity {
                     .document(myId)
                     .set(
                             new HashMap<String, Object>() {{
-                                put("online", true);
+                                put(
+                                        "online",
+                                        true
+                                );
+
                                 put(
                                         "lastSeen",
-                                        FieldValue.serverTimestamp()
+                                        FieldValue
+                                                .serverTimestamp()
                                 );
                             }},
                             SetOptions.merge()
@@ -2361,6 +3611,7 @@ public class ChatActivity extends Activity {
 
     @Override
     protected void onPause() {
+
         super.onPause();
 
         if (myId != null) {
@@ -2368,12 +3619,21 @@ public class ChatActivity extends Activity {
             Map<String, Object> data =
                     new HashMap<>();
 
-            data.put("online", false);
+            data.put(
+                    "online",
+                    false
+            );
+
             data.put(
                     "lastSeen",
-                    FieldValue.serverTimestamp()
+                    FieldValue
+                            .serverTimestamp()
             );
-            data.put("typingTo", "");
+
+            data.put(
+                    "typingTo",
+                    ""
+            );
 
             db.collection("users")
                     .document(myId)
@@ -2390,18 +3650,22 @@ public class ChatActivity extends Activity {
         removeChatListeners();
 
         try {
+
             if (recorder != null) {
                 recorder.release();
             }
+
         } catch (Exception ignored) {
         }
 
         recorder = null;
 
         try {
+
             if (player != null) {
                 player.release();
             }
+
         } catch (Exception ignored) {
         }
 
@@ -2414,8 +3678,11 @@ public class ChatActivity extends Activity {
     public void onBackPressed() {
 
         if (insideChat) {
+
             showUsers();
+
         } else {
+
             super.onBackPressed();
         }
     }
