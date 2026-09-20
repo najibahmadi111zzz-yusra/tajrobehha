@@ -2670,7 +2670,7 @@ public class ChatActivity extends Activity {
                 Uri.fromFile(file),
                 VOICE_BUCKET,
                 objectPath,
-                "audio/x-m4a",
+                "audio/mp4",
                 new SupabaseUploadCallback() {
 
                     @Override
