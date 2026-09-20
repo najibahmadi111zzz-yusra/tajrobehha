@@ -73,7 +73,7 @@ private static final String SUPABASE_URL =
         "https://gorbhuqmkjlkrklhasdh.supabase.co";
 
 private static final String SUPABASE_PUBLISHABLE_KEY = 
-        "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
+        "ss";
 
 private static final String CHAT_BUCKET = "chat_media";
 private static final String VOICE_BUCKET = "voice_messages";
