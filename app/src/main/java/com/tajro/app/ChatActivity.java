@@ -4090,7 +4090,7 @@ public class ChatActivity extends Activity {
         }
     }
 
-    prprivate void uploadVoice(
+    private void uploadVoice(
         String path
 ) {
 
