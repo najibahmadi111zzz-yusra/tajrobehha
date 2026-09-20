@@ -1754,10 +1754,10 @@ public class ChatActivity extends Activity {
         );
 
         mediaButton.setPadding(
-                8,
-                8,
-                8,
-                8
+                4,
+                4,
+                4,
+                4
         );
 
         mediaButton.setOnClickListener(
@@ -1767,8 +1767,8 @@ public class ChatActivity extends Activity {
         inputBar.addView(
                 mediaButton,
                 new LinearLayout.LayoutParams(
-                        62,
-                        62
+                        70,
+                        64
                 )
         );
 
@@ -1828,10 +1828,10 @@ public class ChatActivity extends Activity {
         );
 
         voiceButton.setPadding(
-                7,
-                7,
-                7,
-                7
+                4,
+                4,
+                4,
+                4
         );
 
         voiceButton.setOnClickListener(
@@ -1841,8 +1841,8 @@ public class ChatActivity extends Activity {
         inputBar.addView(
                 voiceButton,
                 new LinearLayout.LayoutParams(
-                        64,
-                        62
+                        70,
+                        68
                 )
         );
 
@@ -4090,96 +4090,91 @@ public class ChatActivity extends Activity {
         }
     }
 
-    private void uploadVoice(
-            String path
-    ) {
+    prprivate void uploadVoice(
+        String path
+) {
 
-        if (blocked) {
-            return;
-        }
+    if (blocked) {
+        return;
+    }
 
-        if (path == null ||
-                path.trim().isEmpty()) {
-
-            Toast.makeText(
-                    this,
-                    "مسیر فایل صوتی خالی است",
-                    Toast.LENGTH_SHORT
-            ).show();
-
-            return;
-        }
-
-        File file =
-                new File(path);
-
-        if (!file.exists() ||
-                file.length() == 0) {
-
-            Toast.makeText(
-                    this,
-                    "فایل صوتی پیدا نشد یا خالی است",
-                    Toast.LENGTH_LONG
-            ).show();
-
-            return;
-        }
-
-        Uri uri =
-                Uri.fromFile(file);
-
-        String fileName =
-                System.currentTimeMillis() +
-                        "_" +
-                        myId +
-                        ".m4a";
-
-        String objectPath =
-                "voice/" +
-                        fileName;
+    if (path == null ||
+            path.trim().isEmpty()) {
 
         Toast.makeText(
                 this,
-                "در حال ارسال پیام صوتی...",
+                "مسیر فایل صوتی خالی است",
                 Toast.LENGTH_SHORT
         ).show();
 
-        /*
-         * برای m4a از octet-stream استفاده می‌کنیم
-         * تا خطای 400 مربوط به MIME کمتر شود.
-         * خود فایل همچنان m4a است.
-         */
-        uploadToSupabase(
-                uri,
-                VOICE_BUCKET,
-                objectPath,
-                "application/octet-stream",
-                new SupabaseUploadCallback() {
+        return;
+    }
 
-                    @Override
-                    public void onSuccess(
-                            String publicUrl
-                    ) {
+    File file =
+            new File(path);
 
-                        saveAudioMessage(
-                                publicUrl
-                        );
-                    }
+    if (!file.exists() ||
+            file.length() == 0) {
 
-                    @Override
-                    public void onError(
-                            String error
-                    ) {
+        Toast.makeText(
+                this,
+                "فایل صوتی پیدا نشد یا خالی است",
+                Toast.LENGTH_LONG
+        ).show();
 
-                        Toast.makeText(
-                                ChatActivity.this,
-                                "خطای ارسال صدا:\n" +
-                                        error,
-                                Toast.LENGTH_LONG
-                        ).show();
-                    }
+        return;
+    }
+
+    Uri uri =
+            Uri.fromFile(file);
+
+    String fileName =
+            System.currentTimeMillis() +
+                    "_" +
+                    myId +
+                    ".m4a";
+
+    String objectPath =
+            "voice/" +
+                    fileName;
+
+    Toast.makeText(
+            this,
+            "در حال ارسال پیام صوتی...",
+            Toast.LENGTH_SHORT
+    ).show();
+
+    uploadToSupabase(
+            uri,
+            VOICE_BUCKET,
+            objectPath,
+            "audio/mp4",
+            new SupabaseUploadCallback() {
+
+                @Override
+                public void onSuccess(
+                        String publicUrl
+                ) {
+
+                    saveAudioMessage(
+                            publicUrl
+                    );
                 }
-        );
+
+                @Override
+                public void onError(
+                        String error
+                ) {
+
+                    Toast.makeText(
+                            ChatActivity.this,
+                            "خطای ارسال صدا:\n" +
+                                    error,
+                            Toast.LENGTH_LONG
+                    ).show();
+                }
+            }
+    );
     }
 
     private void saveAudioMessage(
