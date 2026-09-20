@@ -3465,103 +3465,92 @@ public class ChatActivity extends Activity {
     }
 
     private void uploadToSupabase(
-            Uri uri,
-            String bucket,
-            String objectPath,
-            String contentType,
-            SupabaseUploadCallback callback
-    ) {
+        Uri uri,
+        String bucket,
+        String objectPath,
+        String contentType,
+        SupabaseUploadCallback callback
+) {
 
-        new Thread(
-                () -> {
+    new Thread(
+            () -> {
 
-                    HttpURLConnection connection =
-                            null;
+                HttpURLConnection connection = null;
+                InputStream input = null;
+                OutputStream output = null;
 
-                    InputStream input =
-                            null;
+                try {
 
-                    OutputStream output =
-                            null;
+                    String endpoint =
+                            SUPABASE_URL +
+                                    "/storage/v1/object/" +
+                                    bucket +
+                                    "/" +
+                                    encodePath(objectPath);
 
-                    try {
+                    URL url =
+                            new URL(endpoint);
 
-                        String endpoint =
-                                SUPABASE_URL +
-                                        "/storage/v1/object/" +
-                                        bucket +
-                                        "/" +
-                                        encodePath(
-                                                objectPath
-                                        );
+                    connection =
+                            (HttpURLConnection)
+                                    url.openConnection();
 
-                        URL url =
-                                new URL(endpoint);
+                    connection.setRequestMethod("POST");
 
-                        connection =
-                                (HttpURLConnection)
-                                        url.openConnection();
+                    connection.setDoOutput(true);
+                    connection.setDoInput(true);
 
-                        /*
-                         * POST برای Storage Supabase.
-                         */
-                        connection.setRequestMethod(
-                                "POST"
-                        );
+                    connection.setConnectTimeout(30000);
+                    connection.setReadTimeout(60000);
 
-                        connection.setDoOutput(
-                                true
-                        );
+                    connection.setRequestProperty(
+                            "apikey",
+                            SUPABASE_PUBLISHABLE_KEY
+                    );
 
-                        connection.setDoInput(
-                                true
-                        );
+                    connection.setRequestProperty(
+                            "Content-Type",
+                            contentType
+                    );
 
-                        connection.setConnectTimeout(
-                                30000
-                        );
+                    connection.setRequestProperty(
+                            "x-upsert",
+                            "true"
+                    );
 
-                        connection.setReadTimeout(
-                                60000
-                        );
+                    if ("file".equals(uri.getScheme())) {
 
-                        connection.setRequestProperty(
-                                "apikey",
-                                SUPABASE_PUBLISHABLE_KEY
-                        );
+                        File audioFile =
+                                new File(uri.getPath());
 
-                        connection.setRequestProperty(
-                                "Content-Type",
-                                contentType
-                        );
+                        if (!audioFile.exists()) {
 
-                        connection.setRequestProperty(
-                                "x-upsert",
-                                "true"
-                        );
-
-                        /*
-                         * برای صدا Uri.fromFile داریم،
-                         * بنابراین مستقیم از FileInputStream
-                         * استفاده می‌کنیم.
-                         */
-                        if ("file".equals(
-                                uri.getScheme()
-                        )) {
-
-                            input =
-                                    new FileInputStream(
-                                            new File(
-                                                    uri.getPath()
-                                            )
-                                    );
-
-                        } else {
-
-                            input =
-                                    getContentResolver()
-                                            .openInputStream(uri);
+                            throw new Exception(
+                                    "فایل صوتی وجود ندارد"
+                            );
                         }
+
+                        if (audioFile.length() <= 0) {
+
+                            throw new Exception(
+                                    "فایل صوتی خالی است"
+                            );
+                        }
+
+                        input =
+                                new FileInputStream(
+                                        audioFile
+                                );
+
+                        connection.setFixedLengthStreamingMode(
+                                audioFile.length()
+                        );
+
+                    } else {
+
+                        input =
+                                getContentResolver()
+                                        .openInputStream(uri);
 
                         if (input == null) {
 
@@ -3569,128 +3558,129 @@ public class ChatActivity extends Activity {
                                     "فایل قابل خواندن نیست"
                             );
                         }
-
-                        output =
-                                connection.getOutputStream();
-
-                        byte[] buffer =
-                                new byte[8192];
-
-                        int length;
-
-                        while (
-                                (length =
-                                        input.read(
-                                                buffer
-                                        )) != -1
-                        ) {
-
-                            output.write(
-                                    buffer,
-                                    0,
-                                    length
-                            );
-                        }
-
-                        output.flush();
-
-                        int responseCode =
-                                connection.getResponseCode();
-
-                        if (responseCode >= 200 &&
-                                responseCode < 300) {
-
-                            String publicUrl =
-                                    getSupabasePublicUrl(
-                                            bucket,
-                                            objectPath
-                                    );
-
-                            runOnUiThread(
-                                    () -> callback.onSuccess(
-                                            publicUrl
-                                    )
-                            );
-
-                        } else {
-
-                            String body =
-                                    readErrorResponse(
-                                            connection
-                                    );
-
-                            String errorText =
-                                    "HTTP " +
-                                            responseCode;
-
-                            if (body != null &&
-                                    !body.trim().isEmpty()) {
-
-                                errorText +=
-                                        "\n" +
-                                                body;
-                            }
-
-                            String finalError =
-                                    errorText;
-
-                            runOnUiThread(
-                                    () -> callback.onError(
-                                            finalError
-                                    )
-                            );
-                        }
-
-                    } catch (Exception e) {
-
-                        String message =
-                                e.getMessage();
-
-                        if (message == null ||
-                                message.trim().isEmpty()) {
-
-                            message =
-                                    e.getClass()
-                                            .getSimpleName();
-                        }
-
-                        String finalMessage =
-                                message;
-
-                        runOnUiThread(
-                                () -> callback.onError(
-                                        finalMessage
-                                )
-                        );
-
-                    } finally {
-
-                        try {
-
-                            if (input != null) {
-                                input.close();
-                            }
-
-                        } catch (Exception ignored) {
-                        }
-
-                        try {
-
-                            if (output != null) {
-                                output.close();
-                            }
-
-                        } catch (Exception ignored) {
-                        }
-
-                        if (connection != null) {
-                            connection.disconnect();
-                        }
                     }
 
+                    output =
+                            connection.getOutputStream();
+
+                    byte[] buffer =
+                            new byte[8192];
+
+                    int length;
+
+                    while (
+                            (length =
+                                    input.read(buffer)) != -1
+                    ) {
+
+                        output.write(
+                                buffer,
+                                0,
+                                length
+                        );
+                    }
+
+                    output.flush();
+
+                    int responseCode =
+                            connection.getResponseCode();
+
+                    if (responseCode >= 200 &&
+                            responseCode < 300) {
+
+                        String publicUrl =
+                                getSupabasePublicUrl(
+                                        bucket,
+                                        objectPath
+                                );
+
+                        runOnUiThread(
+                                () ->
+                                        callback.onSuccess(
+                                                publicUrl
+                                        )
+                        );
+
+                    } else {
+
+                        String body =
+                                readErrorResponse(
+                                        connection
+                                );
+
+                        String errorText =
+                                "HTTP " +
+                                        responseCode;
+
+                        if (body != null &&
+                                !body.trim().isEmpty()) {
+
+                            errorText +=
+                                    "\n" +
+                                            body;
+                        }
+
+                        String finalError =
+                                errorText;
+
+                        runOnUiThread(
+                                () ->
+                                        callback.onError(
+                                                finalError
+                                        )
+                        );
+                    }
+
+                } catch (Exception e) {
+
+                    String message =
+                            e.getMessage();
+
+                    if (message == null ||
+                            message.trim().isEmpty()) {
+
+                        message =
+                                e.getClass()
+                                        .getSimpleName();
+                    }
+
+                    String finalMessage =
+                            message;
+
+                    runOnUiThread(
+                            () ->
+                                    callback.onError(
+                                            finalMessage
+                                    )
+                    );
+
+                } finally {
+
+                    try {
+
+                        if (output != null) {
+                            output.close();
+                        }
+
+                    } catch (Exception ignored) {
+                    }
+
+                    try {
+
+                        if (input != null) {
+                            input.close();
+                        }
+
+                    } catch (Exception ignored) {
+                    }
+
+                    if (connection != null) {
+                        connection.disconnect();
+                    }
                 }
-        ).start();
-    }
+            }
+    ).start();
+}
 
     private interface SupabaseUploadCallback {
 
