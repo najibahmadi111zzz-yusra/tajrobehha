@@ -1,4 +1,4 @@
-package com.tajro.app;
+  package com.tajro.app;
 
 import android.Manifest;
 import android.app.Activity;
@@ -19,65 +19,81 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.*;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.*;
+import com.google.firebase.firestore.DocumentChange;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class ChatActivity extends Activity {
 
-private static final int MIC = 1001;
-private static final int PICK = 1002;
+private static final int REQUEST_MIC = 1001;
+private static final int PICK_MEDIA = 1002;
 private static final int PICK_PROFILE = 1003;
 
+/*
+ * نکته مهم:
+ * این کلید باید همان Publishable Key فعلی خودت باشد.
+ * Secret Key را هرگز اینجا نگذار.
+ */
 private static final String SUPABASE_URL =
         "https://gorbhuqmkjlkrklhasdh.supabase.co";
 
-/*
- * کلید Publishable فعلی Supabase خودت را اینجا نگه دار.
- * Secret Key را هرگز اینجا قرار نده.
- */
-private static final String SUPABASE_PUBLISHABLE_KEY =
+private static final String SUPABASE_PUBLISHABLE_KEY = 
         "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
 
-private static final String MEDIA_BUCKET = "chat_media";
+private static final String CHAT_BUCKET = "chat_media";
 private static final String VOICE_BUCKET = "voice_messages";
 
 private FirebaseAuth auth;
 private FirebaseFirestore db;
+private FirebaseStorage storage;
 
 private LinearLayout root;
-private LinearLayout usersLayout;
-private LinearLayout messagesLayout;
-private ScrollView scroll;
-
-private EditText input;
-private Button sendButton;
-private Button mediaButton;
-private Button voiceButton;
+private LinearLayout usersContainer;
+private LinearLayout messagesContainer;
+private ScrollView messagesScroll;
+private EditText messageInput;
+private ImageButton sendButton;
+private ImageButton mediaButton;
+private ImageButton voiceButton;
 
 private TextView titleText;
 private TextView statusText;
 private ImageView headerAvatar;
-
-private MediaRecorder recorder;
-private MediaPlayer player;
-
-private String audioPath;
 
 private String myId;
 private String receiverId;
@@ -89,43 +105,25 @@ private boolean recording = false;
 private boolean typing = false;
 private boolean blocked = false;
 
-private ListenerRegistration messageListener;
+private ListenerRegistration sentMessageListener;
+private ListenerRegistration receivedMessageListener;
 private ListenerRegistration receiverListener;
 private ListenerRegistration typingListener;
 private ListenerRegistration blockListener;
+
+private MediaRecorder recorder;
+private MediaPlayer player;
+private String audioPath;
 
 private final Handler typingHandler = new Handler();
 
 private final Map<String, DocumentSnapshot> messageCache =
         new HashMap<>();
 
-private int themeColor;
+private final Set<String> hiddenUserIds =
+        new HashSet<>();
 
-// =========================================================
-// HELPERS
-// =========================================================
-
-private int dp(int n) {
-    return (int) (
-            n * getResources()
-                    .getDisplayMetrics()
-                    .density
-    );
-}
-
-private void toast(String text) {
-    runOnUiThread(() ->
-            Toast.makeText(
-                    this,
-                    text,
-                    Toast.LENGTH_LONG
-            ).show()
-    );
-}
-
-// =========================================================
-// CREATE
-// =========================================================
+private int themeColor = Color.rgb(12, 91, 120);
 
 @Override
 protected void onCreate(Bundle savedInstanceState) {
@@ -133,27 +131,18 @@ protected void onCreate(Bundle savedInstanceState) {
 
     auth = FirebaseAuth.getInstance();
     db = FirebaseFirestore.getInstance();
+    storage = FirebaseStorage.getInstance();
 
-    themeColor = ThemeManager.getThemeColor(this);
-
-    /*
-     * مهم:
-     * اینجا دیگر ورود Anonymous انجام نمی‌شود.
-     * فقط اکانت واقعی Firebase اجازه ورود به چت دارد.
-     */
     FirebaseUser user = auth.getCurrentUser();
 
     if (user == null) {
+        Toast.makeText(
+                this,
+                "ابتدا وارد اکانت خود شوید",
+                Toast.LENGTH_LONG
+        ).show();
 
-        toast("ابتدا وارد اکانت خود شوید");
-
-        startActivity(
-                new Intent(
-                        this,
-                        AccountActivity.class
-                )
-        );
-
+        startActivity(new Intent(this, AccountActivity.class));
         finish();
         return;
     }
@@ -161,919 +150,609 @@ protected void onCreate(Bundle savedInstanceState) {
     myId = user.getUid();
 
     ensureUserProfile();
-
-    showUsers();
+    createUsersScreen();
+    loadUsers();
 }
-
-// =========================================================
-// USER PROFILE
-// =========================================================
 
 private void ensureUserProfile() {
-
-    if (myId == null)
-        return;
-
     FirebaseUser user = auth.getCurrentUser();
 
-    Map<String, Object> data =
-            new HashMap<>();
-
-    data.put(
-            "userId",
-            myId
-    );
-
-    if (user != null &&
-            user.getEmail() != null) {
-
-        data.put(
-                "email",
-                user.getEmail()
-        );
+    if (user == null) {
+        return;
     }
 
-    data.put(
-            "online",
-            true
-    );
+    Map<String, Object> data = new HashMap<>();
 
-    data.put(
-            "lastSeen",
-            FieldValue.serverTimestamp()
-    );
-
-    data.put(
-            "typingTo",
-            ""
-    );
+    data.put("userId", user.getUid());
+    data.put("email", user.getEmail());
+    data.put("online", true);
+    data.put("lastSeen", FieldValue.serverTimestamp());
+    data.put("typingTo", "");
 
     db.collection("users")
-            .document(myId)
-            .set(
-                    data,
-                    SetOptions.merge()
-            );
+            .document(user.getUid())
+            .set(data, com.google.firebase.firestore.SetOptions.merge());
 }
 
-// =========================================================
-// USERS LIST
-// =========================================================
+private GradientDrawable roundedBackground(
+        int color,
+        float radius
+) {
+    GradientDrawable drawable = new GradientDrawable();
+    drawable.setColor(color);
+    drawable.setCornerRadius(radius);
+    return drawable;
+}
 
-private void showUsers() {
+private TextView makeText(
+        String text,
+        float size,
+        int color
+) {
+    TextView tv = new TextView(this);
+    tv.setText(text);
+    tv.setTextSize(size);
+    tv.setTextColor(color);
+    tv.setGravity(Gravity.CENTER_VERTICAL);
+    tv.setTypeface(Typeface.DEFAULT);
+    return tv;
+}
 
+private Button makeButton(String text) {
+    Button button = new Button(this);
+    button.setText(text);
+    button.setTextSize(14);
+    button.setTextColor(Color.WHITE);
+    button.setAllCaps(false);
+    button.setGravity(Gravity.CENTER);
+    button.setPadding(18, 8, 18, 8);
+    button.setBackground(
+            roundedBackground(
+                    themeColor,
+                    18
+            )
+    );
+    return button;
+}
+
+private void createUsersScreen() {
     insideChat = false;
 
-    removeListeners();
-
-    messageCache.clear();
-
     root = new LinearLayout(this);
+    root.setOrientation(LinearLayout.VERTICAL);
+    root.setBackgroundColor(Color.rgb(235, 248, 250));
 
-    root.setOrientation(
-            LinearLayout.VERTICAL
-    );
+    LinearLayout header = new LinearLayout(this);
+    header.setOrientation(LinearLayout.HORIZONTAL);
+    header.setGravity(Gravity.CENTER_VERTICAL);
+    header.setPadding(16, 16, 16, 16);
+    header.setBackgroundColor(themeColor);
 
-    root.setPadding(
-            dp(12),
-            dp(18),
-            dp(12),
-            dp(10)
-    );
-
-    root.setBackgroundColor(
-            Color.rgb(
-                    235,
-                    248,
-                    250
-            )
-    );
-
-    TextView title = new TextView(this);
-
-    title.setText(
-            "💬 پیام‌رسان تجربه‌ها"
-    );
-
-    title.setTextSize(25);
-
-    title.setTypeface(
-            Typeface.DEFAULT,
-            Typeface.BOLD
-    );
-
-    title.setTextColor(
-            themeColor
-    );
-
-    title.setGravity(
-            Gravity.CENTER
-    );
-
-    root.addView(
-            title,
-            new LinearLayout.LayoutParams(
-                    -1,
-                    dp(60)
-            )
-    );
-
-    TextView info = new TextView(this);
-
-    info.setText(
-            "👥 کاربر موردنظر را انتخاب کنید تا چت خصوصی شروع شود"
-    );
-
-    info.setTextSize(15);
-
-    info.setTextColor(
-            Color.DKGRAY
-    );
-
-    info.setGravity(
-            Gravity.RIGHT
-    );
-
-    info.setPadding(
-            dp(8),
-            dp(5),
-            dp(8),
-            dp(12)
-    );
-
-    root.addView(
-            info,
-            new LinearLayout.LayoutParams(
-                    -1,
-                    -2
-            )
-    );
-
-    Button profileButton =
-            new Button(this);
-
-    profileButton.setText(
-            "👤 عکس پروفایل من"
-    );
-
-    profileButton.setTextSize(15);
-
-    profileButton.setTextColor(
+    TextView title = makeText(
+            "💬 کاربران",
+            21,
             Color.WHITE
     );
 
-    GradientDrawable profileBg =
-            new GradientDrawable();
+    title.setTypeface(Typeface.DEFAULT_BOLD);
 
-    profileBg.setColor(
-            themeColor
-    );
-
-    profileBg.setCornerRadius(
-            dp(25)
-    );
-
-    profileButton.setBackground(
-            profileBg
-    );
-
-    profileButton.setOnClickListener(
-            v -> chooseProfilePhoto()
-    );
-
-    LinearLayout.LayoutParams pp =
+    header.addView(
+            title,
             new LinearLayout.LayoutParams(
-                    -1,
-                    dp(50)
-            );
-
-    pp.setMargins(
-            dp(5),
-            0,
-            dp(5),
-            dp(10)
+                    0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    1
+            )
     );
+
+    Button refresh = makeButton("🔄");
+    refresh.setOnClickListener(v -> loadUsers());
+
+    header.addView(
+            refresh,
+            new LinearLayout.LayoutParams(
+                    55,
+                    50
+            )
+    );
+
+    root.addView(header);
+
+    TextView info = makeText(
+            "برای گفتگو روی کاربر بزنید؛ برای مدیریت کاربر لمس طولانی کنید.",
+            14,
+            Color.DKGRAY
+    );
+
+    info.setPadding(18, 14, 18, 10);
+
+    root.addView(info);
+
+    ScrollView scroll = new ScrollView(this);
+
+    usersContainer = new LinearLayout(this);
+    usersContainer.setOrientation(LinearLayout.VERTICAL);
+    usersContainer.setPadding(12, 5, 12, 25);
+
+    scroll.addView(usersContainer);
 
     root.addView(
-            profileButton,
-            pp
-    );
-
-    ScrollView usersScroll =
-            new ScrollView(this);
-
-    usersLayout =
-            new LinearLayout(this);
-
-    usersLayout.setOrientation(
-            LinearLayout.VERTICAL
-    );
-
-    usersScroll.addView(
-            usersLayout
-    );
-
-    root.addView(
-            usersScroll,
+            scroll,
             new LinearLayout.LayoutParams(
-                    -1,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
                     0,
                     1
             )
     );
 
     setContentView(root);
-
-    loadUsers();
 }
-
-// =========================================================
-// LOAD ALL USERS
-// =========================================================
 
 private void loadUsers() {
+    if (myId == null) {
+        return;
+    }
 
-    usersLayout.removeAllViews();
+    usersContainer.removeAllViews();
 
-    TextView loading =
-            new TextView(this);
-
-    loading.setText(
-            "⏳ در حال دریافت کاربران..."
+    TextView loading = makeText(
+            "در حال دریافت کاربران...",
+            16,
+            Color.DKGRAY
     );
 
-    loading.setTextSize(16);
+    loading.setGravity(Gravity.CENTER);
+    loading.setPadding(10, 30, 10, 30);
 
-    loading.setGravity(
-            Gravity.CENTER
-    );
+    usersContainer.addView(loading);
 
-    loading.setPadding(
-            dp(20),
-            dp(30),
-            dp(20),
-            dp(30)
-    );
-
-    usersLayout.addView(loading);
-
-    /*
-     * مهم‌ترین اصلاح:
-     *
-     * قبلاً:
-     * experiences
-     *
-     * اکنون:
-     * users
-     *
-     * بنابراین کاربر تازه‌ثبت‌نام‌شده هم دیده می‌شود.
-     */
-    db.collection("users")
+    db.collection("hiddenUsers")
+            .whereEqualTo("ownerId", myId)
             .get()
-            .addOnSuccessListener(
-                    snapshot -> {
+            .addOnSuccessListener(hiddenSnapshot -> {
 
-                        usersLayout.removeAllViews();
+                hiddenUserIds.clear();
 
-                        List<DocumentSnapshot> users =
-                                new ArrayList<>(
-                                        snapshot.getDocuments()
-                                );
+                for (DocumentSnapshot doc :
+                        hiddenSnapshot.getDocuments()) {
 
-                        /*
-                         * خود کاربر نمایش داده نمی‌شود.
-                         */
-                        Iterator<DocumentSnapshot> iterator =
-                                users.iterator();
+                    String hiddenId =
+                            doc.getString("hiddenUserId");
 
-                        while (iterator.hasNext()) {
-
-                            DocumentSnapshot doc =
-                                    iterator.next();
-
-                            String uid =
-                                    doc.getId();
-
-                            if (uid.equals(myId)) {
-                                iterator.remove();
-                            }
-                        }
-
-                        /*
-                         * مرتب‌سازی بر اساس نام.
-                         */
-                        Collections.sort(
-                                users,
-                                (a, b) -> {
-
-                                    String nameA =
-                                            a.getString("name");
-
-                                    String nameB =
-                                            b.getString("name");
-
-                                    if (nameA == null)
-                                        nameA = "";
-
-                                    if (nameB == null)
-                                        nameB = "";
-
-                                    return nameA.compareToIgnoreCase(
-                                            nameB
-                                    );
-                                }
-                        );
-
-                        if (users.isEmpty()) {
-
-                            TextView empty =
-                                    new TextView(this);
-
-                            empty.setText(
-                                    "هنوز کاربر دیگری ثبت‌نام نکرده است."
-                            );
-
-                            empty.setTextSize(17);
-
-                            empty.setGravity(
-                                    Gravity.CENTER
-                            );
-
-                            empty.setPadding(
-                                    dp(20),
-                                    dp(40),
-                                    dp(20),
-                                    dp(40)
-                            );
-
-                            usersLayout.addView(
-                                    empty
-                            );
-
-                            return;
-                        }
-
-                        for (
-                                DocumentSnapshot userDoc :
-                                users
-                        ) {
-
-                            String uid =
-                                    userDoc.getId();
-
-                            String storedUid =
-                                    userDoc.getString(
-                                            "userId"
-                                    );
-
-                            if (
-                                    storedUid != null &&
-                                    !storedUid.trim().isEmpty()
-                            ) {
-                                uid = storedUid;
-                            }
-
-                            if (
-                                    uid.equals(myId)
-                            ) {
-                                continue;
-                            }
-
-                            String name =
-                                    userDoc.getString(
-                                            "name"
-                                    );
-
-                            String email =
-                                    userDoc.getString(
-                                            "email"
-                                    );
-
-                            String photoUrl =
-                                    userDoc.getString(
-                                            "photoUrl"
-                                    );
-
-                            if (
-                                    name == null ||
-                                    name.trim().isEmpty()
-                            ) {
-
-                                if (
-                                        email != null &&
-                                        !email.trim().isEmpty()
-                                ) {
-
-                                    name = email;
-
-                                } else {
-
-                                    name =
-                                            "کاربر تجربه‌ها";
-                                }
-                            }
-
-                            addUserItem(
-                                    uid,
-                                    name,
-                                    photoUrl
-                            );
-                        }
+                    if (hiddenId != null) {
+                        hiddenUserIds.add(hiddenId);
                     }
-            )
-            .addOnFailureListener(
-                    e -> {
+                }
 
-                        usersLayout.removeAllViews();
+                loadVisibleUsers();
 
-                        TextView error =
-                                new TextView(this);
+            })
+            .addOnFailureListener(e -> {
 
-                        error.setText(
-                                "❌ دریافت کاربران ناموفق بود\n\n" +
-                                e.getMessage()
-                        );
+                hiddenUserIds.clear();
 
-                        error.setTextSize(15);
-
-                        error.setGravity(
-                                Gravity.CENTER
-                        );
-
-                        error.setPadding(
-                                dp(20),
-                                dp(30),
-                                dp(20),
-                                dp(30)
-                        );
-
-                        usersLayout.addView(
-                                error
-                        );
-                    }
-            );
+                loadVisibleUsers();
+            });
 }
 
-// =========================================================
-// USER ITEM
-// =========================================================
+private void loadVisibleUsers() {
+    db.collection("users")
+            .get()
+            .addOnSuccessListener(snapshot -> {
 
-private void addUserItem(
-        String uid,
-        String name,
-        String photoUrl) {
+                usersContainer.removeAllViews();
 
-    LinearLayout card =
-            new LinearLayout(this);
+                List<DocumentSnapshot> users =
+                        new ArrayList<>();
 
-    card.setOrientation(
-            LinearLayout.HORIZONTAL
-    );
+                for (DocumentSnapshot doc :
+                        snapshot.getDocuments()) {
 
-    card.setGravity(
-            Gravity.CENTER_VERTICAL
-    );
+                    String uid = doc.getId();
 
-    card.setPadding(
-            dp(12),
-            dp(10),
-            dp(12),
-            dp(10)
-    );
+                    if (uid.equals(myId)) {
+                        continue;
+                    }
 
-    GradientDrawable bg =
-            new GradientDrawable();
+                    if (hiddenUserIds.contains(uid)) {
+                        continue;
+                    }
 
-    bg.setColor(Color.WHITE);
+                    users.add(doc);
+                }
 
-    bg.setCornerRadius(
-            dp(22)
-    );
+                Collections.sort(
+                        users,
+                        new Comparator<DocumentSnapshot>() {
+                            @Override
+                            public int compare(
+                                    DocumentSnapshot a,
+                                    DocumentSnapshot b
+                            ) {
+                                String nameA =
+                                        a.getString("name");
 
-    bg.setStroke(
-            dp(1),
-            Color.rgb(
-                    210,
-                    230,
-                    235
+                                String nameB =
+                                        b.getString("name");
+
+                                if (nameA == null) {
+                                    nameA = "";
+                                }
+
+                                if (nameB == null) {
+                                    nameB = "";
+                                }
+
+                                return nameA.compareToIgnoreCase(
+                                        nameB
+                                );
+                            }
+                        }
+                );
+
+                if (users.isEmpty()) {
+
+                    TextView empty = makeText(
+                            "هنوز کاربر دیگری برای گفتگو وجود ندارد.",
+                            16,
+                            Color.DKGRAY
+                    );
+
+                    empty.setGravity(Gravity.CENTER);
+                    empty.setPadding(15, 40, 15, 40);
+
+                    usersContainer.addView(empty);
+                    return;
+                }
+
+                for (DocumentSnapshot doc : users) {
+                    addUserItem(doc);
+                }
+
+            })
+            .addOnFailureListener(e -> {
+
+                usersContainer.removeAllViews();
+
+                TextView error = makeText(
+                        "خطای دریافت کاربران\n" +
+                                e.getMessage(),
+                        15,
+                        Color.RED
+                );
+
+                error.setPadding(15, 30, 15, 30);
+
+                usersContainer.addView(error);
+            });
+}
+
+private void addUserItem(DocumentSnapshot doc) {
+
+    String uid = doc.getId();
+
+    String name = doc.getString("name");
+
+    if (name == null || name.trim().isEmpty()) {
+        name = "کاربر";
+    }
+
+    String photoUrl = doc.getString("photoUrl");
+
+    LinearLayout card = new LinearLayout(this);
+    card.setOrientation(LinearLayout.HORIZONTAL);
+    card.setGravity(Gravity.CENTER_VERTICAL);
+    card.setPadding(14, 12, 14, 12);
+    card.setBackground(
+            roundedBackground(
+                    Color.WHITE,
+                    20
             )
     );
 
-    card.setBackground(bg);
-
-    LinearLayout.LayoutParams cp =
+    LinearLayout.LayoutParams cardParams =
             new LinearLayout.LayoutParams(
-                    -1,
-                    dp(78)
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
             );
 
-    cp.setMargins(
-            0,
-            dp(5),
-            0,
-            dp(5)
-    );
+    cardParams.setMargins(0, 7, 0, 7);
 
-    card.setLayoutParams(cp);
+    usersContainer.addView(card, cardParams);
 
-    ImageView avatar =
-            new ImageView(this);
-
-    avatar.setScaleType(
-            ImageView.ScaleType.CENTER_CROP
-    );
-
-    GradientDrawable avatarBg =
-            new GradientDrawable();
-
-    avatarBg.setColor(
-            Color.rgb(
-                    235,
-                    248,
-                    250
-            )
-    );
-
-    avatarBg.setCornerRadius(
-            dp(50)
-    );
-
-    avatar.setBackground(
-            avatarBg
-    );
-
+    ImageView avatar = new ImageView(this);
     avatar.setImageResource(
             android.R.drawable.ic_menu_myplaces
     );
+    avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    avatar.setBackground(
+            roundedBackground(
+                    Color.LTGRAY,
+                    100
+            )
+    );
+    avatar.setPadding(8, 8, 8, 8);
 
     card.addView(
             avatar,
             new LinearLayout.LayoutParams(
-                    dp(55),
-                    dp(55)
+                    60,
+                    60
             )
     );
 
-    if (
-            photoUrl != null &&
-            !photoUrl.trim().isEmpty()
-    ) {
+    LinearLayout nameBox = new LinearLayout(this);
+    nameBox.setOrientation(LinearLayout.VERTICAL);
+    nameBox.setPadding(14, 0, 8, 0);
 
-        loadImageIntoView(
-                photoUrl,
-                avatar
-        );
-    }
-
-    LinearLayout texts =
-            new LinearLayout(this);
-
-    texts.setOrientation(
-            LinearLayout.VERTICAL
+    TextView nameText = makeText(
+            name,
+            17,
+            Color.rgb(25, 25, 25)
     );
 
-    texts.setGravity(
-            Gravity.CENTER_VERTICAL
-    );
-
-    TextView nameView =
-            new TextView(this);
-
-    nameView.setText(name);
-
-    nameView.setTextSize(17);
-
-    nameView.setTypeface(
+    nameText.setTypeface(
             Typeface.DEFAULT,
             Typeface.BOLD
     );
 
-    nameView.setTextColor(
-            Color.rgb(
-                    20,
-                    55,
-                    65
-            )
-    );
+    nameBox.addView(nameText);
 
-    TextView status =
-            new TextView(this);
-
-    status.setText(
-            "برای چت لمس کنید"
-    );
-
-    status.setTextSize(13);
-
-    status.setTextColor(
+    TextView hint = makeText(
+            "برای گفتگو لمس کنید",
+            12,
             Color.GRAY
     );
 
-    texts.addView(nameView);
-    texts.addView(status);
+    nameBox.addView(hint);
 
     card.addView(
-            texts,
+            nameBox,
             new LinearLayout.LayoutParams(
                     0,
-                    -1,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                     1
             )
     );
 
-    card.setOnClickListener(
-            v -> openPrivateChat(
+    Button menu = makeButton("⋮");
+    menu.setTextColor(themeColor);
+    menu.setBackground(
+            roundedBackground(
+                    Color.TRANSPARENT,
+                    15
+            )
+    );
+
+    menu.setOnClickListener(
+            v -> showUserManagementMenu(
                     uid,
                     name
             )
     );
 
-    usersLayout.addView(card);
-}
-
-// =========================================================
-// PROFILE PHOTO
-// =========================================================
-
-private void chooseProfilePhoto() {
-
-    Intent i =
-            new Intent(
-                    Intent.ACTION_OPEN_DOCUMENT
-            );
-
-    i.addCategory(
-            Intent.CATEGORY_OPENABLE
+    card.addView(
+            menu,
+            new LinearLayout.LayoutParams(
+                    52,
+                    52
+            )
     );
 
-    i.setType("image/*");
+    String finalName = name;
+    String finalPhotoUrl = photoUrl;
 
-    startActivityForResult(
-            i,
-            PICK_PROFILE
+    card.setOnClickListener(
+            v -> openPrivateChat(
+                    uid,
+                    finalName,
+                    finalPhotoUrl
+            )
     );
-}
 
-private void uploadProfilePhoto(Uri uri) {
+    card.setOnLongClickListener(v -> {
 
-    if (myId == null) {
+        showUserManagementMenu(
+                uid,
+                finalName
+        );
 
-        toast("کاربر وارد نشده است");
-        return;
+        return true;
+    });
+
+    if (photoUrl != null &&
+            !photoUrl.trim().isEmpty()) {
+
+        loadImage(
+                photoUrl,
+                avatar
+        );
     }
-
-    toast(
-            "👤 در حال ارسال عکس پروفایل..."
-    );
-
-    new Thread(() -> {
-
-        try {
-
-            String file =
-                    "profile_" +
-                    System.currentTimeMillis() +
-                    ".jpg";
-
-            String path =
-                    "profiles/" +
-                    myId +
-                    "/" +
-                    file;
-
-            String url =
-                    SUPABASE_URL +
-                    "/storage/v1/object/" +
-                    MEDIA_BUCKET +
-                    "/" +
-                    path;
-
-            HttpURLConnection c =
-                    (HttpURLConnection)
-                            new URL(url)
-                                    .openConnection();
-
-            c.setRequestMethod("POST");
-            c.setDoOutput(true);
-
-            c.setRequestProperty(
-                    "apikey",
-                    SUPABASE_PUBLISHABLE_KEY
-            );
-
-            c.setRequestProperty(
-                    "Authorization",
-                    "Bearer " +
-                            SUPABASE_PUBLISHABLE_KEY
-            );
-
-            c.setRequestProperty(
-                    "Content-Type",
-                    "image/jpeg"
-            );
-
-            c.setRequestProperty(
-                    "x-upsert",
-                    "true"
-            );
-
-            InputStream in =
-                    getContentResolver()
-                            .openInputStream(uri);
-
-            if (in == null)
-                throw new IOException(
-                        "فایل قابل خواندن نیست"
-                );
-
-            OutputStream out =
-                    c.getOutputStream();
-
-            byte[] buffer =
-                    new byte[8192];
-
-            int n;
-
-            while (
-                    (n = in.read(buffer)) != -1
-            ) {
-
-                out.write(
-                        buffer,
-                        0,
-                        n
-                );
-            }
-
-            out.flush();
-            out.close();
-            in.close();
-
-            int code =
-                    c.getResponseCode();
-
-            if (
-                    code >= 200 &&
-                    code < 300
-            ) {
-
-                String publicUrl =
-                        SUPABASE_URL +
-                        "/storage/v1/object/public/" +
-                        MEDIA_BUCKET +
-                        "/" +
-                        path;
-
-                db.collection("users")
-                        .document(myId)
-                        .set(
-                                Collections.singletonMap(
-                                        "photoUrl",
-                                        publicUrl
-                                ),
-                                SetOptions.merge()
-                        )
-                        .addOnSuccessListener(
-                                x -> {
-
-                                    toast(
-                                            "✅ عکس پروفایل ذخیره شد"
-                                    );
-
-                                    showUsers();
-                                }
-                        )
-                        .addOnFailureListener(
-                                e ->
-                                        toast(
-                                                "ذخیره عکس پروفایل ناموفق بود"
-                                        )
-                        );
-
-            } else {
-
-                String error =
-                        read(
-                                c.getErrorStream()
-                        );
-
-                toast(
-                        "خطای Supabase: " +
-                        code +
-                        "\n" +
-                        error
-                );
-            }
-
-            c.disconnect();
-
-        } catch (Exception e) {
-
-            toast(
-                    "ارسال عکس پروفایل ناموفق بود:\n" +
-                    e.getMessage()
-            );
-        }
-
-    }).start();
 }
 
-// =========================================================
-// IMAGE LOADER
-// =========================================================
+private void showUserManagementMenu(
+        String uid,
+        String name
+) {
 
-private void loadImageIntoView(
-        String url,
-        ImageView imageView) {
+    String[] options = {
+            "💬 باز کردن چت",
+            "🚫 بلاک کردن",
+            "🗑️ حذف از فهرست من",
+            "لغو"
+    };
 
-    new Thread(() -> {
+    new AlertDialog.Builder(this)
+            .setTitle(name)
+            .setItems(
+                    options,
+                    (dialog, which) -> {
 
-        try {
+                        if (which == 0) {
 
-            HttpURLConnection c =
-                    (HttpURLConnection)
-                            new URL(url)
-                                    .openConnection();
+                            db.collection("users")
+                                    .document(uid)
+                                    .get()
+                                    .addOnSuccessListener(doc -> {
 
-            c.connect();
+                                        String photo =
+                                                doc.getString(
+                                                        "photoUrl"
+                                                );
 
-            InputStream in =
-                    c.getInputStream();
+                                        openPrivateChat(
+                                                uid,
+                                                name,
+                                                photo
+                                        );
+                                    });
 
-            Bitmap bm =
-                    BitmapFactory
-                            .decodeStream(in);
+                        } else if (which == 1) {
 
-            in.close();
-            c.disconnect();
+                            blockUserFromList(
+                                    uid,
+                                    name
+                            );
 
-            runOnUiThread(() -> {
+                        } else if (which == 2) {
 
-                if (
-                        bm != null &&
-                        imageView != null
-                ) {
+                            confirmDeleteUser(
+                                    uid,
+                                    name
+                            );
+                        }
+                    }
+            )
+            .show();
+}
 
-                    imageView.setImageBitmap(
-                            bm
-                    );
-                }
+private void blockUserFromList(
+        String uid,
+        String name
+) {
+
+    String blockId =
+            myId + "_" + uid;
+
+    Map<String, Object> data =
+            new HashMap<>();
+
+    data.put("blockerId", myId);
+    data.put("blockedId", uid);
+    data.put("timestamp",
+            FieldValue.serverTimestamp());
+
+    db.collection("blocks")
+            .document(blockId)
+            .set(data)
+            .addOnSuccessListener(v -> {
+
+                Toast.makeText(
+                        this,
+                        name + " بلاک شد",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+            })
+            .addOnFailureListener(e -> {
+
+                Toast.makeText(
+                        this,
+                        "خطای بلاک: " +
+                                e.getMessage(),
+                        Toast.LENGTH_LONG
+                ).show();
             });
-
-        } catch (Exception ignored) {
-        }
-    }).start();
 }
 
-// =========================================================
-// CHAT ID
-// =========================================================
+private void confirmDeleteUser(
+        String uid,
+        String name
+) {
 
-private String makeChatId(
-        String a,
-        String b) {
-
-    if (
-            a == null ||
-            b == null ||
-            a.trim().isEmpty() ||
-            b.trim().isEmpty()
-    ) {
-        return "";
-    }
-
-    return a.compareTo(b) < 0
-            ? a + "_" + b
-            : b + "_" + a;
+    new AlertDialog.Builder(this)
+            .setTitle("حذف کاربر")
+            .setMessage(
+                    "آیا می‌خواهید «" +
+                            name +
+                            "» از فهرست کاربران شما حذف شود؟\n\n" +
+                            "این کار اکانت طرف مقابل و پیام‌ها را حذف نمی‌کند."
+            )
+            .setNegativeButton(
+                    "لغو",
+                    null
+            )
+            .setPositiveButton(
+                    "حذف",
+                    (dialog, which) ->
+                            deleteUserFromMyList(
+                                    uid,
+                                    name
+                            )
+            )
+            .show();
 }
 
-// =========================================================
-// OPEN PRIVATE CHAT
-// =========================================================
+private void deleteUserFromMyList(
+        String uid,
+        String name
+) {
+
+    String hiddenId =
+            myId + "_" + uid;
+
+    Map<String, Object> data =
+            new HashMap<>();
+
+    data.put("ownerId", myId);
+    data.put("hiddenUserId", uid);
+    data.put("name", name);
+    data.put(
+            "timestamp",
+            FieldValue.serverTimestamp()
+    );
+
+    db.collection("hiddenUsers")
+            .document(hiddenId)
+            .set(data)
+            .addOnSuccessListener(v -> {
+
+                hiddenUserIds.add(uid);
+
+                Toast.makeText(
+                        this,
+                        "کاربر از فهرست شما حذف شد",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                if (insideChat &&
+                        uid.equals(receiverId)) {
+
+                    showUsers();
+                } else {
+
+                    loadUsers();
+                }
+
+            })
+            .addOnFailureListener(e -> {
+
+                Toast.makeText(
+                        this,
+                        "خطای حذف کاربر: " +
+                                e.getMessage(),
+                        Toast.LENGTH_LONG
+                ).show();
+            });
+}
 
 private void openPrivateChat(
         String uid,
-        String name) {
+        String name,
+        String photoUrl
+) {
 
-    FirebaseUser user =
-            auth.getCurrentUser();
-
-    if (user == null) {
-
-        toast(
-                "ابتدا وارد اکانت شوید"
-        );
-
-        return;
-    }
-
-    myId = user.getUid();
-
-    if (
-            uid == null ||
-            uid.trim().isEmpty() ||
-            uid.equals(myId)
-    ) {
+    if (uid == null || uid.trim().isEmpty()) {
         return;
     }
 
@@ -1086,47 +765,41 @@ private void openPrivateChat(
                     receiverId
             );
 
-    if (currentChatId.isEmpty()) {
-
-        toast(
-                "شناسه چت نامعتبر است"
-        );
-
-        return;
-    }
+    messageCache.clear();
 
     insideChat = true;
 
-    messageCache.clear();
-
-    createChatScreen();
+    createChatScreen(photoUrl);
 
     listenMessages();
     listenReceiver();
     listenTyping();
     listenBlockStatus();
-    markMessagesAsRead();
 }
 
-// =========================================================
-// CHAT SCREEN
-// =========================================================
+private String makeChatId(
+        String a,
+        String b
+) {
 
-private void createChatScreen() {
+    if (a.compareTo(b) < 0) {
+        return a + "_" + b;
+    }
 
-    root =
-            new LinearLayout(this);
+    return b + "_" + a;
+}
 
+private void createChatScreen(
+        String photoUrl
+) {
+
+    root = new LinearLayout(this);
     root.setOrientation(
             LinearLayout.VERTICAL
     );
 
     root.setBackgroundColor(
-            Color.rgb(
-                    235,
-                    248,
-                    250
-            )
+            Color.rgb(235, 248, 250)
     );
 
     LinearLayout header =
@@ -1141,27 +814,23 @@ private void createChatScreen() {
     );
 
     header.setPadding(
-            dp(8),
-            dp(8),
-            dp(8),
-            dp(8)
+            8,
+            8,
+            8,
+            8
     );
 
-    GradientDrawable hb =
-            new GradientDrawable();
-
-    hb.setColor(themeColor);
-    hb.setCornerRadius(dp(18));
-
-    header.setBackground(hb);
+    header.setBackgroundColor(
+            themeColor
+    );
 
     Button back =
-            new Button(this);
+            makeButton("‹");
 
-    back.setText("‹");
-    back.setTextSize(28);
-    back.setTextColor(Color.WHITE);
-    back.setBackgroundColor(Color.TRANSPARENT);
+    back.setTextSize(30);
+    back.setBackgroundColor(
+            Color.TRANSPARENT
+    );
 
     back.setOnClickListener(
             v -> showUsers()
@@ -1170,95 +839,96 @@ private void createChatScreen() {
     header.addView(
             back,
             new LinearLayout.LayoutParams(
-                    dp(55),
-                    dp(58)
+                    55,
+                    55
             )
     );
 
     headerAvatar =
             new ImageView(this);
 
+    headerAvatar.setImageResource(
+            android.R.drawable.ic_menu_myplaces
+    );
+
     headerAvatar.setScaleType(
             ImageView.ScaleType.CENTER_CROP
     );
 
-    GradientDrawable hab =
-            new GradientDrawable();
+    headerAvatar.setBackground(
+            roundedBackground(
+                    Color.WHITE,
+                    100
+            )
+    );
 
-    hab.setColor(Color.WHITE);
-    hab.setCornerRadius(dp(50));
-
-    headerAvatar.setBackground(hab);
-
-    headerAvatar.setImageResource(
-            android.R.drawable.ic_menu_myplaces
+    headerAvatar.setPadding(
+            5,
+            5,
+            5,
+            5
     );
 
     header.addView(
             headerAvatar,
             new LinearLayout.LayoutParams(
-                    dp(50),
-                    dp(50)
+                    50,
+                    50
             )
     );
 
-    LinearLayout headText =
+    LinearLayout titleBox =
             new LinearLayout(this);
 
-    headText.setOrientation(
+    titleBox.setOrientation(
             LinearLayout.VERTICAL
     );
 
-    titleText =
-            new TextView(this);
-
-    titleText.setText(
-            receiverName
+    titleBox.setPadding(
+            10,
+            0,
+            5,
+            0
     );
 
-    titleText.setTextSize(18);
+    titleText =
+            makeText(
+                    receiverName,
+                    18,
+                    Color.WHITE
+            );
 
     titleText.setTypeface(
-            Typeface.DEFAULT,
-            Typeface.BOLD
+            Typeface.DEFAULT_BOLD
     );
 
-    titleText.setTextColor(
-            Color.WHITE
-    );
+    titleBox.addView(titleText);
 
     statusText =
-            new TextView(this);
+            makeText(
+                    "در حال اتصال...",
+                    12,
+                    Color.WHITE
+            );
 
-    statusText.setText(
-            "در حال بررسی وضعیت..."
-    );
-
-    statusText.setTextSize(12);
-
-    statusText.setTextColor(
-            Color.WHITE
-    );
-
-    headText.addView(titleText);
-    headText.addView(statusText);
+    titleBox.addView(statusText);
 
     header.addView(
-            headText,
+            titleBox,
             new LinearLayout.LayoutParams(
                     0,
-                    -1,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                     1
             )
     );
 
     Button menu =
-            new Button(this);
+            makeButton("⋮");
 
-    menu.setText("⋮");
     menu.setTextSize(25);
-    menu.setTextColor(Color.WHITE);
-    menu.setBackgroundColor(Color.TRANSPARENT);
+    menu.setBackgroundColor(
+            Color.TRANSPARENT
+    );
 
     menu.setOnClickListener(
             v -> showChatMenu()
@@ -1267,1897 +937,183 @@ private void createChatScreen() {
     header.addView(
             menu,
             new LinearLayout.LayoutParams(
-                    dp(55),
-                    dp(58)
+                    55,
+                    55
             )
     );
 
-    root.addView(
-            header,
-            new LinearLayout.LayoutParams(
-                    -1,
-                    dp(70)
-            )
-    );
+    root.addView(header);
 
-    scroll =
+    messagesScroll =
             new ScrollView(this);
 
-    messagesLayout =
+    messagesContainer =
             new LinearLayout(this);
 
-    messagesLayout.setOrientation(
+    messagesContainer.setOrientation(
             LinearLayout.VERTICAL
     );
 
-    messagesLayout.setPadding(
-            dp(7),
-            dp(10),
-            dp(7),
-            dp(10)
+    messagesContainer.setPadding(
+            10,
+            10,
+            10,
+            15
     );
 
-    scroll.addView(messagesLayout);
+    messagesScroll.addView(
+            messagesContainer
+    );
 
     root.addView(
-            scroll,
+            messagesScroll,
             new LinearLayout.LayoutParams(
-                    -1,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
                     0,
                     1
             )
     );
 
-    LinearLayout bottom =
+    LinearLayout inputBar =
             new LinearLayout(this);
 
-    bottom.setGravity(
+    inputBar.setOrientation(
+            LinearLayout.HORIZONTAL
+    );
+
+    inputBar.setGravity(
             Gravity.CENTER_VERTICAL
     );
 
-    bottom.setPadding(
-            dp(5),
-            dp(5),
-            dp(5),
-            dp(5)
+    inputBar.setPadding(
+            7,
+            7,
+            7,
+            7
     );
 
-    input =
-            new EditText(this);
-
-    input.setHint(
-            "پیام بنویسید..."
-    );
-
-    input.setTextSize(16);
-
-    input.setGravity(
-            Gravity.RIGHT |
-            Gravity.CENTER_VERTICAL
-    );
-
-    input.setPadding(
-            dp(15),
-            dp(5),
-            dp(15),
-            dp(5)
-    );
-
-    GradientDrawable ib =
-            new GradientDrawable();
-
-    ib.setColor(Color.WHITE);
-    ib.setCornerRadius(dp(28));
-
-    input.setBackground(ib);
-
-    bottom.addView(
-            input,
-            new LinearLayout.LayoutParams(
-                    0,
-                    dp(55),
-                    1
-            )
+    inputBar.setBackgroundColor(
+            Color.WHITE
     );
 
     mediaButton =
-            makeRoundButton("📷");
+            new ImageButton(this);
 
-    voiceButton =
-            makeRoundButton("🎤");
-
-    sendButton =
-            makeRoundButton("➤");
-
-    bottom.addView(
-            mediaButton,
-            new LinearLayout.LayoutParams(
-                    dp(52),
-                    dp(52)
-            )
+    mediaButton.setImageResource(
+            android.R.drawable.ic_menu_gallery
     );
 
-    bottom.addView(
-            voiceButton,
-            new LinearLayout.LayoutParams(
-                    dp(52),
-                    dp(52)
-            )
-    );
-
-    bottom.addView(
-            sendButton,
-            new LinearLayout.LayoutParams(
-                    dp(52),
-                    dp(52)
-            )
-    );
-
-    root.addView(bottom);
-
-    setContentView(root);
-
-    sendButton.setOnClickListener(
-            v -> sendText()
+    mediaButton.setBackgroundColor(
+            Color.TRANSPARENT
     );
 
     mediaButton.setOnClickListener(
-            v -> chooseMedia()
+            v -> pickMedia()
+    );
+
+    inputBar.addView(
+            mediaButton,
+            new LinearLayout.LayoutParams(
+                    45,
+                    50
+            )
+    );
+
+    messageInput =
+            new EditText(this);
+
+    messageInput.setHint(
+            "پیام خود را بنویسید..."
+    );
+
+    messageInput.setTextSize(15);
+
+    messageInput.setSingleLine(false);
+
+    messageInput.setMaxLines(4);
+
+    messageInput.setPadding(
+            15,
+            8,
+            15,
+            8
+    );
+
+    messageInput.setBackground(
+            roundedBackground(
+                    Color.rgb(240, 244, 246),
+                    22
+            )
+    );
+
+    inputBar.addView(
+            messageInput,
+            new LinearLayout.LayoutParams(
+                    0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    1
+            )
+    );
+
+    voiceButton =
+            new ImageButton(this);
+
+    voiceButton.setImageResource(
+            android.R.drawable.ic_btn_speak_now
+    );
+
+    voiceButton.setBackgroundColor(
+            Color.TRANSPARENT
     );
 
     voiceButton.setOnClickListener(
             v -> toggleRecording()
     );
 
-    setupTyping();
-}
-
-private Button makeRoundButton(
-        String text) {
-
-    Button b =
-            new Button(this);
-
-    b.setText(text);
-    b.setTextSize(20);
-    b.setTextColor(Color.WHITE);
-
-    b.setPadding(0, 0, 0, 0);
-
-    GradientDrawable bg =
-            new GradientDrawable();
-
-    bg.setColor(themeColor);
-    bg.setCornerRadius(dp(50));
-
-    b.setBackground(bg);
-
-    return b;
-}
-
-// =========================================================
-// SEND TEXT
-// =========================================================
-
-private void sendText() {
-
-    if (
-            !insideChat ||
-            myId == null ||
-            receiverId == null ||
-            currentChatId == null
-    ) {
-        toast("چت آماده نیست");
-        return;
-    }
-
-    String text =
-            input.getText()
-                    .toString()
-                    .trim();
-
-    if (text.isEmpty())
-        return;
-
-    if (blocked) {
-
-        toast(
-                "این کاربر بلاک شده است"
-        );
-
-        return;
-    }
-
-    Map<String, Object> m =
-            new HashMap<>();
-
-    m.put(
-            "chatId",
-            currentChatId
-    );
-
-    m.put(
-            "senderId",
-            myId
-    );
-
-    m.put(
-            "receiverId",
-            receiverId
-    );
-
-    m.put(
-            "type",
-            "text"
-    );
-
-    m.put(
-            "message",
-            text
-    );
-
-    m.put(
-            "timestamp",
-            FieldValue.serverTimestamp()
-    );
-
-    m.put(
-            "deletedForAll",
-            false
-    );
-
-    m.put(
-            "deletedFor",
-            new ArrayList<String>()
-    );
-
-    m.put(
-            "read",
-            false
-    );
-
-    db.collection("messages")
-            .add(m)
-            .addOnSuccessListener(
-                    x -> {
-
-                        input.setText("");
-
-                        setTyping(false);
-
-                        scrollBottom();
-
-                        toast(
-                                "✅ پیام ارسال شد"
-                        );
-                    }
-            )
-            .addOnFailureListener(
-                    e ->
-                            toast(
-                                    "❌ ارسال پیام ناموفق بود:\n" +
-                                    e.getMessage()
-                            )
-            );
-}
-
-// =========================================================
-// ONE MESSAGE LISTENER
-// =========================================================
-
-private void listenMessages() {
-
-    if (messageListener != null) {
-        messageListener.remove();
-        messageListener = null;
-    }
-
-    if (
-            myId == null ||
-            receiverId == null ||
-            currentChatId == null
-    )
-        return;
-
-    /*
-     * فقط chatId را جستجو می‌کنیم.
-     * سپس در خود برنامه senderId / receiverId را بررسی می‌کنیم.
-     *
-     * این روش نسبت به دو query قبلی ساده‌تر است
-     * و نیاز به composite index برای sender/receiver ندارد.
-     */
-    messageListener =
-            db.collection("messages")
-                    .whereEqualTo(
-                            "chatId",
-                            currentChatId
-                    )
-                    .addSnapshotListener(
-                            (snap, error) -> {
-
-                                if (error != null) {
-
-                                    toast(
-                                            "❌ خطا در دریافت پیام:\n" +
-                                            error.getMessage()
-                                    );
-
-                                    return;
-                                }
-
-                                if (snap == null)
-                                    return;
-
-                                messageCache.clear();
-
-                                for (
-                                        DocumentSnapshot d :
-                                        snap.getDocuments()
-                                ) {
-
-                                    String sender =
-                                            d.getString(
-                                                    "senderId"
-                                            );
-
-                                    String receiver =
-                                            d.getString(
-                                                    "receiverId"
-                                            );
-
-                                    if (
-                                            myId.equals(sender) &&
-                                            receiverId.equals(receiver)
-                                    ) {
-
-                                        messageCache.put(
-                                                d.getId(),
-                                                d
-                                        );
-
-                                    } else if (
-                                            receiverId.equals(sender) &&
-                                            myId.equals(receiver)
-                                    ) {
-
-                                        messageCache.put(
-                                                d.getId(),
-                                                d
-                                        );
-                                    }
-                                }
-
-                                renderMessages();
-
-                                markMessagesAsRead();
-                            }
-                    );
-}
-
-// =========================================================
-// RENDER
-// =========================================================
-
-private void renderMessages() {
-
-    if (messagesLayout == null)
-        return;
-
-    messagesLayout.removeAllViews();
-
-    List<DocumentSnapshot> list =
-            new ArrayList<>(
-                    messageCache.values()
-            );
-
-    list.sort(
-            (a, b) -> {
-
-                Date da =
-                        a.getDate("timestamp");
-
-                Date dbb =
-                        b.getDate("timestamp");
-
-                if (
-                        da == null &&
-                        dbb == null
-                ) {
-                    return a.getId()
-                            .compareTo(
-                                    b.getId()
-                            );
-                }
-
-                if (da == null)
-                    return 1;
-
-                if (dbb == null)
-                    return -1;
-
-                return da.compareTo(dbb);
-            }
-    );
-
-    for (
-            DocumentSnapshot d :
-            list
-    ) {
-
-        if (
-                Boolean.TRUE.equals(
-                        d.getBoolean(
-                                "deletedForAll"
-                        )
-                )
-        )
-            continue;
-
-        Object deletedFor =
-                d.get("deletedFor");
-
-        if (
-                deletedFor instanceof List &&
-                ((List<?>) deletedFor)
-                        .contains(myId)
-        )
-            continue;
-
-        String sender =
-                d.getString("senderId");
-
-        String type =
-                d.getString("type");
-
-        String id =
-                d.getId();
-
-        if (sender == null)
-            continue;
-
-        boolean mine =
-                myId.equals(sender);
-
-        if ("audio".equals(type)) {
-
-            String url =
-                    d.getString("audioUrl");
-
-            if (url != null) {
-
-                addAudio(
-                        url,
-                        mine,
-                        id,
-                        sender
-                );
-            }
-
-        } else if ("image".equals(type)) {
-
-            String url =
-                    d.getString("mediaUrl");
-
-            if (url != null) {
-
-                addImage(
-                        url,
-                        mine,
-                        id,
-                        sender
-                );
-            }
-
-        } else if ("video".equals(type)) {
-
-            String url =
-                    d.getString("mediaUrl");
-
-            if (url != null) {
-
-                addVideo(
-                        url,
-                        mine,
-                        id,
-                        sender
-                );
-            }
-
-        } else {
-
-            String message =
-                    d.getString("message");
-
-            if (message != null) {
-
-                addText(
-                        message,
-                        mine,
-                        id,
-                        sender,
-                        d
-                );
-            }
-        }
-    }
-
-    scrollBottom();
-}
-
-// =========================================================
-// TEXT MESSAGE VIEW
-// =========================================================
-
-private void addText(
-        String text,
-        boolean mine,
-        String id,
-        String sender,
-        DocumentSnapshot d) {
-
-    LinearLayout row =
-            new LinearLayout(this);
-
-    row.setOrientation(
-            LinearLayout.VERTICAL
-    );
-
-    row.setGravity(
-            mine
-                    ? Gravity.RIGHT
-                    : Gravity.LEFT
-    );
-
-    row.setLayoutParams(
+    inputBar.addView(
+            voiceButton,
             new LinearLayout.LayoutParams(
-                    -1,
-                    -2
+                    48,
+                    50
             )
     );
 
-    LinearLayout bubble =
-            new LinearLayout(this);
+    sendButton =
+            new ImageButton(this);
 
-    bubble.setOrientation(
-            LinearLayout.VERTICAL
+    sendButton.setImageResource(
+            android.R.drawable.ic_menu_send
     );
 
-    bubble.setPadding(
-            dp(14),
-            dp(9),
-            dp(14),
-            dp(7)
+    sendButton.setBackgroundColor(
+            Color.TRANSPARENT
     );
 
-    GradientDrawable bg =
-            new GradientDrawable();
-
-    bg.setColor(
-            mine
-                    ? Color.rgb(
-                            12,
-                            91,
-                            120
-                    )
-                    : Color.WHITE
+    sendButton.setColorFilter(
+            themeColor
     );
 
-    bg.setCornerRadius(dp(20));
-
-    bubble.setBackground(bg);
-
-    TextView tv =
-            new TextView(this);
-
-    tv.setText(text);
-    tv.setTextSize(17);
-
-    tv.setTextColor(
-            mine
-                    ? Color.WHITE
-                    : Color.rgb(
-                            30,
-                            45,
-                            50
-                    )
+    sendButton.setOnClickListener(
+            v -> sendText()
     );
 
-    tv.setGravity(Gravity.RIGHT);
-
-    bubble.addView(tv);
-
-    LinearLayout info =
-            new LinearLayout(this);
-
-    info.setGravity(
-            Gravity.RIGHT |
-            Gravity.CENTER_VERTICAL
-    );
-
-    TextView time =
-            new TextView(this);
-
-    Date date =
-            d.getDate("timestamp");
-
-    time.setText(
-            date != null
-                    ? formatTime(date)
-                    : "..."
-    );
-
-    time.setTextSize(10);
-
-    time.setTextColor(
-            mine
-                    ? Color.WHITE
-                    : Color.GRAY
-    );
-
-    info.addView(time);
-
-    if (mine) {
-
-        boolean read =
-                Boolean.TRUE.equals(
-                        d.getBoolean("read")
-                );
-
-        TextView ticks =
-                new TextView(this);
-
-        ticks.setText(
-                read
-                        ? "  ✓✓"
-                        : "  ✓"
-        );
-
-        ticks.setTextSize(12);
-
-        ticks.setTextColor(
-                read
-                        ? Color.rgb(
-                                0,
-                                210,
-                                90
-                        )
-                        : Color.LTGRAY
-        );
-
-        info.addView(ticks);
-    }
-
-    bubble.addView(info);
-
-    LinearLayout.LayoutParams bp =
+    inputBar.addView(
+            sendButton,
             new LinearLayout.LayoutParams(
-                    dp(260),
-                    -2
-            );
-
-    bp.setMargins(
-            dp(4),
-            dp(3),
-            dp(4),
-            dp(3)
-    );
-
-    row.addView(
-            bubble,
-            bp
-    );
-
-    View.OnLongClickListener listener =
-            v -> {
-
-                showDeleteMenu(
-                        id,
-                        sender,
-                        null,
-                        "text"
-                );
-
-                return true;
-            };
-
-    bubble.setOnLongClickListener(listener);
-    tv.setOnLongClickListener(listener);
-
-    messagesLayout.addView(row);
-}
-
-// =========================================================
-// MARK READ
-// =========================================================
-
-private void markMessagesAsRead() {
-
-    if (
-            myId == null ||
-            receiverId == null ||
-            currentChatId == null
-    )
-        return;
-
-    /*
-     * فقط chatId را می‌گیریم و در برنامه فیلتر می‌کنیم.
-     */
-    db.collection("messages")
-            .whereEqualTo(
-                    "chatId",
-                    currentChatId
+                    48,
+                    50
             )
-            .get()
-            .addOnSuccessListener(
-                    snap -> {
-
-                        for (
-                                DocumentSnapshot d :
-                                snap.getDocuments()
-                        ) {
-
-                            String receiver =
-                                    d.getString(
-                                            "receiverId"
-                                    );
-
-                            Boolean read =
-                                    d.getBoolean(
-                                            "read"
-                                    );
-
-                            if (
-                                    myId.equals(receiver) &&
-                                    !Boolean.TRUE.equals(read)
-                            ) {
-
-                                db.collection("messages")
-                                        .document(
-                                                d.getId()
-                                        )
-                                        .update(
-                                                "read",
-                                                true
-                                        );
-                            }
-                        }
-                    }
-            );
-}
-
-// =========================================================
-// MEDIA PICKER
-// =========================================================
-
-private void chooseMedia() {
-
-    Intent i =
-            new Intent(
-                    Intent.ACTION_OPEN_DOCUMENT
-            );
-
-    i.addCategory(
-            Intent.CATEGORY_OPENABLE
     );
 
-    i.setType("*/*");
-
-    i.putExtra(
-            Intent.EXTRA_MIME_TYPES,
-            new String[]{
-                    "image/*",
-                    "video/*"
-            }
-    );
-
-    startActivityForResult(
-            i,
-            PICK
-    );
-}
-
-@Override
-protected void onActivityResult(
-        int requestCode,
-        int resultCode,
-        Intent data) {
-
-    super.onActivityResult(
-            requestCode,
-            resultCode,
-            data
-    );
-
-    if (
-            resultCode != RESULT_OK ||
-            data == null ||
-            data.getData() == null
-    )
-        return;
-
-    Uri uri =
-            data.getData();
-
-    if (requestCode == PICK_PROFILE) {
-
-        uploadProfilePhoto(uri);
-        return;
-    }
-
-    if (requestCode != PICK)
-        return;
-
-    String mime =
-            getContentResolver()
-                    .getType(uri);
-
-    if (mime == null) {
-
-        toast(
-                "نوع فایل مشخص نیست"
-        );
-
-        return;
-    }
-
-    if (mime.startsWith("image/")) {
-
-        uploadMedia(
-                uri,
-                "image",
-                mime
-        );
-
-    } else if (
-            mime.startsWith("video/")
-    ) {
-
-        uploadMedia(
-                uri,
-                "video",
-                mime
-        );
-
-    } else {
-
-        toast(
-                "فقط عکس یا ویدیو انتخاب کنید"
-        );
-    }
-}
-
-// =========================================================
-// MEDIA UPLOAD
-// =========================================================
-
-private void uploadMedia(
-        Uri uri,
-        String type,
-        String mime) {
-
-    if (
-            myId == null ||
-            receiverId == null ||
-            currentChatId == null
-    ) {
-        toast(
-                "چت آماده نیست"
-        );
-
-        return;
-    }
-
-    if (blocked) {
-
-        toast(
-                "این کاربر بلاک شده است"
-        );
-
-        return;
-    }
-
-    toast(
-            "image".equals(type)
-                    ? "📷 در حال ارسال عکس..."
-                    : "🎥 در حال ارسال ویدیو..."
-    );
-
-    new Thread(() -> {
-
-        try {
-
-            String ext =
-                    "image".equals(type)
-                            ? ".jpg"
-                            : ".mp4";
-
-            String file =
-                    type +
-                    "_" +
-                    System.currentTimeMillis() +
-                    ext;
-
-            String path =
-                    "chat/" +
-                    myId +
-                    "/" +
-                    file;
-
-            String url =
-                    SUPABASE_URL +
-                    "/storage/v1/object/" +
-                    MEDIA_BUCKET +
-                    "/" +
-                    path;
-
-            HttpURLConnection c =
-                    (HttpURLConnection)
-                            new URL(url)
-                                    .openConnection();
-
-            c.setRequestMethod("POST");
-            c.setDoOutput(true);
-
-            c.setRequestProperty(
-                    "apikey",
-                    SUPABASE_PUBLISHABLE_KEY
-            );
-
-            c.setRequestProperty(
-                    "Authorization",
-                    "Bearer " +
-                            SUPABASE_PUBLISHABLE_KEY
-            );
-
-            c.setRequestProperty(
-                    "Content-Type",
-                    mime
-            );
-
-            c.setRequestProperty(
-                    "x-upsert",
-                    "false"
-            );
-
-            InputStream in =
-                    getContentResolver()
-                            .openInputStream(uri);
-
-            if (in == null)
-                throw new IOException(
-                        "فایل قابل خواندن نیست"
-                );
-
-            OutputStream out =
-                    c.getOutputStream();
-
-            byte[] buffer =
-                    new byte[8192];
-
-            int n;
-
-            while (
-                    (n = in.read(buffer)) != -1
-            ) {
-
-                out.write(
-                        buffer,
-                        0,
-                        n
-                );
-            }
-
-            out.flush();
-            out.close();
-            in.close();
-
-            int code =
-                    c.getResponseCode();
-
-            if (
-                    code >= 200 &&
-                    code < 300
-            ) {
-
-                String publicUrl =
-                        SUPABASE_URL +
-                        "/storage/v1/object/public/" +
-                        MEDIA_BUCKET +
-                        "/" +
-                        path;
-
-                runOnUiThread(
-                        () ->
-                                saveMedia(
-                                        publicUrl,
-                                        type
-                                )
-                );
-
-            } else {
-
-                String error =
-                        read(
-                                c.getErrorStream()
-                        );
-
-                toast(
-                        "خطای Supabase: " +
-                        code +
-                        "\n" +
-                        error
-                );
-            }
-
-            c.disconnect();
-
-        } catch (Exception e) {
-
-            toast(
-                    "آپلود ناموفق بود:\n" +
-                    e.getMessage()
-            );
-        }
-
-    }).start();
-}
-
-private void saveMedia(
-        String url,
-        String type) {
-
-    if (
-            myId == null ||
-            receiverId == null ||
-            currentChatId == null
-    )
-        return;
-
-    Map<String, Object> m =
-            new HashMap<>();
-
-    m.put(
-            "chatId",
-            currentChatId
-    );
-
-    m.put(
-            "senderId",
-            myId
-    );
-
-    m.put(
-            "receiverId",
-            receiverId
-    );
-
-    m.put(
-            "type",
-            type
-    );
-
-    m.put(
-            "mediaUrl",
-            url
-    );
-
-    m.put(
-            "timestamp",
-            FieldValue.serverTimestamp()
-    );
-
-    m.put(
-            "deletedForAll",
-            false
-    );
-
-    m.put(
-            "deletedFor",
-            new ArrayList<String>()
-    );
-
-    m.put(
-            "read",
-            false
-    );
-
-    db.collection("messages")
-            .add(m)
-            .addOnSuccessListener(
-                    x ->
-                            toast(
-                                    "image".equals(type)
-                                            ? "📷 عکس ارسال شد"
-                                            : "🎥 ویدیو ارسال شد"
-                            )
-            )
-            .addOnFailureListener(
-                    e ->
-                            toast(
-                                    "❌ ذخیره رسانه ناموفق بود:\n" +
-                                    e.getMessage()
-                            )
-            );
-}
-
-// =========================================================
-// AUDIO RECORDING
-// =========================================================
-
-private void toggleRecording() {
-
-    if (recording)
-        stopRecording();
-    else
-        startRecording();
-}
-
-private void startRecording() {
-
-    if (
-            !insideChat ||
-            receiverId == null
-    ) {
-        toast(
-                "ابتدا یک کاربر را انتخاب کنید"
-        );
-
-        return;
-    }
-
-    if (blocked) {
-
-        toast(
-                "این کاربر بلاک شده است"
-        );
-
-        return;
-    }
-
-    if (
-            ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.RECORD_AUDIO
-            )
-            != PackageManager.PERMISSION_GRANTED
-    ) {
-
-        ActivityCompat.requestPermissions(
-                this,
-                new String[]{
-                        Manifest.permission.RECORD_AUDIO
-                },
-                MIC
-        );
-
-        return;
-    }
-
-    try {
-
-        File dir =
-                getExternalCacheDir();
-
-        if (dir == null)
-            dir = getCacheDir();
-
-        audioPath =
-                new File(
-                        dir,
-                        "voice_" +
-                        System.currentTimeMillis() +
-                        ".3gp"
-                ).getAbsolutePath();
-
-        recorder =
-                new MediaRecorder();
-
-        recorder.setAudioSource(
-                MediaRecorder.AudioSource.MIC
-        );
-
-        recorder.setOutputFormat(
-                MediaRecorder.OutputFormat.THREE_GPP
-        );
-
-        recorder.setAudioEncoder(
-                MediaRecorder.AudioEncoder.AMR_NB
-        );
-
-        recorder.setOutputFile(
-                audioPath
-        );
-
-        recorder.prepare();
-        recorder.start();
-
-        recording = true;
-
-        voiceButton.setText("⏹");
-
-        toast(
-                "🎙️ در حال ضبط..."
-        );
-
-    } catch (Exception e) {
-
-        releaseRecorder();
-
-        toast(
-                "شروع ضبط ناموفق بود:\n" +
-                e.getMessage()
-        );
-    }
-}
-
-private void stopRecording() {
-
-    if (recorder == null)
-        return;
-
-    try {
-
-        recorder.stop();
-        recorder.release();
-
-        recorder = null;
-        recording = false;
-
-        voiceButton.setText("🎤");
-
-        toast(
-                "🎙️ در حال ارسال صدا..."
-        );
-
-        uploadAudio();
-
-    } catch (Exception e) {
-
-        releaseRecorder();
-
-        recording = false;
-
-        if (voiceButton != null)
-            voiceButton.setText("🎤");
-
-        toast(
-                "ضبط صدا ناموفق بود"
-        );
-    }
-}
-
-private void releaseRecorder() {
-
-    try {
-
-        if (recorder != null)
-            recorder.release();
-
-    } catch (Exception ignored) {
-    }
-
-    recorder = null;
-}
-
-// =========================================================
-// AUDIO UPLOAD
-// =========================================================
-
-private void uploadAudio() {
-
-    if (
-            myId == null ||
-            receiverId == null ||
-            currentChatId == null
-    )
-        return;
-
-    if (blocked) {
-
-        toast(
-                "این کاربر بلاک شده است"
-        );
-
-        return;
-    }
-
-    if (audioPath == null)
-        return;
-
-    File file =
-            new File(audioPath);
-
-    if (!file.exists()) {
-
-        toast(
-                "فایل صوتی پیدا نشد"
-        );
-
-        return;
-    }
-
-    new Thread(() -> {
-
-        try {
-
-            String name =
-                    "voice_" +
-                    System.currentTimeMillis() +
-                    ".3gp";
-
-            String path =
-                    "chat/" +
-                    myId +
-                    "/" +
-                    name;
-
-            String url =
-                    SUPABASE_URL +
-                    "/storage/v1/object/" +
-                    VOICE_BUCKET +
-                    "/" +
-                    path;
-
-            HttpURLConnection c =
-                    (HttpURLConnection)
-                            new URL(url)
-                                    .openConnection();
-
-            c.setRequestMethod("POST");
-            c.setDoOutput(true);
-
-            c.setRequestProperty(
-                    "apikey",
-                    SUPABASE_PUBLISHABLE_KEY
-            );
-
-            c.setRequestProperty(
-                    "Authorization",
-                    "Bearer " +
-                            SUPABASE_PUBLISHABLE_KEY
-            );
-
-            c.setRequestProperty(
-                    "Content-Type",
-                    "audio/3gpp"
-            );
-
-            c.setRequestProperty(
-                    "x-upsert",
-                    "false"
-            );
-
-            InputStream in =
-                    new FileInputStream(file);
-
-            OutputStream out =
-                    c.getOutputStream();
-
-            byte[] buffer =
-                    new byte[8192];
-
-            int n;
-
-            while (
-                    (n = in.read(buffer)) != -1
-            ) {
-
-                out.write(
-                        buffer,
-                        0,
-                        n
-                );
-            }
-
-            out.flush();
-            out.close();
-            in.close();
-
-            int code =
-                    c.getResponseCode();
-
-            if (
-                    code >= 200 &&
-                    code < 300
-            ) {
-
-                String publicUrl =
-                        SUPABASE_URL +
-                        "/storage/v1/object/public/" +
-                        VOICE_BUCKET +
-                        "/" +
-                        path;
-
-                runOnUiThread(
-                        () ->
-                                saveAudio(
-                                        publicUrl
-                                )
-                );
-
-            } else {
-
-                String error =
-                        read(
-                                c.getErrorStream()
-                        );
-
-                toast(
-                        "خطای Supabase صدا: " +
-                        code +
-                        "\n" +
-                        error
-                );
-            }
-
-            c.disconnect();
-
-        } catch (Exception e) {
-
-            toast(
-                    "آپلود صدا ناموفق بود:\n" +
-                    e.getMessage()
-            );
-        }
-
-    }).start();
-}
-
-private void saveAudio(
-        String url) {
-
-    if (
-            myId == null ||
-            receiverId == null ||
-            currentChatId == null
-    )
-        return;
-
-    Map<String, Object> m =
-            new HashMap<>();
-
-    m.put(
-            "chatId",
-            currentChatId
-    );
-
-    m.put(
-            "senderId",
-            myId
-    );
-
-    m.put(
-            "receiverId",
-            receiverId
-    );
-
-    m.put(
-            "type",
-            "audio"
-    );
-
-    m.put(
-            "audioUrl",
-            url
-    );
-
-    m.put(
-            "timestamp",
-            FieldValue.serverTimestamp()
-    );
-
-    m.put(
-            "deletedForAll",
-            false
-    );
-
-    m.put(
-            "deletedFor",
-            new ArrayList<String>()
-    );
-
-    m.put(
-            "read",
-            false
-    );
-
-    db.collection("messages")
-            .add(m)
-            .addOnSuccessListener(
-                    x ->
-                            toast(
-                                    "🎤 پیام صوتی ارسال شد"
-                            )
-            )
-            .addOnFailureListener(
-                    e ->
-                            toast(
-                                    "❌ ذخیره صدا ناموفق بود:\n" +
-                                    e.getMessage()
-                            )
-            );
-}
-
-// =========================================================
-// AUDIO VIEW
-// =========================================================
-
-private void addAudio(
-        String url,
-        boolean mine,
-        String id,
-        String sender) {
-
-    LinearLayout row =
-            createMediaRow(mine);
-
-    LinearLayout bubble =
-            new LinearLayout(this);
-
-    bubble.setOrientation(
-            LinearLayout.HORIZONTAL
-    );
-
-    bubble.setGravity(
-            Gravity.CENTER_VERTICAL
-    );
-
-    bubble.setPadding(
-            dp(8),
-            dp(5),
-            dp(8),
-            dp(5)
-    );
-
-    GradientDrawable bg =
-            new GradientDrawable();
-
-    bg.setColor(
-            mine
-                    ? Color.rgb(
-                            12,
-                            91,
-                            120
-                    )
-                    : Color.WHITE
-    );
-
-    bg.setCornerRadius(dp(22));
-
-    bubble.setBackground(bg);
-
-    TextView label =
-            new TextView(this);
-
-    label.setText(
-            "پیام صوتی"
-    );
-
-    label.setTextSize(15);
-
-    label.setTextColor(
-            mine
-                    ? Color.WHITE
-                    : Color.DKGRAY
-    );
-
-    label.setGravity(
-            Gravity.CENTER_VERTICAL
-    );
-
-    bubble.addView(
-            label,
+    root.addView(
+            inputBar,
             new LinearLayout.LayoutParams(
-                    dp(110),
-                    dp(50)
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
             )
     );
 
-    Button play =
-            makeRoundButton("▶");
-
-    play.setOnClickListener(
-            v -> playAudio(url)
-    );
-
-    bubble.addView(
-            play,
-            new LinearLayout.LayoutParams(
-                    dp(50),
-                    dp(50)
-            )
-    );
-
-    row.addView(bubble);
-
-    View.OnLongClickListener deleteListener =
-            v -> {
-
-                showDeleteMenu(
-                        id,
-                        sender,
-                        url,
-                        "audio"
-                );
-
-                return true;
-            };
-
-    row.setOnLongClickListener(deleteListener);
-    bubble.setOnLongClickListener(deleteListener);
-    label.setOnLongClickListener(deleteListener);
-
-    messagesLayout.addView(row);
-}
-
-// =========================================================
-// IMAGE VIEW
-// =========================================================
-
-private void addImage(
-        String url,
-        boolean mine,
-        String id,
-        String sender) {
-
-    LinearLayout row =
-            createMediaRow(mine);
-
-    LinearLayout content =
-            new LinearLayout(this);
-
-    content.setOrientation(
-            LinearLayout.VERTICAL
-    );
-
-    GradientDrawable contentBg =
-            new GradientDrawable();
-
-    contentBg.setColor(
-            mine
-                    ? Color.rgb(
-                            12,
-                            91,
-                            120
-                    )
-                    : Color.WHITE
-    );
-
-    contentBg.setCornerRadius(dp(18));
-
-    content.setBackground(contentBg);
-
-    content.setPadding(
-            dp(5),
-            dp(5),
-            dp(5),
-            dp(5)
-    );
-
-    TextView label =
-            new TextView(this);
-
-    label.setText("عکس");
-    label.setTextSize(14);
-
-    label.setTextColor(
-            mine
-                    ? Color.WHITE
-                    : Color.DKGRAY
-    );
-
-    label.setPadding(
-            dp(5),
-            dp(3),
-            dp(5),
-            dp(5)
-    );
-
-    content.addView(label);
-
-    ImageView image =
-            new ImageView(this);
-
-    image.setAdjustViewBounds(true);
-
-    image.setScaleType(
-            ImageView.ScaleType.CENTER_CROP
-    );
-
-    image.setLayoutParams(
-            new LinearLayout.LayoutParams(
-                    dp(250),
-                    dp(250)
-            )
-    );
-
-    image.setOnClickListener(
-            v -> openUrl(url)
-    );
-
-    content.addView(image);
-    row.addView(content);
-
-    View.OnLongClickListener deleteListener =
-            v -> {
-
-                showDeleteMenu(
-                        id,
-                        sender,
-                        url,
-                        "image"
-                );
-
-                return true;
-            };
-
-    row.setOnLongClickListener(deleteListener);
-    content.setOnLongClickListener(deleteListener);
-    label.setOnLongClickListener(deleteListener);
-    image.setOnLongClickListener(deleteListener);
-
-    messagesLayout.addView(row);
-
-    loadImageIntoView(
-            url,
-            image
-    );
-}
-
-// =========================================================
-// VIDEO VIEW
-// =========================================================
-
-private void addVideo(
-        String url,
-        boolean mine,
-        String id,
-        String sender) {
-
-    LinearLayout row =
-            createMediaRow(mine);
-
-    LinearLayout box =
-            new LinearLayout(this);
-
-    box.setOrientation(
-            LinearLayout.VERTICAL
-    );
-
-    GradientDrawable boxBg =
-            new GradientDrawable();
-
-    boxBg.setColor(
-            mine
-                    ? Color.rgb(
-                            12,
-                            91,
-                            120
-                    )
-                    : Color.WHITE
-    );
-
-    boxBg.setCornerRadius(dp(18));
-
-    box.setBackground(boxBg);
-
-    box.setPadding(
-            dp(5),
-            dp(5),
-            dp(5),
-            dp(5)
-    );
-
-    TextView label =
-            new TextView(this);
-
-    label.setText("ویدیو");
-    label.setTextSize(14);
-
-    label.setTextColor(
-            mine
-                    ? Color.WHITE
-                    : Color.DKGRAY
-    );
-
-    box.addView(label);
-
-    VideoView video =
-            new VideoView(this);
-
-    video.setLayoutParams(
-            new LinearLayout.LayoutParams(
-                    dp(250),
-                    dp(220)
-            )
-    );
-
-    video.setVideoURI(
-            Uri.parse(url)
-    );
-
-    box.addView(video);
-
-    Button play =
-            new Button(this);
-
-    play.setText(
-            "▶ پخش ویدیو"
-    );
-
-    play.setOnClickListener(
-            v -> video.start()
-    );
-
-    box.addView(play);
-
-    row.addView(box);
-
-    View.OnLongClickListener deleteListener =
-            v -> {
-
-                showDeleteMenu(
-                        id,
-                        sender,
-                        url,
-                        "video"
-                );
-
-                return true;
-            };
-
-    row.setOnLongClickListener(deleteListener);
-    box.setOnLongClickListener(deleteListener);
-    label.setOnLongClickListener(deleteListener);
-    video.setOnLongClickListener(deleteListener);
-
-    messagesLayout.addView(row);
-}
-
-// =========================================================
-// MEDIA ROW
-// =========================================================
-
-private LinearLayout createMediaRow(
-        boolean mine) {
-
-    LinearLayout row =
-            new LinearLayout(this);
-
-    row.setOrientation(
-            LinearLayout.HORIZONTAL
-    );
-
-    row.setGravity(
-            mine
-                    ? Gravity.RIGHT
-                    : Gravity.LEFT
-    );
-
-    row.setPadding(
-            dp(5),
-            dp(5),
-            dp(5),
-            dp(5)
-    );
-
-    row.setLayoutParams(
-            new LinearLayout.LayoutParams(
-                    -1,
-                    -2
-            )
-    );
-
-    return row;
-}
-
-// =========================================================
-// TYPING
-// =========================================================
-
-private void setupTyping() {
-
-    input.addTextChangedListener(
+    messageInput.addTextChangedListener(
             new TextWatcher() {
 
                 @Override
@@ -3165,7 +1121,8 @@ private void setupTyping() {
                         CharSequence s,
                         int start,
                         int count,
-                        int after) {
+                        int after
+                ) {
                 }
 
                 @Override
@@ -3173,211 +1130,1056 @@ private void setupTyping() {
                         CharSequence s,
                         int start,
                         int before,
-                        int count) {
+                        int count
+                ) {
 
-                    if (!insideChat)
+                    if (!insideChat ||
+                            receiverId == null) {
                         return;
+                    }
 
-                    setTyping(true);
-
-                    typingHandler
-                            .removeCallbacksAndMessages(
-                                    null
-                            );
-
-                    typingHandler.postDelayed(
-                            () ->
-                                    setTyping(false),
-                            1500
-                    );
+                    if (s.length() > 0) {
+                        setTyping(true);
+                    } else {
+                        setTyping(false);
+                    }
                 }
 
                 @Override
                 public void afterTextChanged(
-                        Editable s) {
+                        Editable s
+                ) {
                 }
+            }
+    );
+
+    if (photoUrl != null &&
+            !photoUrl.trim().isEmpty()) {
+
+        loadImage(
+                photoUrl,
+                headerAvatar
+        );
+    }
+
+    setContentView(root);
+}
+
+private void listenMessages() {
+
+    if (currentChatId == null ||
+            myId == null) {
+        return;
+    }
+
+    if (sentMessageListener != null) {
+        sentMessageListener.remove();
+    }
+
+    if (receivedMessageListener != null) {
+        receivedMessageListener.remove();
+    }
+
+    messageCache.clear();
+
+    /*
+     * مهم:
+     * دیگر از query فقط با chatId استفاده نمی‌کنیم.
+     *
+     * چون Rules می‌خواهند senderId یا receiverId
+     * حتماً با auth.uid مطابقت داشته باشد.
+     */
+
+    sentMessageListener =
+            db.collection("messages")
+                    .whereEqualTo(
+                            "chatId",
+                            currentChatId
+                    )
+                    .whereEqualTo(
+                            "senderId",
+                            myId
+                    )
+                    .addSnapshotListener(
+                            (snapshot, error) -> {
+
+                                if (error != null) {
+
+                                    Toast.makeText(
+                                            this,
+                                            "خطای پیام‌های ارسالی: " +
+                                                    error.getMessage(),
+                                            Toast.LENGTH_LONG
+                                    ).show();
+
+                                    return;
+                                }
+
+                                if (snapshot == null) {
+                                    return;
+                                }
+
+                                applyMessageChanges(
+                                        snapshot
+                                );
+
+                                renderMessages();
+                            }
+                    );
+
+    receivedMessageListener =
+            db.collection("messages")
+                    .whereEqualTo(
+                            "chatId",
+                            currentChatId
+                    )
+                    .whereEqualTo(
+                            "receiverId",
+                            myId
+                    )
+                    .addSnapshotListener(
+                            (snapshot, error) -> {
+
+                                if (error != null) {
+
+                                    Toast.makeText(
+                                            this,
+                                            "خطای پیام‌های دریافتی: " +
+                                                    error.getMessage(),
+                                            Toast.LENGTH_LONG
+                                    ).show();
+
+                                    return;
+                                }
+
+                                if (snapshot == null) {
+                                    return;
+                                }
+
+                                applyMessageChanges(
+                                        snapshot
+                                );
+
+                                markUnreadFromSnapshot(
+                                        snapshot
+                                );
+
+                                renderMessages();
+                            }
+                    );
+}
+
+private void applyMessageChanges(
+        QuerySnapshot snapshot
+) {
+
+    for (DocumentChange change :
+            snapshot.getDocumentChanges()) {
+
+        DocumentSnapshot doc =
+                change.getDocument();
+
+        String id = doc.getId();
+
+        if (change.getType() ==
+                DocumentChange.Type.REMOVED) {
+
+            messageCache.remove(id);
+
+        } else {
+
+            messageCache.put(
+                    id,
+                    doc
+            );
+        }
+    }
+}
+
+private void markUnreadFromSnapshot(
+        QuerySnapshot snapshot
+) {
+
+    if (myId == null) {
+        return;
+    }
+
+    for (DocumentSnapshot doc :
+            snapshot.getDocuments()) {
+
+        Boolean read =
+                doc.getBoolean("read");
+
+        if (read != null && read) {
+            continue;
+        }
+
+        db.collection("messages")
+                .document(doc.getId())
+                .update(
+                        "read",
+                        true
+                );
+    }
+}
+
+private void renderMessages() {
+
+    if (messagesContainer == null) {
+        return;
+    }
+
+    messagesContainer.removeAllViews();
+
+    List<DocumentSnapshot> list =
+            new ArrayList<>(
+                    messageCache.values()
+            );
+
+    Collections.sort(
+            list,
+            new Comparator<DocumentSnapshot>() {
+                @Override
+                public int compare(
+                        DocumentSnapshot a,
+                        DocumentSnapshot b
+                ) {
+
+                    com.google.firebase.Timestamp ta =
+                            a.getTimestamp("timestamp");
+
+                    com.google.firebase.Timestamp tb =
+                            b.getTimestamp("timestamp");
+
+                    if (ta == null && tb == null) {
+                        return 0;
+                    }
+
+                    if (ta == null) {
+                        return -1;
+                    }
+
+                    if (tb == null) {
+                        return 1;
+                    }
+
+                    return ta.compareTo(tb);
+                }
+            }
+    );
+
+    for (DocumentSnapshot doc : list) {
+
+        renderOneMessage(doc);
+    }
+
+    messagesScroll.post(
+            () -> messagesScroll.fullScroll(
+                    View.FOCUS_DOWN
+            )
+    );
+}
+
+private void renderOneMessage(
+        DocumentSnapshot doc
+) {
+
+    String senderId =
+            doc.getString("senderId");
+
+    if (senderId == null) {
+        return;
+    }
+
+    ArrayList<String> deletedFor =
+            (ArrayList<String>)
+                    doc.get("deletedFor");
+
+    boolean deletedForAll =
+            Boolean.TRUE.equals(
+                    doc.getBoolean("deletedForAll")
+            );
+
+    if (deletedForAll) {
+
+        addMessageBubble(
+                "🚫 این پیام برای همه حذف شده است",
+                senderId.equals(myId),
+                false
+        );
+
+        return;
+    }
+
+    if (deletedFor != null &&
+            deletedFor.contains(myId)) {
+
+        return;
+    }
+
+    String type =
+            doc.getString("type");
+
+    if (type == null) {
+        type = "text";
+    }
+
+    boolean mine =
+            senderId.equals(myId);
+
+    if ("text".equals(type)) {
+
+        String text =
+                doc.getString("message");
+
+        if (text == null) {
+            text = "";
+        }
+
+        addMessageBubble(
+                text,
+                mine,
+                true,
+                doc.getId()
+        );
+
+    } else if ("image".equals(type)) {
+
+        String url =
+                doc.getString("mediaUrl");
+
+        addMediaMessage(
+                url,
+                mine,
+                false,
+                doc.getId()
+        );
+
+    } else if ("video".equals(type)) {
+
+        String url =
+                doc.getString("mediaUrl");
+
+        addMediaMessage(
+                url,
+                mine,
+                true,
+                doc.getId()
+        );
+
+    } else if ("audio".equals(type)) {
+
+        String url =
+                doc.getString("audioUrl");
+
+        addAudioMessage(
+                url,
+                mine,
+                doc.getId()
+        );
+
+    } else {
+
+        String text =
+                doc.getString("message");
+
+        if (text == null) {
+            text = "";
+        }
+
+        addMessageBubble(
+                text,
+                mine,
+                true,
+                doc.getId()
+        );
+    }
+}
+
+private void addMessageBubble(
+        String text,
+        boolean mine,
+        boolean allowMenu
+) {
+
+    addMessageBubble(
+            text,
+            mine,
+            allowMenu,
+            null
+    );
+}
+
+private void addMessageBubble(
+        String text,
+        boolean mine,
+        boolean allowMenu,
+        String messageId
+) {
+
+    LinearLayout row =
+            new LinearLayout(this);
+
+    row.setGravity(
+            mine
+                    ? Gravity.RIGHT
+                    : Gravity.LEFT
+    );
+
+    TextView bubble =
+            makeText(
+                    text,
+                    15,
+                    mine
+                            ? Color.WHITE
+                            : Color.rgb(30, 30, 30)
+            );
+
+    bubble.setPadding(
+            16,
+            11,
+            16,
+            11
+    );
+
+    bubble.setMaxWidth(
+            (int) (
+                    getResources()
+                            .getDisplayMetrics()
+                            .widthPixels
+                    * 0.78
+            )
+    );
+
+    bubble.setBackground(
+            roundedBackground(
+                    mine
+                            ? themeColor
+                            : Color.WHITE,
+                    22
+            )
+    );
+
+    row.addView(bubble);
+
+    LinearLayout.LayoutParams params =
+            new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+
+    params.setMargins(
+            5,
+            4,
+            5,
+            4
+    );
+
+    messagesContainer.addView(
+            row,
+            params
+    );
+
+    if (allowMenu &&
+            messageId != null) {
+
+        bubble.setOnLongClickListener(
+                v -> {
+
+                    showDeleteMenu(
+                            messageId,
+                            mine
+                    );
+
+                    return true;
+                }
+        );
+    }
+}
+
+private void addMediaMessage(
+        String url,
+        boolean mine,
+        boolean video,
+        String messageId
+) {
+
+    if (url == null ||
+            url.trim().isEmpty()) {
+        return;
+    }
+
+    LinearLayout row =
+            new LinearLayout(this);
+
+    row.setGravity(
+            mine
+                    ? Gravity.RIGHT
+                    : Gravity.LEFT
+    );
+
+    ImageView image =
+            new ImageView(this);
+
+    image.setImageResource(
+            android.R.drawable.ic_menu_gallery
+    );
+
+    image.setScaleType(
+            ImageView.ScaleType.CENTER_CROP
+    );
+
+    image.setBackground(
+            roundedBackground(
+                    Color.WHITE,
+                    18
+            )
+    );
+
+    row.addView(
+            image,
+            new LinearLayout.LayoutParams(
+                    230,
+                    230
+            )
+    );
+
+    messagesContainer.addView(row);
+
+    loadImage(
+            url,
+            image
+    );
+
+    image.setOnClickListener(
+            v -> {
+
+                if (video) {
+
+                    Toast.makeText(
+                            this,
+                            "ویدیو: " + url,
+                            Toast.LENGTH_SHORT
+                    ).show();
+
+                }
+            }
+    );
+
+    image.setOnLongClickListener(
+            v -> {
+
+                showDeleteMenu(
+                        messageId,
+                        mine
+                );
+
+                return true;
             }
     );
 }
 
-private void setTyping(
-        boolean value) {
+private void addAudioMessage(
+        String url,
+        boolean mine,
+        String messageId
+) {
 
-    if (
-            myId == null ||
-            receiverId == null
-    )
+    if (url == null ||
+            url.trim().isEmpty()) {
         return;
+    }
 
-    if (typing == value)
-        return;
+    LinearLayout row =
+            new LinearLayout(this);
 
-    typing = value;
-
-    Map<String, Object> data =
-            new HashMap<>();
-
-    data.put(
-            "typingTo",
-            value
-                    ? receiverId
-                    : ""
+    row.setGravity(
+            mine
+                    ? Gravity.RIGHT
+                    : Gravity.LEFT
     );
 
-    db.collection("users")
-            .document(myId)
-            .set(
-                    data,
-                    SetOptions.merge()
+    Button play =
+            makeButton(
+                    "▶️ پخش پیام صوتی"
+            );
+
+    play.setOnClickListener(
+            v -> playAudio(url)
+    );
+
+    play.setOnLongClickListener(
+            v -> {
+
+                showDeleteMenu(
+                        messageId,
+                        mine
+                );
+
+                return true;
+            }
+    );
+
+    row.addView(play);
+
+    messagesContainer.addView(row);
+}
+
+private void showDeleteMenu(
+        String messageId,
+        boolean mine
+) {
+
+    List<String> options =
+            new ArrayList<>();
+
+    options.add("🗑️ حذف برای من");
+
+    if (mine) {
+        options.add(
+                "🗑️ حذف برای همه"
+        );
+    }
+
+    options.add("لغو");
+
+    new AlertDialog.Builder(this)
+            .setTitle("مدیریت پیام")
+            .setItems(
+                    options.toArray(
+                            new String[0]
+                    ),
+                    (dialog, which) -> {
+
+                        if (which == 0) {
+
+                            deleteForMe(
+                                    messageId
+                            );
+
+                        } else if (
+                                mine &&
+                                        which == 1
+                        ) {
+
+                            deleteForAll(
+                                    messageId
+                            );
+                        }
+                    }
+            )
+            .show();
+}
+
+private void deleteForMe(
+        String messageId
+) {
+
+    db.collection("messages")
+            .document(messageId)
+            .update(
+                    "deletedFor",
+                    FieldValue.arrayUnion(myId)
+            )
+            .addOnFailureListener(
+                    e -> Toast.makeText(
+                            this,
+                            "خطای حذف پیام: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
             );
 }
 
-private void listenTyping() {
+private void deleteForAll(
+        String messageId
+) {
 
-    if (typingListener != null)
-        typingListener.remove();
+    db.collection("messages")
+            .document(messageId)
+            .update(
+                    "deletedForAll",
+                    true
+            )
+            .addOnFailureListener(
+                    e -> Toast.makeText(
+                            this,
+                            "خطای حذف پیام: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
+            );
+}
 
-    typingListener =
+private void sendText() {
+
+    if (blocked) {
+
+        Toast.makeText(
+                this,
+                "این کاربر بلاک شده است",
+                Toast.LENGTH_SHORT
+        ).show();
+
+        return;
+    }
+
+    if (receiverId == null ||
+            currentChatId == null) {
+        return;
+    }
+
+    String text =
+            messageInput
+                    .getText()
+                    .toString()
+                    .trim();
+
+    if (text.isEmpty()) {
+        return;
+    }
+
+    Map<String, Object> message =
+            new HashMap<>();
+
+    message.put(
+            "chatId",
+            currentChatId
+    );
+
+    message.put(
+            "senderId",
+            myId
+    );
+
+    message.put(
+            "receiverId",
+            receiverId
+    );
+
+    message.put(
+            "type",
+            "text"
+    );
+
+    message.put(
+            "message",
+            text
+    );
+
+    message.put(
+            "timestamp",
+            FieldValue.serverTimestamp()
+    );
+
+    message.put(
+            "read",
+            false
+    );
+
+    message.put(
+            "deletedForAll",
+            false
+    );
+
+    message.put(
+            "deletedFor",
+            new ArrayList<String>()
+    );
+
+    db.collection("messages")
+            .add(message)
+            .addOnSuccessListener(
+                    doc -> {
+
+                        messageInput.setText("");
+
+                        setTyping(false);
+                    }
+            )
+            .addOnFailureListener(
+                    e -> {
+
+                        Toast.makeText(
+                                this,
+                                "خطای ارسال پیام: " +
+                                        e.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+            );
+}
+
+private void listenReceiver() {
+
+    if (receiverId == null) {
+        return;
+    }
+
+    if (receiverListener != null) {
+        receiverListener.remove();
+    }
+
+    receiverListener =
             db.collection("users")
                     .document(receiverId)
                     .addSnapshotListener(
-                            (snap, error) -> {
+                            (doc, error) -> {
 
-                                if (
-                                        error != null ||
-                                        snap == null
-                                )
+                                if (error != null ||
+                                        doc == null ||
+                                        !doc.exists()) {
                                     return;
+                                }
 
-                                String typingTo =
-                                        snap.getString(
-                                                "typingTo"
+                                Boolean online =
+                                        doc.getBoolean(
+                                                "online"
                                         );
 
-                                if (
-                                        myId.equals(
-                                                typingTo
-                                        )
-                                ) {
+                                if (Boolean.TRUE.equals(
+                                        online
+                                )) {
 
                                     statusText.setText(
-                                            "⌨️ در حال نوشتن..."
+                                            "آنلاین"
                                     );
 
                                 } else {
 
-                                    updateReceiverStatus(
-                                            snap
+                                    statusText.setText(
+                                            "آفلاین"
+                                    );
+                                }
+
+                                String photo =
+                                        doc.getString(
+                                                "photoUrl"
+                                        );
+
+                                if (photo != null &&
+                                        !photo.isEmpty()) {
+
+                                    loadImage(
+                                            photo,
+                                            headerAvatar
                                     );
                                 }
                             }
                     );
 }
 
-// =========================================================
-// ONLINE / RECEIVER
-// =========================================================
+private void listenTyping() {
 
-private void listenReceiver() {
+    if (receiverId == null) {
+        return;
+    }
 
-    if (receiverListener != null)
-        receiverListener.remove();
+    if (typingListener != null) {
+        typingListener.remove();
+    }
 
-    receiverListener =
+    typingListener =
             db.collection("users")
                     .document(receiverId)
                     .addSnapshotListener(
-                            (snap, error) -> {
+                            (doc, error) -> {
 
-                                if (
-                                        error != null ||
-                                        snap == null
-                                )
+                                if (error != null ||
+                                        doc == null ||
+                                        !doc.exists()) {
                                     return;
+                                }
 
-                                updateReceiverStatus(
-                                        snap
-                                );
+                                String typingTo =
+                                        doc.getString(
+                                                "typingTo"
+                                        );
+
+                                if (myId != null &&
+                                        myId.equals(
+                                                typingTo
+                                        )) {
+
+                                    statusText.setText(
+                                            "در حال نوشتن..."
+                                    );
+
+                                } else {
+
+                                    Boolean online =
+                                            doc.getBoolean(
+                                                    "online"
+                                            );
+
+                                    if (Boolean.TRUE.equals(
+                                            online
+                                    )) {
+
+                                        statusText.setText(
+                                                "آنلاین"
+                                        );
+
+                                    } else {
+
+                                        statusText.setText(
+                                                "آفلاین"
+                                        );
+                                    }
+                                }
                             }
                     );
 }
 
-private void updateReceiverStatus(
-        DocumentSnapshot snap) {
+private void setTyping(
+        boolean value
+) {
 
-    Boolean online =
-            snap.getBoolean("online");
-
-    if (
-            Boolean.TRUE.equals(online)
-    ) {
-
-        statusText.setText(
-                "🟢 آنلاین"
-        );
-
-    } else {
-
-        Date last =
-                snap.getDate("lastSeen");
-
-        statusText.setText(
-                last != null
-                        ? "آخرین حضور: " +
-                          formatTime(last)
-                        : "🔴 آفلاین"
-        );
+    if (myId == null ||
+            receiverId == null) {
+        return;
     }
 
-    String photoUrl =
-            snap.getString("photoUrl");
+    typing = value;
 
-    if (
-            photoUrl != null &&
-            !photoUrl.trim().isEmpty() &&
-            headerAvatar != null
-    ) {
+    typingHandler.removeCallbacksAndMessages(
+            null
+    );
 
-        loadImageIntoView(
-                photoUrl,
-                headerAvatar
+    String valueToSave =
+            value ? receiverId : "";
+
+    db.collection("users")
+            .document(myId)
+            .update(
+                    "typingTo",
+                    valueToSave
+            );
+
+    if (value) {
+
+        typingHandler.postDelayed(
+                () -> {
+
+                    if (typing) {
+                        setTyping(false);
+                    }
+
+                },
+                3000
         );
     }
 }
 
-// =========================================================
-// BLOCK
-// =========================================================
-
 private void listenBlockStatus() {
 
-    if (blockListener != null)
+    if (receiverId == null) {
+        return;
+    }
+
+    if (blockListener != null) {
         blockListener.remove();
+    }
 
     String blockId =
-            myId +
-            "_" +
-            receiverId;
+            myId + "_" + receiverId;
 
     blockListener =
             db.collection("blocks")
                     .document(blockId)
                     .addSnapshotListener(
-                            (snap, error) -> {
+                            (doc, error) -> {
+
+                                if (error != null) {
+                                    return;
+                                }
 
                                 blocked =
-                                        snap != null &&
-                                        snap.exists();
+                                        doc != null &&
+                                                doc.exists();
+
+                                if (blocked) {
+
+                                    statusText.setText(
+                                            "🚫 بلاک شده"
+                                    );
+
+                                    messageInput.setEnabled(
+                                            false
+                                    );
+
+                                    sendButton.setEnabled(
+                                            false
+                                    );
+
+                                } else {
+
+                                    messageInput.setEnabled(
+                                            true
+                                    );
+
+                                    sendButton.setEnabled(
+                                            true
+                                    );
+                                }
                             }
                     );
 }
 
+private void showChatMenu() {
+
+    String blockText =
+            blocked
+                    ? "✅ رفع بلاک"
+                    : "🚫 بلاک کردن";
+
+    String[] options = {
+            blockText,
+            "🗑️ حذف کاربر از فهرست من",
+            "🔄 تازه‌سازی پیام‌ها",
+            "لغو"
+    };
+
+    new AlertDialog.Builder(this)
+            .setTitle(
+                    receiverName
+            )
+            .setItems(
+                    options,
+                    (dialog, which) -> {
+
+                        if (which == 0) {
+
+                            if (blocked) {
+                                unblockUser();
+                            } else {
+                                blockUser();
+                            }
+
+                        } else if (which == 1) {
+
+                            confirmDeleteUser(
+                                    receiverId,
+                                    receiverName
+                            );
+
+                        } else if (which == 2) {
+
+                            listenMessages();
+                        }
+                    }
+            )
+            .show();
+}
+
 private void blockUser() {
 
+    if (receiverId == null) {
+        return;
+    }
+
     String blockId =
-            myId +
-            "_" +
-            receiverId;
+            myId + "_" + receiverId;
 
     Map<String, Object> data =
             new HashMap<>();
@@ -3401,328 +2203,542 @@ private void blockUser() {
             .document(blockId)
             .set(data)
             .addOnSuccessListener(
-                    x -> {
-
-                        blocked = true;
-
-                        toast(
-                                "🚫 کاربر بلاک شد"
-                        );
-                    }
+                    v -> Toast.makeText(
+                            this,
+                            "کاربر بلاک شد",
+                            Toast.LENGTH_SHORT
+                    ).show()
             )
             .addOnFailureListener(
-                    e ->
-                            toast(
-                                    "بلاک کردن ناموفق بود:\n" +
-                                    e.getMessage()
-                            )
+                    e -> Toast.makeText(
+                            this,
+                            "خطای بلاک: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
             );
 }
 
 private void unblockUser() {
 
+    if (receiverId == null) {
+        return;
+    }
+
     String blockId =
-            myId +
-            "_" +
-            receiverId;
+            myId + "_" + receiverId;
 
     db.collection("blocks")
             .document(blockId)
             .delete()
             .addOnSuccessListener(
-                    x -> {
-
-                        blocked = false;
-
-                        toast(
-                                "کاربر از بلاک خارج شد"
-                        );
-                    }
+                    v -> Toast.makeText(
+                            this,
+                            "بلاک برداشته شد",
+                            Toast.LENGTH_SHORT
+                    ).show()
             )
             .addOnFailureListener(
-                    e ->
-                            toast(
-                                    "رفع بلاک ناموفق بود"
-                            )
+                    e -> Toast.makeText(
+                            this,
+                            "خطای رفع بلاک: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
             );
 }
 
-// =========================================================
-// CHAT MENU
-// =========================================================
+private void pickMedia() {
 
-private void showChatMenu() {
-
-    String[] options =
-            blocked
-                    ? new String[]{
-                            "✅ رفع بلاک",
-                            "🔄 تازه‌سازی چت"
-                    }
-                    : new String[]{
-                            "🚫 بلاک کردن",
-                            "🔄 تازه‌سازی چت"
-                    };
-
-    new AlertDialog.Builder(this)
-            .setTitle(receiverName)
-            .setItems(
-                    options,
-                    (dialog, which) -> {
-
-                        if (which == 1) {
-
-                            listenMessages();
-                            markMessagesAsRead();
-
-                            toast(
-                                    "🔄 چت تازه شد"
-                            );
-
-                            return;
-                        }
-
-                        if (blocked) {
-
-                            unblockUser();
-
-                        } else {
-
-                            new AlertDialog.Builder(this)
-                                    .setTitle(
-                                            "بلاک کردن؟"
-                                    )
-                                    .setMessage(
-                                            "بعد از بلاک، این کاربر نمی‌تواند برای شما پیام بفرستد."
-                                    )
-                                    .setNegativeButton(
-                                            "لغو",
-                                            null
-                                    )
-                                    .setPositiveButton(
-                                            "بلاک",
-                                            (d, w) ->
-                                                    blockUser()
-                                    )
-                                    .show();
-                        }
-                    }
-            )
-            .show();
-}
-
-// =========================================================
-// DELETE MENU
-// =========================================================
-
-private void showDeleteMenu(
-        String id,
-        String sender,
-        String url,
-        String type) {
-
-    boolean mine =
-            myId.equals(sender);
-
-    String[] options =
-            mine
-                    ? new String[]{
-                            "🗑️ حذف برای من",
-                            "🗑️ حذف برای همه",
-                            "لغو"
-                    }
-                    : new String[]{
-                            "🗑️ حذف برای من",
-                            "لغو"
-                    };
-
-    new AlertDialog.Builder(this)
-            .setTitle("حذف پیام")
-            .setItems(
-                    options,
-                    (dialog, which) -> {
-
-                        if (which == 0) {
-
-                            deleteForMe(id);
-
-                        } else if (
-                                which == 1 &&
-                                mine
-                        ) {
-
-                            new AlertDialog.Builder(this)
-                                    .setTitle(
-                                            "حذف برای همه؟"
-                                    )
-                                    .setMessage(
-                                            "این پیام از چت هر دو طرف حذف می‌شود."
-                                    )
-                                    .setNegativeButton(
-                                            "لغو",
-                                            null
-                                    )
-                                    .setPositiveButton(
-                                            "حذف",
-                                            (d, w) ->
-                                                    deleteForBoth(
-                                                            id,
-                                                            url,
-                                                            type
-                                                    )
-                                    )
-                                    .show();
-                        }
-                    }
-            )
-            .show();
-}
-
-private void deleteForMe(
-        String id) {
-
-    db.collection("messages")
-            .document(id)
-            .update(
-                    "deletedFor",
-                    FieldValue.arrayUnion(myId)
-            )
-            .addOnSuccessListener(
-                    x ->
-                            toast(
-                                    "پیام برای شما حذف شد"
-                            )
-            )
-            .addOnFailureListener(
-                    e ->
-                            toast(
-                                    "حذف ناموفق بود:\n" +
-                                    e.getMessage()
-                            )
+    Intent intent =
+            new Intent(
+                    Intent.ACTION_OPEN_DOCUMENT
             );
+
+    intent.setType("*/*");
+
+    intent.putExtra(
+            Intent.EXTRA_MIME_TYPES,
+            new String[]{
+                    "image/*",
+                    "video/*"
+            }
+    );
+
+    intent.addCategory(
+            Intent.CATEGORY_OPENABLE
+    );
+
+    startActivityForResult(
+            intent,
+            PICK_MEDIA
+    );
 }
 
-private void deleteForBoth(
-        String id,
-        String url,
-        String type) {
+private void pickProfilePhoto() {
 
-    db.collection("messages")
-            .document(id)
-            .update(
-                    "deletedForAll",
-                    true
-            )
-            .addOnSuccessListener(
-                    x -> {
-
-                        toast(
-                                "پیام برای هر دو حذف شد"
-                        );
-
-                        if (
-                                url != null &&
-                                !"text".equals(type)
-                        ) {
-
-                            deleteSupabaseFile(
-                                    url,
-                                    type
-                            );
-                        }
-                    }
-            )
-            .addOnFailureListener(
-                    e ->
-                            toast(
-                                    "حذف پیام ناموفق بود:\n" +
-                                    e.getMessage()
-                            )
+    Intent intent =
+            new Intent(
+                    Intent.ACTION_OPEN_DOCUMENT
             );
+
+    intent.setType("image/*");
+
+    intent.addCategory(
+            Intent.CATEGORY_OPENABLE
+    );
+
+    startActivityForResult(
+            intent,
+            PICK_PROFILE
+    );
 }
 
-// =========================================================
-// SUPABASE DELETE
-// =========================================================
+@Override
+protected void onActivityResult(
+        int requestCode,
+        int resultCode,
+        Intent data
+) {
 
-private void deleteSupabaseFile(
-        String publicUrl,
-        String type) {
+    super.onActivityResult(
+            requestCode,
+            resultCode,
+            data
+    );
 
-    new Thread(() -> {
+    if (resultCode != RESULT_OK ||
+            data == null ||
+            data.getData() == null) {
+        return;
+    }
 
-        HttpURLConnection c = null;
+    Uri uri =
+            data.getData();
 
-        try {
+    if (requestCode == PICK_MEDIA) {
 
-            String bucket =
-                    "audio".equals(type)
-                            ? VOICE_BUCKET
-                            : MEDIA_BUCKET;
+        uploadMedia(
+                uri
+        );
 
-            String marker =
-                    "/storage/v1/object/public/" +
-                    bucket +
-                    "/";
+    } else if (requestCode == PICK_PROFILE) {
 
-            int index =
-                    publicUrl.indexOf(marker);
+        uploadProfilePhoto(
+                uri
+        );
+    }
+}
 
-            if (index < 0)
-                return;
+private void uploadMedia(
+        Uri uri
+) {
 
-            String path =
-                    Uri.decode(
-                            publicUrl.substring(
-                                    index +
-                                    marker.length()
-                            )
+    if (blocked) {
+
+        Toast.makeText(
+                this,
+                "این کاربر بلاک شده است",
+                Toast.LENGTH_SHORT
+        ).show();
+
+        return;
+    }
+
+    String mime =
+            getContentResolver()
+                    .getType(uri);
+
+    boolean image =
+            mime != null &&
+                    mime.startsWith("image/");
+
+    String type =
+            image
+                    ? "image"
+                    : "video";
+
+    String extension =
+            image
+                    ? ".jpg"
+                    : ".mp4";
+
+    String fileName =
+            System.currentTimeMillis()
+                    + "_" +
+                    myId
+                    + extension;
+
+    StorageReference ref =
+            storage.getReference()
+                    .child(
+                            "chat_media/" +
+                                    fileName
                     );
 
-            String deleteUrl =
-                    SUPABASE_URL +
-                    "/storage/v1/object/" +
-                    bucket +
-                    "/" +
-                    path;
+    Toast.makeText(
+            this,
+            "در حال ارسال فایل...",
+            Toast.LENGTH_SHORT
+    ).show();
 
-            c =
-                    (HttpURLConnection)
-                            new URL(deleteUrl)
-                                    .openConnection();
-
-            c.setRequestMethod("DELETE");
-
-            c.setRequestProperty(
-                    "apikey",
-                    SUPABASE_PUBLISHABLE_KEY
+    ref.putFile(uri)
+            .addOnSuccessListener(
+                    task -> ref.getDownloadUrl()
+                            .addOnSuccessListener(
+                                    downloadUri ->
+                                            saveMediaMessage(
+                                                    type,
+                                                    downloadUri
+                                                            .toString()
+                                            )
+                            )
+            )
+            .addOnFailureListener(
+                    e -> Toast.makeText(
+                            this,
+                            "خطای ارسال فایل: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
             );
-
-            c.setRequestProperty(
-                    "Authorization",
-                    "Bearer " +
-                            SUPABASE_PUBLISHABLE_KEY
-            );
-
-            c.getResponseCode();
-
-        } catch (Exception ignored) {
-
-        } finally {
-
-            if (c != null)
-                c.disconnect();
-        }
-
-    }).start();
 }
 
-// =========================================================
-// AUDIO PLAYER
-// =========================================================
+private void saveMediaMessage(
+        String type,
+        String url
+) {
+
+    Map<String, Object> message =
+            new HashMap<>();
+
+    message.put(
+            "chatId",
+            currentChatId
+    );
+
+    message.put(
+            "senderId",
+            myId
+    );
+
+    message.put(
+            "receiverId",
+            receiverId
+    );
+
+    message.put(
+            "type",
+            type
+    );
+
+    message.put(
+            "mediaUrl",
+            url
+    );
+
+    message.put(
+            "timestamp",
+            FieldValue.serverTimestamp()
+    );
+
+    message.put(
+            "read",
+            false
+    );
+
+    message.put(
+            "deletedForAll",
+            false
+    );
+
+    message.put(
+            "deletedFor",
+            new ArrayList<String>()
+    );
+
+    db.collection("messages")
+            .add(message)
+            .addOnFailureListener(
+                    e -> Toast.makeText(
+                            this,
+                            "خطای ذخیره پیام: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
+            );
+}
+
+private void toggleRecording() {
+
+    if (blocked) {
+
+        Toast.makeText(
+                this,
+                "این کاربر بلاک شده است",
+                Toast.LENGTH_SHORT
+        ).show();
+
+        return;
+    }
+
+    if (recording) {
+
+        stopRecording();
+
+    } else {
+
+        startRecording();
+    }
+}
+
+private void startRecording() {
+
+    if (ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.RECORD_AUDIO
+    ) != PackageManager.PERMISSION_GRANTED) {
+
+        ActivityCompat.requestPermissions(
+                this,
+                new String[]{
+                        Manifest.permission.RECORD_AUDIO
+                },
+                REQUEST_MIC
+        );
+
+        return;
+    }
+
+    try {
+
+        File file =
+                new File(
+                        getCacheDir(),
+                        "voice_" +
+                                System.currentTimeMillis() +
+                                ".m4a"
+                );
+
+        audioPath =
+                file.getAbsolutePath();
+
+        recorder =
+                new MediaRecorder();
+
+        recorder.setAudioSource(
+                MediaRecorder.AudioSource.MIC
+        );
+
+        recorder.setOutputFormat(
+                MediaRecorder.OutputFormat.MPEG_4
+        );
+
+        recorder.setAudioEncoder(
+                MediaRecorder.AudioEncoder.AAC
+        );
+
+        recorder.setOutputFile(
+                audioPath
+        );
+
+        recorder.prepare();
+        recorder.start();
+
+        recording = true;
+
+        voiceButton.setImageResource(
+                android.R.drawable.ic_media_pause
+        );
+
+        Toast.makeText(
+                this,
+                "🎤 در حال ضبط...",
+                Toast.LENGTH_SHORT
+        ).show();
+
+    } catch (Exception e) {
+
+        recording = false;
+
+        Toast.makeText(
+                this,
+                "خطای میکروفون: " +
+                        e.getMessage(),
+                Toast.LENGTH_LONG
+        ).show();
+    }
+}
+
+private void stopRecording() {
+
+    if (recorder == null) {
+        recording = false;
+        return;
+    }
+
+    try {
+
+        recorder.stop();
+
+    } catch (Exception ignored) {
+    }
+
+    try {
+
+        recorder.release();
+
+    } catch (Exception ignored) {
+    }
+
+    recorder = null;
+    recording = false;
+
+    voiceButton.setImageResource(
+            android.R.drawable.ic_btn_speak_now
+    );
+
+    if (audioPath != null) {
+
+        uploadVoice(
+                audioPath
+        );
+    }
+}
+
+private void uploadVoice(
+        String path
+) {
+
+    if (blocked) {
+        return;
+    }
+
+    File file =
+            new File(path);
+
+    if (!file.exists()) {
+
+        Toast.makeText(
+                this,
+                "فایل صوتی پیدا نشد",
+                Toast.LENGTH_SHORT
+        ).show();
+
+        return;
+    }
+
+    Uri uri =
+            Uri.fromFile(file);
+
+    String fileName =
+            System.currentTimeMillis()
+                    + "_" +
+                    myId
+                    + ".m4a";
+
+    StorageReference ref =
+            storage.getReference()
+                    .child(
+                            "voice_messages/" +
+                                    fileName
+                    );
+
+    Toast.makeText(
+            this,
+            "در حال ارسال پیام صوتی...",
+            Toast.LENGTH_SHORT
+    ).show();
+
+    ref.putFile(uri)
+            .addOnSuccessListener(
+                    task ->
+                            ref.getDownloadUrl()
+                                    .addOnSuccessListener(
+                                            downloadUri ->
+                                                    saveAudioMessage(
+                                                            downloadUri
+                                                                    .toString()
+                                                    )
+                                    )
+            )
+            .addOnFailureListener(
+                    e -> Toast.makeText(
+                            this,
+                            "خطای ارسال صدا: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
+            );
+}
+
+private void saveAudioMessage(
+        String url
+) {
+
+    Map<String, Object> message =
+            new HashMap<>();
+
+    message.put(
+            "chatId",
+            currentChatId
+    );
+
+    message.put(
+            "senderId",
+            myId
+    );
+
+    message.put(
+            "receiverId",
+            receiverId
+    );
+
+    message.put(
+            "type",
+            "audio"
+    );
+
+    message.put(
+            "audioUrl",
+            url
+    );
+
+    message.put(
+            "timestamp",
+            FieldValue.serverTimestamp()
+    );
+
+    message.put(
+            "read",
+            false
+    );
+
+    message.put(
+            "deletedForAll",
+            false
+    );
+
+    message.put(
+            "deletedFor",
+            new ArrayList<String>()
+    );
+
+    db.collection("messages")
+            .add(message)
+            .addOnFailureListener(
+                    e -> Toast.makeText(
+                            this,
+                            "خطای ذخیره صدا: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
+            );
+}
 
 private void playAudio(
-        String url) {
+        String url
+) {
 
     try {
 
@@ -3735,17 +2751,22 @@ private void playAudio(
         player =
                 new MediaPlayer();
 
-        player.setDataSource(url);
+        player.setDataSource(
+                url
+        );
 
         player.setOnPreparedListener(
                 MediaPlayer::start
         );
 
         player.setOnCompletionListener(
-                p -> {
+                mp -> {
 
-                    p.release();
-                    player = null;
+                    mp.release();
+
+                    if (player == mp) {
+                        player = null;
+                    }
                 }
         );
 
@@ -3753,169 +2774,217 @@ private void playAudio(
 
     } catch (Exception e) {
 
-        toast(
-                "پخش صدا ناموفق بود"
-        );
+        Toast.makeText(
+                this,
+                "خطای پخش صدا: " +
+                        e.getMessage(),
+                Toast.LENGTH_LONG
+        ).show();
     }
 }
 
-// =========================================================
-// HELPERS
-// =========================================================
+private void uploadProfilePhoto(
+        Uri uri
+) {
 
-private void openUrl(
-        String url) {
-
-    try {
-
-        startActivity(
-                new Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse(url)
-                )
-        );
-
-    } catch (Exception e) {
-
-        toast(
-                "باز کردن فایل ناموفق بود"
-        );
+    if (myId == null) {
+        return;
     }
-}
 
-private String formatTime(
-        Date date) {
+    String fileName =
+            "profile_" +
+                    myId +
+                    "_" +
+                    System.currentTimeMillis() +
+                    ".jpg";
 
-    Calendar c =
-            Calendar.getInstance();
+    StorageReference ref =
+            storage.getReference()
+                    .child(
+                            "profiles/" +
+                                    fileName
+                    );
 
-    c.setTime(date);
+    Toast.makeText(
+            this,
+            "در حال آپلود عکس...",
+            Toast.LENGTH_SHORT
+    ).show();
 
-    return String.format(
-            Locale.getDefault(),
-            "%02d:%02d",
-            c.get(Calendar.HOUR_OF_DAY),
-            c.get(Calendar.MINUTE)
-    );
-}
+    ref.putFile(uri)
+            .addOnSuccessListener(
+                    task -> ref.getDownloadUrl()
+                            .addOnSuccessListener(
+                                    downloadUri -> {
 
-private String read(
-        InputStream in) {
-
-    if (in == null)
-        return "جزئیات خطا موجود نیست";
-
-    try {
-
-        ByteArrayOutputStream out =
-                new ByteArrayOutputStream();
-
-        byte[] b =
-                new byte[1024];
-
-        int n;
-
-        while (
-                (n = in.read(b)) != -1
-        ) {
-
-            out.write(
-                    b,
-                    0,
-                    n
+                                        db.collection(
+                                                "users"
+                                        )
+                                                .document(
+                                                        myId
+                                                )
+                                                .update(
+                                                        "photoUrl",
+                                                        downloadUri
+                                                                .toString()
+                                                )
+                                                .addOnSuccessListener(
+                                                        v ->
+                                                                Toast.makeText(
+                                                                        this,
+                                                                        "عکس پروفایل ذخیره شد",
+                                                                        Toast.LENGTH_SHORT
+                                                                ).show()
+                                                );
+                                    }
+                            )
+            )
+            .addOnFailureListener(
+                    e -> Toast.makeText(
+                            this,
+                            "خطای آپلود عکس: " +
+                                    e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show()
             );
-        }
-
-        in.close();
-
-        return out.toString("UTF-8");
-
-    } catch (Exception e) {
-
-        return "خطا";
-    }
 }
 
-private void scrollBottom() {
+private void loadImage(
+        String url,
+        ImageView imageView
+) {
 
-    if (scroll != null) {
+    new Thread(
+            () -> {
 
-        scroll.post(
-                () ->
-                        scroll.fullScroll(
-                                View.FOCUS_DOWN
-                        )
-        );
-    }
+                try {
+
+                    URL imageUrl =
+                            new URL(url);
+
+                    HttpURLConnection connection =
+                            (HttpURLConnection)
+                                    imageUrl.openConnection();
+
+                    connection.setConnectTimeout(
+                            8000
+                    );
+
+                    connection.setReadTimeout(
+                            8000
+                    );
+
+                    connection.connect();
+
+                    InputStream input =
+                            connection.getInputStream();
+
+                    Bitmap bitmap =
+                            BitmapFactory.decodeStream(
+                                    input
+                            );
+
+                    input.close();
+
+                    if (bitmap != null) {
+
+                        runOnUiThread(
+                                () ->
+                                        imageView.setImageBitmap(
+                                                bitmap
+                                        )
+                        );
+                    }
+
+                } catch (Exception ignored) {
+                }
+
+            }
+    ).start();
+}
+
+private void showUsers() {
+
+    setTyping(false);
+
+    removeListeners();
+
+    insideChat = false;
+
+    receiverId = null;
+    receiverName = null;
+    currentChatId = null;
+
+    messageCache.clear();
+
+    createUsersScreen();
+    loadUsers();
 }
 
 private void removeListeners() {
 
-    if (messageListener != null)
-        messageListener.remove();
+    if (sentMessageListener != null) {
+        sentMessageListener.remove();
+        sentMessageListener = null;
+    }
 
-    if (receiverListener != null)
+    if (receivedMessageListener != null) {
+        receivedMessageListener.remove();
+        receivedMessageListener = null;
+    }
+
+    if (receiverListener != null) {
         receiverListener.remove();
+        receiverListener = null;
+    }
 
-    if (typingListener != null)
+    if (typingListener != null) {
         typingListener.remove();
+        typingListener = null;
+    }
 
-    if (blockListener != null)
+    if (blockListener != null) {
         blockListener.remove();
-
-    messageListener = null;
-    receiverListener = null;
-    typingListener = null;
-    blockListener = null;
-
-    typingHandler.removeCallbacksAndMessages(
-            null
-    );
+        blockListener = null;
+    }
 }
-
-// =========================================================
-// PERMISSION
-// =========================================================
 
 @Override
 public void onRequestPermissionsResult(
         int requestCode,
         String[] permissions,
-        int[] results) {
+        int[] grantResults
+) {
 
     super.onRequestPermissionsResult(
             requestCode,
             permissions,
-            results
+            grantResults
     );
 
-    if (requestCode == MIC) {
+    if (requestCode == REQUEST_MIC) {
 
-        if (
-                results.length > 0 &&
-                results[0] ==
-                        PackageManager.PERMISSION_GRANTED
-        ) {
+        if (grantResults.length > 0 &&
+                grantResults[0] ==
+                        PackageManager.PERMISSION_GRANTED) {
 
             startRecording();
 
         } else {
 
-            toast(
-                    "اجازه استفاده از میکروفون داده نشد"
-            );
+            Toast.makeText(
+                    this,
+                    "اجازه میکروفون داده نشد",
+                    Toast.LENGTH_LONG
+            ).show();
         }
     }
 }
 
-// =========================================================
-// LIFECYCLE
-// =========================================================
-
 @Override
-protected void onStart() {
+protected void onResume() {
 
-    super.onStart();
+    super.onResume();
 
     FirebaseUser user =
             auth.getCurrentUser();
@@ -3941,20 +3010,18 @@ protected void onStart() {
                 .document(myId)
                 .set(
                         data,
-                        SetOptions.merge()
+                        com.google.firebase.firestore.SetOptions
+                                .merge()
                 );
     }
 }
 
 @Override
-protected void onStop() {
+protected void onPause() {
 
-    super.onStop();
+    super.onPause();
 
-    FirebaseUser user =
-            auth.getCurrentUser();
-
-    if (user != null) {
+    if (myId != null) {
 
         Map<String, Object> data =
                 new HashMap<>();
@@ -3975,10 +3042,11 @@ protected void onStop() {
         );
 
         db.collection("users")
-                .document(user.getUid())
+                .document(myId)
                 .set(
                         data,
-                        SetOptions.merge()
+                        com.google.firebase.firestore.SetOptions
+                                .merge()
                 );
     }
 }
@@ -3990,7 +3058,20 @@ protected void onDestroy() {
 
     removeListeners();
 
-    releaseRecorder();
+    if (recorder != null) {
+
+        try {
+            recorder.stop();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            recorder.release();
+        } catch (Exception ignored) {
+        }
+
+        recorder = null;
+    }
 
     if (player != null) {
 
@@ -4003,6 +3084,19 @@ protected void onDestroy() {
     }
 
     super.onDestroy();
+}
+
+@Override
+public void onBackPressed() {
+
+    if (insideChat) {
+
+        showUsers();
+
+    } else {
+
+        super.onBackPressed();
+    }
 }
 
 }
