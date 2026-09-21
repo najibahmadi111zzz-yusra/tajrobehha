@@ -3023,11 +3023,6 @@ public class ChatActivity extends Activity {
                                 contentType
                         );
 
-                        connection.setRequestProperty(
-                                "x-upsert",
-                                "true"
-                        );
-
                         long size = -1;
 
                         if ("file".equals(
