@@ -19,7 +19,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.view.Gravity;
@@ -117,7 +116,8 @@ public class ChatActivity extends Activity {
     private MediaPlayer player;
     private String audioPath;
 
-    private final Handler typingHandler = new Handler();
+    private final android.os.Handler typingHandler =
+            new android.os.Handler();
 
     private final Map<String, DocumentSnapshot> messageCache =
             new HashMap<>();
@@ -1234,6 +1234,13 @@ public class ChatActivity extends Activity {
                 Color.TRANSPARENT
         );
 
+        mediaButton.setPadding(
+                dp(5),
+                dp(5),
+                dp(5),
+                dp(5)
+        );
+
         mediaButton.setOnClickListener(
                 v -> pickMedia()
         );
@@ -1241,8 +1248,8 @@ public class ChatActivity extends Activity {
         bottom.addView(
                 mediaButton,
                 new LinearLayout.LayoutParams(
-                        dp(50),
-                        dp(50)
+                        dp(56),
+                        dp(56)
                 )
         );
 
@@ -1276,6 +1283,13 @@ public class ChatActivity extends Activity {
                 Color.TRANSPARENT
         );
 
+        voiceButton.setPadding(
+                dp(5),
+                dp(5),
+                dp(5),
+                dp(5)
+        );
+
         voiceButton.setOnClickListener(
                 v -> toggleRecording()
         );
@@ -1283,8 +1297,8 @@ public class ChatActivity extends Activity {
         bottom.addView(
                 voiceButton,
                 new LinearLayout.LayoutParams(
-                        dp(52),
-                        dp(52)
+                        dp(58),
+                        dp(58)
                 )
         );
 
@@ -2189,7 +2203,7 @@ public class ChatActivity extends Activity {
 
         intent.addFlags(
                 Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
         );
 
         startActivityForResult(
@@ -2213,7 +2227,7 @@ public class ChatActivity extends Activity {
 
         intent.addFlags(
                 Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
         );
 
         startActivityForResult(
@@ -2477,6 +2491,10 @@ public class ChatActivity extends Activity {
         }
     }
 
+    /*
+     * فقط بخش ضبط صدا با VoiceActivity هماهنگ شده:
+     * 3GP + AMR_NB
+     */
     private void startRecording() {
 
         if (blocked) {
@@ -2513,7 +2531,7 @@ public class ChatActivity extends Activity {
                             getCacheDir(),
                             "voice_" +
                                     System.currentTimeMillis() +
-                                    ".m4a"
+                                    ".3gp"
                     );
 
             audioPath =
@@ -2527,11 +2545,11 @@ public class ChatActivity extends Activity {
             );
 
             recorder.setOutputFormat(
-                    MediaRecorder.OutputFormat.MPEG_4
+                    MediaRecorder.OutputFormat.THREE_GPP
             );
 
             recorder.setAudioEncoder(
-                    MediaRecorder.AudioEncoder.AAC
+                    MediaRecorder.AudioEncoder.AMR_NB
             );
 
             recorder.setOutputFile(
@@ -2620,6 +2638,13 @@ public class ChatActivity extends Activity {
         recorder = null;
     }
 
+    /*
+     * ارسال صدا نیز دقیقاً با VoiceActivity هماهنگ شده:
+     * فایل 3GP
+     * MIME = audio/3gpp
+     * bucket = voice_messages
+     * فایل در ریشه bucket قرار می‌گیرد.
+     */
     private void uploadVoice(
             String path
     ) {
@@ -2654,11 +2679,14 @@ public class ChatActivity extends Activity {
                 System.currentTimeMillis() +
                         "_" +
                         myId +
-                        ".m4a";
+                        ".3gp";
 
+        /*
+         * مثل VoiceActivity:
+         * فایل مستقیم داخل bucket قرار می‌گیرد.
+         */
         String objectPath =
-                "voice/" +
-                        fileName;
+                fileName;
 
         Toast.makeText(
                 this,
@@ -2670,7 +2698,7 @@ public class ChatActivity extends Activity {
                 Uri.fromFile(file),
                 VOICE_BUCKET,
                 objectPath,
-                "audio/mp4",
+                "audio/3gpp",
                 new SupabaseUploadCallback() {
 
                     @Override
@@ -2976,14 +3004,14 @@ public class ChatActivity extends Activity {
                         );
 
                         /*
-                         * Publishable Key:
-                         * همان کلید عمومی Supabase است.
+                         * فقط apikey.
+                         * Authorization Bearer برای
+                         * publishable key استفاده نمی‌شود.
                          */
                         connection.setRequestProperty(
                                 "apikey",
                                 SUPABASE_PUBLISHABLE_KEY
                         );
-
 
                         connection.setRequestProperty(
                                 "Accept",
@@ -3891,5 +3919,5 @@ public class ChatActivity extends Activity {
                 ).show();
             }
         }
-    }  
-}
+    }
+    }
