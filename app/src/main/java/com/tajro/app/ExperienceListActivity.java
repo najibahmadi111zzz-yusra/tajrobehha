@@ -24,7 +24,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.Timestamp;
+import com.google.firebase.Timestamp;
 
 import java.net.URL;
 import java.util.Calendar;
@@ -474,7 +474,7 @@ public class ExperienceListActivity extends Activity {
                 getExperienceDateTime(document)
         );
 
-        dateTime.setTextSize(11);
+        dateTime.setTextSize(10);
 
         dateTime.setTextColor(
                 Color.rgb(125, 125, 125)
