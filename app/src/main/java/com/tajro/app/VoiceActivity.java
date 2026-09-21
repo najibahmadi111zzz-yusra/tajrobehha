@@ -158,7 +158,7 @@ public class VoiceActivity extends Activity {
                     getCacheDir(),
                     "voice_" +
                             System.currentTimeMillis() +
-                            ".m4a"
+                            ".3gp"
             );
 
             audioPath = file.getAbsolutePath();
@@ -169,12 +169,17 @@ public class VoiceActivity extends Activity {
                     MediaRecorder.AudioSource.MIC
             );
 
+            /*
+             * فرمت مطابق فایل‌های صوتی موفق قبلی
+             * داخل Supabase:
+             * .3gp / audio/3gpp
+             */
             recorder.setOutputFormat(
-                    MediaRecorder.OutputFormat.MPEG_4
+                    MediaRecorder.OutputFormat.THREE_GPP
             );
 
             recorder.setAudioEncoder(
-                    MediaRecorder.AudioEncoder.AAC
+                    MediaRecorder.AudioEncoder.AMR_NB
             );
 
             recorder.setOutputFile(audioPath);
@@ -330,6 +335,7 @@ public class VoiceActivity extends Activity {
         } catch (Exception e) {
 
             return "";
+
         } finally {
 
             if (errorStream != null) {
@@ -381,10 +387,14 @@ public class VoiceActivity extends Activity {
                     );
                 }
 
+                /*
+                 * فایل آپلودی مطابق فایل‌های موفق قبلی:
+                 * .3gp
+                 */
                 String fileName =
                         "voice_" +
                                 System.currentTimeMillis() +
-                                ".m4a";
+                                ".3gp";
 
                 String uploadUrl =
                         SUPABASE_URL +
@@ -416,20 +426,19 @@ public class VoiceActivity extends Activity {
                 );
 
                 /*
-                 * فقط Publishable Key در apikey
-                 * استفاده می‌شود.
-                 *
-                 * Authorization: Bearer
-                 * عمداً ارسال نمی‌شود.
+                 * فقط Publishable Key
                  */
                 connection.setRequestProperty(
                         "apikey",
                         SUPABASE_KEY
                 );
 
+                /*
+                 * MIME مطابق فایل‌های موفق قبلی
+                 */
                 connection.setRequestProperty(
                         "Content-Type",
-                        "audio/mp4"
+                        "audio/3gpp"
                 );
 
                 connection.setRequestProperty(
@@ -437,9 +446,6 @@ public class VoiceActivity extends Activity {
                         "true"
                 );
 
-                /*
-                 * طول دقیق فایل را مشخص می‌کنیم.
-                 */
                 connection.setFixedLengthStreamingMode(
                         audioFile.length()
                 );
@@ -634,4 +640,4 @@ public class VoiceActivity extends Activity {
 
         super.onDestroy();
     }
-        }
+                          }
