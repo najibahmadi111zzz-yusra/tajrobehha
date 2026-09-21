@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,13 +15,17 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.ImageView;
 import android.widget.Toast;
+import android.app.AlertDialog;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.DocumentSnapshot;
+
+import java.net.URL;
 
 public class ExperienceListActivity extends Activity {
 
@@ -141,7 +147,6 @@ public class ExperienceListActivity extends Activity {
                             String currentUserId = null;
 
                             if (currentUser != null) {
-
                                 currentUserId =
                                         currentUser.getUid();
                             }
@@ -196,7 +201,6 @@ public class ExperienceListActivity extends Activity {
 
         if (authorEmail == null ||
                 authorEmail.isEmpty()) {
-
             authorEmail = "کاربر";
         }
 
@@ -247,6 +251,103 @@ public class ExperienceListActivity extends Activity {
 
         card.setLayoutParams(cardParams);
 
+        /*
+         * نام و عکس کاربر
+         */
+        LinearLayout authorRow =
+                new LinearLayout(this);
+
+        authorRow.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        authorRow.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        ImageView profileImage =
+                new ImageView(this);
+
+        profileImage.setScaleType(
+                ImageView.ScaleType.CENTER_CROP
+        );
+
+        GradientDrawable imageBackground =
+                new GradientDrawable();
+
+        imageBackground.setColor(
+                Color.rgb(225, 240, 245)
+        );
+
+        imageBackground.setShape(
+                GradientDrawable.OVAL
+        );
+
+        profileImage.setBackground(
+                imageBackground
+        );
+
+        TextView authorName =
+                new TextView(this);
+
+        authorName.setText(
+                "👤 " + authorEmail
+        );
+
+        authorName.setTextSize(17);
+
+        authorName.setTextColor(
+                Color.rgb(8, 65, 90)
+        );
+
+        authorName.setTypeface(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+        );
+
+        authorName.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        authorName.setPadding(
+                dp(10),
+                0,
+                0,
+                0
+        );
+
+        authorRow.addView(
+                profileImage,
+                new LinearLayout.LayoutParams(
+                        dp(52),
+                        dp(52)
+                )
+        );
+
+        authorRow.addView(
+                authorName,
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(52),
+                        1
+                )
+        );
+
+        card.addView(authorRow);
+
+        /*
+         * گرفتن نام و عکس واقعی کاربر
+         */
+        if (userId != null && !userId.isEmpty()) {
+
+            loadUserProfile(
+                    userId,
+                    authorName,
+                    profileImage,
+                    authorEmail
+            );
+        }
+
         TextView experience =
                 new TextView(this);
 
@@ -254,10 +355,7 @@ public class ExperienceListActivity extends Activity {
                 "📖 " +
                         experienceTitle +
                         "\n\n" +
-                        experienceText +
-                        "\n\n" +
-                        "👤 " +
-                        authorEmail
+                        experienceText
         );
 
         experience.setTextSize(18);
@@ -268,7 +366,7 @@ public class ExperienceListActivity extends Activity {
 
         experience.setPadding(
                 dp(5),
-                dp(5),
+                dp(15),
                 dp(5),
                 dp(10)
         );
@@ -479,41 +577,208 @@ public class ExperienceListActivity extends Activity {
                     }
             );
 
+            /*
+             * حذف دومرحله‌ای
+             */
             deleteButton.setOnClickListener(
                     v -> {
 
-                        db.collection("experiences")
-                                .document(documentId)
-                                .delete()
-                                .addOnSuccessListener(
-                                        unused -> {
+                        new AlertDialog.Builder(
+                                ExperienceListActivity.this
+                        )
+                                .setMessage(
+                                        "مطمئن هستید حذف شود؟"
+                                )
+                                .setNegativeButton(
+                                        "لغو",
+                                        null
+                                )
+                                .setPositiveButton(
+                                        "حذف",
+                                        (dialog, which) -> {
 
-                                            Toast.makeText(
-                                                    ExperienceListActivity.this,
-                                                    "تجربه حذف شد 🗑️",
-                                                    Toast.LENGTH_SHORT
-                                            ).show();
+                                            db.collection("experiences")
+                                                    .document(documentId)
+                                                    .delete()
+                                                    .addOnSuccessListener(
+                                                            unused -> {
 
-                                            layout.removeView(
-                                                    card
-                                            );
+                                                                Toast.makeText(
+                                                                        ExperienceListActivity.this,
+                                                                        "تجربه حذف شد 🗑️",
+                                                                        Toast.LENGTH_SHORT
+                                                                ).show();
+
+                                                                layout.removeView(
+                                                                        card
+                                                                );
+                                                            }
+                                                    )
+                                                    .addOnFailureListener(
+                                                            e -> {
+
+                                                                Toast.makeText(
+                                                                        ExperienceListActivity.this,
+                                                                        "خطا در حذف تجربه",
+                                                                        Toast.LENGTH_LONG
+                                                                ).show();
+                                                            }
+                                                    );
                                         }
                                 )
-                                .addOnFailureListener(
-                                        e -> {
-
-                                            Toast.makeText(
-                                                    ExperienceListActivity.this,
-                                                    "خطا در حذف تجربه",
-                                                    Toast.LENGTH_LONG
-                                            ).show();
-                                        }
-                                );
+                                .show();
                     }
             );
         }
 
         layout.addView(card);
+    }
+
+    /*
+     * دریافت نام نمایشی و عکس پروفایل
+     */
+    private void loadUserProfile(
+            String userId,
+            TextView authorName,
+            ImageView profileImage,
+            String fallbackName
+    ) {
+
+        db.collection("users")
+                .document(userId)
+                .get()
+                .addOnSuccessListener(
+                        userDocument -> {
+
+                            if (!userDocument.exists()) {
+                                authorName.setText(
+                                        "👤 " + fallbackName
+                                );
+                                return;
+                            }
+
+                            String name =
+                                    userDocument.getString("name");
+
+                            if (name == null ||
+                                    name.trim().isEmpty()) {
+
+                                name =
+                                        userDocument.getString(
+                                                "username"
+                                        );
+                            }
+
+                            if (name == null ||
+                                    name.trim().isEmpty()) {
+
+                                name =
+                                        userDocument.getString(
+                                                "displayName"
+                                        );
+                            }
+
+                            if (name == null ||
+                                    name.trim().isEmpty()) {
+
+                                name = fallbackName;
+                            }
+
+                            authorName.setText(
+                                    "👤 " + name
+                            );
+
+                            String photoUrl = null;
+
+                            String photo1 =
+                                    userDocument.getString(
+                                            "photoUrl"
+                                    );
+
+                            String photo2 =
+                                    userDocument.getString(
+                                            "profilePhoto"
+                                    );
+
+                            String photo3 =
+                                    userDocument.getString(
+                                            "profilePhotoUrl"
+                                    );
+
+                            String photo4 =
+                                    userDocument.getString(
+                                            "photo"
+                                    );
+
+                            if (photo1 != null &&
+                                    !photo1.trim().isEmpty()) {
+
+                                photoUrl = photo1;
+
+                            } else if (photo2 != null &&
+                                    !photo2.trim().isEmpty()) {
+
+                                photoUrl = photo2;
+
+                            } else if (photo3 != null &&
+                                    !photo3.trim().isEmpty()) {
+
+                                photoUrl = photo3;
+
+                            } else if (photo4 != null &&
+                                    !photo4.trim().isEmpty()) {
+
+                                photoUrl = photo4;
+                            }
+
+                            if (photoUrl != null) {
+
+                                loadProfileImage(
+                                        photoUrl,
+                                        profileImage
+                                );
+                            }
+                        }
+                );
+    }
+
+    /*
+     * بارگذاری عکس بدون نیاز به کتابخانه اضافی
+     */
+    private void loadProfileImage(
+            String photoUrl,
+            ImageView imageView
+    ) {
+
+        new Thread(
+                () -> {
+
+                    try {
+
+                        URL url =
+                                new URL(photoUrl);
+
+                        Bitmap bitmap =
+                                BitmapFactory
+                                        .decodeStream(
+                                                url.openConnection()
+                                                        .getInputStream()
+                                        );
+
+                        if (bitmap != null) {
+
+                            runOnUiThread(
+                                    () -> imageView.setImageBitmap(
+                                            bitmap
+                                    )
+                            );
+                        }
+
+                    } catch (Exception ignored) {
+                    }
+
+                }
+        ).start();
     }
 
     private void loadLikeStatus(
@@ -754,4 +1019,4 @@ public class ExperienceListActivity extends Activity {
             return 0;
         }
     }
-            }
+    }
