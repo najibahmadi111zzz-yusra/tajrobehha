@@ -48,11 +48,11 @@ public class VoiceActivity extends Activity {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.CENTER);
-        layout.setPadding(40, 40, 40, 40);
+        layout.setPadding(30, 30, 30, 30);
 
         TextView title = new TextView(this);
         title.setText("🎤 پیام صوتی");
-        title.setTextSize(28);
+        title.setTextSize(26);
         title.setGravity(Gravity.CENTER);
 
         recordButton = new Button(this);
@@ -64,7 +64,7 @@ public class VoiceActivity extends Activity {
 
         statusText = new TextView(this);
         statusText.setText("آماده ضبط صدا");
-        statusText.setTextSize(18);
+        statusText.setTextSize(17);
         statusText.setGravity(Gravity.CENTER);
 
         layout.addView(title);
@@ -88,7 +88,6 @@ public class VoiceActivity extends Activity {
                 );
 
             } else {
-
                 startRecording();
             }
         });
@@ -130,7 +129,7 @@ public class VoiceActivity extends Activity {
 
                 Toast.makeText(
                         this,
-                        "لطفاً اجازه استفاده از میکروفون را بدهید",
+                        "اجازه استفاده از میکروفون داده نشد",
                         Toast.LENGTH_LONG
                 ).show();
             }
@@ -169,11 +168,6 @@ public class VoiceActivity extends Activity {
                     MediaRecorder.AudioSource.MIC
             );
 
-            /*
-             * فرمت مطابق فایل‌های صوتی موفق قبلی
-             * داخل Supabase:
-             * .3gp / audio/3gpp
-             */
             recorder.setOutputFormat(
                     MediaRecorder.OutputFormat.THREE_GPP
             );
@@ -202,7 +196,7 @@ public class VoiceActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "خطا: " + e.getMessage(),
+                    "خطا: " + getErrorText(e),
                     Toast.LENGTH_LONG
             ).show();
         }
@@ -250,7 +244,7 @@ public class VoiceActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "خطا: " + e.getMessage(),
+                    "خطا: " + getErrorText(e),
                     Toast.LENGTH_LONG
             ).show();
         }
@@ -260,15 +254,12 @@ public class VoiceActivity extends Activity {
 
         try {
 
-            String[] parts =
-                    path.split("/");
+            String[] parts = path.split("/");
 
             StringBuilder result =
                     new StringBuilder();
 
-            for (int i = 0;
-                    i < parts.length;
-                    i++) {
+            for (int i = 0; i < parts.length; i++) {
 
                 if (i > 0) {
                     result.append("/");
@@ -293,71 +284,69 @@ public class VoiceActivity extends Activity {
         }
     }
 
-    private String readErrorResponse(
-            HttpURLConnection connection
+    private String getErrorText(Exception e) {
+
+        String message = e.getMessage();
+
+        if (message == null ||
+                message.trim().isEmpty()) {
+
+            return e.getClass().getSimpleName();
+        }
+
+        return message;
+    }
+
+    private String readStream(
+            InputStream stream
     ) {
 
-        InputStream errorStream = null;
+        if (stream == null) {
+            return "";
+        }
+
+        BufferedReader reader = null;
 
         try {
 
-            errorStream =
-                    connection.getErrorStream();
+            reader = new BufferedReader(
+                    new InputStreamReader(
+                            stream,
+                            "UTF-8"
+                    )
+            );
 
-            if (errorStream == null) {
-                return "";
-            }
-
-            BufferedReader reader =
-                    new BufferedReader(
-                            new InputStreamReader(
-                                    errorStream,
-                                    "UTF-8"
-                            )
-                    );
-
-            StringBuilder builder =
+            StringBuilder result =
                     new StringBuilder();
 
             String line;
 
-            while (
-                    (line = reader.readLine()) != null
-            ) {
+            while ((line = reader.readLine()) != null) {
 
-                builder.append(line);
+                if (result.length() > 0) {
+                    result.append("\n");
+                }
+
+                result.append(line);
             }
 
-            reader.close();
-
-            return builder.toString();
+            return result.toString();
 
         } catch (Exception e) {
 
-            return "";
+            return "خواندن پاسخ ناموفق بود: " +
+                    getErrorText(e);
 
         } finally {
 
-            if (errorStream != null) {
+            if (reader != null) {
 
                 try {
-                    errorStream.close();
+                    reader.close();
                 } catch (Exception ignored) {
                 }
             }
         }
-    }
-
-    private String getSupabasePublicUrl(
-            String bucket,
-            String objectPath
-    ) {
-
-        return SUPABASE_URL +
-                "/storage/v1/object/public/" +
-                bucket +
-                "/" +
-                encodePath(objectPath);
     }
 
     private void uploadToSupabase() {
@@ -368,29 +357,23 @@ public class VoiceActivity extends Activity {
             InputStream input = null;
             OutputStream output = null;
 
+            File audioFile =
+                    new File(audioPath);
+
             try {
 
-                File audioFile =
-                        new File(audioPath);
-
                 if (!audioFile.exists()) {
-
                     throw new Exception(
                             "فایل صوتی وجود ندارد"
                     );
                 }
 
                 if (audioFile.length() <= 0) {
-
                     throw new Exception(
                             "فایل صوتی خالی است"
                     );
                 }
 
-                /*
-                 * فایل آپلودی مطابق فایل‌های موفق قبلی:
-                 * .3gp
-                 */
                 String fileName =
                         "voice_" +
                                 System.currentTimeMillis() +
@@ -403,39 +386,25 @@ public class VoiceActivity extends Activity {
                                 "/" +
                                 encodePath(fileName);
 
-                URL url =
-                        new URL(uploadUrl);
+                URL url = new URL(uploadUrl);
 
                 connection =
                         (HttpURLConnection)
                                 url.openConnection();
 
-                connection.setRequestMethod(
-                        "POST"
-                );
+                connection.setRequestMethod("POST");
 
                 connection.setDoOutput(true);
                 connection.setDoInput(true);
 
-                connection.setConnectTimeout(
-                        30000
-                );
+                connection.setConnectTimeout(30000);
+                connection.setReadTimeout(60000);
 
-                connection.setReadTimeout(
-                        60000
-                );
-
-                /*
-                 * فقط Publishable Key
-                 */
                 connection.setRequestProperty(
                         "apikey",
                         SUPABASE_KEY
                 );
 
-                /*
-                 * MIME مطابق فایل‌های موفق قبلی
-                 */
                 connection.setRequestProperty(
                         "Content-Type",
                         "audio/3gpp"
@@ -446,32 +415,32 @@ public class VoiceActivity extends Activity {
                         "true"
                 );
 
+                connection.setRequestProperty(
+                        "Accept",
+                        "application/json"
+                );
+
                 connection.setFixedLengthStreamingMode(
                         audioFile.length()
                 );
 
                 input =
-                        new FileInputStream(
-                                audioFile
-                        );
+                        new FileInputStream(audioFile);
 
                 output =
                         connection.getOutputStream();
 
-                byte[] buffer =
-                        new byte[8192];
+                byte[] buffer = new byte[8192];
 
-                int length;
+                int count;
 
-                while (
-                        (length =
-                                input.read(buffer)) != -1
-                ) {
+                while ((count =
+                        input.read(buffer)) != -1) {
 
                     output.write(
                             buffer,
                             0,
-                            length
+                            count
                     );
                 }
 
@@ -480,82 +449,70 @@ public class VoiceActivity extends Activity {
                 int responseCode =
                         connection.getResponseCode();
 
-                String responseMessage = "";
+                String responseBody;
 
                 if (responseCode >= 200 &&
                         responseCode < 300) {
 
-                    InputStream responseStream =
-                            connection.getInputStream();
-
-                    if (responseStream != null) {
-
-                        BufferedReader reader =
-                                new BufferedReader(
-                                        new InputStreamReader(
-                                                responseStream,
-                                                "UTF-8"
-                                        )
-                                );
-
-                        StringBuilder builder =
-                                new StringBuilder();
-
-                        String line;
-
-                        while (
-                                (line =
-                                        reader.readLine()) != null
-                        ) {
-
-                            builder.append(line);
-                        }
-
-                        reader.close();
-
-                        responseMessage =
-                                builder.toString();
-                    }
+                    responseBody =
+                            readStream(
+                                    connection.getInputStream()
+                            );
 
                 } else {
 
-                    responseMessage =
-                            readErrorResponse(
-                                    connection
+                    responseBody =
+                            readStream(
+                                    connection.getErrorStream()
                             );
+
+                    if (responseBody == null ||
+                            responseBody.trim().isEmpty()) {
+
+                        responseBody =
+                                "Supabase پاسخ متنی برنگرداند";
+                    }
                 }
 
-                final String finalMessage =
-                        responseMessage;
+                final String finalBody =
+                        responseBody;
+
+                final int finalCode =
+                        responseCode;
 
                 runOnUiThread(() -> {
 
-                    if (responseCode >= 200 &&
-                            responseCode < 300) {
+                    if (finalCode >= 200 &&
+                            finalCode < 300) {
 
                         statusText.setText(
-                                "✅ پیام صوتی ذخیره شد"
+                                "✅ آپلود موفق شد\n" +
+                                        "HTTP " +
+                                        finalCode
                         );
 
                         Toast.makeText(
                                 VoiceActivity.this,
-                                "صدا با موفقیت در Supabase ذخیره شد",
+                                "✅ صدا با موفقیت ذخیره شد",
                                 Toast.LENGTH_LONG
                         ).show();
 
                     } else {
 
                         statusText.setText(
-                                "خطای Supabase: " +
-                                        responseCode
+                                "❌ خطای Supabase\n" +
+                                        "HTTP " +
+                                        finalCode +
+                                        "\n" +
+                                        finalBody
                         );
 
                         Toast.makeText(
                                 VoiceActivity.this,
                                 "HTTP " +
-                                        responseCode +
-                                        ": " +
-                                        finalMessage,
+                                        finalCode +
+                                        "\n" +
+                                        finalBody,
                                 Toast.LENGTH_LONG
                         ).show();
                     }
@@ -569,30 +526,19 @@ public class VoiceActivity extends Activity {
 
             } catch (Exception e) {
 
-                String message =
-                        e.getMessage();
-
-                if (message == null ||
-                        message.trim().isEmpty()) {
-
-                    message =
-                            e.getClass()
-                                    .getSimpleName();
-                }
-
-                final String finalMessage =
-                        message;
+                final String error =
+                        getErrorText(e);
 
                 runOnUiThread(() -> {
 
                     statusText.setText(
-                            "خطا در ارسال"
+                            "❌ خطای اتصال\n" +
+                                    error
                     );
 
                     Toast.makeText(
                             VoiceActivity.this,
-                            "خطا: " +
-                                    finalMessage,
+                            "خطا:\n" + error,
                             Toast.LENGTH_LONG
                     ).show();
                 });
@@ -600,20 +546,16 @@ public class VoiceActivity extends Activity {
             } finally {
 
                 try {
-
                     if (output != null) {
                         output.close();
                     }
-
                 } catch (Exception ignored) {
                 }
 
                 try {
-
                     if (input != null) {
                         input.close();
                     }
-
                 } catch (Exception ignored) {
                 }
 
@@ -640,4 +582,4 @@ public class VoiceActivity extends Activity {
 
         super.onDestroy();
     }
-                          }
+    }
