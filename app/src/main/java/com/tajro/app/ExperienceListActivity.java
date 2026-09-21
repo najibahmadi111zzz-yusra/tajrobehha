@@ -251,9 +251,6 @@ public class ExperienceListActivity extends Activity {
 
         card.setLayoutParams(cardParams);
 
-        /*
-         * نام و عکس کاربر
-         */
         LinearLayout authorRow =
                 new LinearLayout(this);
 
@@ -335,9 +332,6 @@ public class ExperienceListActivity extends Activity {
 
         card.addView(authorRow);
 
-        /*
-         * گرفتن نام و عکس واقعی کاربر
-         */
         if (userId != null && !userId.isEmpty()) {
 
             loadUserProfile(
@@ -373,9 +367,6 @@ public class ExperienceListActivity extends Activity {
 
         card.addView(experience);
 
-        /*
-         * بخش لایک
-         */
         LinearLayout likeRow =
                 new LinearLayout(this);
 
@@ -397,46 +388,27 @@ public class ExperienceListActivity extends Activity {
         TextView likeButton =
                 new TextView(this);
 
-        likeButton.setText(
-                "♡"
-        );
-
+        likeButton.setText("♡");
         likeButton.setTextSize(30);
-
         likeButton.setTextColor(
                 Color.rgb(210, 40, 60)
         );
-
-        likeButton.setGravity(
-                Gravity.CENTER
-        );
-
+        likeButton.setGravity(Gravity.CENTER);
         likeButton.setPadding(
                 dp(4),
                 0,
                 dp(4),
                 0
         );
-
         likeButton.setClickable(true);
 
         TextView likeCount =
                 new TextView(this);
 
-        likeCount.setText(
-                "0"
-        );
-
+        likeCount.setText("0");
         likeCount.setTextSize(14);
-
-        likeCount.setTextColor(
-                Color.GRAY
-        );
-
-        likeCount.setGravity(
-                Gravity.CENTER_VERTICAL
-        );
-
+        likeCount.setTextColor(Color.GRAY);
+        likeCount.setGravity(Gravity.CENTER_VERTICAL);
         likeCount.setPadding(
                 dp(3),
                 0,
@@ -492,9 +464,6 @@ public class ExperienceListActivity extends Activity {
                 }
         );
 
-        /*
-         * ویرایش و حذف فقط برای صاحب تجربه
-         */
         boolean isMyExperience =
                 currentUserId != null &&
                 userId != null &&
@@ -509,25 +478,43 @@ public class ExperienceListActivity extends Activity {
                     LinearLayout.HORIZONTAL
             );
 
+            buttons.setGravity(
+                    Gravity.CENTER
+            );
+
             Button editButton =
                     new Button(this);
 
-            editButton.setText(
-                    "✏️ ویرایش"
+            editButton.setText("✏️ ویرایش");
+            editButton.setTextSize(12);
+            editButton.setMinHeight(0);
+            editButton.setMinimumHeight(0);
+            editButton.setPadding(
+                    dp(4),
+                    0,
+                    dp(4),
+                    0
             );
 
             Button deleteButton =
                     new Button(this);
 
-            deleteButton.setText(
-                    "🗑️ حذف"
+            deleteButton.setText("🗑️ حذف");
+            deleteButton.setTextSize(12);
+            deleteButton.setMinHeight(0);
+            deleteButton.setMinimumHeight(0);
+            deleteButton.setPadding(
+                    dp(4),
+                    0,
+                    dp(4),
+                    0
             );
 
             buttons.addView(
                     editButton,
                     new LinearLayout.LayoutParams(
                             0,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            dp(42),
                             1
                     )
             );
@@ -536,7 +523,7 @@ public class ExperienceListActivity extends Activity {
                     deleteButton,
                     new LinearLayout.LayoutParams(
                             0,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            dp(42),
                             1
                     )
             );
@@ -578,10 +565,36 @@ public class ExperienceListActivity extends Activity {
             );
 
             /*
-             * حذف دومرحله‌ای
+             * حذف دو مرحله‌ای واقعی
+             *
+             * مرحله اول:
+             * فقط دکمه برای حذف آماده می‌شود.
+             *
+             * مرحله دوم:
+             * پیام تأیید نمایش داده می‌شود.
              */
+            final boolean[] deleteArmed =
+                    {false};
+
             deleteButton.setOnClickListener(
                     v -> {
+
+                        if (!deleteArmed[0]) {
+
+                            deleteArmed[0] = true;
+
+                            deleteButton.setText(
+                                    "⚠️ تأیید حذف"
+                            );
+
+                            Toast.makeText(
+                                    ExperienceListActivity.this,
+                                    "برای حذف، دوباره بزنید",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+
+                            return;
+                        }
 
                         new AlertDialog.Builder(
                                 ExperienceListActivity.this
@@ -591,7 +604,14 @@ public class ExperienceListActivity extends Activity {
                                 )
                                 .setNegativeButton(
                                         "لغو",
-                                        null
+                                        (dialog, which) -> {
+
+                                            deleteArmed[0] = false;
+
+                                            deleteButton.setText(
+                                                    "🗑️ حذف"
+                                            );
+                                        }
                                 )
                                 .setPositiveButton(
                                         "حذف",
@@ -617,6 +637,13 @@ public class ExperienceListActivity extends Activity {
                                                     .addOnFailureListener(
                                                             e -> {
 
+                                                                deleteArmed[0] =
+                                                                        false;
+
+                                                                deleteButton.setText(
+                                                                        "🗑️ حذف"
+                                                                );
+
                                                                 Toast.makeText(
                                                                         ExperienceListActivity.this,
                                                                         "خطا در حذف تجربه",
@@ -634,9 +661,6 @@ public class ExperienceListActivity extends Activity {
         layout.addView(card);
     }
 
-    /*
-     * دریافت نام نمایشی و عکس پروفایل
-     */
     private void loadUserProfile(
             String userId,
             TextView authorName,
@@ -742,9 +766,6 @@ public class ExperienceListActivity extends Activity {
                 );
     }
 
-    /*
-     * بارگذاری عکس بدون نیاز به کتابخانه اضافی
-     */
     private void loadProfileImage(
             String photoUrl,
             ImageView imageView
@@ -811,16 +832,9 @@ public class ExperienceListActivity extends Activity {
                                     likeDocument.exists();
 
                             if (liked) {
-
-                                likeButton.setText(
-                                        "♥"
-                                );
-
+                                likeButton.setText("♥");
                             } else {
-
-                                likeButton.setText(
-                                        "♡"
-                                );
+                                likeButton.setText("♡");
                             }
 
                             loadLikeCount(
@@ -864,16 +878,9 @@ public class ExperienceListActivity extends Activity {
                             );
 
                             if (liked) {
-
-                                likeButton.setText(
-                                        "♥"
-                                );
-
+                                likeButton.setText("♥");
                             } else {
-
-                                likeButton.setText(
-                                        "♡"
-                                );
+                                likeButton.setText("♡");
                             }
                         }
                 );
