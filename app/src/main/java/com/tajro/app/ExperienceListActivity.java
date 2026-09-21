@@ -24,8 +24,11 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.Timestamp;
 
 import java.net.URL;
+import java.util.Calendar;
+import java.util.Date;
 
 public class ExperienceListActivity extends Activity {
 
@@ -251,6 +254,9 @@ public class ExperienceListActivity extends Activity {
 
         card.setLayoutParams(cardParams);
 
+        /*
+         * نام و عکس کاربر
+         */
         LinearLayout authorRow =
                 new LinearLayout(this);
 
@@ -332,6 +338,9 @@ public class ExperienceListActivity extends Activity {
 
         card.addView(authorRow);
 
+        /*
+         * گرفتن نام و عکس واقعی کاربر
+         */
         if (userId != null && !userId.isEmpty()) {
 
             loadUserProfile(
@@ -367,6 +376,9 @@ public class ExperienceListActivity extends Activity {
 
         card.addView(experience);
 
+        /*
+         * بخش لایک + تاریخ و ساعت
+         */
         LinearLayout likeRow =
                 new LinearLayout(this);
 
@@ -388,27 +400,46 @@ public class ExperienceListActivity extends Activity {
         TextView likeButton =
                 new TextView(this);
 
-        likeButton.setText("♡");
+        likeButton.setText(
+                "♡"
+        );
+
         likeButton.setTextSize(30);
+
         likeButton.setTextColor(
                 Color.rgb(210, 40, 60)
         );
-        likeButton.setGravity(Gravity.CENTER);
+
+        likeButton.setGravity(
+                Gravity.CENTER
+        );
+
         likeButton.setPadding(
                 dp(4),
                 0,
                 dp(4),
                 0
         );
+
         likeButton.setClickable(true);
 
         TextView likeCount =
                 new TextView(this);
 
-        likeCount.setText("0");
+        likeCount.setText(
+                "0"
+        );
+
         likeCount.setTextSize(14);
-        likeCount.setTextColor(Color.GRAY);
-        likeCount.setGravity(Gravity.CENTER_VERTICAL);
+
+        likeCount.setTextColor(
+                Color.GRAY
+        );
+
+        likeCount.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
         likeCount.setPadding(
                 dp(3),
                 0,
@@ -430,6 +461,51 @@ public class ExperienceListActivity extends Activity {
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                         dp(45)
                 )
+        );
+
+        /*
+         * تاریخ و ساعت دقیق ثبت تجربه
+         * کوچک و در سمت راست
+         */
+        TextView dateTime =
+                new TextView(this);
+
+        dateTime.setText(
+                getExperienceDateTime(document)
+        );
+
+        dateTime.setTextSize(11);
+
+        dateTime.setTextColor(
+                Color.rgb(125, 125, 125)
+        );
+
+        dateTime.setGravity(
+                Gravity.CENTER_VERTICAL | Gravity.RIGHT
+        );
+
+        dateTime.setSingleLine(true);
+
+        dateTime.setPadding(
+                dp(5),
+                0,
+                0,
+                0
+        );
+
+        LinearLayout.LayoutParams dateParams =
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(35),
+                        1
+                );
+
+        dateParams.gravity =
+                Gravity.CENTER_VERTICAL;
+
+        likeRow.addView(
+                dateTime,
+                dateParams
         );
 
         card.addView(likeRow);
@@ -464,6 +540,9 @@ public class ExperienceListActivity extends Activity {
                 }
         );
 
+        /*
+         * ویرایش و حذف فقط برای صاحب تجربه
+         */
         boolean isMyExperience =
                 currentUserId != null &&
                 userId != null &&
@@ -478,43 +557,25 @@ public class ExperienceListActivity extends Activity {
                     LinearLayout.HORIZONTAL
             );
 
-            buttons.setGravity(
-                    Gravity.CENTER
-            );
-
             Button editButton =
                     new Button(this);
 
-            editButton.setText("✏️ ویرایش");
-            editButton.setTextSize(12);
-            editButton.setMinHeight(0);
-            editButton.setMinimumHeight(0);
-            editButton.setPadding(
-                    dp(4),
-                    0,
-                    dp(4),
-                    0
+            editButton.setText(
+                    "✏️ ویرایش"
             );
 
             Button deleteButton =
                     new Button(this);
 
-            deleteButton.setText("🗑️ حذف");
-            deleteButton.setTextSize(12);
-            deleteButton.setMinHeight(0);
-            deleteButton.setMinimumHeight(0);
-            deleteButton.setPadding(
-                    dp(4),
-                    0,
-                    dp(4),
-                    0
+            deleteButton.setText(
+                    "🗑️ حذف"
             );
 
             buttons.addView(
                     editButton,
                     new LinearLayout.LayoutParams(
                             0,
-                            dp(42),
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
                             1
                     )
             );
@@ -523,7 +584,7 @@ public class ExperienceListActivity extends Activity {
                     deleteButton,
                     new LinearLayout.LayoutParams(
                             0,
-                            dp(42),
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
                             1
                     )
             );
@@ -565,36 +626,10 @@ public class ExperienceListActivity extends Activity {
             );
 
             /*
-             * حذف دو مرحله‌ای واقعی
-             *
-             * مرحله اول:
-             * فقط دکمه برای حذف آماده می‌شود.
-             *
-             * مرحله دوم:
-             * پیام تأیید نمایش داده می‌شود.
+             * حذف دومرحله‌ای
              */
-            final boolean[] deleteArmed =
-                    {false};
-
             deleteButton.setOnClickListener(
                     v -> {
-
-                        if (!deleteArmed[0]) {
-
-                            deleteArmed[0] = true;
-
-                            deleteButton.setText(
-                                    "⚠️ تأیید حذف"
-                            );
-
-                            Toast.makeText(
-                                    ExperienceListActivity.this,
-                                    "برای حذف، دوباره بزنید",
-                                    Toast.LENGTH_SHORT
-                            ).show();
-
-                            return;
-                        }
 
                         new AlertDialog.Builder(
                                 ExperienceListActivity.this
@@ -604,14 +639,7 @@ public class ExperienceListActivity extends Activity {
                                 )
                                 .setNegativeButton(
                                         "لغو",
-                                        (dialog, which) -> {
-
-                                            deleteArmed[0] = false;
-
-                                            deleteButton.setText(
-                                                    "🗑️ حذف"
-                                            );
-                                        }
+                                        null
                                 )
                                 .setPositiveButton(
                                         "حذف",
@@ -637,13 +665,6 @@ public class ExperienceListActivity extends Activity {
                                                     .addOnFailureListener(
                                                             e -> {
 
-                                                                deleteArmed[0] =
-                                                                        false;
-
-                                                                deleteButton.setText(
-                                                                        "🗑️ حذف"
-                                                                );
-
                                                                 Toast.makeText(
                                                                         ExperienceListActivity.this,
                                                                         "خطا در حذف تجربه",
@@ -661,6 +682,186 @@ public class ExperienceListActivity extends Activity {
         layout.addView(card);
     }
 
+    /*
+     * تبدیل Timestamp فایربیس به تاریخ و ساعت افغانی
+     * تقویم هجری شمسی
+     */
+    private String getExperienceDateTime(
+            DocumentSnapshot document
+    ) {
+
+        try {
+
+            Timestamp timestamp =
+                    document.getTimestamp("timestamp");
+
+            if (timestamp == null) {
+                return "";
+            }
+
+            Date date =
+                    timestamp.toDate();
+
+            Calendar calendar =
+                    Calendar.getInstance();
+
+            calendar.setTime(date);
+
+            int gy =
+                    calendar.get(Calendar.YEAR);
+
+            int gm =
+                    calendar.get(Calendar.MONTH) + 1;
+
+            int gd =
+                    calendar.get(Calendar.DAY_OF_MONTH);
+
+            int hour =
+                    calendar.get(Calendar.HOUR_OF_DAY);
+
+            int minute =
+                    calendar.get(Calendar.MINUTE);
+
+            int second =
+                    calendar.get(Calendar.SECOND);
+
+            int[] jalali =
+                    gregorianToJalali(
+                            gy,
+                            gm,
+                            gd
+                    );
+
+            String dateText =
+                    String.format(
+                            java.util.Locale.US,
+                            "%04d/%02d/%02d - %02d:%02d:%02d",
+                            jalali[0],
+                            jalali[1],
+                            jalali[2],
+                            hour,
+                            minute,
+                            second
+                    );
+
+            return toPersianDigits(dateText);
+
+        } catch (Exception e) {
+
+            return "";
+        }
+    }
+
+    /*
+     * تبدیل میلادی به هجری شمسی
+     */
+    private int[] gregorianToJalali(
+            int gy,
+            int gm,
+            int gd
+    ) {
+
+        int[] gDaysInMonth = {
+                31, 28, 31, 30, 31, 30,
+                31, 31, 30, 31, 30, 31
+        };
+
+        int[] jDaysInMonth = {
+                31, 31, 31, 31, 31, 31,
+                30, 30, 30, 30, 30, 29
+        };
+
+        int gy2 = gy - 1600;
+        int gm2 = gm - 1;
+        int gd2 = gd - 1;
+
+        int gDayNo =
+                365 * gy2
+                        + (gy2 + 3) / 4
+                        - (gy2 + 99) / 100
+                        + (gy2 + 399) / 400;
+
+        for (int i = 0; i < gm2; ++i) {
+            gDayNo += gDaysInMonth[i];
+        }
+
+        if (gm2 > 1 &&
+                ((gy % 4 == 0 && gy % 100 != 0) ||
+                        (gy % 400 == 0))) {
+
+            gDayNo++;
+        }
+
+        gDayNo += gd2;
+
+        int jDayNo =
+                gDayNo - 79;
+
+        int jNp =
+                jDayNo / 12053;
+
+        jDayNo %= 12053;
+
+        int jy =
+                979 + 33 * jNp
+                        + 4 * (jDayNo / 1461);
+
+        jDayNo %= 1461;
+
+        if (jDayNo >= 366) {
+
+            jy +=
+                    (jDayNo - 1) / 365;
+
+            jDayNo =
+                    (jDayNo - 1) % 365;
+        }
+
+        int jm;
+        int jd;
+
+        for (jm = 0;
+             jm < 11 &&
+                     jDayNo >= jDaysInMonth[jm];
+             ++jm) {
+
+            jDayNo -=
+                    jDaysInMonth[jm];
+        }
+
+        jd =
+                jDayNo + 1;
+
+        return new int[]{
+                jy,
+                jm + 1,
+                jd
+        };
+    }
+
+    /*
+     * تبدیل اعداد انگلیسی به فارسی
+     */
+    private String toPersianDigits(
+            String value
+    ) {
+
+        return value
+                .replace("0", "۰")
+                .replace("1", "۱")
+                .replace("2", "۲")
+                .replace("3", "۳")
+                .replace("4", "۴")
+                .replace("5", "۵")
+                .replace("6", "۶")
+                .replace("7", "۷")
+                .replace("8", "۸")
+                .replace("9", "۹");
+    }
+
+    /*
+     * دریافت نام نمایشی و عکس پروفایل
+     */
     private void loadUserProfile(
             String userId,
             TextView authorName,
@@ -766,6 +967,9 @@ public class ExperienceListActivity extends Activity {
                 );
     }
 
+    /*
+     * بارگذاری عکس بدون نیاز به کتابخانه اضافی
+     */
     private void loadProfileImage(
             String photoUrl,
             ImageView imageView
@@ -832,9 +1036,16 @@ public class ExperienceListActivity extends Activity {
                                     likeDocument.exists();
 
                             if (liked) {
-                                likeButton.setText("♥");
+
+                                likeButton.setText(
+                                        "♥"
+                                );
+
                             } else {
-                                likeButton.setText("♡");
+
+                                likeButton.setText(
+                                        "♡"
+                                );
                             }
 
                             loadLikeCount(
@@ -878,9 +1089,16 @@ public class ExperienceListActivity extends Activity {
                             );
 
                             if (liked) {
-                                likeButton.setText("♥");
+
+                                likeButton.setText(
+                                        "♥"
+                                );
+
                             } else {
-                                likeButton.setText("♡");
+
+                                likeButton.setText(
+                                        "♡"
+                                );
                             }
                         }
                 );
@@ -1026,4 +1244,4 @@ public class ExperienceListActivity extends Activity {
             return 0;
         }
     }
-    }
+            }
