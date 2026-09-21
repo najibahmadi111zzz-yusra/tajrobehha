@@ -28,6 +28,11 @@ public class AddExperienceActivity extends Activity {
 
     private int themeColor;
 
+    /*
+     * جلوگیری از ثبت چندباره یک تجربه
+     */
+    private boolean isPublishing = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,6 +71,14 @@ public class AddExperienceActivity extends Activity {
             @Override
             public void onClick(View v) {
 
+                /*
+                 * اگر در حال انتشار هستیم،
+                 * دوباره ذخیره نکن
+                 */
+                if (isPublishing) {
+                    return;
+                }
+
                 FirebaseUser user = auth.getCurrentUser();
 
                 if (user == null) {
@@ -95,13 +108,37 @@ public class AddExperienceActivity extends Activity {
                     return;
                 }
 
+                /*
+                 * از این لحظه دکمه قفل می‌شود
+                 */
+                isPublishing = true;
+                publishButton.setEnabled(false);
+                publishButton.setAlpha(0.6f);
+                publishButton.setText("⏳ در حال انتشار...");
+
                 Map<String, Object> experienceData =
                         new HashMap<>();
 
-                experienceData.put("title", titleText);
-                experienceData.put("text", experience);
-                experienceData.put("userId", user.getUid());
-                experienceData.put("authorEmail", user.getEmail());
+                experienceData.put(
+                        "title",
+                        titleText
+                );
+
+                experienceData.put(
+                        "text",
+                        experience
+                );
+
+                experienceData.put(
+                        "userId",
+                        user.getUid()
+                );
+
+                experienceData.put(
+                        "authorEmail",
+                        user.getEmail()
+                );
+
                 experienceData.put(
                         "timestamp",
                         FieldValue.serverTimestamp()
@@ -117,11 +154,32 @@ public class AddExperienceActivity extends Activity {
                                     Toast.LENGTH_LONG
                             ).show();
 
+                            /*
+                             * پاک کردن فرم بعد از ذخیره موفق
+                             */
                             experienceTitle.setText("");
                             experienceText.setText("");
 
+                            /*
+                             * باز کردن دوباره دکمه
+                             * برای ثبت یک تجربه جدید
+                             */
+                            isPublishing = false;
+                            publishButton.setEnabled(true);
+                            publishButton.setAlpha(1.0f);
+                            publishButton.setText("🚀 انتشار تجربه");
+
                         })
                         .addOnFailureListener(e -> {
+
+                            /*
+                             * اگر ذخیره ناموفق شد،
+                             * دوباره اجازه تلاش بده
+                             */
+                            isPublishing = false;
+                            publishButton.setEnabled(true);
+                            publishButton.setAlpha(1.0f);
+                            publishButton.setText("🚀 انتشار تجربه");
 
                             Toast.makeText(
                                     AddExperienceActivity.this,
