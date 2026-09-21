@@ -2984,9 +2984,6 @@ public class ChatActivity extends Activity {
                                 SUPABASE_PUBLISHABLE_KEY
                         );
 
-                        connection.setRequestProperty(
-                                        SUPABASE_PUBLISHABLE_KEY
-                        );
 
                         connection.setRequestProperty(
                                 "Accept",
