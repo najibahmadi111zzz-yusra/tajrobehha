@@ -2985,8 +2985,6 @@ public class ChatActivity extends Activity {
                         );
 
                         connection.setRequestProperty(
-                                "Authorization",
-                                "Bearer " +
                                         SUPABASE_PUBLISHABLE_KEY
                         );
 
