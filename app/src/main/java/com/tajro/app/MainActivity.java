@@ -14,10 +14,17 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 public class MainActivity extends Activity {
 
     private RewardedAdManager rewardedAdManager;
     private InterstitialAdManager interstitialAdManager;
+
+    // ایمیل سازنده برنامه
+    private static final String DEVELOPER_EMAIL =
+            "najibahmadi111zzz@gmail.com";
 
     // عناصر صفحه برای تغییر فوری رنگ و حالت شب
     private LinearLayout mainLayout;
@@ -36,6 +43,27 @@ public class MainActivity extends Activity {
     private int dp(int value) {
         return (int) (value * getResources()
                 .getDisplayMetrics().density);
+    }
+
+    // ==================================
+    // بررسی اینکه کاربر سازنده است یا نه
+    // ==================================
+
+    private boolean isDeveloper() {
+
+        FirebaseUser user =
+                FirebaseAuth.getInstance().getCurrentUser();
+
+        if (user == null) {
+            return false;
+        }
+
+        String email = user.getEmail();
+
+        return email != null
+                && DEVELOPER_EMAIL.equalsIgnoreCase(
+                        email.trim()
+                );
     }
 
     private Button createButton(String text) {
@@ -450,31 +478,45 @@ public class MainActivity extends Activity {
                         @Override
                         public void onRewarded() {
 
-                            Toast.makeText(
-                                    MainActivity.this,
-                                    "🎉 جایزه شما فعال شد!",
-                                    Toast.LENGTH_LONG
-                            ).show();
+                            // این پیام فقط برای سازنده
+                            if (isDeveloper()) {
+
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        "🎉 جایزه شما فعال شد!",
+                                        Toast.LENGTH_LONG
+                                ).show();
+                            }
                         }
 
                         @Override
                         public void onAdNotReady() {
 
-                            Toast.makeText(
-                                    MainActivity.this,
-                                    "⏳ تبلیغ هنوز آماده نیست، چند لحظه بعد دوباره امتحان کنید.",
-                                    Toast.LENGTH_SHORT
-                            ).show();
+                            // پیام آماده نبودن تبلیغ
+                            // فقط برای سازنده
+                            if (isDeveloper()) {
+
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        "⏳ تبلیغ هنوز آماده نیست، چند لحظه بعد دوباره امتحان کنید.",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
                         }
 
                         @Override
                         public void onAdFailed() {
 
-                            Toast.makeText(
-                                    MainActivity.this,
-                                    "❌ نمایش تبلیغ ناموفق بود.",
-                                    Toast.LENGTH_SHORT
-                            ).show();
+                            // پیام خطای تبلیغ
+                            // فقط برای سازنده
+                            if (isDeveloper()) {
+
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        "❌ نمایش تبلیغ ناموفق بود.",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
                         }
                     }
             );
@@ -553,4 +595,4 @@ public class MainActivity extends Activity {
         styleButton(settingsButton);
         styleButton(rewardedButton);
     }
-            }
+}
