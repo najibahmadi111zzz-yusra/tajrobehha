@@ -3956,14 +3956,12 @@ public void onRequestPermissionsResult(
         }
     }
 }
-
 private void showChatMenu() {
 
     String[] options = {
             "🔕 بی‌صدا کردن اعلان‌های این چت",
             "👤 مشاهده پروفایل",
-            "🗑️ پاک کردن چت",
-            "🚫 مسدود کردن",
+            "🚫 مسدود کردن"
     };
 
     new AlertDialog.Builder(this)
@@ -3990,30 +3988,6 @@ private void showChatMenu() {
 
                         } else if (which == 2) {
 
-                            showChatPrivacySettings();
-
-                        } else if (which == 3) {
-
-                            new AlertDialog.Builder(
-                                    ChatActivity.this
-                            )
-                                    .setTitle("پاک کردن چت")
-                                    .setMessage(
-                                            "پیام‌های این چت فقط از حساب شما حذف می‌شود."
-                                    )
-                                    .setNegativeButton(
-                                            "لغو",
-                                            null
-                                    )
-                                    .setPositiveButton(
-                                            "پاک کردن",
-                                            (d, w) ->
-                                                    deleteCurrentChatForMe()
-                                    )
-                                    .show();
-
-                        } else if (which == 4) {
-
                             new AlertDialog.Builder(
                                     ChatActivity.this
                             )
@@ -4031,15 +4005,12 @@ private void showChatMenu() {
                                                     blockCurrentUser()
                                     )
                                     .show();
-
-                        } else if (which == 5) {
-
-                            reportCurrentUser();
                         }
                     }
             )
             .show();
 }
+
 
 private void showChatPrivacySettings() {
 
