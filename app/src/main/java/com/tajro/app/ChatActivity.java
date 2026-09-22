@@ -3962,10 +3962,8 @@ private void showChatMenu() {
     String[] options = {
             "🔕 بی‌صدا کردن اعلان‌های این چت",
             "👤 مشاهده پروفایل",
-            "🔒 تنظیمات حریم خصوصی",
             "🗑️ پاک کردن چت",
             "🚫 مسدود کردن",
-            "⚠️ گزارش کاربر"
     };
 
     new AlertDialog.Builder(this)
