@@ -4051,6 +4051,7 @@ public void onRequestPermissionsResult(
         String[] permissions,
         int[] grantResults
 ) {
+
     super.onRequestPermissionsResult(
             requestCode,
             permissions,
@@ -4089,67 +4090,76 @@ private void showChatMenu() {
 
     new AlertDialog.Builder(this)
             .setTitle("تنظیمات چت")
-            .setItems(options, (dialog, which) -> {
+            .setItems(
+                    options,
+                    (dialog, which) -> {
 
-                if (which == 0) {
+                        if (which == 0) {
 
-                    Toast.makeText(
-                            ChatActivity.this,
-                            "اعلان‌های این چت بی‌صدا شد",
-                            Toast.LENGTH_SHORT
-                    ).show();
+                            Toast.makeText(
+                                    ChatActivity.this,
+                                    "اعلان‌های این چت بی‌صدا شد",
+                                    Toast.LENGTH_SHORT
+                            ).show();
 
-                } else if (which == 1) {
+                        } else if (which == 1) {
 
-                    showProfileDialog(
-                            receiverId,
-                            receiverName,
-                            receiverPhotoUrl
-                    );
+                            showProfileDialog(
+                                    receiverId,
+                                    receiverName,
+                                    receiverPhotoUrl
+                            );
 
-                } else if (which == 2) {
+                        } else if (which == 2) {
 
-                    showChatPrivacySettings();
+                            showChatPrivacySettings();
 
-                } else if (which == 3) {
+                        } else if (which == 3) {
 
-                    new AlertDialog.Builder(ChatActivity.this)
-                            .setTitle("پاک کردن چت")
-                            .setMessage(
-                                    "پیام‌های این چت فقط از حساب شما حذف می‌شود."
+                            new AlertDialog.Builder(
+                                    ChatActivity.this
                             )
-                            .setNegativeButton(
-                                    "لغو",
-                                    null
-                            )
-                            .setPositiveButton(
-                                    "پاک کردن",
-                                    (d, w) -> deleteCurrentChatForMe()
-                            )
-                            .show();
+                                    .setTitle("پاک کردن چت")
+                                    .setMessage(
+                                            "پیام‌های این چت فقط از حساب شما حذف می‌شود."
+                                    )
+                                    .setNegativeButton(
+                                            "لغو",
+                                            null
+                                    )
+                                    .setPositiveButton(
+                                            "پاک کردن",
+                                            (d, w) ->
+                                                    deleteCurrentChatForMe()
+                                    )
+                                    .show();
 
-                } else if (which == 4) {
+                        } else if (which == 4) {
 
-                    new AlertDialog.Builder(ChatActivity.this)
-                            .setTitle("مسدود کردن کاربر")
-                            .setMessage(
-                                    "آیا می‌خواهید این کاربر را مسدود کنید؟"
+                            new AlertDialog.Builder(
+                                    ChatActivity.this
                             )
-                            .setNegativeButton(
-                                    "لغو",
-                                    null
-                            )
-                            .setPositiveButton(
-                                    "مسدود کردن",
-                                    (d, w) -> blockCurrentUser()
-                            )
-                            .show();
+                                    .setTitle("مسدود کردن کاربر")
+                                    .setMessage(
+                                            "آیا می‌خواهید این کاربر را مسدود کنید؟"
+                                    )
+                                    .setNegativeButton(
+                                            "لغو",
+                                            null
+                                    )
+                                    .setPositiveButton(
+                                            "مسدود کردن",
+                                            (d, w) ->
+                                                    blockCurrentUser()
+                                    )
+                                    .show();
 
-                } else if (which == 5) {
+                        } else if (which == 5) {
 
-                    reportCurrentUser();
-                }
-            })
+                            reportCurrentUser();
+                        }
+                    }
+            )
             .show();
 }
 
@@ -4174,9 +4184,8 @@ private void showChatPrivacySettings() {
             .setMultiChoiceItems(
                     items,
                     checked,
-                    (dialog, which, isChecked) -> {
-                        checked[which] = isChecked;
-                    }
+                    (dialog, which, isChecked) ->
+                            checked[which] = isChecked
             )
             .setNegativeButton(
                     "لغو",
@@ -4215,12 +4224,13 @@ private void showChatPrivacySettings() {
                                         privacy,
                                         SetOptions.merge()
                                 )
-                                .addOnSuccessListener(v ->
-                                        Toast.makeText(
-                                                ChatActivity.this,
-                                                "تنظیمات ذخیره شد",
-                                                Toast.LENGTH_SHORT
-                                        ).show()
+                                .addOnSuccessListener(
+                                        v ->
+                                                Toast.makeText(
+                                                        ChatActivity.this,
+                                                        "تنظیمات ذخیره شد",
+                                                        Toast.LENGTH_SHORT
+                                                ).show()
                                 );
                     }
             )
@@ -4232,9 +4242,21 @@ private void reportCurrentUser() {
     Map<String, Object> report =
             new HashMap<>();
 
-    report.put("reporterId", myId);
-    report.put("reportedUserId", receiverId);
-    report.put("chatId", currentChatId);
+    report.put(
+            "reporterId",
+            myId
+    );
+
+    report.put(
+            "reportedUserId",
+            receiverId
+    );
+
+    report.put(
+            "chatId",
+            currentChatId
+    );
+
     report.put(
             "timestamp",
             FieldValue.serverTimestamp()
@@ -4242,25 +4264,29 @@ private void reportCurrentUser() {
 
     db.collection("reports")
             .add(report)
-            .addOnSuccessListener(v ->
-                    Toast.makeText(
-                            ChatActivity.this,
-                            "گزارش شما ثبت شد",
-                            Toast.LENGTH_SHORT
-                    ).show()
+            .addOnSuccessListener(
+                    v ->
+                            Toast.makeText(
+                                    ChatActivity.this,
+                                    "گزارش شما ثبت شد",
+                                    Toast.LENGTH_SHORT
+                            ).show()
             )
-            .addOnFailureListener(e ->
-                    Toast.makeText(
-                            ChatActivity.this,
-                            "ثبت گزارش ناموفق بود",
-                            Toast.LENGTH_SHORT
-                    ).show()
+            .addOnFailureListener(
+                    e ->
+                            Toast.makeText(
+                                    ChatActivity.this,
+                                    "ثبت گزارش ناموفق بود",
+                                    Toast.LENGTH_SHORT
+                            ).show()
             );
 }
 
 private void deleteCurrentChatForMe() {
 
-    if (currentChatId == null || currentChatId.isEmpty()) {
+    if (currentChatId == null ||
+            currentChatId.isEmpty()) {
+
         return;
     }
 
@@ -4268,47 +4294,61 @@ private void deleteCurrentChatForMe() {
             .document(currentChatId)
             .collection("messages")
             .get()
-            .addOnSuccessListener(snapshot -> {
+            .addOnSuccessListener(
+                    snapshot -> {
 
-                com.google.firebase.firestore.WriteBatch batch =
-                        db.batch();
+                        com.google.firebase.firestore.WriteBatch batch =
+                                db.batch();
 
-                for (DocumentSnapshot doc :
-                        snapshot.getDocuments()) {
+                        for (
+                                DocumentSnapshot doc :
+                                snapshot.getDocuments()
+                        ) {
 
-                    batch.update(
-                            doc.getReference(),
-                            "deletedFor",
-                            FieldValue.arrayUnion(myId)
-                    );
-                }
+                            batch.update(
+                                    doc.getReference(),
+                                    "deletedFor",
+                                    FieldValue.arrayUnion(
+                                            myId
+                                    )
+                            );
+                        }
 
-                batch.commit()
-                        .addOnSuccessListener(v -> {
+                        batch.commit()
+                                .addOnSuccessListener(
+                                        v -> {
 
-                            messageCache.clear();
+                                            messageCache.clear();
 
-                            messagesContainer.removeAllViews();
+                                            if (messagesContainer != null) {
+                                                messagesContainer
+                                                        .removeAllViews();
+                                            }
 
-                            Toast.makeText(
-                                    ChatActivity.this,
-                                    "چت از حساب شما پاک شد",
-                                    Toast.LENGTH_SHORT
-                            ).show();
-                        })
-                        .addOnFailureListener(e ->
-                                Toast.makeText(
-                                        ChatActivity.this,
-                                        "پاک کردن چت ناموفق بود",
-                                        Toast.LENGTH_SHORT
-                                ).show()
-                        );
-            });
+                                            Toast.makeText(
+                                                    ChatActivity.this,
+                                                    "چت از حساب شما پاک شد",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
+                                        }
+                                )
+                                .addOnFailureListener(
+                                        e ->
+                                                Toast.makeText(
+                                                        ChatActivity.this,
+                                                        "پاک کردن چت ناموفق بود",
+                                                        Toast.LENGTH_SHORT
+                                                ).show()
+                                );
+                    }
+            );
 }
 
 private void blockCurrentUser() {
 
-    if (receiverId == null || receiverId.isEmpty()) {
+    if (receiverId == null ||
+            receiverId.isEmpty()) {
+
         return;
     }
 
@@ -4336,24 +4376,26 @@ private void blockCurrentUser() {
     db.collection("blocks")
             .document(blockId)
             .set(data)
-            .addOnSuccessListener(v -> {
+            .addOnSuccessListener(
+                    v -> {
 
-                blocked = true;
+                        blocked = true;
 
-                Toast.makeText(
-                        ChatActivity.this,
-                        "کاربر مسدود شد",
-                        Toast.LENGTH_SHORT
-                ).show();
-            })
-            .addOnFailureListener(e ->
-                    Toast.makeText(
-                            ChatActivity.this,
-                            "مسدود کردن ناموفق بود",
-                            Toast.LENGTH_SHORT
-                    ).show()
+                        Toast.makeText(
+                                ChatActivity.this,
+                                "کاربر مسدود شد",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+            )
+            .addOnFailureListener(
+                    e ->
+                            Toast.makeText(
+                                    ChatActivity.this,
+                                    "مسدود کردن ناموفق بود",
+                                    Toast.LENGTH_SHORT
+                            ).show()
             );
 }
 
-}
-     
+                                }
