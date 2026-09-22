@@ -6,9 +6,13 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.Drawable;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -26,7 +30,7 @@ public class MainActivity extends Activity {
     private static final String DEVELOPER_EMAIL =
             "najibahmadi111zzz@gmail.com";
 
-    // عناصر صفحه برای تغییر فوری رنگ و حالت شب
+    // عناصر صفحه
     private LinearLayout mainLayout;
     private TextView title;
     private TextView welcome;
@@ -39,6 +43,9 @@ public class MainActivity extends Activity {
     private Button exchangeButton;
     private Button settingsButton;
     private Button rewardedButton;
+
+    // تصویر پس‌زمینه
+    private ImageView backgroundIcon;
 
     private int dp(int value) {
         return (int) (value * getResources()
@@ -62,9 +69,13 @@ public class MainActivity extends Activity {
 
         return email != null
                 && DEVELOPER_EMAIL.equalsIgnoreCase(
-                        email.trim()
-                );
+                email.trim()
+        );
     }
+
+    // ==================================
+    // ساخت دکمه
+    // ==================================
 
     private Button createButton(String text) {
 
@@ -102,6 +113,10 @@ public class MainActivity extends Activity {
         return button;
     }
 
+    // ==================================
+    // ظاهر دکمه‌ها
+    // ==================================
+
     private void styleButton(Button button) {
 
         GradientDrawable background =
@@ -118,6 +133,57 @@ public class MainActivity extends Activity {
         button.setBackground(background);
         button.setTextColor(Color.WHITE);
     }
+
+    // ==================================
+    // ساخت پس‌زمینه آیکن برنامه
+    // ==================================
+
+    private ImageView createBackgroundIcon() {
+
+        ImageView imageView =
+                new ImageView(this);
+
+        // همان آیکن اصلی برنامه
+        Drawable appIcon =
+                getApplicationInfo().loadIcon(
+                        getPackageManager()
+                );
+
+        imageView.setImageDrawable(appIcon);
+
+        /*
+         * تصویر در مرکز قرار می‌گیرد.
+         * CENTER_INSIDE باعث می‌شود تصویر
+         * بی‌دلیل از اطراف بریده نشود.
+         */
+        imageView.setScaleType(
+                ImageView.ScaleType.CENTER_INSIDE
+        );
+
+        /*
+         * بزرگ‌تر و نزدیک‌تر
+         */
+        imageView.setScaleX(1.35f);
+        imageView.setScaleY(1.35f);
+
+        /*
+         * شفافیت متوسط
+         * نه خیلی پررنگ و نه خیلی محو
+         */
+        imageView.setAlpha(0.15f);
+
+        /*
+         * کاملاً غیرقابل لمس باشد
+         */
+        imageView.setClickable(false);
+        imageView.setFocusable(false);
+
+        return imageView;
+    }
+
+    // ==================================
+    // onCreate
+    // ==================================
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -162,11 +228,57 @@ public class MainActivity extends Activity {
         interstitialAdManager.loadInterstitialAd();
 
         // ==================================
-        // صفحه اصلی
+        // لایه اصلی
+        // ==================================
+
+        FrameLayout rootLayout =
+                new FrameLayout(this);
+
+        rootLayout.setLayoutParams(
+                new ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                )
+        );
+
+        // ==================================
+        // پس‌زمینه آیکن تجربه‌ها
+        // ==================================
+
+        backgroundIcon =
+                createBackgroundIcon();
+
+        FrameLayout.LayoutParams backgroundParams =
+                new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                );
+
+        backgroundParams.gravity =
+                Gravity.CENTER;
+
+        rootLayout.addView(
+                backgroundIcon,
+                backgroundParams
+        );
+
+        // ==================================
+        // ScrollView
         // ==================================
 
         ScrollView scrollView =
                 new ScrollView(this);
+
+        scrollView.setFillViewport(true);
+
+        /*
+         * اسکرول‌بار مزاحم نباشد
+         */
+        scrollView.setVerticalScrollBarEnabled(false);
+
+        // ==================================
+        // صفحه اصلی
+        // ==================================
 
         mainLayout =
                 new LinearLayout(this);
@@ -182,6 +294,14 @@ public class MainActivity extends Activity {
                 dp(25)
         );
 
+        /*
+         * بسیار مهم:
+         * زمینه شفاف است تا آیکن پشت صفحه دیده شود.
+         */
+        mainLayout.setBackgroundColor(
+                Color.TRANSPARENT
+        );
+
         scrollView.addView(
                 mainLayout,
                 new ScrollView.LayoutParams(
@@ -191,7 +311,7 @@ public class MainActivity extends Activity {
         );
 
         // ==================================
-        // لوگو
+        // لوگوی بالای صفحه
         // ==================================
 
         TextView logo =
@@ -478,7 +598,6 @@ public class MainActivity extends Activity {
                         @Override
                         public void onRewarded() {
 
-                            // این پیام فقط برای سازنده
                             if (isDeveloper()) {
 
                                 Toast.makeText(
@@ -492,8 +611,6 @@ public class MainActivity extends Activity {
                         @Override
                         public void onAdNotReady() {
 
-                            // پیام آماده نبودن تبلیغ
-                            // فقط برای سازنده
                             if (isDeveloper()) {
 
                                 Toast.makeText(
@@ -507,8 +624,6 @@ public class MainActivity extends Activity {
                         @Override
                         public void onAdFailed() {
 
-                            // پیام خطای تبلیغ
-                            // فقط برای سازنده
                             if (isDeveloper()) {
 
                                 Toast.makeText(
@@ -523,18 +638,38 @@ public class MainActivity extends Activity {
         });
 
         // ==================================
+        // قرار دادن ScrollView روی صفحه
+        // ==================================
+
+        FrameLayout.LayoutParams contentParams =
+                new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                );
+
+        contentParams.gravity =
+                Gravity.CENTER;
+
+        rootLayout.addView(
+                scrollView,
+                contentParams
+        );
+
+        // ==================================
         // نمایش صفحه
         // ==================================
 
-        setContentView(scrollView);
+        setContentView(rootLayout);
 
+        // ==================================
         // اعمال رنگ و حالت شب
+        // ==================================
+
         applyTheme();
     }
 
     // ==================================
     // برگشت از تنظیمات
-    // رنگ و حالت شب فوراً اعمال می‌شود
     // ==================================
 
     @Override
@@ -558,35 +693,79 @@ public class MainActivity extends Activity {
         int themeColor =
                 ThemeManager.getThemeColor(this);
 
-        // پس‌زمینه اصلی
+        // ==================================
+        // زمینه محتوا شفاف بماند
+        // ==================================
+
         mainLayout.setBackgroundColor(
-                ThemeManager.getBackgroundColor(this)
+                Color.TRANSPARENT
         );
 
-        // عنوان
-        if (night) {
-            title.setTextColor(Color.WHITE);
-        } else {
-            title.setTextColor(themeColor);
+        // ==================================
+        // تنظیمات پس‌زمینه آیکن
+        // ==================================
+
+        if (backgroundIcon != null) {
+
+            backgroundIcon.setAlpha(
+                    0.15f
+            );
+
+            backgroundIcon.setScaleX(
+                    1.35f
+            );
+
+            backgroundIcon.setScaleY(
+                    1.35f
+            );
         }
 
-        // متن خوش‌آمدگویی
+        // ==================================
+        // عنوان
+        // ==================================
+
+        if (night) {
+
+            title.setTextColor(
+                    Color.WHITE
+            );
+
+        } else {
+
+            title.setTextColor(
+                    themeColor
+            );
+        }
+
+        // ==================================
+        // خوش‌آمدگویی
+        // ==================================
+
         welcome.setTextColor(
                 ThemeManager.getNormalTextColor(this)
         );
 
+        // ==================================
         // پایین صفحه
+        // ==================================
+
         if (night) {
+
             footer.setTextColor(
                     Color.LTGRAY
             );
+
         } else {
+
             footer.setTextColor(
                     Color.GRAY
             );
         }
 
-        // همه دکمه‌ها
+        // ==================================
+        // دکمه‌ها
+        // ==================================
+
         styleButton(addButton);
         styleButton(listButton);
         styleButton(chatButton);
@@ -595,4 +774,4 @@ public class MainActivity extends Activity {
         styleButton(settingsButton);
         styleButton(rewardedButton);
     }
-}
+    }
