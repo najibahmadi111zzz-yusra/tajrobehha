@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.unity3d.ads.LoadConfiguration;
 import com.unity3d.ads.RewardedAd;
 import com.unity3d.ads.RewardedShowListener;
@@ -16,8 +18,13 @@ public class RewardedAdManager {
 
     private static final String TAG = "RewardedAdManager";
 
+    // ایمیل سازنده برنامه
+    private static final String DEVELOPER_EMAIL =
+            "najibahmadi111zzz@gmail.com";
+
     // شناسه دقیق جایگاه تبلیغ Rewarded در Unity
-    private static final String AD_UNIT_ID = "BP_Rewarded_Android";
+    private static final String AD_UNIT_ID =
+            "BP_Rewarded_Android";
 
     private final Activity activity;
 
@@ -25,6 +32,40 @@ public class RewardedAdManager {
 
     public RewardedAdManager(Activity activity) {
         this.activity = activity;
+    }
+
+    // ==============================
+    // فقط سازنده پیام‌های فنی را می‌بیند
+    // ==============================
+    private boolean isDeveloper() {
+
+        FirebaseUser user =
+                FirebaseAuth.getInstance().getCurrentUser();
+
+        if (user == null) {
+            return false;
+        }
+
+        String email = user.getEmail();
+
+        return email != null
+                && DEVELOPER_EMAIL.equalsIgnoreCase(
+                        email.trim()
+                );
+    }
+
+    private void developerToast(
+            String message,
+            int duration) {
+
+        if (isDeveloper()) {
+
+            Toast.makeText(
+                    activity,
+                    message,
+                    duration
+            ).show();
+        }
     }
 
     // ==============================
@@ -39,11 +80,10 @@ public class RewardedAdManager {
                     "Unity Ads is not initialized"
             );
 
-            Toast.makeText(
-                    activity,
+            developerToast(
                     "❌ Unity Ads هنوز آماده نشده است.",
                     Toast.LENGTH_SHORT
-            ).show();
+            );
 
             return;
         }
@@ -65,11 +105,10 @@ public class RewardedAdManager {
                                 "Rewarded Ad Loaded Successfully"
                         );
 
-                        Toast.makeText(
-                                activity,
+                        developerToast(
                                 "✅ تبلیغ آماده شد.",
                                 Toast.LENGTH_SHORT
-                        ).show();
+                        );
 
                         rewardedAd.setOnAdExpired(
                                 expiredAd -> {
@@ -81,7 +120,6 @@ public class RewardedAdManager {
 
                                     rewardedAd = null;
 
-                                    // بارگذاری تبلیغ جدید
                                     loadRewardedAd();
                                 }
                         );
@@ -111,12 +149,11 @@ public class RewardedAdManager {
                                         + message
                         );
 
-                        // نمایش خطای واقعی روی صفحه
-                        Toast.makeText(
-                                activity,
-                                "❌ خطای تبلیغ: " + message,
+                        developerToast(
+                                "❌ خطای تبلیغ: "
+                                        + message,
                                 Toast.LENGTH_LONG
-                        ).show();
+                        );
                     }
                 }
         );
@@ -130,18 +167,16 @@ public class RewardedAdManager {
 
         if (rewardedAd == null) {
 
-            Toast.makeText(
-                    activity,
+            developerToast(
                     "⏳ تبلیغ هنوز آماده نیست، چند لحظه صبر کنید.",
                     Toast.LENGTH_SHORT
-            ).show();
+            );
 
             Log.d(
                     TAG,
                     "Rewarded Ad is not ready"
             );
 
-            // تلاش دوباره برای بارگذاری
             loadRewardedAd();
 
             if (rewardListener != null) {
@@ -152,10 +187,8 @@ public class RewardedAdManager {
             return;
         }
 
-        // تبلیغ فعلی را برای نمایش نگه می‌داریم
         RewardedAd adToShow = rewardedAd;
 
-        // جلوگیری از نمایش دوباره همان تبلیغ
         rewardedAd = null;
 
         ShowConfiguration showConfig =
@@ -212,7 +245,6 @@ public class RewardedAdManager {
                                 "Rewarded Ad Completed"
                         );
 
-                        // آماده‌سازی تبلیغ بعدی
                         loadRewardedAd();
                     }
 
@@ -242,19 +274,17 @@ public class RewardedAdManager {
                                         + message
                         );
 
-                        Toast.makeText(
-                                activity,
+                        developerToast(
                                 "❌ خطای نمایش تبلیغ: "
                                         + message,
                                 Toast.LENGTH_LONG
-                        ).show();
+                        );
 
                         if (rewardListener != null) {
 
                             rewardListener.onAdFailed();
                         }
 
-                        // تلاش برای بارگذاری تبلیغ بعدی
                         loadRewardedAd();
                     }
                 }
