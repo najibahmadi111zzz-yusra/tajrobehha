@@ -809,76 +809,154 @@ titleText =
 
         usersContainer.addView(card);
     }
+    
+private void showUserMenu(
+        String uid,
+        String name
+) {
 
-    private void showUserMenu(
-            String uid,
-            String name
-    ) {
+    String[] items = {
+            "👁 مخفی کردن / رفع مخفی",
+            "🚫 بلاک / رفع مسدودیت"
+    };
 
-        String[] items = {
-                "👁 مخفی کردن کاربر",
-                "🚫 بلاک کاربر"
-        };
+    new AlertDialog.Builder(this)
+            .setTitle(name)
+            .setItems(
+                    items,
+                    (d, which) -> {
 
-        new AlertDialog.Builder(this)
-                .setTitle(name)
-                .setItems(
-                        items,
-                        (d, which) -> {
+                        if (which == 0) {
 
-                            if (which == 0) {
+                            // بررسی وضعیت مخفی بودن
+                            db.collection("hiddenUsers")
+                                    .whereEqualTo("ownerId", myId)
+                                    .whereEqualTo("hiddenUserId", uid)
+                                    .get()
+                                    .addOnSuccessListener(snapshot -> {
 
-                                Map<String, Object> data =
-                                        new HashMap<>();
+                                        if (!snapshot.isEmpty()) {
 
-                                data.put(
-                                        "ownerId",
-                                        myId
-                                );
+                                            // رفع مخفی
+                                            for (com.google.firebase.firestore.DocumentSnapshot document
+                                                    : snapshot.getDocuments()) {
 
-                                data.put(
-                                        "hiddenUserId",
-                                        uid
-                                );
+                                                db.collection("hiddenUsers")
+                                                        .document(document.getId())
+                                                        .delete();
+                                            }
 
-                                db.collection(
-                                                "hiddenUsers"
-                                        )
-                                        .add(data)
-                                        .addOnSuccessListener(
-                                                x -> loadUsers()
-                                        );
+                                            Toast.makeText(
+                                                    this,
+                                                    "مخفی بودن کاربر رفع شد",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
 
-                            } else {
+                                            loadUsers();
 
-                                Map<String, Object> data =
-                                        new HashMap<>();
+                                        } else {
 
-                                data.put(
-                                        "ownerId",
-                                        myId
-                                );
+                                            // مخفی کردن
+                                            Map<String, Object> data =
+                                                    new HashMap<>();
 
-                                data.put(
-                                        "blockedUserId",
-                                        uid
-                                );
+                                            data.put(
+                                                    "ownerId",
+                                                    myId
+                                            );
 
-                                db.collection("blocks")
-                                        .add(data)
-                                        .addOnSuccessListener(
-                                                x ->
-                                                        Toast.makeText(
-                                                                this,
-                                                                "کاربر بلاک شد",
-                                                                Toast.LENGTH_SHORT
-                                                        ).show()
-                                        );
-                            }
+                                            data.put(
+                                                    "hiddenUserId",
+                                                    uid
+                                            );
+
+                                            data.put(
+                                                    "hiddenUserName",
+                                                    name
+                                            );
+
+                                            db.collection("hiddenUsers")
+                                                    .add(data)
+                                                    .addOnSuccessListener(
+                                                            x -> {
+                                                                Toast.makeText(
+                                                                        this,
+                                                                        "کاربر مخفی شد",
+                                                                        Toast.LENGTH_SHORT
+                                                                ).show();
+
+                                                                loadUsers();
+                                                            }
+                                                    );
+                                        }
+                                    });
+
+                        } else {
+
+                            // بررسی وضعیت بلاک
+                            db.collection("blocks")
+                                    .whereEqualTo("ownerId", myId)
+                                    .whereEqualTo("blockedUserId", uid)
+                                    .get()
+                                    .addOnSuccessListener(snapshot -> {
+
+                                        if (!snapshot.isEmpty()) {
+
+                                            // رفع مسدودیت
+                                            for (com.google.firebase.firestore.DocumentSnapshot document
+                                                    : snapshot.getDocuments()) {
+
+                                                db.collection("blocks")
+                                                        .document(document.getId())
+                                                        .delete();
+                                            }
+
+                                            Toast.makeText(
+                                                    this,
+                                                    "مسدودیت کاربر رفع شد",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
+
+                                            loadUsers();
+
+                                        } else {
+
+                                            // بلاک کردن
+                                            Map<String, Object> data =
+                                                    new HashMap<>();
+
+                                            data.put(
+                                                    "ownerId",
+                                                    myId
+                                            );
+
+                                            data.put(
+                                                    "blockedUserId",
+                                                    uid
+                                            );
+
+                                            data.put(
+                                                    "blockedUserName",
+                                                    name
+                                            );
+
+                                            db.collection("blocks")
+                                                    .add(data)
+                                                    .addOnSuccessListener(
+                                                            x ->
+                                                                    Toast.makeText(
+                                                                            this,
+                                                                            "کاربر بلاک شد",
+                                                                            Toast.LENGTH_SHORT
+                                                                    ).show()
+                                                    );
+                                        }
+                                    });
                         }
-                )
-                .show();
-    }
+                    }
+            )
+            .show();
+}
 
     private void showMyProfile() {
 
