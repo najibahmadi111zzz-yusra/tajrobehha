@@ -4341,7 +4341,7 @@ private void reportCurrentUser() {
                             ).show()
             );
 }
-
+    
 private void deleteCurrentChatForMe() {
 
     if (currentChatId == null ||
@@ -4458,4 +4458,4 @@ private void blockCurrentUser() {
                             ).show()
             );
 }
-        }
+                 }
