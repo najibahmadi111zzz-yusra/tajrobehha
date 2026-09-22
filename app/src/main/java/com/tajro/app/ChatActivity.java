@@ -3902,150 +3902,210 @@ header.addView(chatMenu,
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(
-            int requestCode,
-            String[] permissions,
-            int[] grantResults
-    ) {
+                    } else if (                            )
+                                    .setTitle("مسدود کردن کاربر")
+                                    .setMessage(
+                                            "آیا می‌خواهید این کاربر را مسدود کنید؟"
+                                    )
+                                    .setNegativeButton(
+                                            "لغو",
+                                            null
+                                    )
+                                    .setPositiveButton(
+                                            "مسدود کردن",
+                                            (d, w) ->
+                                                    blockCurrentUser()
+                                    )
+                                    .show();
 
-        super.onRequestPermissionsResult(
-                requestCode,
-                permissions,
-                grantResults
-        );
+                        } else if (which == 5) {
 
-        if (requestCode == REQUEST_MIC) {
+                            reportCurrentUser();
+                        }
+                    }
+            )
+            .show();
+}
 
-            if (grantResults.length > 0 &&
-                    grantResults[0] ==
-                            PackageManager.PERMISSION_GRANTED) {
+private void showChatPrivacySettings() {
 
-                startRecording();
+    final String[] items = {
+            "نمایش آنلاین بودن",
+            "نمایش آخرین بازدید",
+            "نمایش «در حال نوشتن…»",
+            "نمایش رسید خوانده شدن ✓✓"
+    };
 
-            } else {
-
-                Toast.makeText(
-                        this,
-                        "اجازه میکروفون داده نشد",
-                        Toast.LENGTH_SHORT
-                ).show();
-                
-                private void showChatMenu() {
-
-    String[] options = {
-            "🔕 بی‌صدا کردن اعلان‌های این چت",
-            "👤 مشاهده پروفایل",
-            "🔒 تنظیمات حریم خصوصی",
-            "🗑️ پاک کردن چت",
-            "🚫 مسدود کردن",
-            "⚠️ گزارش کاربر"
+    final boolean[] checked = {
+            true,
+            true,
+            true,
+            true
     };
 
     new AlertDialog.Builder(this)
-            .setTitle("تنظیمات چت")
-            .setItems(options, (dialog, which) -> {
+            .setTitle("🔒 تنظیمات حریم خصوصی")
+            .setMultiChoiceItems(
+                    items,
+                    checked,
+                    (dialog, which, isChecked) ->
+                            checked[which] = isChecked
+            )
+            .setNegativeButton(
+                    "لغو",
+                    null
+            )
+            .setPositiveButton(
+                    "ذخیره",
+                    (dialog, which) -> {
 
-                if (which == 0) {
+                        Map<String, Object> privacy =
+                                new HashMap<>();
 
-                    Toast.makeText(
-                            ChatActivity.this,
-                            "اعلان‌های این چت بی‌صدا شد",
-                            Toast.LENGTH_SHORT
-                    ).show();
+                        privacy.put(
+                                "showOnline",
+                                checked[0]
+                        );
 
-                } else if (which == 1) {
+                        privacy.put(
+                                "showLastSeen",
+                                checked[1]
+                        );
 
-                    showProfileDialog(
-                            receiverId,
-                            receiverName,
-                            receiverPhotoUrl
-                    );
+                        privacy.put(
+                                "showTyping",
+                                checked[2]
+                        );
 
-                } else if (which == 2) {
+                        privacy.put(
+                                "readReceipts",
+                                checked[3]
+                        );
 
-                    showChatPrivacySettings();
-
-                } else if (which == 3) {
-
-                    new AlertDialog.Builder(ChatActivity.this)
-                            .setTitle("پاک کردن چت")
-                            .setMessage(
-                                    "پیام‌های این چت فقط از حساب شما حذف می‌شود."
-                            )
-                            .setNegativeButton(
-                                    "لغو",
-                                    null
-                            )
-                            .setPositiveButton(
-                                    "پاک کردن",
-                                    (d, w) -> deleteCurrentChatForMe()
-                            )
-                            .show();
-
-                } else if (which == 4) {
-
-                    new AlertDialog.Builder(ChatActivity.this)
-                            .setTitle("مسدود کردن کاربر")
-                            .setMessage(
-                                    "آیا می‌خواهید این کاربر را مسدود کنید؟"
-                            )
-                            .setNegativeButton(
-                                    "لغو",
-                                    null
-                            )
-                            .setPositiveButton(
-                                    "مسدود کردن",
-                                    (d, w) -> blockCurrentUser()
-                            )
-                            .show();
-
-                } else if (which == 5) {
-
-                    reportCurrentUser();
-                }
-            })
+                        db.collection("users")
+                                .document(myId)
+                                .set(
+                                        privacy,
+                                        SetOptions.merge()
+                                )
+                                .addOnSuccessListener(
+                                        v ->
+                                                Toast.makeText(
+                                                        ChatActivity.this,
+                                                        "تنظیمات ذخیره شد",
+                                                        Toast.LENGTH_SHORT
+                                                ).show()
+                                );
+                    }
+            )
             .show();
+}
 
+private void reportCurrentUser() {
 
- 
-              .show();
+    Map<String, Object> report =
+            new HashMap<>();
+
+    report.put(
+            "reporterId",
+            myId
+    );
+
+    report.put(
+            "reportedUserId",
+            receiverId
+    );
+
+    report.put(
+            "chatId",
+            currentChatId
+    );
+
+    report.put(
+            "timestamp",
+            FieldValue.serverTimestamp()
+    );
+
+    db.collection("reports")
+            .add(report)
+            .addOnSuccessListener(
+                    v ->
+                            Toast.makeText(
+                                    ChatActivity.this,
+                                    "گزارش شما ثبت شد",
+                                    Toast.LENGTH_SHORT
+                            ).show()
+            )
+            .addOnFailureListener(
+                    e ->
+                            Toast.makeText(
+                                    ChatActivity.this,
+                                    "ثبت گزارش ناموفق بود",
+                                    Toast.LENGTH_SHORT
+                            ).show()
+            );
+}
+
+private void deleteCurrentChatForMe() {
+
+    if (currentChatId == null ||
+            currentChatId.isEmpty()) {
+
+        return;
     }
 
-    private void showChatPrivacySettings() {
+    db.collection("chats")
+            .document(currentChatId)
+            .collection("messages")
+            .get()
+            .addOnSuccessListener(
+                    snapshot -> {
 
-        final String[] items = {
-                "نمایش آنلاین بودن",
-                "نمایش آخرین بازدید",
-                "نمایش «در حال نوشتن…»",
-                "نمایش رسید خوانده شدن ✓✓"
-        };
+                        com.google.firebase.firestore.WriteBatch batch =
+                                db.batch();
 
-        final boolean[] checked = {
-                true,
-                true,
-                true,
-                true
-        };
+                        for (
+                                DocumentSnapshot doc :
+                                snapshot.getDocuments()
+                        ) {
 
-        new AlertDialog.Builder(this)
-                .setTitle("🔒 تنظیمات حریم خصوصی")
-                .setMultiChoiceItems(
-                        items,
-                        checked,
-                        (dialog, which, isChecked) -> {
-                            checked[which] = isChecked;
+                            batch.update(
+                                    doc.getReference(),
+                                    "deletedFor",
+                                    FieldValue.arrayUnion(
+                                            myId
+                                    )
+                            );
                         }
-                )
-                .setNegativeButton("لغو", null)
-                .setPositiveButton(
-                        "ذخیره",
-                        (dialog, which) -> {
 
-                            Map<String, Object> privacy =
-                                    new HashMap<>();
+                        batch.commit()
+                                .addOnSuccessListener(
+                                        v -> {
 
-                        @Override
+                                            messageCache.clear();
+
+                                            if (messagesContainer != null) {
+                                                messagesContainer
+                                                        .removeAllViews();
+                                            }
+
+                                            Toast.makeText(
+                                                    ChatActivity.this,
+                                                    "چت از حساب شما پاک شد",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
+                                        }
+                                )
+                                .addOnFailureListener(
+                                        e ->
+                                                Toast.makeText(
+                                                        ChatActivity.this,
+                                                        "پاک کردن چت ناموفق بود",
+                                                        Toast.LENGTH_SHORT
+                                                ).show()
+                                );
+                    }
+        @Override
 public void onRequestPermissionsResult(
         int requestCode,
         String[] permissions,
@@ -4321,6 +4381,7 @@ private void deleteCurrentChatForMe() {
                                             messageCache.clear();
 
                                             if (messagesContainer != null) {
+
                                                 messagesContainer
                                                         .removeAllViews();
                                             }
@@ -4397,5 +4458,4 @@ private void blockCurrentUser() {
                             ).show()
             );
 }
-
-                                }
+        }
