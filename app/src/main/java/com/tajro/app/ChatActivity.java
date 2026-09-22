@@ -95,6 +95,7 @@ public class ChatActivity extends Activity {
     private TextView statusText;
     private ImageView headerAvatar;
     private TextView headerOnlineDot;
+    private TextView chatMenuButton;
 
     private String myId;
     private String receiverId;
@@ -1166,8 +1167,23 @@ public class ChatActivity extends Activity {
                 text("●", 15);
 
         headerOnlineDot.setTextColor(
-                Color.GRAY
+                Color.GREEN
         );
+        
+        TextView chatMenu = new TextView(this);
+chatMenu.setText("⋮");
+chatMenu.setTextColor(Color.WHITE);
+chatMenu.setTextSize(28);
+chatMenu.setGravity(Gravity.CENTER);
+chatMenu.setPadding(8, 0, 8, 0);
+
+chatMenu.setOnClickListener(v -> showChatMenu());
+
+header.addView(chatMenu,
+        new LinearLayout.LayoutParams(
+                48,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
 
         header.addView(
                 headerOnlineDot
@@ -3912,7 +3928,84 @@ public class ChatActivity extends Activity {
                         "اجازه میکروفون داده نشد",
                         Toast.LENGTH_SHORT
                 ).show();
-            }
-        }
-    }
-    }
+                
+                private void showChatMenu() {
+
+    String[] options = {
+            "🔕 بی‌صدا کردن اعلان‌های این چت",
+            "👤 مشاهده پروفایل",
+            "🔒 تنظیمات حریم خصوصی",
+            "🗑️ پاک کردن چت",
+            "🚫 مسدود کردن",
+            "⚠️ گزارش کاربر"
+    };
+
+    new AlertDialog.Builder(this)
+            .setTitle("تنظیمات چت")
+            .setItems(options, (dialog, which) -> {
+
+                if (which == 0) {
+
+                    Toast.makeText(
+                            ChatActivity.this,
+                            "اعلان‌های این چت بی‌صدا شد",
+                            Toast.LENGTH_SHORT
+                    ).show();
+
+                } else if (which == 1) {
+
+                    showProfileDialog(
+                            receiverId,
+                            receiverName,
+                            receiverPhotoUrl
+                    );
+
+                } else if (which == 2) {
+
+                    showChatPrivacySettings();
+
+                } else if (which == 3) {
+
+                    new AlertDialog.Builder(ChatActivity.this)
+                            .setTitle("پاک کردن چت")
+                            .setMessage(
+                                    "پیام‌های این چت فقط از حساب شما حذف می‌شود."
+                            )
+                            .setNegativeButton(
+                                    "لغو",
+                                    null
+                            )
+                            .setPositiveButton(
+                                    "پاک کردن",
+                                    (d, w) -> deleteCurrentChatForMe()
+                            )
+                            .show();
+
+                } else if (which == 4) {
+
+                    new AlertDialog.Builder(ChatActivity.this)
+                            .setTitle("مسدود کردن کاربر")
+                            .setMessage(
+                                    "آیا می‌خواهید این کاربر را مسدود کنید؟"
+                            )
+                            .setNegativeButton(
+                                    "لغو",
+                                    null
+                            )
+                            .setPositiveButton(
+                                    "مسدود کردن",
+                                    (d, w) -> blockCurrentUser()
+                            )
+                            .show();
+
+                } else if (which == 5) {
+
+                    reportCurrentUser();
+                }
+            })
+            .show();
+
+
+                
+         }
+     }       
