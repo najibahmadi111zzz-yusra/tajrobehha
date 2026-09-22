@@ -3956,11 +3956,14 @@ public void onRequestPermissionsResult(
         }
     }
 }
+
 private void showChatMenu() {
 
     String[] options = {
             "🔕 بی‌صدا کردن اعلان‌های این چت",
             "👤 مشاهده پروفایل",
+            "🔒 تنظیمات حریم خصوصی",
+            "🗑️ حذف کامل چت",
             "🚫 مسدود کردن"
     };
 
@@ -3988,6 +3991,50 @@ private void showChatMenu() {
 
                         } else if (which == 2) {
 
+                            showChatPrivacySettings();
+
+                        } else if (which == 3) {
+
+                            new AlertDialog.Builder(
+                                    ChatActivity.this
+                            )
+                                    .setTitle("⚠️ حذف کامل چت")
+                                    .setMessage(
+                                            "آیا مطمئن هستید که می‌خواهید تمام این گفتگو را حذف کنید؟"
+                                    )
+                                    .setNegativeButton(
+                                            "لغو",
+                                            null
+                                    )
+                                    .setPositiveButton(
+                                            "مرحله اول",
+                                            (d, w) -> {
+
+                                                new AlertDialog.Builder(
+                                                        ChatActivity.this
+                                                )
+                                                        .setTitle(
+                                                                "تأیید نهایی حذف"
+                                                        )
+                                                        .setMessage(
+                                                                "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟"
+                                                        )
+                                                        .setNegativeButton(
+                                                                "لغو",
+                                                                null
+                                                        )
+                                                        .setPositiveButton(
+                                                                "حذف کامل",
+                                                                (d2, w2) ->
+                                                                        deleteCurrentChatForMe()
+                                                        )
+                                                        .show();
+                                            }
+                                    )
+                                    .show();
+
+                        } else if (which == 4) {
+
                             new AlertDialog.Builder(
                                     ChatActivity.this
                             )
@@ -4010,7 +4057,6 @@ private void showChatMenu() {
             )
             .show();
 }
-
 
 private void showChatPrivacySettings() {
 
