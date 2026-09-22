@@ -351,16 +351,39 @@ public class ChatActivity extends Activity {
                 v -> showMyProfile()
         );
 
-        header.addView(
-                profile,
-                new LinearLayout.LayoutParams(
-                        dp(48),
-                        dp(48)
-                )
-        );
+    header.addView(
+        profile,
+        new LinearLayout.LayoutParams(
+                dp(48),
+                dp(48)
+        )
+);
 
-        titleText =
-                text("💬 کاربران", 21);
+TextView myProfileMenu =
+        text("⋮", 26);
+
+myProfileMenu.setTextColor(
+        Color.WHITE
+);
+
+myProfileMenu.setGravity(
+        Gravity.CENTER
+);
+
+myProfileMenu.setOnClickListener(
+        v -> showChatPrivacySettings()
+);
+
+header.addView(
+        myProfileMenu,
+        new LinearLayout.LayoutParams(
+                dp(40),
+                dp(48)
+        )
+);
+
+titleText =
+        text("💬 کاربران", 21);
 
         titleText.setTextColor(
                 Color.WHITE
