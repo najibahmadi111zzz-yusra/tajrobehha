@@ -999,7 +999,36 @@ titleText =
         );
 
         box.addView(change);
+        
+if (uid.equals(myId)) {
 
+    Button privacy =
+            new Button(this);
+
+    privacy.setText(
+            "🔒 تنظیمات حریم خصوصی"
+    );
+
+    privacy.setOnClickListener(
+            v -> showChatPrivacySettings()
+    );
+
+    box.addView(privacy);
+
+
+    Button blocked =
+            new Button(this);
+
+    blocked.setText(
+            "🚫 فهرست مسدودشده‌ها"
+    );
+
+    blocked.setOnClickListener(
+            v -> showBlockedUsers()
+    );
+
+    box.addView(blocked);
+}
         AlertDialog dialog =
                 new AlertDialog.Builder(this)
                         .setTitle("پروفایل")
@@ -1013,6 +1042,157 @@ titleText =
         dialog.show();
     }
 
+    private void showBlockedUsers() {
+
+    db.collection("blocks")
+            .whereEqualTo(
+                    "ownerId",
+                    myId
+            )
+            .get()
+            .addOnSuccessListener(
+                    snapshot -> {
+
+                        if (snapshot.isEmpty()) {
+
+                            new AlertDialog.Builder(this)
+                                    .setTitle(
+                                            "🚫 فهرست مسدودشده‌ها"
+                                    )
+                                    .setMessage(
+                                            "هیچ کاربری مسدود نشده است."
+                                    )
+                                    .setPositiveButton(
+                                            "بستن",
+                                            null
+                                    )
+                                    .show();
+
+                            return;
+                        }
+
+                        LinearLayout box =
+                                new LinearLayout(this);
+
+                        box.setOrientation(
+                                LinearLayout.VERTICAL
+                        );
+
+                        box.setPadding(
+                                dp(20),
+                                dp(10),
+                                dp(20),
+                                dp(10)
+                        );
+
+                        for (
+                                DocumentSnapshot doc :
+                                snapshot.getDocuments()
+                        ) {
+
+                            String uid =
+                                    doc.getString(
+                                            "blockedUserId"
+                                    );
+
+                            String name =
+                                    doc.getString(
+                                            "blockedUserName"
+                                    );
+
+                            if (uid == null ||
+                                    uid.isEmpty()) {
+                                continue;
+                            }
+
+                            if (name == null ||
+                                    name.isEmpty()) {
+                                name = "کاربر";
+                            }
+
+                            Button unblock =
+                                    new Button(this);
+
+                            unblock.setText(
+                                    "🚫 " +
+                                    name +
+                                    "   •   رفع مسدودی"
+                            );
+
+                            String finalName = name;
+
+                            unblock.setOnClickListener(
+                                    v -> {
+
+                                        new AlertDialog.Builder(
+                                                this
+                                        )
+                                                .setTitle(
+                                                        "رفع مسدودی"
+                                                )
+                                                .setMessage(
+                                                        "آیا می‌خواهید «" +
+                                                        finalName +
+                                                        "» را از مسدودی خارج کنید؟"
+                                                )
+                                                .setNegativeButton(
+                                                        "لغو",
+                                                        null
+                                                )
+                                                .setPositiveButton(
+                                                        "رفع مسدودی",
+                                                        (d, w) -> {
+
+                                                            db.collection(
+                                                                    "blocks"
+                                                            )
+                                                                    .document(
+                                                                            doc.getId()
+                                                                    )
+                                                                    .delete()
+                                                                    .addOnSuccessListener(
+                                                                            x -> {
+
+                                                                                Toast.makeText(
+                                                                                        this,
+                                                                                        "مسدودی برداشته شد",
+                                                                                        Toast.LENGTH_SHORT
+                                                                                ).show();
+
+                                                                                showBlockedUsers();
+                                                                            }
+                                                                    );
+                                                        }
+                                                )
+                                                .show();
+                                    }
+                            );
+
+                            box.addView(
+                                    unblock
+                            );
+                        }
+
+                        new AlertDialog.Builder(this)
+                                .setTitle(
+                                        "🚫 فهرست مسدودشده‌ها"
+                                )
+                                .setView(box)
+                                .setPositiveButton(
+                                        "بستن",
+                                        null
+                                )
+                                .show();
+                    }
+            )
+            .addOnFailureListener(
+                    e -> Toast.makeText(
+                            this,
+                            "دریافت فهرست مسدودشده‌ها انجام نشد",
+                            Toast.LENGTH_SHORT
+                    ).show()
+            );
+}
     private void openPrivateChat(
             String uid,
             String name,
