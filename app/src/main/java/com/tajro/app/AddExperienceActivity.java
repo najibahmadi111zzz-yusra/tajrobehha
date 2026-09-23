@@ -23,204 +23,204 @@ import java.util.Map;
 
 public class AddExperienceActivity extends Activity {
 
-    private FirebaseFirestore db;
-    private FirebaseAuth auth;
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
 
-    private int themeColor;
+    private int themeColor;
 
-    /*
-     * جلوگیری از ثبت چندباره یک تجربه
-     */
-    private boolean isPublishing = false;
+    /*
+     * جلوگیری از ثبت چندباره یک تجربه
+     */
+    private boolean isPublishing = false;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-        db = FirebaseFirestore.getInstance();
-        auth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
 
-        themeColor = ThemeManager.getThemeColor(this);
+        themeColor = ThemeManager.getThemeColor(this);
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(35, 50, 35, 35);
-        layout.setBackgroundColor(getLightThemeColor());
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(35, 50, 35, 35);
+        layout.setBackgroundColor(getLightThemeColor());
 
-        TextView title = new TextView(this);
-        title.setText("✍️ ثبت تجربه جدید");
-        title.setTextSize(26);
-        title.setTextColor(themeColor);
-        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        title.setGravity(Gravity.CENTER);
-        title.setPadding(0, 0, 0, 35);
+        TextView title = new TextView(this);
+        title.setText("✍️ ثبت تجربه جدید");
+        title.setTextSize(26);
+        title.setTextColor(themeColor);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, 0, 0, 35);
 
-        EditText experienceTitle = new EditText(this);
-        experienceTitle.setHint("عنوان تجربه را بنویسید");
+        EditText experienceTitle = new EditText(this);
+        experienceTitle.setHint("عنوان تجربه را بنویسید");
 
-        EditText experienceText = new EditText(this);
-        experienceText.setHint("تجربه خود را با دیگران شریک کنید...");
-        experienceText.setGravity(Gravity.TOP);
-        experienceText.setMinLines(6);
+        EditText experienceText = new EditText(this);
+        experienceText.setHint("تجربه خود را با دیگران شریک کنید...");
+        experienceText.setGravity(Gravity.TOP);
+        experienceText.setMinLines(6);
 
-        Button publishButton = new Button(this);
-        publishButton.setText("🚀 انتشار تجربه");
-        styleButton(publishButton);
+        Button publishButton = new Button(this);
+        publishButton.setText("🚀 انتشار تجربه");
+        styleButton(publishButton);
 
-        publishButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        publishButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
 
-                /*
-                 * اگر در حال انتشار هستیم،
-                 * دوباره ذخیره نکن
-                 */
-                if (isPublishing) {
-                    return;
-                }
+                /*
+                 * اگر در حال انتشار هستیم،
+                 * دوباره ذخیره نکن
+                 */
+                if (isPublishing) {
+                    return;
+                }
 
-                FirebaseUser user = auth.getCurrentUser();
+                FirebaseUser user = auth.getCurrentUser();
 
-                if (user == null) {
-                    Toast.makeText(
-                            AddExperienceActivity.this,
-                            "لطفاً ابتدا وارد اکانت خود شوید",
-                            Toast.LENGTH_LONG
-                    ).show();
+                if (user == null) {
+                    Toast.makeText(
+                            AddExperienceActivity.this,
+                            "لطفاً ابتدا وارد اکانت خود شوید",
+                            Toast.LENGTH_LONG
+                    ).show();
 
-                    return;
-                }
+                    return;
+                }
 
-                String titleText =
-                        experienceTitle.getText().toString().trim();
+                String titleText =
+                        experienceTitle.getText().toString().trim();
 
-                String experience =
-                        experienceText.getText().toString().trim();
+                String experience =
+                        experienceText.getText().toString().trim();
 
-                if (titleText.isEmpty() || experience.isEmpty()) {
+                if (titleText.isEmpty() || experience.isEmpty()) {
 
-                    Toast.makeText(
-                            AddExperienceActivity.this,
-                            "لطفاً عنوان و متن تجربه را وارد کنید",
-                            Toast.LENGTH_SHORT
-                    ).show();
+                    Toast.makeText(
+                            AddExperienceActivity.this,
+                            "لطفاً عنوان و متن تجربه را وارد کنید",
+                            Toast.LENGTH_SHORT
+                    ).show();
 
-                    return;
-                }
+                    return;
+                }
 
-                /*
-                 * از این لحظه دکمه قفل می‌شود
-                 */
-                isPublishing = true;
-                publishButton.setEnabled(false);
-                publishButton.setAlpha(0.6f);
-                publishButton.setText("⏳ در حال انتشار...");
+                /*
+                 * از این لحظه دکمه قفل می‌شود
+                 */
+                isPublishing = true;
+                publishButton.setEnabled(false);
+                publishButton.setAlpha(0.6f);
+                publishButton.setText("⏳ در حال انتشار...");
 
-                Map<String, Object> experienceData =
-                        new HashMap<>();
+                Map<String, Object> experienceData =
+                        new HashMap<>();
 
-                experienceData.put(
-                        "title",
-                        titleText
-                );
+                experienceData.put(
+                        "title",
+                        titleText
+                );
 
-                experienceData.put(
-                        "text",
-                        experience
-                );
+                experienceData.put(
+                        "text",
+                        experience
+                );
 
-                experienceData.put(
-                        "userId",
-                        user.getUid()
-                );
+                experienceData.put(
+                        "userId",
+                        user.getUid()
+                );
 
-                experienceData.put(
-                        "authorEmail",
-                        user.getEmail()
-                );
+                experienceData.put(
+                        "authorEmail",
+                        user.getEmail()
+                );
 
-                experienceData.put(
-                        "timestamp",
-                        FieldValue.serverTimestamp()
-                );
+                experienceData.put(
+                        "timestamp",
+                        FieldValue.serverTimestamp()
+                );
 
-                db.collection("experiences")
-                        .add(experienceData)
-                        .addOnSuccessListener(documentReference -> {
+                db.collection("experiences")
+                        .add(experienceData)
+                        .addOnSuccessListener(documentReference -> {
 
-                            Toast.makeText(
-                                    AddExperienceActivity.this,
-                                    "تجربه با موفقیت منتشر شد! 🎉",
-                                    Toast.LENGTH_LONG
-                            ).show();
+                            Toast.makeText(
+                                    AddExperienceActivity.this,
+                                    "تجربه با موفقیت منتشر شد! 🎉",
+                                    Toast.LENGTH_LONG
+                            ).show();
 
-                            /*
-                             * پاک کردن فرم بعد از ذخیره موفق
-                             */
-                            experienceTitle.setText("");
-                            experienceText.setText("");
+                            /*
+                             * پاک کردن فرم بعد از ذخیره موفق
+                             */
+                            experienceTitle.setText("");
+                            experienceText.setText("");
 
-                            /*
-                             * باز کردن دوباره دکمه
-                             * برای ثبت یک تجربه جدید
-                             */
-                            isPublishing = false;
-                            publishButton.setEnabled(true);
-                            publishButton.setAlpha(1.0f);
-                            publishButton.setText("🚀 انتشار تجربه");
+                            /*
+                             * باز کردن دوباره دکمه
+                             * برای ثبت یک تجربه جدید
+                             */
+                            isPublishing = false;
+                            publishButton.setEnabled(true);
+                            publishButton.setAlpha(1.0f);
+                            publishButton.setText("🚀 انتشار تجربه");
 
-                        })
-                        .addOnFailureListener(e -> {
+                        })
+                        .addOnFailureListener(e -> {
 
-                            /*
-                             * اگر ذخیره ناموفق شد،
-                             * دوباره اجازه تلاش بده
-                             */
-                            isPublishing = false;
-                            publishButton.setEnabled(true);
-                            publishButton.setAlpha(1.0f);
-                            publishButton.setText("🚀 انتشار تجربه");
+                            /*
+                             * اگر ذخیره ناموفق شد،
+                             * دوباره اجازه تلاش بده
+                             */
+                            isPublishing = false;
+                            publishButton.setEnabled(true);
+                            publishButton.setAlpha(1.0f);
+                            publishButton.setText("🚀 انتشار تجربه");
 
-                            Toast.makeText(
-                                    AddExperienceActivity.this,
-                                    "خطا در انتشار تجربه: "
-                                            + e.getMessage(),
-                                    Toast.LENGTH_LONG
-                            ).show();
-                        });
-            }
-        });
+                            Toast.makeText(
+                                    AddExperienceActivity.this,
+                                    "خطا در انتشار تجربه: "
+                                            + e.getMessage(),
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        });
+            }
+        });
 
-        layout.addView(title);
-        layout.addView(experienceTitle);
-        layout.addView(experienceText);
-        layout.addView(publishButton);
+        layout.addView(title);
+        layout.addView(experienceTitle);
+        layout.addView(experienceText);
+        layout.addView(publishButton);
 
-        setContentView(layout);
-    }
+        setContentView(layout);
+    }
 
-    private void styleButton(Button button) {
+    private void styleButton(Button button) {
 
-        GradientDrawable background =
-                new GradientDrawable();
+        GradientDrawable background =
+                new GradientDrawable();
 
-        background.setColor(themeColor);
-        background.setCornerRadius(24);
+        background.setColor(themeColor);
+        background.setCornerRadius(24);
 
-        button.setBackground(background);
-        button.setTextColor(Color.WHITE);
-    }
+        button.setBackground(background);
+        button.setTextColor(Color.WHITE);
+    }
 
-    private int getLightThemeColor() {
+    private int getLightThemeColor() {
 
-        int red = Color.red(themeColor);
-        int green = Color.green(themeColor);
-        int blue = Color.blue(themeColor);
+        int red = Color.red(themeColor);
+        int green = Color.green(themeColor);
+        int blue = Color.blue(themeColor);
 
-        red = red + (255 - red) * 92 / 100;
-        green = green + (255 - green) * 92 / 100;
-        blue = blue + (255 - blue) * 92 / 100;
+        red = red + (255 - red) * 92 / 100;
+        green = green + (255 - green) * 92 / 100;
+        blue = blue + (255 - blue) * 92 / 100;
 
-        return Color.rgb(red, green, blue);
-    }
+        return Color.rgb(red, green, blue);
+    }
 }
