@@ -163,7 +163,7 @@ public class MainActivity extends Activity {
          * شفافیت متوسط و ملایم
          * تا نوشته‌ها و دکمه‌ها واضح بمانند.
          */
-        imageView.setAlpha(0.100f);
+        imageView.setAlpha(1.0f);
 
         /*
          * عکس فقط پس‌زمینه است
