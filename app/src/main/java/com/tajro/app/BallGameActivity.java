@@ -49,16 +49,32 @@ public class BallGameActivity extends Activity {
 
     public class ProBounceView extends View {
 
-        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Path shape = new Path();
-        private final Random random = new Random(1987);
+        private final Paint p =
+                new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        private final ArrayList<RectF> platforms = new ArrayList<>();
-        private final ArrayList<RectF> spikes = new ArrayList<>();
-        private final ArrayList<RectF> rings = new ArrayList<>();
-        private final ArrayList<RectF> springs = new ArrayList<>();
-        private final ArrayList<Particle> particles = new ArrayList<>();
+        private final Paint glow =
+                new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        private final Path shape =
+                new Path();
+
+        private final Random random =
+                new Random(1987);
+
+        private final ArrayList<RectF> platforms =
+                new ArrayList<>();
+
+        private final ArrayList<RectF> spikes =
+                new ArrayList<>();
+
+        private final ArrayList<RectF> rings =
+                new ArrayList<>();
+
+        private final ArrayList<RectF> springs =
+                new ArrayList<>();
+
+        private final ArrayList<Particle> particles =
+                new ArrayList<>();
 
         private RectF finish;
 
@@ -82,6 +98,8 @@ public class BallGameActivity extends Activity {
         private boolean running;
         private boolean finished;
 
+        private boolean viewReady;
+
         private int level = 1;
 
         private long lastFrame;
@@ -98,6 +116,7 @@ public class BallGameActivity extends Activity {
         private float doveStartY;
         private float doveTargetX;
         private float doveTargetY;
+
         private long finishStartTime;
 
         private boolean doveFlying;
@@ -153,12 +172,17 @@ public class BallGameActivity extends Activity {
         public ProBounceView(Context context) {
             super(context);
 
-            preferences = context.getSharedPreferences(
-                    "tajro_bounce_progress",
-                    Context.MODE_PRIVATE
-            );
+            preferences =
+                    context.getSharedPreferences(
+                            "tajro_bounce_progress",
+                            Context.MODE_PRIVATE
+                    );
 
-            level = preferences.getInt("saved_level", 1);
+            level =
+                    preferences.getInt(
+                            "saved_level",
+                            1
+                    );
 
             if (level < 1) {
                 level = 1;
@@ -177,10 +201,40 @@ public class BallGameActivity extends Activity {
 
             setFocusable(true);
 
-            resetLevel();
+            /*
+             * مهم:
+             * resetLevel اینجا اجرا نمی‌شود،
+             * چون هنوز اندازه واقعی View مشخص نیست.
+             *
+             * بازی در onSizeChanged ساخته می‌شود.
+             */
+            viewReady = false;
+        }
+
+        @Override
+        protected void onSizeChanged(
+                int w,
+                int h,
+                int oldw,
+                int oldh
+        ) {
+            super.onSizeChanged(
+                    w,
+                    h,
+                    oldw,
+                    oldh
+            );
+
+            if (w > 0 && h > 0) {
+
+                viewReady = true;
+
+                resetLevel();
+            }
         }
 
         private float tile() {
+
             return Math.max(
                     42f,
                     Math.min(
@@ -191,10 +245,16 @@ public class BallGameActivity extends Activity {
         }
 
         private float radius() {
+
             return tile() * 0.38f;
         }
 
         private void resetLevel() {
+
+            if (getWidth() <= 0 ||
+                    getHeight() <= 0) {
+                return;
+            }
 
             platforms.clear();
             spikes.clear();
@@ -203,22 +263,38 @@ public class BallGameActivity extends Activity {
             particles.clear();
 
             finished = false;
+
             doveFlying = false;
             doveLanded = false;
 
+            leftPressed = false;
+            rightPressed = false;
+            jumpPressed = false;
+
+            shake = 0;
+            time = 0;
+
             float t = tile();
 
-            worldWidth = 10500f + level * 1050f;
+            worldWidth =
+                    10500f +
+                            level * 1050f;
 
-            worldHeight = Math.max(
-                    getHeight() * 2.8f,
-                    1750f
-            );
+            worldHeight =
+                    Math.max(
+                            getHeight() * 2.8f,
+                            1750f
+                    );
 
-            groundY = getHeight() * 0.68f;
+            groundY =
+                    getHeight() * 0.68f;
 
-            spawnX = t * 3f;
-            spawnY = groundY - radius();
+            spawnX =
+                    t * 3f;
+
+            spawnY =
+                    groundY -
+                            radius();
 
             ballX = spawnX;
             ballY = spawnY;
@@ -230,21 +306,12 @@ public class BallGameActivity extends Activity {
             cameraY = 0;
 
             buildWorld();
+
             createInitialParticles();
 
             invalidate();
         }
 
-        /*
-         * مسیر اصلی بازی
-         *
-         * سکوها اکنون:
-         * - پیوسته‌تر هستند
-         * - فاصله غیرضروری ندارند
-         * - ارتفاعشان کمتر تغییر می‌کند
-         * - تیغه‌ها بسیار کمتر هستند
-         * - موانع اضافی حذف شده‌اند
-         */
         private void buildWorld() {
 
             float t = tile();
@@ -254,79 +321,105 @@ public class BallGameActivity extends Activity {
 
             int section = 0;
 
-            while (x < worldWidth - t * 8f) {
+            while (
+                    x <
+                            worldWidth -
+                                    t * 8f
+            ) {
 
                 section++;
 
-                /*
-                 * سکوهای اصلی بلندتر و مطمئن‌تر
-                 */
-                int length = 9 +
-                        (section * 3 + level * 2) % 9;
+                int length =
+                        9 +
+                                (
+                                        section * 3 +
+                                                level * 2
+                                ) % 9;
 
                 float left = x;
-                float right = x + length * t;
+                float right =
+                        x +
+                                length * t;
 
                 platforms.add(
                         new RectF(
                                 left,
                                 y,
                                 right,
-                                y + t * 1.45f
+                                y +
+                                        t * 1.45f
                         )
                 );
 
                 /*
-                 * فقط بعضی قسمت‌ها سکوی بالا دارند.
-                 * تعدادشان کمتر از نسخه قبلی است.
+                 * سکوی بالایی
                  */
                 if (section % 4 == 0) {
 
-                    float upperY = y - t * 2.6f;
+                    float upperY =
+                            y -
+                                    t * 2.6f;
 
-                    float upperLeft = left + t * 2.2f;
+                    float upperLeft =
+                            left +
+                                    t * 2.2f;
+
                     float upperRight =
                             Math.min(
                                     right - t,
-                                    upperLeft + t * 4.5f
+                                    upperLeft +
+                                            t * 4.5f
                             );
 
-                    if (upperRight > upperLeft + t * 2f) {
+                    if (
+                            upperRight >
+                                    upperLeft +
+                                            t * 2f
+                    ) {
 
                         platforms.add(
                                 new RectF(
                                         upperLeft,
                                         upperY,
                                         upperRight,
-                                        upperY + t * 0.85f
+                                        upperY +
+                                                t * 0.85f
                                 )
                         );
                     }
                 }
 
                 /*
-                 * یک پله کوتاه و قابل پرش
-                 * فقط هر 6 بخش.
+                 * پله
                  */
                 if (section % 6 == 0) {
 
-                    float stepX = left + t * 2.5f;
+                    float stepX =
+                            left +
+                                    t * 2.5f;
 
                     platforms.add(
                             new RectF(
                                     stepX,
-                                    y - t * 1.0f,
-                                    stepX + t * 2.8f,
-                                    y - t * 0.3f
+                                    y -
+                                            t * 1.0f,
+                                    stepX +
+                                            t * 2.8f,
+                                    y -
+                                            t * 0.3f
                             )
                     );
 
                     platforms.add(
                             new RectF(
-                                    stepX + t * 3.0f,
-                                    y - t * 1.8f,
-                                    stepX + t * 5.7f,
-                                    y - t * 1.1f
+                                    stepX +
+                                            t * 3.0f,
+                                    y -
+                                            t * 1.8f,
+                                    stepX +
+                                            t * 5.7f,
+                                    y -
+                                            t * 1.1f
                             )
                     );
                 }
@@ -339,75 +432,113 @@ public class BallGameActivity extends Activity {
                         t
                 );
 
-                /*
-                 * تغییر ارتفاع بسیار ملایم.
-                 */
                 x = right;
 
+                /*
+                 * تغییر ارتفاع نرم
+                 */
                 if (section % 5 == 0) {
 
                     float change =
-                            t * (0.8f + level * 0.06f);
+                            t *
+                                    (
+                                            0.8f +
+                                                    level * 0.06f
+                                    );
 
-                    if ((section / 5) % 2 == 0) {
+                    if (
+                            (section / 5) % 2 ==
+                                    0
+                    ) {
+
                         y -= change;
+
                     } else {
+
                         y += change;
                     }
 
-                    if (y < getHeight() * 0.40f) {
-                        y = getHeight() * 0.44f;
+                    if (
+                            y <
+                                    getHeight() *
+                                            0.40f
+                    ) {
+
+                        y =
+                                getHeight() *
+                                        0.44f;
                     }
 
-                    if (y > getHeight() * 0.66f) {
-                        y = getHeight() * 0.62f;
+                    if (
+                            y >
+                                    getHeight() *
+                                            0.66f
+                    ) {
+
+                        y =
+                                getHeight() *
+                                        0.62f;
                     }
 
                     /*
-                     * اتصال نرم بین دو ارتفاع.
+                     * اتصال بین ارتفاع‌ها
                      */
                     platforms.add(
                             new RectF(
                                     x,
                                     y,
-                                    x + t * 3.0f,
-                                    y + t * 0.95f
+                                    x +
+                                            t * 3.0f,
+                                    y +
+                                            t * 0.95f
                             )
                     );
 
-                    x += t * 3.0f;
+                    x +=
+                            t * 3.0f;
                 }
             }
 
             /*
-             * سکوی پایانی بزرگ و مطمئن.
+             * سکوی پایانی
              */
             float finishY = y;
 
             platforms.add(
                     new RectF(
-                            worldWidth - t * 14f,
+                            worldWidth -
+                                    t * 14f,
                             finishY,
-                            worldWidth - t * 8f,
-                            finishY + t * 1.45f
+                            worldWidth -
+                                    t * 8f,
+                            finishY +
+                                    t * 1.45f
                     )
             );
 
             platforms.add(
                     new RectF(
-                            worldWidth - t * 8f,
-                            finishY - t * 1.4f,
-                            worldWidth - t * 5f,
-                            finishY - t * 0.5f
+                            worldWidth -
+                                    t * 8f,
+                            finishY -
+                                    t * 1.4f,
+                            worldWidth -
+                                    t * 5f,
+                            finishY -
+                                    t * 0.5f
                     )
             );
 
-            finish = new RectF(
-                    worldWidth - t * 5.0f,
-                    finishY - t * 2.2f,
-                    worldWidth - t * 2.0f,
-                    finishY
-            );
+            finish =
+                    new RectF(
+                            worldWidth -
+                                    t * 5.0f,
+                            finishY -
+                                    t * 2.2f,
+                            worldWidth -
+                                    t * 2.0f,
+                            finishY
+                    );
         }
 
         private void addWorldObjects(
@@ -418,76 +549,92 @@ public class BallGameActivity extends Activity {
                 float t
         ) {
 
-            /*
-             * تیغه‌ها خیلی کمتر شده‌اند.
-             *
-             * قبلاً:
-             * - تیغه دوتایی
-             * - فاصله کم
-             * - تعداد زیاد
-             *
-             * حالا فقط یک تیغه و با فاصله مناسب.
-             */
             int spikeEvery;
 
             if (level <= 3) {
+
                 spikeEvery = 9;
+
             } else if (level <= 6) {
+
                 spikeEvery = 8;
+
             } else {
+
                 spikeEvery = 7;
             }
 
-            if (section > 4 &&
-                    section % spikeEvery == 0) {
+            /*
+             * تیغه‌ها
+             */
+            if (
+                    section > 4 &&
+                            section % spikeEvery == 0
+            ) {
 
                 float sx =
                         left +
-                                (right - left) * 0.62f;
+                                (
+                                        right - left
+                                ) *
+                                        0.62f;
 
                 spikes.add(
                         new RectF(
                                 sx,
-                                y - t * 0.58f,
-                                sx + t * 0.85f,
+                                y -
+                                        t * 0.58f,
+                                sx +
+                                        t * 0.85f,
                                 y
                         )
                 );
             }
 
             /*
-             * حلقه‌ها برای جذابیت.
+             * حلقه
              */
             if (section % 5 == 0) {
 
                 float rx =
                         left +
-                                (right - left) * 0.70f;
+                                (
+                                        right - left
+                                ) *
+                                        0.70f;
 
                 rings.add(
                         new RectF(
                                 rx,
-                                y - t * 2.05f,
-                                rx + t * 1.25f,
-                                y - t * 0.82f
+                                y -
+                                        t * 2.05f,
+                                rx +
+                                        t * 1.25f,
+                                y -
+                                        t * 0.82f
                         )
                 );
             }
 
             /*
-             * فنر کمتر ولی کاربردی.
+             * فنر
              */
             if (section % 8 == 0) {
 
                 float sx =
                         left +
-                                (right - left) * 0.78f;
+                                (
+                                        right - left
+                                ) *
+                                        0.78f;
 
                 springs.add(
                         new RectF(
                                 sx,
-                                y - t * 0.42f,
-                                sx + t * 0.95f,
+                                y -
+                                        t * 0.42f,
+                                sx +
+                                        t * 0.95f,
                                 y
                         )
                 );
@@ -500,14 +647,19 @@ public class BallGameActivity extends Activity {
 
                 particles.add(
                         new Particle(
-                                random.nextFloat() * 1500f,
+                                random.nextFloat() *
+                                        1500f,
                                 random.nextFloat() *
                                         Math.max(
                                                 600,
                                                 getHeight()
                                         ),
-                                random.nextFloat() * 30f + 5,
-                                random.nextFloat() * 1.5f + 0.3f
+                                random.nextFloat() *
+                                        30f +
+                                        5,
+                                random.nextFloat() *
+                                        1.5f +
+                                        0.3f
                         )
                 );
             }
@@ -515,7 +667,8 @@ public class BallGameActivity extends Activity {
 
         private void update(float dt) {
 
-            if (!running) {
+            if (!running ||
+                    !viewReady) {
                 return;
             }
 
@@ -523,29 +676,43 @@ public class BallGameActivity extends Activity {
                 dt = 0.035f;
             }
 
+            if (dt < 0) {
+                dt = 0;
+            }
+
             time += dt;
 
             updateParticles(dt);
 
             if (finished) {
+
                 updateDove();
+
                 return;
             }
 
             if (leftPressed) {
-                ballVX -= acceleration * dt;
+
+                ballVX -=
+                        acceleration * dt;
             }
 
             if (rightPressed) {
-                ballVX += acceleration * dt;
+
+                ballVX +=
+                        acceleration * dt;
             }
 
-            if (!leftPressed && !rightPressed) {
+            if (
+                    !leftPressed &&
+                            !rightPressed
+            ) {
 
-                ballVX *= Math.pow(
-                        friction,
-                        dt * 60f
-                );
+                ballVX *=
+                        Math.pow(
+                                friction,
+                                dt * 60f
+                        );
             }
 
             if (ballVX > maxSpeed) {
@@ -556,139 +723,224 @@ public class BallGameActivity extends Activity {
                 ballVX = -maxSpeed;
             }
 
-            ballVY += gravity * dt;
+            ballVY +=
+                    gravity * dt;
 
             float oldY = ballY;
 
-            ballX += ballVX * dt;
-            ballY += ballVY * dt;
+            ballX +=
+                    ballVX * dt;
+
+            ballY +=
+                    ballVY * dt;
 
             boolean landed = false;
 
-            for (RectF platform : platforms) {
+            for (RectF platform :
+                    platforms) {
 
-                if (ballX + radius() > platform.left &&
-                        ballX - radius() < platform.right &&
-                        oldY + radius() <= platform.top &&
-                        ballY + radius() >= platform.top &&
-                        ballVY >= 0) {
+                if (
+                        ballX + radius() >
+                                platform.left &&
+                                ballX - radius() <
+                                        platform.right &&
+                                oldY + radius() <=
+                                        platform.top &&
+                                ballY + radius() >=
+                                        platform.top &&
+                                ballVY >= 0
+                ) {
 
                     ballY =
-                            platform.top - radius();
+                            platform.top -
+                                    radius();
 
                     ballVY = 0;
+
                     landed = true;
 
                     break;
                 }
             }
 
-            if (landed && jumpPressed) {
+            if (
+                    landed &&
+                            jumpPressed
+            ) {
 
-                ballVY = -jumpPower;
+                ballVY =
+                        -jumpPower;
+
                 jumpPressed = false;
 
                 createJumpParticles();
             }
 
-            for (RectF spring : springs) {
+            /*
+             * فنر
+             */
+            for (RectF spring :
+                    springs) {
 
-                if (circleRect(
-                        ballX,
-                        ballY,
-                        radius(),
-                        spring
-                )) {
+                if (
+                        circleRect(
+                                ballX,
+                                ballY,
+                                radius(),
+                                spring
+                        )
+                ) {
 
                     ballVY =
                             -jumpPower *
-                                    (1.20f +
-                                            level * 0.02f);
+                                    (
+                                            1.20f +
+                                                    level *
+                                                            0.02f
+                                    );
 
                     createJumpParticles();
+
+                    break;
                 }
             }
 
-            for (RectF spike : spikes) {
+            /*
+             * تیغه
+             */
+            for (RectF spike :
+                    spikes) {
 
-                if (circleRect(
-                        ballX,
-                        ballY,
-                        radius() * 0.82f,
-                        spike
-                )) {
+                if (
+                        circleRect(
+                                ballX,
+                                ballY,
+                                radius() *
+                                        0.82f,
+                                spike
+                        )
+                ) {
 
                     hit();
+
                     return;
                 }
             }
 
-            if (ballY > worldHeight + getHeight()) {
+            /*
+             * سقوط از جهان
+             */
+            if (
+                    ballY >
+                            worldHeight +
+                                    getHeight()
+            ) {
 
                 hit();
+
                 return;
             }
 
-            if (ballX < radius()) {
+            /*
+             * دیوار چپ
+             */
+            if (
+                    ballX <
+                            radius()
+            ) {
 
-                ballX = radius();
+                ballX =
+                        radius();
+
                 ballVX = 0;
             }
 
-            if (finish != null &&
-                    ballX + radius() > finish.left &&
-                    ballX - radius() < finish.right &&
-                    ballY + radius() > finish.top &&
-                    ballY - radius() < finish.bottom) {
+            /*
+             * پایان مرحله
+             */
+            if (
+                    finish != null &&
+                            ballX + radius() >
+                                    finish.left &&
+                            ballX - radius() <
+                                    finish.right &&
+                            ballY + radius() >
+                                    finish.top &&
+                            ballY - radius() <
+                                    finish.bottom
+            ) {
 
                 finishLevel();
+
                 return;
             }
 
+            /*
+             * دوربین
+             */
             float targetCameraX =
-                    ballX - getWidth() * 0.34f;
+                    ballX -
+                            getWidth() *
+                                    0.34f;
 
             float targetCameraY =
-                    ballY - getHeight() * 0.53f;
+                    ballY -
+                            getHeight() *
+                                    0.53f;
 
             cameraX +=
-                    (targetCameraX - cameraX) *
+                    (
+                            targetCameraX -
+                                    cameraX
+                    ) *
                             Math.min(
                                     1f,
                                     dt * 5.5f
                             );
 
             cameraY +=
-                    (targetCameraY - cameraY) *
+                    (
+                            targetCameraY -
+                                    cameraY
+                    ) *
                             Math.min(
                                     1f,
                                     dt * 4.2f
                             );
 
-            cameraX = Math.max(
-                    0,
-                    Math.min(
-                            cameraX,
-                            Math.max(
-                                    0,
-                                    worldWidth - getWidth()
+            cameraX =
+                    Math.max(
+                            0,
+                            Math.min(
+                                    cameraX,
+                                    Math.max(
+                                            0,
+                                            worldWidth -
+                                                    getWidth()
+                                    )
                             )
-                    )
-            );
+                    );
 
-            cameraY = Math.max(
-                    0,
-                    Math.min(
-                            cameraY,
-                            Math.max(
-                                    0,
-                                    worldHeight - getHeight()
+            cameraY =
+                    Math.max(
+                            0,
+                            Math.min(
+                                    cameraY,
+                                    Math.max(
+                                            0,
+                                            worldHeight -
+                                                    getHeight()
+                                    )
                             )
-                    )
-            );
+                    );
 
             if (shake > 0) {
+
                 shake *= 0.88f;
+
+                if (shake < 0.1f) {
+                    shake = 0;
+                }
             }
         }
 
@@ -709,23 +961,33 @@ public class BallGameActivity extends Activity {
                 float smooth =
                         progress *
                                 progress *
-                                (3f - 2f * progress);
+                                (
+                                        3f -
+                                                2f *
+                                                        progress
+                                );
 
                 doveX =
                         doveStartX +
-                                (doveTargetX -
-                                        doveStartX) *
+                                (
+                                        doveTargetX -
+                                                doveStartX
+                                ) *
                                         smooth;
 
                 float arc =
-                        (float) Math.sin(
-                                progress * Math.PI
-                        );
+                        (float)
+                                Math.sin(
+                                        progress *
+                                                Math.PI
+                                );
 
                 doveY =
                         doveStartY +
-                                (doveTargetY -
-                                        doveStartY) *
+                                (
+                                        doveTargetY -
+                                                doveStartY
+                                ) *
                                         smooth -
                                 arc * 150f;
 
@@ -746,7 +1008,9 @@ public class BallGameActivity extends Activity {
                 if (level < 10) {
 
                     level++;
+
                     saveProgress();
+
                     resetLevel();
 
                 } else {
@@ -754,6 +1018,7 @@ public class BallGameActivity extends Activity {
                     saveProgress();
 
                     finished = false;
+
                     doveFlying = false;
                     doveLanded = false;
 
@@ -765,6 +1030,12 @@ public class BallGameActivity extends Activity {
 
                     cameraX = 0;
                     cameraY = 0;
+
+                    leftPressed = false;
+                    rightPressed = false;
+                    jumpPressed = false;
+
+                    createInitialParticles();
                 }
             }
         }
@@ -794,10 +1065,16 @@ public class BallGameActivity extends Activity {
                             )
                     );
 
-            float dx = cx - nx;
-            float dy = cy - ny;
+            float dx =
+                    cx - nx;
 
-            return dx * dx + dy * dy < r * r;
+            float dy =
+                    cy - ny;
+
+            return
+                    dx * dx +
+                            dy * dy <
+                            r * r;
         }
 
         private void hit() {
@@ -846,13 +1123,15 @@ public class BallGameActivity extends Activity {
 
             doveStartX =
                     ballX +
-                            getWidth() * 0.65f;
+                            getWidth() *
+                                    0.65f;
 
             doveStartY =
                     Math.max(
                             90,
                             ballY -
-                                    getHeight() * 0.22f
+                                    getHeight() *
+                                            0.22f
                     );
 
             doveTargetX =
@@ -867,6 +1146,7 @@ public class BallGameActivity extends Activity {
             doveY = doveStartY;
 
             createFinishParticles();
+
             saveProgress();
         }
 
@@ -895,17 +1175,26 @@ public class BallGameActivity extends Activity {
 
         private void updateParticles(float dt) {
 
-            for (int i = particles.size() - 1;
-                 i >= 0;
-                 i--) {
+            for (
+                    int i =
+                            particles.size() - 1;
+                    i >= 0;
+                    i--
+            ) {
 
-                Particle q = particles.get(i);
+                Particle q =
+                        particles.get(i);
 
-                q.x += q.vx * dt;
-                q.y += q.vy * dt;
+                q.x +=
+                        q.vx * dt;
+
+                q.y +=
+                        q.vy * dt;
+
                 q.life -= dt;
 
                 if (q.life <= 0) {
+
                     particles.remove(i);
                 }
             }
@@ -918,12 +1207,18 @@ public class BallGameActivity extends Activity {
                 Particle q =
                         new Particle(
                                 ballX,
-                                ballY + radius(),
-                                random.nextFloat() * 80 - 40,
-                                -random.nextFloat() * 100 - 30
+                                ballY +
+                                        radius(),
+                                random.nextFloat() *
+                                        80 -
+                                        40,
+                                -random.nextFloat() *
+                                        100 -
+                                        30
                         );
 
                 q.life = 0.55f;
+
                 particles.add(q);
             }
         }
@@ -936,11 +1231,16 @@ public class BallGameActivity extends Activity {
                         new Particle(
                                 ballX,
                                 ballY,
-                                random.nextFloat() * 500 - 250,
-                                random.nextFloat() * 500 - 250
+                                random.nextFloat() *
+                                        500 -
+                                        250,
+                                random.nextFloat() *
+                                        500 -
+                                        250
                         );
 
                 q.life = 0.8f;
+
                 particles.add(q);
             }
         }
@@ -953,11 +1253,16 @@ public class BallGameActivity extends Activity {
                         new Particle(
                                 ballX,
                                 ballY,
-                                random.nextFloat() * 800 - 400,
-                                random.nextFloat() * 700 - 500
+                                random.nextFloat() *
+                                        800 -
+                                        400,
+                                random.nextFloat() *
+                                        700 -
+                                        500
                         );
 
                 q.life = 1.5f;
+
                 particles.add(q);
             }
         }
@@ -970,18 +1275,32 @@ public class BallGameActivity extends Activity {
                         new Particle(
                                 doveX,
                                 doveY,
-                                random.nextFloat() * 140 - 70,
-                                random.nextFloat() * 120 - 80
+                                random.nextFloat() *
+                                        140 -
+                                        70,
+                                random.nextFloat() *
+                                        120 -
+                                        80
                         );
 
                 q.life = 0.8f;
+
                 particles.add(q);
             }
         }
 
-        private void drawBackground(Canvas canvas) {
+        private void drawBackground(
+                Canvas canvas
+        ) {
 
-            int index = level - 1;
+            int index =
+                    Math.max(
+                            0,
+                            Math.min(
+                                    9,
+                                    level - 1
+                            )
+                    );
 
             LinearGradient gradient =
                     new LinearGradient(
@@ -1007,17 +1326,31 @@ public class BallGameActivity extends Activity {
             p.setShader(null);
 
             drawSkyObjects(canvas);
+
             drawAtmosphere(canvas);
+
             drawParticles(canvas);
         }
 
-        private void drawSkyObjects(Canvas canvas) {
+        private void drawSkyObjects(
+                Canvas canvas
+        ) {
 
-            int index = level - 1;
+            int index =
+                    Math.max(
+                            0,
+                            Math.min(
+                                    9,
+                                    level - 1
+                            )
+                    );
 
             p.setStyle(Paint.Style.FILL);
 
-            if (index == 0 || index == 6) {
+            if (
+                    index == 0 ||
+                            index == 6
+            ) {
 
                 drawClouds(canvas);
                 drawTrees(canvas);
@@ -1027,11 +1360,16 @@ public class BallGameActivity extends Activity {
                 drawClouds(canvas);
                 drawWaterLights(canvas);
 
-            } else if (index == 2 || index == 5) {
+            } else if (
+                    index == 2 ||
+                            index == 5
+            ) {
 
                 drawStars(canvas);
 
-                p.setColor(0x66FFFFFF);
+                p.setColor(
+                        0x66FFFFFF
+                );
 
                 canvas.drawCircle(
                         getWidth() * 0.78f,
@@ -1042,7 +1380,9 @@ public class BallGameActivity extends Activity {
 
             } else if (index == 3) {
 
-                p.setColor(0x88FFFFFF);
+                p.setColor(
+                        0x88FFFFFF
+                );
 
                 canvas.drawCircle(
                         getWidth() * 0.80f,
@@ -1070,23 +1410,37 @@ public class BallGameActivity extends Activity {
             }
         }
 
-        private void drawClouds(Canvas canvas) {
+        private void drawClouds(
+                Canvas canvas
+        ) {
 
-            p.setColor(0x35FFFFFF);
+            p.setColor(
+                    0x35FFFFFF
+            );
 
             for (int i = 0; i < 7; i++) {
 
                 float x =
-                        (i * 220f -
-                                cameraX * 0.15f)
-                                %
-                                (getWidth() + 260);
+                        (
+                                i * 220f -
+                                        cameraX * 0.15f
+                        ) %
+                                (
+                                        getWidth() +
+                                                260
+                                );
 
                 if (x < -200) {
-                    x += getWidth() + 260;
+
+                    x +=
+                            getWidth() +
+                                    260;
                 }
 
-                float y = 80 + (i % 4) * 70;
+                float y =
+                        80 +
+                                (i % 4) *
+                                        70;
 
                 canvas.drawOval(
                         x,
@@ -1112,24 +1466,36 @@ public class BallGameActivity extends Activity {
             }
         }
 
-        private void drawTrees(Canvas canvas) {
+        private void drawTrees(
+                Canvas canvas
+        ) {
 
-            p.setColor(0x45000000);
+            p.setColor(
+                    0x45000000
+            );
 
             for (int i = 0; i < 13; i++) {
 
                 float x =
-                        (i * 130f -
-                                cameraX * 0.20f)
-                                %
-                                (getWidth() + 180);
+                        (
+                                i * 130f -
+                                        cameraX * 0.20f
+                        ) %
+                                (
+                                        getWidth() +
+                                                180
+                                );
 
                 if (x < -100) {
-                    x += getWidth() + 180;
+
+                    x +=
+                            getWidth() +
+                                    180;
                 }
 
                 float base =
-                        getHeight() * 0.77f;
+                        getHeight() *
+                                0.77f;
 
                 canvas.drawRect(
                         x + 35,
@@ -1139,7 +1505,8 @@ public class BallGameActivity extends Activity {
                         p
                 );
 
-                Path tree = new Path();
+                Path tree =
+                        new Path();
 
                 tree.moveTo(
                         x,
@@ -1158,32 +1525,53 @@ public class BallGameActivity extends Activity {
 
                 tree.close();
 
-                canvas.drawPath(tree, p);
+                canvas.drawPath(
+                        tree,
+                        p
+                );
             }
         }
 
-        private void drawStars(Canvas canvas) {
+        private void drawStars(
+                Canvas canvas
+        ) {
 
-            p.setColor(0xAAFFFFFF);
+            p.setColor(
+                    0xAAFFFFFF
+            );
 
             for (int i = 0; i < 45; i++) {
 
                 float x =
-                        (i * 97f -
-                                cameraX * 0.08f)
-                                %
-                                (getWidth() + 50);
+                        (
+                                i * 97f -
+                                        cameraX * 0.08f
+                        ) %
+                                (
+                                        getWidth() +
+                                                50
+                                );
 
                 if (x < 0) {
-                    x += getWidth() + 50;
+
+                    x +=
+                            getWidth() +
+                                    50;
                 }
 
                 float y =
                         35 +
-                                (i * 53f) %
-                                        (getHeight() * 0.55f);
+                                (
+                                        i * 53f
+                                ) %
+                                        (
+                                                getHeight() *
+                                                        0.55f
+                                        );
 
-                float s = 1.5f + (i % 3);
+                float s =
+                        1.5f +
+                                (i % 3);
 
                 canvas.drawCircle(
                         x,
@@ -1194,25 +1582,38 @@ public class BallGameActivity extends Activity {
             }
         }
 
-        private void drawWaterLights(Canvas canvas) {
+        private void drawWaterLights(
+                Canvas canvas
+        ) {
 
-            p.setColor(0x55FFFFFF);
+            p.setColor(
+                    0x55FFFFFF
+            );
 
             for (int i = 0; i < 20; i++) {
 
                 float x =
-                        (i * 150f -
-                                cameraX * 0.12f)
-                                %
-                                (getWidth() + 200);
+                        (
+                                i * 150f -
+                                        cameraX * 0.12f
+                        ) %
+                                (
+                                        getWidth() +
+                                                200
+                                );
 
                 if (x < 0) {
-                    x += getWidth() + 200;
+
+                    x +=
+                            getWidth() +
+                                    200;
                 }
 
                 float y =
-                        getHeight() * 0.72f +
-                                (i % 4) * 22;
+                        getHeight() *
+                                0.72f +
+                                (i % 4) *
+                                        22;
 
                 canvas.drawOval(
                         x,
@@ -1224,32 +1625,46 @@ public class BallGameActivity extends Activity {
             }
         }
 
-        private void drawVolcanoSky(Canvas canvas) {
+        private void drawVolcanoSky(
+                Canvas canvas
+        ) {
 
-            p.setColor(0x557F1800);
+            p.setColor(
+                    0x557F1800
+            );
 
-            Path volcano = new Path();
+            Path volcano =
+                    new Path();
 
             volcano.moveTo(
                     0,
-                    getHeight() * 0.72f
+                    getHeight() *
+                            0.72f
             );
 
             volcano.lineTo(
-                    getWidth() * 0.52f,
-                    getHeight() * 0.28f
+                    getWidth() *
+                            0.52f,
+                    getHeight() *
+                            0.28f
             );
 
             volcano.lineTo(
                     getWidth(),
-                    getHeight() * 0.72f
+                    getHeight() *
+                            0.72f
             );
 
             volcano.close();
 
-            canvas.drawPath(volcano, p);
+            canvas.drawPath(
+                    volcano,
+                    p
+            );
 
-            p.setColor(0x88FFB52E);
+            p.setColor(
+                    0x88FFB52E
+            );
 
             canvas.drawCircle(
                     getWidth() * 0.51f,
@@ -1259,9 +1674,13 @@ public class BallGameActivity extends Activity {
             );
         }
 
-        private void drawSunset(Canvas canvas) {
+        private void drawSunset(
+                Canvas canvas
+        ) {
 
-            p.setColor(0xAAFFD66B);
+            p.setColor(
+                    0xAAFFD66B
+            );
 
             canvas.drawCircle(
                     getWidth() * 0.76f,
@@ -1270,23 +1689,33 @@ public class BallGameActivity extends Activity {
                     p
             );
 
-            p.setColor(0x44FFFFFF);
+            p.setColor(
+                    0x44FFFFFF
+            );
 
             for (int i = 0; i < 6; i++) {
 
                 canvas.drawOval(
                         0,
-                        getHeight() * 0.55f + i * 32,
+                        getHeight() *
+                                0.55f +
+                                i * 32,
                         getWidth(),
-                        getHeight() * 0.59f + i * 32,
+                        getHeight() *
+                                0.59f +
+                                i * 32,
                         p
                 );
             }
         }
 
-        private void drawIcePeaks(Canvas canvas) {
+        private void drawIcePeaks(
+                Canvas canvas
+        ) {
 
-            p.setColor(0x55FFFFFF);
+            p.setColor(
+                    0x55FFFFFF
+            );
 
             for (int i = 0; i < 6; i++) {
 
@@ -1294,32 +1723,43 @@ public class BallGameActivity extends Activity {
                         i * 190 -
                                 cameraX * 0.15f;
 
-                Path peak = new Path();
+                Path peak =
+                        new Path();
 
                 peak.moveTo(
                         x,
-                        getHeight() * 0.73f
+                        getHeight() *
+                                0.73f
                 );
 
                 peak.lineTo(
                         x + 100,
-                        getHeight() * 0.30f
+                        getHeight() *
+                                0.30f
                 );
 
                 peak.lineTo(
                         x + 205,
-                        getHeight() * 0.73f
+                        getHeight() *
+                                0.73f
                 );
 
                 peak.close();
 
-                canvas.drawPath(peak, p);
+                canvas.drawPath(
+                        peak,
+                        p
+                );
             }
         }
 
-        private void drawDesert(Canvas canvas) {
+        private void drawDesert(
+                Canvas canvas
+        ) {
 
-            p.setColor(0x40FFFFFF);
+            p.setColor(
+                    0x40FFFFFF
+            );
 
             for (int i = 0; i < 9; i++) {
 
@@ -1329,17 +1769,23 @@ public class BallGameActivity extends Activity {
 
                 canvas.drawOval(
                         x,
-                        getHeight() * 0.63f,
+                        getHeight() *
+                                0.63f,
                         x + 230,
-                        getHeight() * 0.78f,
+                        getHeight() *
+                                0.78f,
                         p
                 );
             }
         }
 
-        private void drawAtmosphere(Canvas canvas) {
+        private void drawAtmosphere(
+                Canvas canvas
+        ) {
 
-            p.setColor(0x18000000);
+            p.setColor(
+                    0x18000000
+            );
 
             canvas.drawRect(
                     0,
@@ -1350,20 +1796,31 @@ public class BallGameActivity extends Activity {
             );
         }
 
-        private void drawParticles(Canvas canvas) {
+        private void drawParticles(
+                Canvas canvas
+        ) {
 
-            for (Particle q : particles) {
+            for (Particle q :
+                    particles) {
 
                 float sx =
-                        q.x - cameraX * 0.25f;
+                        q.x -
+                                cameraX * 0.25f;
 
                 float sy =
-                        q.y - cameraY * 0.18f;
+                        q.y -
+                                cameraY * 0.18f;
 
-                if (sx < -20 ||
-                        sx > getWidth() + 20 ||
-                        sy < -20 ||
-                        sy > getHeight() + 20) {
+                if (
+                        sx < -20 ||
+                                sx >
+                                        getWidth() +
+                                                20 ||
+                                sy < -20 ||
+                                sy >
+                                        getHeight() +
+                                                20
+                ) {
 
                     continue;
                 }
@@ -1378,7 +1835,9 @@ public class BallGameActivity extends Activity {
                         )
                 );
 
-                p.setColor(0xFFFFFFFF);
+                p.setColor(
+                        0xFFFFFFFF
+                );
 
                 canvas.drawCircle(
                         sx,
@@ -1391,7 +1850,9 @@ public class BallGameActivity extends Activity {
             p.setAlpha(255);
         }
 
-        private void drawWorld(Canvas canvas) {
+        private void drawWorld(
+                Canvas canvas
+        ) {
 
             canvas.save();
 
@@ -1401,11 +1862,17 @@ public class BallGameActivity extends Activity {
             if (shake > 1) {
 
                 sx =
-                        (random.nextFloat() - 0.5f) *
+                        (
+                                random.nextFloat() -
+                                        0.5f
+                        ) *
                                 shake;
 
                 sy =
-                        (random.nextFloat() - 0.5f) *
+                        (
+                                random.nextFloat() -
+                                        0.5f
+                        ) *
                                 shake;
             }
 
@@ -1414,23 +1881,44 @@ public class BallGameActivity extends Activity {
                     -cameraY + sy
             );
 
-            for (RectF platform : platforms) {
-                drawPlatform(canvas, platform);
+            for (RectF platform :
+                    platforms) {
+
+                drawPlatform(
+                        canvas,
+                        platform
+                );
             }
 
-            for (RectF spike : spikes) {
-                drawSpike(canvas, spike);
+            for (RectF spike :
+                    spikes) {
+
+                drawSpike(
+                        canvas,
+                        spike
+                );
             }
 
-            for (RectF ring : rings) {
-                drawRing(canvas, ring);
+            for (RectF ring :
+                    rings) {
+
+                drawRing(
+                        canvas,
+                        ring
+                );
             }
 
-            for (RectF spring : springs) {
-                drawSpring(canvas, spring);
+            for (RectF spring :
+                    springs) {
+
+                drawSpring(
+                        canvas,
+                        spring
+                );
             }
 
             drawFinish(canvas);
+
             drawBall(canvas);
 
             canvas.restore();
@@ -1441,7 +1929,8 @@ public class BallGameActivity extends Activity {
                 RectF r
         ) {
 
-            int index = level - 1;
+            int index =
+                    level - 1;
 
             LinearGradient g =
                     new LinearGradient(
@@ -1450,12 +1939,17 @@ public class BallGameActivity extends Activity {
                             r.left,
                             r.bottom,
                             groundColors[index],
-                            darken(groundColors[index]),
+                            darken(
+                                    groundColors[index]
+                            ),
                             Shader.TileMode.CLAMP
                     );
 
             p.setShader(g);
-            p.setStyle(Paint.Style.FILL);
+
+            p.setStyle(
+                    Paint.Style.FILL
+            );
 
             canvas.drawRoundRect(
                     r,
@@ -1466,25 +1960,24 @@ public class BallGameActivity extends Activity {
 
             p.setShader(null);
 
-            /*
-             * سطح روشن سکو
-             */
-            p.setColor(0xFFE6FF9A);
+            p.setColor(
+                    0xFFE6FF9A
+            );
 
             canvas.drawRoundRect(
                     r.left,
                     r.top,
                     r.right,
-                    r.top + tile() * 0.14f,
+                    r.top +
+                            tile() * 0.14f,
                     tile() * 0.08f,
                     tile() * 0.08f,
                     p
             );
 
-            /*
-             * سایه پایین
-             */
-            p.setColor(0x55000000);
+            p.setColor(
+                    0x55000000
+            );
 
             canvas.drawRoundRect(
                     r.left + 5,
@@ -1496,27 +1989,38 @@ public class BallGameActivity extends Activity {
                     p
             );
 
-            /*
-             * خط‌های بسیار کم روی سکو
-             */
-            p.setColor(0x443DFFB1);
+            p.setColor(
+                    0x443DFFB1
+            );
 
-            for (float xx = r.left + 25;
-                 xx < r.right - 20;
-                 xx += 70) {
+            for (
+                    float xx =
+                            r.left + 25;
+                    xx <
+                            r.right - 20;
+                    xx += 70
+            ) {
 
                 canvas.drawLine(
                         xx,
-                        r.top + tile() * 0.35f,
+                        r.top +
+                                tile() * 0.35f,
                         xx + 8,
-                        r.top + tile() * 0.55f,
+                        r.top +
+                                tile() * 0.55f,
                         p
                 );
             }
 
-            p.setStyle(Paint.Style.STROKE);
+            p.setStyle(
+                    Paint.Style.STROKE
+            );
+
             p.setStrokeWidth(2f);
-            p.setColor(0x55FFFFFF);
+
+            p.setColor(
+                    0x55FFFFFF
+            );
 
             canvas.drawRoundRect(
                     r.left + 1,
@@ -1528,27 +2032,39 @@ public class BallGameActivity extends Activity {
                     p
             );
 
-            p.setStyle(Paint.Style.FILL);
+            p.setStyle(
+                    Paint.Style.FILL
+            );
         }
 
         private int darken(int color) {
 
             int r =
-                    (int) (
-                            Color.red(color) * 0.45f
-                    );
+                    (int)
+                            (
+                                    Color.red(color) *
+                                            0.45f
+                            );
 
             int g =
-                    (int) (
-                            Color.green(color) * 0.45f
-                    );
+                    (int)
+                            (
+                                    Color.green(color) *
+                                            0.45f
+                            );
 
             int b =
-                    (int) (
-                            Color.blue(color) * 0.45f
-                    );
+                    (int)
+                            (
+                                    Color.blue(color) *
+                                            0.45f
+                            );
 
-            return Color.rgb(r, g, b);
+            return Color.rgb(
+                    r,
+                    g,
+                    b
+            );
         }
 
         private void drawSpike(
@@ -1556,7 +2072,9 @@ public class BallGameActivity extends Activity {
                 RectF r
         ) {
 
-            p.setStyle(Paint.Style.FILL);
+            p.setStyle(
+                    Paint.Style.FILL
+            );
 
             LinearGradient g =
                     new LinearGradient(
@@ -1590,15 +2108,21 @@ public class BallGameActivity extends Activity {
 
             shape.close();
 
-            canvas.drawPath(shape, p);
+            canvas.drawPath(
+                    shape,
+                    p
+            );
 
             p.setShader(null);
 
-            p.setColor(0x88FFFFFF);
+            p.setColor(
+                    0x88FFFFFF
+            );
 
             canvas.drawCircle(
                     r.centerX() - 2,
-                    r.top + r.height() * 0.28f,
+                    r.top +
+                            r.height() * 0.28f,
                     2.5f,
                     p
             );
@@ -1609,12 +2133,21 @@ public class BallGameActivity extends Activity {
                 RectF r
         ) {
 
-            float cx = r.centerX();
-            float cy = r.centerY();
+            float cx =
+                    r.centerX();
 
-            glow.setStyle(Paint.Style.STROKE);
+            float cy =
+                    r.centerY();
+
+            glow.setStyle(
+                    Paint.Style.STROKE
+            );
+
             glow.setStrokeWidth(15);
-            glow.setColor(0x55FFF15A);
+
+            glow.setColor(
+                    0x55FFF15A
+            );
 
             canvas.drawCircle(
                     cx,
@@ -1623,7 +2156,10 @@ public class BallGameActivity extends Activity {
                     glow
             );
 
-            p.setStyle(Paint.Style.STROKE);
+            p.setStyle(
+                    Paint.Style.STROKE
+            );
+
             p.setStrokeWidth(7);
 
             LinearGradient rg =
@@ -1647,13 +2183,24 @@ public class BallGameActivity extends Activity {
             );
 
             p.setShader(null);
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(0xFFFFFFFF);
+
+            p.setStyle(
+                    Paint.Style.FILL
+            );
+
+            p.setColor(
+                    0xFFFFFFFF
+            );
+
             p.setAlpha(190);
 
             canvas.drawCircle(
-                    cx - r.width() * 0.16f,
-                    cy - r.height() * 0.16f,
+                    cx -
+                            r.width() *
+                                    0.16f,
+                    cy -
+                            r.height() *
+                                    0.16f,
                     4,
                     p
             );
@@ -1678,7 +2225,10 @@ public class BallGameActivity extends Activity {
                     );
 
             p.setShader(g);
-            p.setStyle(Paint.Style.FILL);
+
+            p.setStyle(
+                    Paint.Style.FILL
+            );
 
             canvas.drawRoundRect(
                     r,
@@ -1689,16 +2239,24 @@ public class BallGameActivity extends Activity {
 
             p.setShader(null);
 
-            p.setStyle(Paint.Style.STROKE);
+            p.setStyle(
+                    Paint.Style.STROKE
+            );
+
             p.setStrokeWidth(3);
-            p.setColor(0xFFFFFFFF);
+
+            p.setColor(
+                    0xFFFFFFFF
+            );
 
             for (int i = 0; i < 3; i++) {
 
                 float yy =
                         r.top +
                                 7 +
-                                i * r.height() * 0.27f;
+                                i *
+                                        r.height() *
+                                        0.27f;
 
                 canvas.drawLine(
                         r.left + 5,
@@ -1709,23 +2267,31 @@ public class BallGameActivity extends Activity {
                 );
             }
 
-            p.setStyle(Paint.Style.FILL);
+            p.setStyle(
+                    Paint.Style.FILL
+            );
         }
 
-        private void drawFinish(Canvas canvas) {
+        private void drawFinish(
+                Canvas canvas
+        ) {
 
             if (finish == null) {
                 return;
             }
 
             p.setStrokeWidth(6);
-            p.setColor(0xFFFFFFFF);
+
+            p.setColor(
+                    0xFFFFFFFF
+            );
 
             canvas.drawLine(
                     finish.left + 7,
                     finish.top,
                     finish.left + 7,
-                    finish.bottom + tile(),
+                    finish.bottom +
+                            tile(),
                     p
             );
 
@@ -1738,12 +2304,14 @@ public class BallGameActivity extends Activity {
 
             shape.lineTo(
                     finish.right,
-                    finish.top + tile() * 0.35f
+                    finish.top +
+                            tile() * 0.35f
             );
 
             shape.lineTo(
                     finish.left + 9,
-                    finish.top + tile() * 0.75f
+                    finish.top +
+                            tile() * 0.75f
             );
 
             shape.close();
@@ -1761,29 +2329,42 @@ public class BallGameActivity extends Activity {
 
             p.setShader(fg);
 
-            canvas.drawPath(shape, p);
+            canvas.drawPath(
+                    shape,
+                    p
+            );
 
             p.setShader(null);
         }
 
-        private void drawBall(Canvas canvas) {
+        private void drawBall(
+                Canvas canvas
+        ) {
 
             float r = radius();
 
-            p.setColor(0x55000000);
+            p.setColor(
+                    0x55000000
+            );
 
             canvas.drawOval(
-                    ballX - r * 1.05f,
-                    ballY + r * 0.72f,
-                    ballX + r * 1.05f,
-                    ballY + r * 1.10f,
+                    ballX -
+                            r * 1.05f,
+                    ballY +
+                            r * 0.72f,
+                    ballX +
+                            r * 1.05f,
+                    ballY +
+                            r * 1.10f,
                     p
             );
 
             RadialGradient rg =
                     new RadialGradient(
-                            ballX - r * 0.34f,
-                            ballY - r * 0.42f,
+                            ballX -
+                                    r * 0.34f,
+                            ballY -
+                                    r * 0.42f,
                             r * 1.25f,
                             new int[]{
                                     0xFFFFFFFF,
@@ -1811,22 +2392,35 @@ public class BallGameActivity extends Activity {
 
             p.setShader(null);
 
-            p.setColor(0xFFFFFFFF);
+            p.setColor(
+                    0xFFFFFFFF
+            );
+
             p.setAlpha(225);
 
             canvas.drawOval(
-                    ballX - r * 0.56f,
-                    ballY - r * 0.68f,
-                    ballX - r * 0.05f,
-                    ballY - r * 0.30f,
+                    ballX -
+                            r * 0.56f,
+                    ballY -
+                            r * 0.68f,
+                    ballX -
+                            r * 0.05f,
+                    ballY -
+                            r * 0.30f,
                     p
             );
 
             p.setAlpha(255);
 
-            p.setStyle(Paint.Style.STROKE);
+            p.setStyle(
+                    Paint.Style.STROKE
+            );
+
             p.setStrokeWidth(2.5f);
-            p.setColor(0xAAFFFFFF);
+
+            p.setColor(
+                    0xAAFFFFFF
+            );
 
             canvas.drawCircle(
                     ballX,
@@ -1835,12 +2429,19 @@ public class BallGameActivity extends Activity {
                     p
             );
 
-            p.setStyle(Paint.Style.FILL);
+            p.setStyle(
+                    Paint.Style.FILL
+            );
         }
 
-        private void drawDoveAndFlag(Canvas canvas) {
+        private void drawDoveAndFlag(
+                Canvas canvas
+        ) {
 
-            if (!finished || finish == null) {
+            if (
+                    !finished ||
+                            finish == null
+            ) {
                 return;
             }
 
@@ -1857,13 +2458,18 @@ public class BallGameActivity extends Activity {
                     finish.left + 7;
 
             float flagTop =
-                    finish.top - t * 0.55f;
+                    finish.top -
+                            t * 0.55f;
 
             float flagBottom =
-                    finish.bottom + t;
+                    finish.bottom +
+                            t;
 
             p.setStrokeWidth(5);
-            p.setColor(0xFFFFFFFF);
+
+            p.setColor(
+                    0xFFFFFFFF
+            );
 
             canvas.drawLine(
                     flagX,
@@ -1873,58 +2479,89 @@ public class BallGameActivity extends Activity {
                     p
             );
 
-            float flagWidth = t * 2.0f;
-            float flagHeight = t * 1.20f;
+            float flagWidth =
+                    t * 2.0f;
+
+            float flagHeight =
+                    t * 1.20f;
 
             RectF afFlag =
                     new RectF(
                             flagX,
                             flagTop,
-                            flagX + flagWidth,
-                            flagTop + flagHeight
+                            flagX +
+                                    flagWidth,
+                            flagTop +
+                                    flagHeight
                     );
 
-            p.setStyle(Paint.Style.FILL);
+            p.setStyle(
+                    Paint.Style.FILL
+            );
 
-            p.setColor(0xFF000000);
+            p.setColor(
+                    0xFF000000
+            );
 
             canvas.drawRect(
                     afFlag.left,
                     afFlag.top,
                     afFlag.right,
-                    afFlag.top + flagHeight / 3f,
+                    afFlag.top +
+                            flagHeight / 3f,
                     p
             );
 
-            p.setColor(0xFFFF0000);
+            p.setColor(
+                    0xFFFF0000
+            );
 
             canvas.drawRect(
                     afFlag.left,
-                    afFlag.top + flagHeight / 3f,
+                    afFlag.top +
+                            flagHeight / 3f,
                     afFlag.right,
-                    afFlag.top + flagHeight * 2f / 3f,
+                    afFlag.top +
+                            flagHeight * 2f / 3f,
                     p
             );
 
-            p.setColor(0xFF007A36);
+            p.setColor(
+                    0xFF007A36
+            );
 
             canvas.drawRect(
                     afFlag.left,
-                    afFlag.top + flagHeight * 2f / 3f,
+                    afFlag.top +
+                            flagHeight * 2f / 3f,
                     afFlag.right,
                     afFlag.bottom,
                     p
             );
 
-            p.setStyle(Paint.Style.STROKE);
+            p.setStyle(
+                    Paint.Style.STROKE
+            );
+
             p.setStrokeWidth(2);
-            p.setColor(0xAAFFFFFF);
 
-            canvas.drawRect(afFlag, p);
+            p.setColor(
+                    0xAAFFFFFF
+            );
 
-            p.setStyle(Paint.Style.FILL);
+            canvas.drawRect(
+                    afFlag,
+                    p
+            );
 
-            if (doveFlying || doveLanded) {
+            p.setStyle(
+                    Paint.Style.FILL
+            );
+
+            if (
+                    doveFlying ||
+                            doveLanded
+            ) {
 
                 drawDove(
                         canvas,
@@ -1944,113 +2581,179 @@ public class BallGameActivity extends Activity {
                 boolean flying
         ) {
 
-            float size = tile() * 0.85f;
+            float size =
+                    tile() * 0.85f;
 
             float wing =
                     flying
-                            ? (float) Math.sin(time * 13f) *
+                            ?
+                            (float)
+                                    Math.sin(
+                                            time * 13f
+                                    ) *
                                     size *
                                     0.22f
-                            : 0;
+                            :
+                            0;
 
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(0xFFF7F7F7);
+            p.setStyle(
+                    Paint.Style.FILL
+            );
+
+            p.setColor(
+                    0xFFF7F7F7
+            );
 
             canvas.drawOval(
-                    x - size * 0.60f,
-                    y - size * 0.22f,
-                    x + size * 0.62f,
-                    y + size * 0.32f,
+                    x -
+                            size * 0.60f,
+                    y -
+                            size * 0.22f,
+                    x +
+                            size * 0.62f,
+                    y +
+                            size * 0.32f,
                     p
             );
 
             canvas.drawCircle(
-                    x + size * 0.52f,
-                    y - size * 0.18f,
+                    x +
+                            size * 0.52f,
+                    y -
+                            size * 0.18f,
                     size * 0.30f,
                     p
             );
 
-            Path leftWing = new Path();
+            Path leftWing =
+                    new Path();
 
             leftWing.moveTo(
-                    x - size * 0.12f,
+                    x -
+                            size * 0.12f,
                     y
             );
 
             leftWing.lineTo(
-                    x - size * 0.85f,
-                    y - size * (0.30f + wing / size)
+                    x -
+                            size * 0.85f,
+                    y -
+                            size *
+                                    (
+                                            0.30f +
+                                                    wing /
+                                                            size
+                                    )
             );
 
             leftWing.lineTo(
-                    x - size * 0.42f,
-                    y + size * 0.18f
+                    x -
+                            size * 0.42f,
+                    y +
+                            size * 0.18f
             );
 
             leftWing.close();
 
-            canvas.drawPath(leftWing, p);
+            canvas.drawPath(
+                    leftWing,
+                    p
+            );
 
-            p.setColor(0xFFD7D7D7);
+            p.setColor(
+                    0xFFD7D7D7
+            );
 
-            Path rightWing = new Path();
+            Path rightWing =
+                    new Path();
 
             rightWing.moveTo(
-                    x + size * 0.10f,
+                    x +
+                            size * 0.10f,
                     y
             );
 
             rightWing.lineTo(
-                    x + size * 0.50f,
-                    y - size * (0.25f + wing / size)
+                    x +
+                            size * 0.50f,
+                    y -
+                            size *
+                                    (
+                                            0.25f +
+                                                    wing /
+                                                            size
+                                    )
             );
 
             rightWing.lineTo(
-                    x + size * 0.36f,
-                    y + size * 0.16f
+                    x +
+                            size * 0.36f,
+                    y +
+                            size * 0.16f
             );
 
             rightWing.close();
 
-            canvas.drawPath(rightWing, p);
+            canvas.drawPath(
+                    rightWing,
+                    p
+            );
 
-            p.setColor(0xFFFFB300);
+            p.setColor(
+                    0xFFFFB300
+            );
 
-            Path beak = new Path();
+            Path beak =
+                    new Path();
 
             beak.moveTo(
-                    x + size * 0.77f,
-                    y - size * 0.18f
+                    x +
+                            size * 0.77f,
+                    y -
+                            size * 0.18f
             );
 
             beak.lineTo(
-                    x + size * 1.05f,
-                    y - size * 0.08f
+                    x +
+                            size * 1.05f,
+                    y -
+                            size * 0.08f
             );
 
             beak.lineTo(
-                    x + size * 0.77f,
+                    x +
+                            size * 0.77f,
                     y
             );
 
             beak.close();
 
-            canvas.drawPath(beak, p);
+            canvas.drawPath(
+                    beak,
+                    p
+            );
 
-            p.setColor(Color.BLACK);
+            p.setColor(
+                    Color.BLACK
+            );
 
             canvas.drawCircle(
-                    x + size * 0.61f,
-                    y - size * 0.25f,
+                    x +
+                            size * 0.61f,
+                    y -
+                            size * 0.25f,
                     3,
                     p
             );
         }
 
-        private void drawHud(Canvas canvas) {
+        private void drawHud(
+                Canvas canvas
+        ) {
 
-            p.setColor(0x72000000);
+            p.setColor(
+                    0x72000000
+            );
 
             canvas.drawRoundRect(
                     18,
@@ -2062,8 +2765,14 @@ public class BallGameActivity extends Activity {
                     p
             );
 
-            p.setColor(Color.WHITE);
-            p.setTextAlign(Paint.Align.CENTER);
+            p.setColor(
+                    Color.WHITE
+            );
+
+            p.setTextAlign(
+                    Paint.Align.CENTER
+            );
+
             p.setTextSize(23);
 
             canvas.drawText(
@@ -2085,7 +2794,10 @@ public class BallGameActivity extends Activity {
                                 elapsed / 1000f
                         );
 
-                p.setColor(0xEEFFFFFF);
+                p.setColor(
+                        0xEEFFFFFF
+                );
+
                 p.setTextSize(31);
 
                 canvas.drawText(
@@ -2102,7 +2814,9 @@ public class BallGameActivity extends Activity {
                     canvas.drawText(
                             "🇦🇫 آماده مرحله بعد",
                             getWidth() / 2f,
-                            getHeight() * 0.28f + 40,
+                            getHeight() *
+                                    0.28f +
+                                    40,
                             p
                     );
 
@@ -2111,7 +2825,9 @@ public class BallGameActivity extends Activity {
                     canvas.drawText(
                             "🇦🇫 مرحله آخر کامل شد",
                             getWidth() / 2f,
-                            getHeight() * 0.28f + 40,
+                            getHeight() *
+                                    0.28f +
+                                    40,
                             p
                     );
                 }
@@ -2124,19 +2840,26 @@ public class BallGameActivity extends Activity {
                                 "%.0f ثانیه",
                                 Math.max(
                                         0,
-                                        6f - seconds
+                                        6f -
+                                                seconds
                                 )
                         ),
                         getWidth() / 2f,
-                        getHeight() * 0.28f + 72,
+                        getHeight() *
+                                0.28f +
+                                72,
                         p
                 );
             }
 
-            p.setTextAlign(Paint.Align.LEFT);
+            p.setTextAlign(
+                    Paint.Align.LEFT
+            );
         }
 
-        private void drawControls(Canvas canvas) {
+        private void drawControls(
+                Canvas canvas
+        ) {
 
             if (finished) {
                 return;
@@ -2161,7 +2884,8 @@ public class BallGameActivity extends Activity {
 
             drawButton(
                     canvas,
-                    getWidth() / 2f - size / 2f,
+                    getWidth() / 2f -
+                            size / 2f,
                     bottom - size,
                     size,
                     "⬆"
@@ -2169,7 +2893,9 @@ public class BallGameActivity extends Activity {
 
             drawButton(
                     canvas,
-                    getWidth() - size - 25,
+                    getWidth() -
+                            size -
+                            25,
                     bottom - size,
                     size,
                     "▶"
@@ -2184,7 +2910,9 @@ public class BallGameActivity extends Activity {
                 String symbol
         ) {
 
-            p.setColor(0x65000000);
+            p.setColor(
+                    0x65000000
+            );
 
             canvas.drawRoundRect(
                     x,
@@ -2196,9 +2924,15 @@ public class BallGameActivity extends Activity {
                     p
             );
 
-            p.setStyle(Paint.Style.STROKE);
+            p.setStyle(
+                    Paint.Style.STROKE
+            );
+
             p.setStrokeWidth(2);
-            p.setColor(0x99FFFFFF);
+
+            p.setColor(
+                    0x99FFFFFF
+            );
 
             canvas.drawRoundRect(
                     x + 2,
@@ -2210,11 +2944,21 @@ public class BallGameActivity extends Activity {
                     p
             );
 
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(Color.WHITE);
-            p.setTextAlign(Paint.Align.CENTER);
+            p.setStyle(
+                    Paint.Style.FILL
+            );
 
-            p.setTextSize(size * 0.42f);
+            p.setColor(
+                    Color.WHITE
+            );
+
+            p.setTextAlign(
+                    Paint.Align.CENTER
+            );
+
+            p.setTextSize(
+                    size * 0.42f
+            );
 
             canvas.drawText(
                     symbol,
@@ -2223,34 +2967,52 @@ public class BallGameActivity extends Activity {
                     p
             );
 
-            p.setTextAlign(Paint.Align.LEFT);
+            p.setTextAlign(
+                    Paint.Align.LEFT
+            );
         }
 
         @Override
-        protected void onDraw(Canvas canvas) {
+        protected void onDraw(
+                Canvas canvas
+        ) {
 
             super.onDraw(canvas);
 
             drawBackground(canvas);
-            drawWorld(canvas);
 
-            if (finished) {
-                drawDoveAndFlag(canvas);
+            if (viewReady) {
+
+                drawWorld(canvas);
+
+                if (finished) {
+
+                    drawDoveAndFlag(canvas);
+                }
+
+                drawHud(canvas);
+
+                drawControls(canvas);
             }
-
-            drawHud(canvas);
-            drawControls(canvas);
         }
 
         @Override
-        public boolean onTouchEvent(MotionEvent event) {
+        public boolean onTouchEvent(
+                MotionEvent event
+        ) {
 
-            if (finished) {
+            if (
+                    !viewReady ||
+                            finished
+            ) {
                 return true;
             }
 
-            float x = event.getX();
-            float y = event.getY();
+            float x =
+                    event.getX();
+
+            float y =
+                    event.getY();
 
             float size =
                     Math.min(
@@ -2275,47 +3037,83 @@ public class BallGameActivity extends Activity {
             int action =
                     event.getActionMasked();
 
-            if (action == MotionEvent.ACTION_DOWN ||
-                    action == MotionEvent.ACTION_MOVE) {
+            if (
+                    action ==
+                            MotionEvent.ACTION_DOWN ||
+                            action ==
+                                    MotionEvent.ACTION_MOVE
+            ) {
 
                 leftPressed = false;
                 rightPressed = false;
 
-                if (y > bottom - size) {
+                if (
+                        y >
+                                bottom -
+                                        size
+                ) {
 
-                    if (x >= leftX &&
-                            x <= leftX + size) {
+                    if (
+                            x >= leftX &&
+                                    x <=
+                                            leftX +
+                                                    size
+                    ) {
 
                         leftPressed = true;
                     }
 
-                    if (x >= rightX &&
-                            x <= rightX + size) {
+                    if (
+                            x >= rightX &&
+                                    x <=
+                                            rightX +
+                                                    size
+                    ) {
 
                         rightPressed = true;
                     }
 
-                    if (x >= jumpX &&
-                            x <= jumpX + size) {
+                    if (
+                            x >= jumpX &&
+                                    x <=
+                                            jumpX +
+                                                    size
+                    ) {
 
-                        if (Math.abs(ballVY) < 80f) {
+                        if (
+                                Math.abs(
+                                        ballVY
+                                ) <
+                                        80f
+                        ) {
 
                             jumpPressed = true;
 
                         } else {
 
-                            for (RectF platform : platforms) {
+                            for (
+                                    RectF platform :
+                                    platforms
+                            ) {
 
-                                if (ballX + radius() > platform.left &&
-                                        ballX - radius() < platform.right &&
-                                        Math.abs(
-                                                ballY +
-                                                        radius() -
-                                                        platform.top
-                                        ) <
-                                                tile() * 0.22f) {
+                                if (
+                                        ballX +
+                                                radius() >
+                                                platform.left &&
+                                                ballX -
+                                                        radius() <
+                                                        platform.right &&
+                                                Math.abs(
+                                                        ballY +
+                                                                radius() -
+                                                                platform.top
+                                                ) <
+                                                        tile() *
+                                                                0.22f
+                                ) {
 
                                     jumpPressed = true;
+
                                     break;
                                 }
                             }
@@ -2326,8 +3124,12 @@ public class BallGameActivity extends Activity {
                 return true;
             }
 
-            if (action == MotionEvent.ACTION_UP ||
-                    action == MotionEvent.ACTION_CANCEL) {
+            if (
+                    action ==
+                            MotionEvent.ACTION_UP ||
+                            action ==
+                                    MotionEvent.ACTION_CANCEL
+            ) {
 
                 leftPressed = false;
                 rightPressed = false;
@@ -2340,12 +3142,22 @@ public class BallGameActivity extends Activity {
 
         public void startGame() {
 
+            if (!viewReady) {
+
+                running = true;
+
+                return;
+            }
+
             running = true;
 
             lastFrame =
                     SystemClock.uptimeMillis();
 
-            removeCallbacks(frameRunnable);
+            removeCallbacks(
+                    frameRunnable
+            );
+
             post(frameRunnable);
         }
 
@@ -2353,7 +3165,10 @@ public class BallGameActivity extends Activity {
 
             running = false;
 
-            removeCallbacks(frameRunnable);
+            removeCallbacks(
+                    frameRunnable
+            );
+
             saveProgress();
         }
 
@@ -2363,7 +3178,11 @@ public class BallGameActivity extends Activity {
                     @Override
                     public void run() {
 
-                        if (!running) {
+                        if (
+                                !running ||
+                                        !viewReady
+                        ) {
+
                             return;
                         }
 
@@ -2371,12 +3190,16 @@ public class BallGameActivity extends Activity {
                                 SystemClock.uptimeMillis();
 
                         float dt =
-                                (now - lastFrame) /
+                                (
+                                        now -
+                                                lastFrame
+                                ) /
                                         1000f;
 
                         lastFrame = now;
 
                         update(dt);
+
                         invalidate();
 
                         postDelayed(
@@ -2409,11 +3232,13 @@ public class BallGameActivity extends Activity {
 
                 this.size =
                         2 +
-                                random.nextFloat() * 5;
+                                random.nextFloat() *
+                                        5;
 
                 this.life =
                         0.8f +
-                                random.nextFloat() * 1.4f;
+                                random.nextFloat() *
+                                        1.4f;
             }
         }
     }
