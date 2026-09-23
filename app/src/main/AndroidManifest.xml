@@ -48,6 +48,14 @@
         <activity
             android:name=".VoiceActivity"
             android:exported="false" />
+        
+                <activity
+            android:name=".GamesActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ColorSortActivity"
+            android:exported="false" />
 <activity
     android:name=".BallGameActivity"
     android:exported="false" />
