@@ -820,3 +820,4 @@ public class ColorSortActivity extends Activity {
             }
         }
     }
+}
