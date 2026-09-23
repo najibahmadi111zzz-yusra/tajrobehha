@@ -4519,6 +4519,12 @@ private void blockCurrentUser() {
     if (receiverId == null ||
             receiverId.isEmpty()) {
 
+        Toast.makeText(
+                ChatActivity.this,
+                "کاربر انتخاب نشده است",
+                Toast.LENGTH_SHORT
+        ).show();
+
         return;
     }
 
@@ -4529,13 +4535,21 @@ private void blockCurrentUser() {
             new HashMap<>();
 
     data.put(
-            "blockedBy",
+            "ownerId",
             myId
     );
 
     data.put(
-            "blockedUser",
+            "blockedUserId",
             receiverId
+    );
+
+    data.put(
+            "blockedUserName",
+            receiverName == null ||
+                    receiverName.trim().isEmpty()
+                    ? "کاربر"
+                    : receiverName
     );
 
     data.put(
@@ -4559,12 +4573,25 @@ private void blockCurrentUser() {
                     }
             )
             .addOnFailureListener(
-                    e ->
-                            Toast.makeText(
-                                    ChatActivity.this,
-                                    "مسدود کردن ناموفق بود",
-                                    Toast.LENGTH_SHORT
-                            ).show()
+                    e -> {
+
+                        String error =
+                                e.getMessage();
+
+                        if (error == null ||
+                                error.trim().isEmpty()) {
+
+                            error =
+                                    "خطای نامشخص";
+                        }
+
+                        Toast.makeText(
+                                ChatActivity.this,
+                                "مسدود کردن ناموفق بود:\n" +
+                                        error,
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
             );
 }
-}
+    
