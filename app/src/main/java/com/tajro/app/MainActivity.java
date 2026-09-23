@@ -823,8 +823,3 @@ public class MainActivity extends Activity {
         styleButton(rewardedButton);
     }
 }
-
-فقط یک تغییر انجام شده:
-"BallGameActivity.class" ➜ "GamesActivity.class"
-
-فعلاً Build نزن. قدم بعدی این است که بازی دوم «🎨 سورت رنگ‌ها» را بسازیم و بعد دکمه‌اش را به "GamesActivity" وصل کنیم؛ بعد از تکمیل همه تغییرات، یک Build می‌زنیم.
