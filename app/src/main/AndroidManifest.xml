@@ -48,7 +48,10 @@
         <activity
             android:name=".VoiceActivity"
             android:exported="false" />
-
+<activity
+    android:name=".BallGameActivity"
+    android:exported="false" />
+        
         <activity
             android:name=".ExchangeActivity"
             android:exported="false" />
