@@ -2,8 +2,8 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.graphics.;*
-import android.view.;*
+import android.graphics.*;
+import android.view.*;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.SystemClock;
