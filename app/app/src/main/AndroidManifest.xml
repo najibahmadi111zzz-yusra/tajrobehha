@@ -30,7 +30,10 @@
         <activity
             android:name=".VoiceActivity"
             android:exported="false" />
-
+<activity
+    android:name=".GamesActivity"
+    android:exported="false" />
+        
         <!-- بازی توپ در خانه‌ها -->
         <activity
             android:name=".BallGameActivity"
