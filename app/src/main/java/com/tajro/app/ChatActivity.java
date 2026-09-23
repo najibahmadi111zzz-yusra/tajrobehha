@@ -113,6 +113,11 @@ public class ChatActivity extends Activity {
     private ListenerRegistration receiverListener;
     private ListenerRegistration typingListener;
     private ListenerRegistration blockListener;
+    private ListenerRegistration reverseBlockListener;
+
+    private boolean blockedByMe = false;
+    private boolean blockedByReceiver = false;
+    private int blockChecksReady = 0;
 
     private MediaRecorder recorder;
     private MediaPlayer player;
@@ -911,6 +916,14 @@ private void showUserMenu(
                                                         .delete();
                                             }
 
+                                            if (receiverId != null &&
+                                                    receiverId.equals(uid)) {
+                                                blockedByMe = false;
+                                                blocked = blockedByReceiver;
+                                                blockChecksReady = 2;
+                                                updateBlockStateAfterCheck();
+                                            }
+
                                             Toast.makeText(
                                                     this,
                                                     "مسدودیت کاربر رفع شد",
@@ -941,14 +954,28 @@ private void showUserMenu(
                                             );
 
                                             db.collection("blocks")
-                                                    .add(data)
+                                                    .document(
+                                                            myId + "_" + uid
+                                                    )
+                                                    .set(data)
                                                     .addOnSuccessListener(
-                                                            x ->
-                                                                    Toast.makeText(
-                                                                            this,
-                                                                            "کاربر بلاک شد",
-                                                                            Toast.LENGTH_SHORT
-                                                                    ).show()
+                                                            x -> {
+                                                                if (receiverId != null &&
+                                                                        receiverId.equals(uid)) {
+                                                                    blockedByMe = true;
+                                                                    blocked = true;
+                                                                    blockChecksReady = 2;
+                                                                    updateBlockStateAfterCheck();
+                                                                }
+
+                                                                Toast.makeText(
+                                                                        this,
+                                                                        "کاربر بلاک شد؛ ارسال پیام و صدا متوقف شد",
+                                                                        Toast.LENGTH_SHORT
+                                                                ).show();
+
+                                                                loadUsers();
+                                                            }
                                                     );
                                         }
                                     });
@@ -1294,7 +1321,6 @@ receiverPhotoUrl = photoUrl;
 
         createChatScreen(photoUrl);
 
-        listenMessages();
         listenReceiver();
         listenTyping();
         listenBlock();
@@ -2457,26 +2483,177 @@ header.addView(chatMenu,
 
         if (blockListener != null) {
             blockListener.remove();
+            blockListener = null;
+        }
+
+        if (reverseBlockListener != null) {
+            reverseBlockListener.remove();
+            reverseBlockListener = null;
+        }
+
+        blockedByMe = false;
+        blockedByReceiver = false;
+        blockChecksReady = 0;
+
+        if (receiverId == null || receiverId.isEmpty()) {
+            blocked = false;
+            listenMessages();
+            return;
         }
 
         blockListener =
                 db.collection("blocks")
-                        .whereEqualTo(
-                                "ownerId",
-                                myId
-                        )
-                        .whereEqualTo(
-                                "blockedUserId",
-                                receiverId
-                        )
+                        .whereEqualTo("ownerId", myId)
+                        .whereEqualTo("blockedUserId", receiverId)
                         .addSnapshotListener(
                                 (snapshot, error) -> {
-
-                                    blocked =
+                                    blockedByMe =
+                                            error == null &&
                                             snapshot != null &&
                                             !snapshot.isEmpty();
+                                    blockChecksReady++;
+                                    updateBlockStateAfterCheck();
                                 }
                         );
+
+        reverseBlockListener =
+                db.collection("blocks")
+                        .whereEqualTo("ownerId", receiverId)
+                        .whereEqualTo("blockedUserId", myId)
+                        .addSnapshotListener(
+                                (snapshot, error) -> {
+                                    blockedByReceiver =
+                                            error == null &&
+                                            snapshot != null &&
+                                            !snapshot.isEmpty();
+                                    blockChecksReady++;
+                                    updateBlockStateAfterCheck();
+                                }
+                        );
+    }
+
+    private void updateBlockStateAfterCheck() {
+
+        if (blockChecksReady < 2) {
+            return;
+        }
+
+        boolean newBlocked =
+                blockedByMe || blockedByReceiver;
+
+        boolean changed = blocked != newBlocked;
+        blocked = newBlocked;
+
+        if (blocked) {
+
+            removeMessageListeners();
+            messageCache.clear();
+
+            if (messagesContainer != null) {
+                messagesContainer.removeAllViews();
+            }
+
+            cancelRecordingBecauseBlocked();
+
+            if (messageInput != null) {
+                messageInput.setEnabled(false);
+                messageInput.setHint("🚫 این کاربر مسدود است");
+            }
+
+            if (sendButton != null) {
+                sendButton.setEnabled(false);
+            }
+
+            if (mediaButton != null) {
+                mediaButton.setEnabled(false);
+            }
+
+            if (voiceButton != null) {
+                voiceButton.setEnabled(false);
+            }
+
+            if (statusText != null) {
+                statusText.setText("🚫 مسدود شده");
+            }
+
+            if (changed) {
+                Toast.makeText(
+                        this,
+                        blockedByMe
+                                ? "این کاربر مسدود شده است"
+                                : "این کاربر شما را مسدود کرده است",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+
+        } else {
+
+            if (messageInput != null) {
+                messageInput.setEnabled(true);
+                messageInput.setHint("پیام خود را بنویسید...");
+            }
+
+            if (sendButton != null) {
+                sendButton.setEnabled(true);
+            }
+
+            if (mediaButton != null) {
+                mediaButton.setEnabled(true);
+            }
+
+            if (voiceButton != null) {
+                voiceButton.setEnabled(true);
+            }
+
+            listenMessages();
+        }
+    }
+
+    private void cancelRecordingBecauseBlocked() {
+
+        if (!recording && recorder == null) {
+            return;
+        }
+
+        recording = false;
+
+        try {
+            if (recorder != null) {
+                try {
+                    recorder.stop();
+                } catch (Exception ignored) {
+                }
+                try {
+                    recorder.reset();
+                } catch (Exception ignored) {
+                }
+                try {
+                    recorder.release();
+                } catch (Exception ignored) {
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        recorder = null;
+
+        if (audioPath != null) {
+            try {
+                File f = new File(audioPath);
+                if (f.exists()) {
+                    f.delete();
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        audioPath = null;
+
+        if (voiceButton != null) {
+            voiceButton.setImageResource(
+                    android.R.drawable.ic_btn_speak_now
+            );
+        }
     }
 
     private void pickMedia() {
@@ -2718,6 +2895,15 @@ header.addView(chatMenu,
             String url
     ) {
 
+        if (blocked) {
+            Toast.makeText(
+                    this,
+                    "این کاربر بلاک شده است؛ فایل ارسال نشد",
+                    Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
+
         Map<String, Object> data =
                 new HashMap<>();
 
@@ -2948,6 +3134,24 @@ header.addView(chatMenu,
             String path
     ) {
 
+        if (blocked) {
+            Toast.makeText(
+                    this,
+                    "این کاربر بلاک شده است؛ پیام صوتی ارسال نشد",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            try {
+                if (path != null) {
+                    File f = new File(path);
+                    if (f.exists()) f.delete();
+                }
+            } catch (Exception ignored) {
+            }
+
+            return;
+        }
+
         if (path == null) {
 
             Toast.makeText(
@@ -3032,6 +3236,15 @@ header.addView(chatMenu,
     private void saveAudioMessage(
             String url
     ) {
+
+        if (blocked) {
+            Toast.makeText(
+                    this,
+                    "این کاربر بلاک شده است؛ پیام صوتی ارسال نشد",
+                    Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
 
         Map<String, Object> data =
                 new HashMap<>();
@@ -4061,6 +4274,16 @@ header.addView(chatMenu,
             blockListener.remove();
             blockListener = null;
         }
+ 
+        if (reverseBlockListener != null) {
+
+            reverseBlockListener.remove();
+            reverseBlockListener = null;
+        }
+
+        blockedByMe = false;
+        blockedByReceiver = false;
+        blockChecksReady = 0;
     }
 
     private void showUsers() {
@@ -4563,11 +4786,15 @@ private void blockCurrentUser() {
             .addOnSuccessListener(
                     v -> {
 
+                        blockedByMe = true;
                         blocked = true;
+                        blockChecksReady = 2;
+
+                        updateBlockStateAfterCheck();
 
                         Toast.makeText(
                                 ChatActivity.this,
-                                "کاربر مسدود شد",
+                                "کاربر مسدود شد؛ پیام و صدا متوقف شد",
                                 Toast.LENGTH_SHORT
                         ).show();
                     }
@@ -4596,4 +4823,4 @@ private void blockCurrentUser() {
 
 }
     
-}
+            }
