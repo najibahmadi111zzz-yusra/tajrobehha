@@ -616,7 +616,7 @@ public class MainActivity extends Activity {
         });
 
         // ==================================
-        // ورود به بازی
+        // ورود به صفحه بازی‌ها
         // ==================================
 
         gameButton.setOnClickListener(v -> {
@@ -624,7 +624,7 @@ public class MainActivity extends Activity {
             Intent intent =
                     new Intent(
                             MainActivity.this,
-                            BallGameActivity.class
+                            GamesActivity.class
                     );
 
             startActivity(intent);
@@ -822,4 +822,9 @@ public class MainActivity extends Activity {
 
         styleButton(rewardedButton);
     }
-    }
+}
+
+فقط یک تغییر انجام شده:
+"BallGameActivity.class" ➜ "GamesActivity.class"
+
+فعلاً Build نزن. قدم بعدی این است که بازی دوم «🎨 سورت رنگ‌ها» را بسازیم و بعد دکمه‌اش را به "GamesActivity" وصل کنیم؛ بعد از تکمیل همه تغییرات، یک Build می‌زنیم.
