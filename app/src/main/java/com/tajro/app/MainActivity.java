@@ -43,6 +43,9 @@ public class MainActivity extends Activity {
     private Button settingsButton;
     private Button rewardedButton;
 
+    // فقط برای بازی اضافه شده
+    private Button gameButton;
+
     // تصویر پس‌زمینه
     private ImageView backgroundImage;
 
@@ -431,6 +434,30 @@ public class MainActivity extends Activity {
         row3.addView(settingsButton);
 
         // ==================================
+        // دکمه بازی
+        // ==================================
+
+        gameButton =
+                createButton("🎮 بازی توپ در خانه‌ها");
+
+        LinearLayout.LayoutParams gameParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(65)
+                );
+
+        gameParams.setMargins(
+                dp(6),
+                dp(6),
+                dp(6),
+                dp(6)
+        );
+
+        gameButton.setLayoutParams(
+                gameParams
+        );
+
+        // ==================================
         // تبلیغ جایزه‌ای
         // ==================================
 
@@ -463,6 +490,10 @@ public class MainActivity extends Activity {
         mainLayout.addView(row1);
         mainLayout.addView(row2);
         mainLayout.addView(row3);
+
+        // فقط بازی اضافه شده
+        mainLayout.addView(gameButton);
+
         mainLayout.addView(rewardedButton);
 
         // ==================================
@@ -579,6 +610,21 @@ public class MainActivity extends Activity {
                     new Intent(
                             MainActivity.this,
                             SettingsActivity.class
+                    );
+
+            startActivity(intent);
+        });
+
+        // ==================================
+        // ورود به بازی
+        // ==================================
+
+        gameButton.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            BallGameActivity.class
                     );
 
             startActivity(intent);
@@ -770,6 +816,10 @@ public class MainActivity extends Activity {
         styleButton(aiButton);
         styleButton(exchangeButton);
         styleButton(settingsButton);
+
+        // فقط دکمه بازی اضافه شده
+        styleButton(gameButton);
+
         styleButton(rewardedButton);
     }
     }
