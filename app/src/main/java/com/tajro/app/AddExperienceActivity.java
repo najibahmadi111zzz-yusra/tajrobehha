@@ -1,6 +1,7 @@
 package com.tajro.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -13,6 +14,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -71,10 +73,6 @@ public class AddExperienceActivity extends Activity {
             @Override
             public void onClick(View v) {
 
-                /*
-                 * اگر در حال انتشار هستیم،
-                 * دوباره ذخیره نکن
-                 */
                 if (isPublishing) {
                     return;
                 }
@@ -87,7 +85,6 @@ public class AddExperienceActivity extends Activity {
                             "لطفاً ابتدا وارد اکانت خود شوید",
                             Toast.LENGTH_LONG
                     ).show();
-
                     return;
                 }
 
@@ -98,19 +95,14 @@ public class AddExperienceActivity extends Activity {
                         experienceText.getText().toString().trim();
 
                 if (titleText.isEmpty() || experience.isEmpty()) {
-
                     Toast.makeText(
                             AddExperienceActivity.this,
                             "لطفاً عنوان و متن تجربه را وارد کنید",
                             Toast.LENGTH_SHORT
                     ).show();
-
                     return;
                 }
 
-                /*
-                 * از این لحظه دکمه قفل می‌شود
-                 */
                 isPublishing = true;
                 publishButton.setEnabled(false);
                 publishButton.setAlpha(0.6f);
@@ -119,26 +111,10 @@ public class AddExperienceActivity extends Activity {
                 Map<String, Object> experienceData =
                         new HashMap<>();
 
-                experienceData.put(
-                        "title",
-                        titleText
-                );
-
-                experienceData.put(
-                        "text",
-                        experience
-                );
-
-                experienceData.put(
-                        "userId",
-                        user.getUid()
-                );
-
-                experienceData.put(
-                        "authorEmail",
-                        user.getEmail()
-                );
-
+                experienceData.put("title", titleText);
+                experienceData.put("text", experience);
+                experienceData.put("userId", user.getUid());
+                experienceData.put("authorEmail", user.getEmail());
                 experienceData.put(
                         "timestamp",
                         FieldValue.serverTimestamp()
@@ -148,6 +124,48 @@ public class AddExperienceActivity extends Activity {
                         .add(experienceData)
                         .addOnSuccessListener(documentReference -> {
 
+                            /*
+                             * تست تشخیصی:
+                             * اطلاعات واقعی Firebase که همین APK
+                             * در حال استفاده از آن است.
+                             */
+                            String projectId = "نامشخص";
+                            String appId = "نامشخص";
+                            String documentId =
+                                    documentReference.getId();
+
+                            try {
+                                FirebaseApp firebaseApp =
+                                        FirebaseApp.getInstance();
+
+                                if (firebaseApp.getOptions().getProjectId()
+                                        != null) {
+
+                                    projectId =
+                                            firebaseApp.getOptions()
+                                                    .getProjectId();
+                                }
+
+                                if (firebaseApp.getOptions()
+                                        .getApplicationId() != null) {
+
+                                    appId =
+                                            firebaseApp.getOptions()
+                                                    .getApplicationId();
+                                }
+
+                            } catch (Exception testError) {
+
+                                projectId =
+                                        "خطا در خواندن Project ID";
+
+                                appId =
+                                        "خطا در خواندن App ID";
+                            }
+
+                            /*
+                             * پیام اصلی موفقیت
+                             */
                             Toast.makeText(
                                     AddExperienceActivity.this,
                                     "تجربه با موفقیت منتشر شد! 🎉",
@@ -155,15 +173,38 @@ public class AddExperienceActivity extends Activity {
                             ).show();
 
                             /*
-                             * پاک کردن فرم بعد از ذخیره موفق
+                             * نمایش اطلاعات تشخیصی
                              */
+                            String diagnosticMessage =
+                                    "🔎 اطلاعات واقعی برنامه\n\n"
+                                    + "Firebase Project ID:\n"
+                                    + projectId
+                                    + "\n\n"
+                                    + "Firebase App ID:\n"
+                                    + appId
+                                    + "\n\n"
+                                    + "Document ID ساخته‌شده:\n"
+                                    + documentId
+                                    + "\n\n"
+                                    + "Collection:\n"
+                                    + "experiences"
+                                    + "\n\n"
+                                    + "✅ نوشتن در Firestore موفق بود.";
+
+                            new AlertDialog.Builder(
+                                    AddExperienceActivity.this
+                            )
+                                    .setTitle("تست Firebase")
+                                    .setMessage(diagnosticMessage)
+                                    .setPositiveButton(
+                                            "باشه",
+                                            null
+                                    )
+                                    .show();
+
                             experienceTitle.setText("");
                             experienceText.setText("");
 
-                            /*
-                             * باز کردن دوباره دکمه
-                             * برای ثبت یک تجربه جدید
-                             */
                             isPublishing = false;
                             publishButton.setEnabled(true);
                             publishButton.setAlpha(1.0f);
@@ -172,21 +213,44 @@ public class AddExperienceActivity extends Activity {
                         })
                         .addOnFailureListener(e -> {
 
-                            /*
-                             * اگر ذخیره ناموفق شد،
-                             * دوباره اجازه تلاش بده
-                             */
                             isPublishing = false;
                             publishButton.setEnabled(true);
                             publishButton.setAlpha(1.0f);
                             publishButton.setText("🚀 انتشار تجربه");
 
+                            String errorMessage =
+                                    e.getMessage();
+
+                            if (errorMessage == null) {
+                                errorMessage =
+                                        "خطای نامشخص";
+                            }
+
                             Toast.makeText(
                                     AddExperienceActivity.this,
-                                    "خطا در انتشار تجربه: "
-                                            + e.getMessage(),
+                                    "خطا در انتشار تجربه:\n"
+                                            + errorMessage,
                                     Toast.LENGTH_LONG
                             ).show();
+
+                            /*
+                             * اگر نوشتن واقعاً شکست بخورد،
+                             * خطای کامل را نیز نمایش می‌دهیم.
+                             */
+                            new AlertDialog.Builder(
+                                    AddExperienceActivity.this
+                            )
+                                    .setTitle("❌ خطای Firestore")
+                                    .setMessage(
+                                            "نوشتن تجربه در Firebase "
+                                            + "موفق نشد.\n\n"
+                                            + errorMessage
+                                    )
+                                    .setPositiveButton(
+                                            "باشه",
+                                            null
+                                    )
+                                    .show();
                         });
             }
         });
@@ -223,4 +287,4 @@ public class AddExperienceActivity extends Activity {
 
         return Color.rgb(red, green, blue);
     }
-}
+                    }
