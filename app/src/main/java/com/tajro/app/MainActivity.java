@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.Drawable;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,7 +44,7 @@ public class MainActivity extends Activity {
     private Button rewardedButton;
 
     // تصویر پس‌زمینه
-    private ImageView backgroundIcon;
+    private ImageView backgroundImage;
 
     private int dp(int value) {
         return (int) (value * getResources()
@@ -135,45 +134,37 @@ public class MainActivity extends Activity {
     }
 
     // ==================================
-    // ساخت پس‌زمینه آیکن برنامه
+    // ساخت تصویر پس‌زمینه
     // ==================================
 
-    private ImageView createBackgroundIcon() {
+    private ImageView createBackgroundImage() {
 
         ImageView imageView =
                 new ImageView(this);
 
-        // همان آیکن اصلی برنامه
-        Drawable appIcon =
-                getApplicationInfo().loadIcon(
-                        getPackageManager()
-                );
-
-        imageView.setImageDrawable(appIcon);
-
-        /*
-         * تصویر در مرکز قرار می‌گیرد.
-         * CENTER_INSIDE باعث می‌شود تصویر
-         * بی‌دلیل از اطراف بریده نشود.
-         */
-        imageView.setScaleType(
-                ImageView.ScaleType.CENTER_INSIDE
+        // عکس موجود در drawable
+        imageView.setImageResource(
+                R.drawable.tajrobehha_background
         );
 
         /*
-         * بزرگ‌تر و نزدیک‌تر
+         * عکس کل صفحه را پر می‌کند.
+         * CENTER_CROP باعث می‌شود فضای خالی
+         * باقی نماند.
          */
-        imageView.setScaleX(1.35f);
-        imageView.setScaleY(1.35f);
+        imageView.setScaleType(
+                ImageView.ScaleType.CENTER_CROP
+        );
 
         /*
-         * شفافیت متوسط
-         * نه خیلی پررنگ و نه خیلی محو
+         * شفافیت متوسط و ملایم
+         * تا نوشته‌ها و دکمه‌ها واضح بمانند.
          */
-        imageView.setAlpha(0.15f);
+        imageView.setAlpha(0.22f);
 
         /*
-         * کاملاً غیرقابل لمس باشد
+         * عکس فقط پس‌زمینه است
+         * و قابل لمس نیست.
          */
         imageView.setClickable(false);
         imageView.setFocusable(false);
@@ -241,12 +232,20 @@ public class MainActivity extends Activity {
                 )
         );
 
+        /*
+         * زمینه اصلی را سفید/رنگی نمی‌کنیم
+         * تا عکس پس‌زمینه دیده شود.
+         */
+        rootLayout.setBackgroundColor(
+                Color.TRANSPARENT
+        );
+
         // ==================================
-        // پس‌زمینه آیکن تجربه‌ها
+        // عکس پس‌زمینه تجربه‌ها
         // ==================================
 
-        backgroundIcon =
-                createBackgroundIcon();
+        backgroundImage =
+                createBackgroundImage();
 
         FrameLayout.LayoutParams backgroundParams =
                 new FrameLayout.LayoutParams(
@@ -258,7 +257,7 @@ public class MainActivity extends Activity {
                 Gravity.CENTER;
 
         rootLayout.addView(
-                backgroundIcon,
+                backgroundImage,
                 backgroundParams
         );
 
@@ -295,8 +294,7 @@ public class MainActivity extends Activity {
         );
 
         /*
-         * بسیار مهم:
-         * زمینه شفاف است تا آیکن پشت صفحه دیده شود.
+         * کاملاً شفاف تا تصویر دیده شود.
          */
         mainLayout.setBackgroundColor(
                 Color.TRANSPARENT
@@ -694,7 +692,7 @@ public class MainActivity extends Activity {
                 ThemeManager.getThemeColor(this);
 
         // ==================================
-        // زمینه محتوا شفاف بماند
+        // زمینه محتوا شفاف
         // ==================================
 
         mainLayout.setBackgroundColor(
@@ -702,21 +700,21 @@ public class MainActivity extends Activity {
         );
 
         // ==================================
-        // تنظیمات پس‌زمینه آیکن
+        // تنظیم عکس پس‌زمینه
         // ==================================
 
-        if (backgroundIcon != null) {
+        if (backgroundImage != null) {
 
-            backgroundIcon.setAlpha(
-                    0.15f
+            backgroundImage.setAlpha(
+                    0.22f
             );
 
-            backgroundIcon.setScaleX(
-                    1.35f
+            backgroundImage.setScaleX(
+                    1.0f
             );
 
-            backgroundIcon.setScaleY(
-                    1.35f
+            backgroundImage.setScaleY(
+                    1.0f
             );
         }
 
