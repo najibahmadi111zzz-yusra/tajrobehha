@@ -85,6 +85,7 @@ public class GamesActivity extends Activity {
         setContentView(root);
 
         ballGame.setOnClickListener(v -> {
+
             Intent intent =
                     new Intent(
                             GamesActivity.this,
@@ -95,7 +96,14 @@ public class GamesActivity extends Activity {
         });
 
         colorSortGame.setOnClickListener(v -> {
-            // بازی دوم را بعداً به این دکمه وصل می‌کنیم.
+
+            Intent intent =
+                    new Intent(
+                            GamesActivity.this,
+                            ColorSortActivity.class
+                    );
+
+            startActivity(intent);
         });
     }
 
