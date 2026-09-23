@@ -151,7 +151,7 @@ public class ColorSortActivity extends Activity {
 
     private void updateLevelText() {
 
-        if (levelText != null) {
+        if (levelText != null && gameView != null) {
 
             levelText.setText(
                     "مرحله " +
@@ -174,8 +174,6 @@ public class ColorSortActivity extends Activity {
         private int level = 1;
 
         private final int MAX_LEVEL = 10;
-
-        private final int EMPTY = -1;
 
         private final int[] colors = {
 
@@ -231,11 +229,6 @@ public class ColorSortActivity extends Activity {
                 tubes.add(tube);
             }
 
-            /*
-             * برای اینکه بازی واقعاً نیاز به
-             * مرتب کردن داشته باشد، رنگ‌ها
-             * را به صورت چرخشی پخش می‌کنیم.
-             */
             List<Integer> mixed =
                     new ArrayList<>();
 
@@ -282,9 +275,6 @@ public class ColorSortActivity extends Activity {
                 }
             }
 
-            /*
-             * دو شیشه خالی
-             */
             tubes.add(
                     new ArrayList<>()
             );
@@ -316,16 +306,7 @@ public class ColorSortActivity extends Activity {
             float height =
                     getHeight();
 
-            int columns;
-
-            if (tubeCount <= 4) {
-
-                columns = 4;
-
-            } else {
-
-                columns = 4;
-            }
+            int columns = 4;
 
             int rows =
                     (int) Math.ceil(
@@ -349,9 +330,6 @@ public class ColorSortActivity extends Activity {
                             height /
                                     (rows + 0.9f)
                     );
-
-            float gap =
-                    12;
 
             for (int i = 0;
                  i < tubeCount;
@@ -387,9 +365,6 @@ public class ColorSortActivity extends Activity {
                         centerY +
                                 tubeHeight / 2;
 
-                /*
-                 * شیشه
-                 */
                 paint.setStyle(
                         Paint.Style.STROKE
                 );
@@ -432,9 +407,6 @@ public class ColorSortActivity extends Activity {
                         paint
                 );
 
-                /*
-                 * رنگ‌های داخل شیشه
-                 */
                 paint.setStyle(
                         Paint.Style.FILL
                 );
@@ -488,9 +460,6 @@ public class ColorSortActivity extends Activity {
                     );
                 }
 
-                /*
-                 * شماره شیشه
-                 */
                 paint.setColor(
                         Color.DKGRAY
                 );
@@ -509,9 +478,6 @@ public class ColorSortActivity extends Activity {
                 );
             }
 
-            /*
-             * راهنمای بازی
-             */
             paint.setColor(
                     Color.rgb(
                             12,
@@ -779,10 +745,6 @@ public class ColorSortActivity extends Activity {
                             source.size() - 1
                     );
 
-            /*
-             * همه رنگ‌های یکسان پشت سر هم
-             * را تا ظرفیت مقصد منتقل می‌کنیم.
-             */
             while (!source.isEmpty()
                     && target.size() < 4
                     && source.get(
@@ -858,4 +820,4 @@ public class ColorSortActivity extends Activity {
             }
         }
     }
-}
+            }
