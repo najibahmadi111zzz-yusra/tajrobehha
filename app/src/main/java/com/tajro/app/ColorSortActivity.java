@@ -2,13 +2,7 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.LinearGradient;
-import android.graphics.Paint;
-import android.graphics.RadialGradient;
-import android.graphics.RectF;
-import android.graphics.Shader;
-import android.graphics.Typeface;
+import android.graphics
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.Gravity;
