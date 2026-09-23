@@ -2,8 +2,8 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.graphics.*;
-import android.view.*;
+import android.graphics.;*
+import android.view.;*
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.SystemClock;
@@ -230,8 +230,7 @@ public class ProBounceView extends View {
 
         spawnY =
                 groundY -
-                        radius() -
-                        5;
+                        radius();
 
         ballX = spawnX;
         ballY = spawnY;
@@ -249,6 +248,13 @@ public class ProBounceView extends View {
         invalidate();
     }
 
+    /*
+     * ساخت کامل مسیر بازی
+     *
+     * در این نسخه سکوهای اصلی همیشه وجود دارند
+     * و در کنار آنها سکوهای بالا، پله‌ها، دیوارها
+     * و شکاف‌های کنترل‌شده ساخته می‌شوند.
+     */
     private void buildWorld() {
 
         float t = tile();
@@ -256,32 +262,154 @@ public class ProBounceView extends View {
         float x = t * 0.5f;
         float y = groundY;
 
-        int direction = 1;
         int section = 0;
 
-        while (x < worldWidth - t * 7) {
+        while (x < worldWidth - t * 8f) {
 
             section++;
 
+            /*
+             * طول سکوی اصلی
+             */
             int length =
-                    8 +
-                            (section * 3 +
-                                    level * 2) % 17;
+                    7 +
+                            (section * 5 +
+                                    level * 3) % 13;
 
             float left = x;
-            float right =
-                    x + length * t;
 
-            RectF platform =
+            float right =
+                    x +
+                            length * t;
+
+            /*
+             * سکوی اصلی
+             */
+            RectF mainPlatform =
                     new RectF(
                             left,
                             y,
                             right,
-                            y + t * 1.45f
+                            y + t * 1.55f
                     );
 
-            platforms.add(platform);
+            platforms.add(mainPlatform);
 
+            /*
+             * هر چند بخش یک سکوی دوم
+             * در ارتفاع متفاوت می‌سازیم.
+             */
+            if (section % 2 == 0) {
+
+                float upperY =
+                        y -
+                                t *
+                                        (2.0f +
+                                                (section %
+                                                        3) *
+                                                        0.75f);
+
+                float upperLeft =
+                        left +
+                                t *
+                                        (1.0f +
+                                                (section %
+                                                        2));
+
+                float upperRight =
+                        Math.min(
+                                right -
+                                        t * 0.7f,
+                                upperLeft +
+                                        t *
+                                                (4.5f +
+                                                        level *
+                                                                0.15f)
+                        );
+
+                if (upperRight >
+                        upperLeft +
+                                t * 2.5f) {
+
+                    platforms.add(
+                            new RectF(
+                                    upperLeft,
+                                    upperY,
+                                    upperRight,
+                                    upperY +
+                                            t * 0.85f
+                            )
+                    );
+                }
+            }
+
+            /*
+             * پله‌های کوچک
+             */
+            if (section % 3 == 0) {
+
+                float stepX =
+                        left +
+                                t * 1.4f;
+
+                for (int i = 0;
+                     i < 3;
+                     i++) {
+
+                    float stepY =
+                            y -
+                                    t *
+                                            (1.0f +
+                                                    i *
+                                                            0.75f);
+
+                    platforms.add(
+                            new RectF(
+                                    stepX +
+                                            i * t * 1.8f,
+                                    stepY,
+                                    stepX +
+                                            i * t * 1.8f +
+                                            t * 2.8f,
+                                    stepY +
+                                            t * 0.70f
+                            )
+                    );
+                }
+            }
+
+            /*
+             * دیوار/ستون برای ایجاد مسیر
+             */
+            if (section % 5 == 0) {
+
+                float wallX =
+                        right -
+                                t * 1.4f;
+
+                float wallHeight =
+                        t *
+                                (2.4f +
+                                        Math.min(
+                                                3f,
+                                                level * 0.22f
+                                        ));
+
+                platforms.add(
+                        new RectF(
+                                wallX,
+                                y -
+                                        wallHeight,
+                                wallX +
+                                        t * 0.75f,
+                                y
+                        )
+                );
+            }
+
+            /*
+             * اشیای مسیر
+             */
             addWorldObjects(
                     left,
                     right,
@@ -290,81 +418,125 @@ public class ProBounceView extends View {
                     t
             );
 
+            /*
+             * حرکت به سکوی بعدی
+             */
             x = right;
 
-            if (section %
-                    (4 + level % 3) == 0) {
+            /*
+             * تغییر ارتفاع مسیر
+             */
+            if (section % 4 == 0) {
 
-                direction *= -1;
-
-                float vertical =
+                float change =
                         t *
-                                (2.1f +
+                                (1.2f +
                                         level *
-                                                0.08f);
+                                                0.12f);
 
-                if (direction > 0) {
-                    y -= vertical;
+                if ((section / 4) % 2 == 0) {
+
+                    y -= change;
+
                 } else {
-                    y += vertical;
+
+                    y += change;
                 }
 
                 if (y <
-                        getHeight() * 0.28f) {
+                        getHeight() * 0.31f) {
 
                     y =
                             getHeight() *
                                     0.38f;
-
-                    direction = -1;
                 }
 
                 if (y >
-                        getHeight() * 0.76f) {
+                        getHeight() * 0.67f) {
 
                     y =
                             getHeight() *
-                                    0.63f;
-
-                    direction = 1;
+                                    0.60f;
                 }
-
-                RectF connector =
-                        new RectF(
-                                x - t * 1.5f,
-                                y,
-                                x + t * 2.5f,
-                                y + t * 1.45f
-                        );
-
-                platforms.add(connector);
             }
 
-            if (section % 6 == 0) {
-
-                float upperY =
-                        Math.max(
-                                t * 2,
-                                y - t * 4.0f
-                        );
+            /*
+             * پل اتصال بین مسیرها
+             */
+            if (section % 4 == 0) {
 
                 platforms.add(
                         new RectF(
-                                x + t,
-                                upperY,
-                                x + t * 10,
-                                upperY + t
+                                x,
+                                y,
+                                x +
+                                        t * 3.5f,
+                                y +
+                                        t * 0.95f
+                        )
+                );
+
+                x += t * 3.5f;
+            }
+
+            /*
+             * گاهی سکوی شناور بزرگ
+             */
+            if (section % 7 == 0) {
+
+                float floatingY =
+                        y -
+                                t *
+                                        (3.0f +
+                                                level *
+                                                        0.10f);
+
+                platforms.add(
+                        new RectF(
+                                x +
+                                        t * 1.2f,
+                                floatingY,
+                                x +
+                                        t * 7.5f,
+                                floatingY +
+                                        t * 0.9f
                         )
                 );
             }
         }
 
+        /*
+         * چند سکوی مطمئن نزدیک پایان
+         */
+        float finishY = y;
+
+        platforms.add(
+                new RectF(
+                        worldWidth - t * 13f,
+                        finishY,
+                        worldWidth - t * 8f,
+                        finishY +
+                                t * 1.45f
+                )
+        );
+
+        platforms.add(
+                new RectF(
+                        worldWidth - t * 8f,
+                        finishY -
+                                t * 1.5f,
+                        worldWidth - t * 5f,
+                        finishY -
+                                t * 0.55f
+                )
+        );
+
         finish =
                 new RectF(
                         worldWidth - t * 5.0f,
-                        y - t * 2.2f,
+                        finishY - t * 2.2f,
                         worldWidth - t * 2.0f,
-                        y
+                        finishY
                 );
     }
 
@@ -376,6 +548,9 @@ public class ProBounceView extends View {
             float t
     ) {
 
+        /*
+         * تیغ
+         */
         if (section > 2 &&
                 section %
                         Math.max(
@@ -410,7 +585,10 @@ public class ProBounceView extends View {
             }
         }
 
-        if (section % 5 == 0) {
+        /*
+         * حلقه
+         */
+        if (section % 4 == 0) {
 
             float rx =
                     left +
@@ -427,7 +605,10 @@ public class ProBounceView extends View {
             );
         }
 
-        if (section % 8 == 0) {
+        /*
+         * فنر
+         */
+        if (section % 6 == 0) {
 
             float sx =
                     left +
@@ -444,22 +625,53 @@ public class ProBounceView extends View {
             );
         }
 
-        if (level >= 5 &&
-                section % 11 == 0) {
+        /*
+         * سکوهای مرتفع اضافی
+         */
+        if (level >= 2 &&
+                section % 8 == 0) {
 
             float upper =
                     y -
                             t *
-                                    (3.2f +
+                                    (3.0f +
                                             level *
-                                                    0.12f);
+                                                    0.15f);
 
             platforms.add(
                     new RectF(
                             left + t * 2,
                             upper,
-                            right - t * 1.5f,
+                            right - t * 1.2f,
                             upper + t * 0.9f
+                    )
+            );
+        }
+
+        /*
+         * در مراحل بالاتر مانع عمودی
+         */
+        if (level >= 5 &&
+                section % 10 == 0) {
+
+            float wallX =
+                    left +
+                            (right - left) *
+                                    0.58f;
+
+            float wallTop =
+                    y -
+                            t *
+                                    (2.0f +
+                                            level *
+                                                    0.20f);
+
+            platforms.add(
+                    new RectF(
+                            wallX,
+                            wallTop,
+                            wallX + t * 0.72f,
+                            y
                     )
             );
         }
@@ -574,6 +786,11 @@ public class ProBounceView extends View {
             }
         }
 
+        /*
+         * پرش اصلاح‌شده:
+         * وقتی توپ روی سکو است و دکمه پرش
+         * لمس شده، مستقیماً پرش انجام می‌شود.
+         */
         if (landed &&
                 jumpPressed) {
 
@@ -585,6 +802,9 @@ public class ProBounceView extends View {
             createJumpParticles();
         }
 
+        /*
+         * فنر
+         */
         for (RectF spring :
                 springs) {
 
@@ -605,6 +825,9 @@ public class ProBounceView extends View {
             }
         }
 
+        /*
+         * تیغ
+         */
         for (RectF spike :
                 spikes) {
 
@@ -621,6 +844,9 @@ public class ProBounceView extends View {
             }
         }
 
+        /*
+         * افتادن
+         */
         if (ballY >
                 worldHeight +
                         getHeight()) {
@@ -637,6 +863,9 @@ public class ProBounceView extends View {
             ballVX = 0;
         }
 
+        /*
+         * پایان
+         */
         if (finish != null &&
                 ballX + radius() >
                         finish.left &&
@@ -652,6 +881,9 @@ public class ProBounceView extends View {
             return;
         }
 
+        /*
+         * دوربین
+         */
         float targetCameraX =
                 ballX -
                         getWidth() * 0.34f;
@@ -1658,8 +1890,11 @@ public class ProBounceView extends View {
 
         p.setShader(null);
 
+        /*
+         * لبه روشن سکو
+         */
         p.setColor(
-                0xAAE6FF9A
+                0xFFE6FF9A
         );
 
         canvas.drawRoundRect(
@@ -1673,8 +1908,11 @@ public class ProBounceView extends View {
                 p
         );
 
+        /*
+         * سایه پایین
+         */
         p.setColor(
-                0x33000000
+                0x55000000
         );
 
         canvas.drawRoundRect(
@@ -1687,26 +1925,57 @@ public class ProBounceView extends View {
                 p
         );
 
+        /*
+         * خطوط تزئینی روی سکو
+         */
         p.setColor(
                 0x553DFFB1
         );
 
-        for (float x =
+        for (float xx =
                 r.left + 15;
-             x <
+             xx <
                      r.right - 10;
-             x += 45) {
+             xx += 45) {
 
             canvas.drawLine(
-                    x,
+                    xx,
                     r.top +
                             tile() * 0.32f,
-                    x + 10,
+                    xx + 10,
                     r.top +
                             tile() * 0.60f,
                     p
             );
         }
+
+        /*
+         * لبه سفید برای اینکه سکو
+         * کاملاً واضح دیده شود.
+         */
+        p.setStyle(
+                Paint.Style.STROKE
+        );
+
+        p.setStrokeWidth(2.2f);
+
+        p.setColor(
+                0x66FFFFFF
+        );
+
+        canvas.drawRoundRect(
+                r.left + 1,
+                r.top + 1,
+                r.right - 1,
+                r.bottom - 1,
+                tile() * 0.18f,
+                tile() * 0.18f,
+                p
+        );
+
+        p.setStyle(
+                Paint.Style.FILL
+        );
     }
 
     private int darken(
@@ -2698,15 +2967,45 @@ public class ProBounceView extends View {
                     rightPressed = true;
                 }
 
+                /*
+                 * پرش:
+                 * فقط بررسی می‌کنیم توپ تقریباً
+                 * روی سطح قرار دارد.
+                 */
                 if (x >= jumpX &&
                         x <=
                                 jumpX + size) {
 
-                    if (Math.abs(
-                            ballVY
-                    ) < 35) {
+                    if (Math.abs(ballVY) < 80f) {
 
                         jumpPressed = true;
+
+                    } else {
+
+                        /*
+                         * اگر توپ در چند پیکسل
+                         * بالای سکو است نیز پرش
+                         * را اجازه می‌دهیم.
+                         */
+                        for (RectF platform :
+                                platforms) {
+
+                            if (ballX + radius() >
+                                    platform.left &&
+                                    ballX - radius() <
+                                            platform.right &&
+                                    Math.abs(
+                                            ballY +
+                                                    radius() -
+                                                    platform.top
+                                    ) <
+                                            tile() * 0.22f) {
+
+                                jumpPressed = true;
+
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -2818,6 +3117,5 @@ public class ProBounceView extends View {
                                     1.4f;
         }
     }
-}
-
+} 
 }
