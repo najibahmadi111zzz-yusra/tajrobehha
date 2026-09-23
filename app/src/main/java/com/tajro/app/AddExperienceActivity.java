@@ -1,7 +1,6 @@
 package com.tajro.app;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -14,7 +13,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -25,266 +23,204 @@ import java.util.Map;
 
 public class AddExperienceActivity extends Activity {
 
-    private FirebaseFirestore db;
-    private FirebaseAuth auth;
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
 
-    private int themeColor;
+    private int themeColor;
 
-    /*
-     * جلوگیری از ثبت چندباره یک تجربه
-     */
-    private boolean isPublishing = false;
+    /*
+     * جلوگیری از ثبت چندباره یک تجربه
+     */
+    private boolean isPublishing = false;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-        db = FirebaseFirestore.getInstance();
-        auth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
 
-        themeColor = ThemeManager.getThemeColor(this);
+        themeColor = ThemeManager.getThemeColor(this);
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(35, 50, 35, 35);
-        layout.setBackgroundColor(getLightThemeColor());
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(35, 50, 35, 35);
+        layout.setBackgroundColor(getLightThemeColor());
 
-        TextView title = new TextView(this);
-        title.setText("✍️ ثبت تجربه جدید");
-        title.setTextSize(26);
-        title.setTextColor(themeColor);
-        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        title.setGravity(Gravity.CENTER);
-        title.setPadding(0, 0, 0, 35);
+        TextView title = new TextView(this);
+        title.setText("✍️ ثبت تجربه جدید");
+        title.setTextSize(26);
+        title.setTextColor(themeColor);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, 0, 0, 35);
 
-        EditText experienceTitle = new EditText(this);
-        experienceTitle.setHint("عنوان تجربه را بنویسید");
+        EditText experienceTitle = new EditText(this);
+        experienceTitle.setHint("عنوان تجربه را بنویسید");
 
-        EditText experienceText = new EditText(this);
-        experienceText.setHint("تجربه خود را با دیگران شریک کنید...");
-        experienceText.setGravity(Gravity.TOP);
-        experienceText.setMinLines(6);
+        EditText experienceText = new EditText(this);
+        experienceText.setHint("تجربه خود را با دیگران شریک کنید...");
+        experienceText.setGravity(Gravity.TOP);
+        experienceText.setMinLines(6);
 
-        Button publishButton = new Button(this);
-        publishButton.setText("🚀 انتشار تجربه");
-        styleButton(publishButton);
+        Button publishButton = new Button(this);
+        publishButton.setText("🚀 انتشار تجربه");
+        styleButton(publishButton);
 
-        publishButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        publishButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
 
-                if (isPublishing) {
-                    return;
-                }
+                /*
+                 * اگر در حال انتشار هستیم،
+                 * دوباره ذخیره نکن
+                 */
+                if (isPublishing) {
+                    return;
+                }
 
-                FirebaseUser user = auth.getCurrentUser();
+                FirebaseUser user = auth.getCurrentUser();
 
-                if (user == null) {
-                    Toast.makeText(
-                            AddExperienceActivity.this,
-                            "لطفاً ابتدا وارد اکانت خود شوید",
-                            Toast.LENGTH_LONG
-                    ).show();
-                    return;
-                }
+                if (user == null) {
+                    Toast.makeText(
+                            AddExperienceActivity.this,
+                            "لطفاً ابتدا وارد اکانت خود شوید",
+                            Toast.LENGTH_LONG
+                    ).show();
 
-                String titleText =
-                        experienceTitle.getText().toString().trim();
+                    return;
+                }
 
-                String experience =
-                        experienceText.getText().toString().trim();
+                String titleText =
+                        experienceTitle.getText().toString().trim();
 
-                if (titleText.isEmpty() || experience.isEmpty()) {
-                    Toast.makeText(
-                            AddExperienceActivity.this,
-                            "لطفاً عنوان و متن تجربه را وارد کنید",
-                            Toast.LENGTH_SHORT
-                    ).show();
-                    return;
-                }
+                String experience =
+                        experienceText.getText().toString().trim();
 
-                isPublishing = true;
-                publishButton.setEnabled(false);
-                publishButton.setAlpha(0.6f);
-                publishButton.setText("⏳ در حال انتشار...");
+                if (titleText.isEmpty() || experience.isEmpty()) {
 
-                Map<String, Object> experienceData =
-                        new HashMap<>();
+                    Toast.makeText(
+                            AddExperienceActivity.this,
+                            "لطفاً عنوان و متن تجربه را وارد کنید",
+                            Toast.LENGTH_SHORT
+                    ).show();
 
-                experienceData.put("title", titleText);
-                experienceData.put("text", experience);
-                experienceData.put("userId", user.getUid());
-                experienceData.put("authorEmail", user.getEmail());
-                experienceData.put(
-                        "timestamp",
-                        FieldValue.serverTimestamp()
-                );
+                    return;
+                }
 
-                db.collection("experiences")
-                        .add(experienceData)
-                        .addOnSuccessListener(documentReference -> {
+                /*
+                 * از این لحظه دکمه قفل می‌شود
+                 */
+                isPublishing = true;
+                publishButton.setEnabled(false);
+                publishButton.setAlpha(0.6f);
+                publishButton.setText("⏳ در حال انتشار...");
 
-                            /*
-                             * تست تشخیصی:
-                             * اطلاعات واقعی Firebase که همین APK
-                             * در حال استفاده از آن است.
-                             */
-                            String projectId = "نامشخص";
-                            String appId = "نامشخص";
-                            String documentId =
-                                    documentReference.getId();
+                Map<String, Object> experienceData =
+                        new HashMap<>();
 
-                            try {
-                                FirebaseApp firebaseApp =
-                                        FirebaseApp.getInstance();
+                experienceData.put(
+                        "title",
+                        titleText
+                );
 
-                                if (firebaseApp.getOptions().getProjectId()
-                                        != null) {
+                experienceData.put(
+                        "text",
+                        experience
+                );
 
-                                    projectId =
-                                            firebaseApp.getOptions()
-                                                    .getProjectId();
-                                }
+                experienceData.put(
+                        "userId",
+                        user.getUid()
+                );
 
-                                if (firebaseApp.getOptions()
-                                        .getApplicationId() != null) {
+                experienceData.put(
+                        "authorEmail",
+                        user.getEmail()
+                );
 
-                                    appId =
-                                            firebaseApp.getOptions()
-                                                    .getApplicationId();
-                                }
+                experienceData.put(
+                        "timestamp",
+                        FieldValue.serverTimestamp()
+                );
 
-                            } catch (Exception testError) {
+                db.collection("experiences")
+                        .add(experienceData)
+                        .addOnSuccessListener(documentReference -> {
 
-                                projectId =
-                                        "خطا در خواندن Project ID";
+                            Toast.makeText(
+                                    AddExperienceActivity.this,
+                                    "تجربه با موفقیت منتشر شد! 🎉",
+                                    Toast.LENGTH_LONG
+                            ).show();
 
-                                appId =
-                                        "خطا در خواندن App ID";
-                            }
+                            /*
+                             * پاک کردن فرم بعد از ذخیره موفق
+                             */
+                            experienceTitle.setText("");
+                            experienceText.setText("");
 
-                            /*
-                             * پیام اصلی موفقیت
-                             */
-                            Toast.makeText(
-                                    AddExperienceActivity.this,
-                                    "تجربه با موفقیت منتشر شد! 🎉",
-                                    Toast.LENGTH_LONG
-                            ).show();
+                            /*
+                             * باز کردن دوباره دکمه
+                             * برای ثبت یک تجربه جدید
+                             */
+                            isPublishing = false;
+                            publishButton.setEnabled(true);
+                            publishButton.setAlpha(1.0f);
+                            publishButton.setText("🚀 انتشار تجربه");
 
-                            /*
-                             * نمایش اطلاعات تشخیصی
-                             */
-                            String diagnosticMessage =
-                                    "🔎 اطلاعات واقعی برنامه\n\n"
-                                    + "Firebase Project ID:\n"
-                                    + projectId
-                                    + "\n\n"
-                                    + "Firebase App ID:\n"
-                                    + appId
-                                    + "\n\n"
-                                    + "Document ID ساخته‌شده:\n"
-                                    + documentId
-                                    + "\n\n"
-                                    + "Collection:\n"
-                                    + "experiences"
-                                    + "\n\n"
-                                    + "✅ نوشتن در Firestore موفق بود.";
+                        })
+                        .addOnFailureListener(e -> {
 
-                            new AlertDialog.Builder(
-                                    AddExperienceActivity.this
-                            )
-                                    .setTitle("تست Firebase")
-                                    .setMessage(diagnosticMessage)
-                                    .setPositiveButton(
-                                            "باشه",
-                                            null
-                                    )
-                                    .show();
+                            /*
+                             * اگر ذخیره ناموفق شد،
+                             * دوباره اجازه تلاش بده
+                             */
+                            isPublishing = false;
+                            publishButton.setEnabled(true);
+                            publishButton.setAlpha(1.0f);
+                            publishButton.setText("🚀 انتشار تجربه");
 
-                            experienceTitle.setText("");
-                            experienceText.setText("");
+                            Toast.makeText(
+                                    AddExperienceActivity.this,
+                                    "خطا در انتشار تجربه: "
+                                            + e.getMessage(),
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        });
+            }
+        });
 
-                            isPublishing = false;
-                            publishButton.setEnabled(true);
-                            publishButton.setAlpha(1.0f);
-                            publishButton.setText("🚀 انتشار تجربه");
+        layout.addView(title);
+        layout.addView(experienceTitle);
+        layout.addView(experienceText);
+        layout.addView(publishButton);
 
-                        })
-                        .addOnFailureListener(e -> {
+        setContentView(layout);
+    }
 
-                            isPublishing = false;
-                            publishButton.setEnabled(true);
-                            publishButton.setAlpha(1.0f);
-                            publishButton.setText("🚀 انتشار تجربه");
+    private void styleButton(Button button) {
 
-                            String errorMessage =
-                                    e.getMessage();
+        GradientDrawable background =
+                new GradientDrawable();
 
-                            if (errorMessage == null) {
-                                errorMessage =
-                                        "خطای نامشخص";
-                            }
+        background.setColor(themeColor);
+        background.setCornerRadius(24);
 
-                            Toast.makeText(
-                                    AddExperienceActivity.this,
-                                    "خطا در انتشار تجربه:\n"
-                                            + errorMessage,
-                                    Toast.LENGTH_LONG
-                            ).show();
+        button.setBackground(background);
+        button.setTextColor(Color.WHITE);
+    }
 
-                            /*
-                             * اگر نوشتن واقعاً شکست بخورد،
-                             * خطای کامل را نیز نمایش می‌دهیم.
-                             */
-                            new AlertDialog.Builder(
-                                    AddExperienceActivity.this
-                            )
-                                    .setTitle("❌ خطای Firestore")
-                                    .setMessage(
-                                            "نوشتن تجربه در Firebase "
-                                            + "موفق نشد.\n\n"
-                                            + errorMessage
-                                    )
-                                    .setPositiveButton(
-                                            "باشه",
-                                            null
-                                    )
-                                    .show();
-                        });
-            }
-        });
+    private int getLightThemeColor() {
 
-        layout.addView(title);
-        layout.addView(experienceTitle);
-        layout.addView(experienceText);
-        layout.addView(publishButton);
+        int red = Color.red(themeColor);
+        int green = Color.green(themeColor);
+        int blue = Color.blue(themeColor);
 
-        setContentView(layout);
-    }
+        red = red + (255 - red) * 92 / 100;
+        green = green + (255 - green) * 92 / 100;
+        blue = blue + (255 - blue) * 92 / 100;
 
-    private void styleButton(Button button) {
-
-        GradientDrawable background =
-                new GradientDrawable();
-
-        background.setColor(themeColor);
-        background.setCornerRadius(24);
-
-        button.setBackground(background);
-        button.setTextColor(Color.WHITE);
-    }
-
-    private int getLightThemeColor() {
-
-        int red = Color.red(themeColor);
-        int green = Color.green(themeColor);
-        int blue = Color.blue(themeColor);
-
-        red = red + (255 - red) * 92 / 100;
-        green = green + (255 - green) * 92 / 100;
-        blue = blue + (255 - blue) * 92 / 100;
-
-        return Color.rgb(red, green, blue);
-    }
-                    }
+        return Color.rgb(red, green, blue);
+    }
+}
