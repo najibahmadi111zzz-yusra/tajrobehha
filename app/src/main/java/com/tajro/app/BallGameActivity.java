@@ -6,24 +6,34 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 public class BallGameActivity extends Activity {
 
-    GameView gameView;
+    private GameView gameView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(235, 248, 250));
+        LinearLayout root =
+                new LinearLayout(this);
 
-        gameView = new GameView();
+        root.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        root.setBackgroundColor(
+                Color.rgb(235, 248, 250)
+        );
+
+        gameView =
+                new GameView();
 
         root.addView(
                 gameView,
@@ -34,70 +44,108 @@ public class BallGameActivity extends Activity {
                 )
         );
 
-        LinearLayout controls = new LinearLayout(this);
-        controls.setGravity(android.view.Gravity.CENTER);
-        controls.setPadding(12, 12, 12, 20);
+        LinearLayout controls =
+                new LinearLayout(this);
 
-        Button left = new Button(this);
+        controls.setGravity(
+                Gravity.CENTER
+        );
+
+        controls.setPadding(
+                12,
+                8,
+                12,
+                18
+        );
+
+        Button left =
+                new Button(this);
+
         left.setText("◀");
-        left.setTextSize(28);
+        left.setTextSize(27);
 
-        Button jump = new Button(this);
+        Button jump =
+                new Button(this);
+
         jump.setText("⬆");
-        jump.setTextSize(28);
+        jump.setTextSize(27);
 
-        Button right = new Button(this);
+        Button right =
+                new Button(this);
+
         right.setText("▶");
-        right.setTextSize(28);
+        right.setTextSize(27);
 
         controls.addView(
                 left,
-                new LinearLayout.LayoutParams(0, 90, 1)
+                new LinearLayout.LayoutParams(
+                        0,
+                        90,
+                        1
+                )
         );
 
         controls.addView(
                 jump,
-                new LinearLayout.LayoutParams(0, 90, 1)
+                new LinearLayout.LayoutParams(
+                        0,
+                        90,
+                        1
+                )
         );
 
         controls.addView(
                 right,
-                new LinearLayout.LayoutParams(0, 90, 1)
+                new LinearLayout.LayoutParams(
+                        0,
+                        90,
+                        1
+                )
         );
 
         root.addView(controls);
 
         setContentView(root);
 
-        left.setOnClickListener(v -> {
-            gameView.moveLeft();
-        });
+        left.setOnClickListener(
+                v -> gameView.moveLeft()
+        );
 
-        right.setOnClickListener(v -> {
-            gameView.moveRight();
-        });
+        right.setOnClickListener(
+                v -> gameView.moveRight()
+        );
 
-        jump.setOnClickListener(v -> {
-            gameView.jump();
-        });
+        jump.setOnClickListener(
+                v -> gameView.jump()
+        );
     }
 
     class GameView extends View {
 
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint paint =
+                new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        float ballX = 100;
-        float ballY = 300;
+        float ballX;
+        float ballY;
 
         float velocityY = 0;
 
         boolean jumping = false;
 
-        float groundY = 500;
-
         int currentCell = 0;
 
+        int level = 1;
+
+        final int MAX_LEVEL = 10;
+
+        float groundY;
+
+        float cellSize = 70;
+
+        int cellCount;
+
         GameView() {
+
             super(BallGameActivity.this);
 
             paint.setTypeface(
@@ -105,60 +153,152 @@ public class BallGameActivity extends Activity {
             );
 
             setFocusable(true);
+
+            resetLevel();
+        }
+
+        void resetLevel() {
+
+            currentCell = 0;
+
+            ballX = 65;
+
+            ballY = 300;
+
+            velocityY = 0;
+
+            jumping = false;
+
+            invalidate();
         }
 
         @Override
         protected void onDraw(Canvas canvas) {
+
             super.onDraw(canvas);
 
-            float width = getWidth();
-            float height = getHeight();
+            float width =
+                    getWidth();
+
+            float height =
+                    getHeight();
 
             canvas.drawColor(
                     Color.rgb(235, 248, 250)
             );
 
-            groundY = height - 180;
+            groundY =
+                    height - 175;
 
+            cellCount =
+                    Math.min(
+                            8 + level / 2,
+                            11
+                    );
+
+            cellSize =
+                    Math.min(
+                            72,
+                            (width - 40) /
+                                    (float) cellCount
+                    );
+
+            // ==============================
             // عنوان
-            paint.setColor(Color.rgb(12, 91, 120));
-            paint.setTextSize(42);
-            paint.setTextAlign(Paint.Align.CENTER);
+            // ==============================
+
+            paint.setStyle(
+                    Paint.Style.FILL
+            );
+
+            paint.setTextAlign(
+                    Paint.Align.CENTER
+            );
+
+            paint.setColor(
+                    Color.rgb(12, 91, 120)
+            );
+
+            paint.setTextSize(34);
 
             canvas.drawText(
                     "🎮 توپ در خانه‌ها",
                     width / 2,
-                    55,
+                    48,
                     paint
             );
 
-            // شماره مرحله
-            paint.setTextSize(25);
+            paint.setTextSize(22);
 
             canvas.drawText(
-                    "مرحله ۱",
+                    "مرحله " + level + " از " + MAX_LEVEL,
                     width / 2,
-                    95,
+                    82,
                     paint
             );
 
-            // خانه‌های مسیر
-            float cellSize = 75;
-            float startX = 30;
+            // ==============================
+            // مسیر
+            // ==============================
 
-            for (int i = 0; i < 8; i++) {
+            float totalWidth =
+                    cellCount * cellSize;
 
-                float x = startX + i * cellSize;
+            float startX =
+                    (width - totalWidth) / 2f;
 
-                paint.setColor(
-                        Color.rgb(210, 230, 235)
-                );
+            for (int i = 0;
+                 i < cellCount;
+                 i++) {
 
-                RectF cell = new RectF(
-                        x,
-                        groundY,
-                        x + 65,
-                        groundY + 65
+                float x =
+                        startX +
+                        i * cellSize;
+
+                RectF cell =
+                        new RectF(
+                                x + 3,
+                                groundY,
+                                x + cellSize - 5,
+                                groundY + 62
+                        );
+
+                if (i == cellCount - 1) {
+
+                    paint.setColor(
+                            Color.rgb(
+                                    65,
+                                    175,
+                                    95
+                            )
+                    );
+
+                } else {
+
+                    if (i % 2 == 0) {
+
+                        paint.setColor(
+                                Color.rgb(
+                                        210,
+                                        230,
+                                        235
+                                )
+                        );
+
+                    } else {
+
+                        paint.setColor(
+                                Color.rgb(
+                                        195,
+                                        220,
+                                        228
+                                )
+                        );
+                    }
+                }
+
+                paint.setStyle(
+                        Paint.Style.FILL
                 );
 
                 canvas.drawRoundRect(
@@ -168,13 +308,20 @@ public class BallGameActivity extends Activity {
                         paint
                 );
 
-                paint.setColor(
-                        Color.rgb(160, 190, 200)
+                paint.setStyle(
+                        Paint.Style.STROKE
                 );
 
-                paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeWidth(3);
 
+                paint.setColor(
+                        Color.rgb(
+                                120,
+                                165,
+                                175
+                        )
+                );
+
                 canvas.drawRoundRect(
                         cell,
                         14,
@@ -182,72 +329,107 @@ public class BallGameActivity extends Activity {
                         paint
                 );
 
-                paint.setStyle(Paint.Style.FILL);
+                paint.setStyle(
+                        Paint.Style.FILL
+                );
+
+                if (i == cellCount - 1) {
+
+                    paint.setTextSize(22);
+                    paint.setColor(Color.WHITE);
+
+                    canvas.drawText(
+                            "★",
+                            cell.centerX(),
+                            cell.centerY() + 8,
+                            paint
+                    );
+                }
             }
 
-            // خانه پایان
-            paint.setColor(
-                    Color.rgb(80, 180, 100)
-            );
+            // ==============================
+            // بعضی موانع در مراحل بالاتر
+            // ==============================
 
-            RectF finish = new RectF(
-                    startX + 7 * cellSize,
-                    groundY,
-                    startX + 7 * cellSize + 65,
-                    groundY + 65
-            );
+            if (level >= 3) {
 
-            canvas.drawRoundRect(
-                    finish,
-                    14,
-                    14,
-                    paint
-            );
+                for (int i = 2;
+                     i < cellCount - 1;
+                     i += 3) {
 
-            paint.setColor(Color.WHITE);
-            paint.setTextSize(20);
-            paint.setTextAlign(Paint.Align.CENTER);
+                    float x =
+                            startX +
+                            i * cellSize +
+                            cellSize / 2;
 
-            canvas.drawText(
-                    "🏁",
-                    finish.centerX(),
-                    finish.centerY() + 8,
-                    paint
-            );
+                    paint.setColor(
+                            Color.rgb(
+                                    225,
+                                    105,
+                                    80
+                            )
+                    );
 
+                    canvas.drawCircle(
+                            x,
+                            groundY - 8,
+                            9,
+                            paint
+                    );
+                }
+            }
+
+            // ==============================
             // توپ
+            // ==============================
+
             paint.setColor(
-                    Color.rgb(30, 120, 220)
+                    Color.rgb(
+                            30,
+                            120,
+                            220
+                    )
             );
 
             canvas.drawCircle(
                     ballX,
                     ballY,
-                    27,
+                    26,
                     paint
             );
 
-            // درخشش توپ
             paint.setColor(
-                    Color.rgb(150, 220, 255)
+                    Color.rgb(
+                            155,
+                            225,
+                            255
+                    )
             );
 
             canvas.drawCircle(
-                    ballX - 9,
+                    ballX - 8,
                     ballY - 9,
                     7,
                     paint
             );
 
+            // ==============================
             // فیزیک پرش
+            // ==============================
+
             if (jumping) {
 
-                velocityY += 1.1f;
+                velocityY +=
+                        1.0f +
+                        (level * 0.04f);
+
                 ballY += velocityY;
 
-                if (ballY >= groundY - 27) {
+                if (ballY >=
+                        groundY - 26) {
 
-                    ballY = groundY - 27;
+                    ballY =
+                            groundY - 26;
 
                     velocityY = 0;
 
@@ -260,9 +442,13 @@ public class BallGameActivity extends Activity {
 
         void moveLeft() {
 
-            ballX -= 45;
+            float step =
+                    cellSize;
+
+            ballX -= step;
 
             if (ballX < 35) {
+
                 ballX = 35;
             }
 
@@ -277,34 +463,64 @@ public class BallGameActivity extends Activity {
 
         void moveRight() {
 
-            ballX += 45;
+            float step =
+                    cellSize;
+
+            ballX += step;
 
             float maxX =
                     getWidth() - 35;
 
             if (ballX > maxX) {
+
                 ballX = maxX;
             }
 
             currentCell =
                     Math.min(
-                            7,
+                            cellCount - 1,
                             currentCell + 1
                     );
 
-            if (currentCell == 7) {
+            if (currentCell ==
+                    cellCount - 1) {
 
-                ballX =
-                        30 + 7 * 75 + 32;
+                finishLevel();
 
-                android.widget.Toast.makeText(
-                        BallGameActivity.this,
-                        "🎉 مرحله تمام شد!",
-                        android.widget.Toast.LENGTH_SHORT
-                ).show();
+                return;
             }
 
             invalidate();
+        }
+
+        void finishLevel() {
+
+            if (level < MAX_LEVEL) {
+
+                Toast.makeText(
+                        BallGameActivity.this,
+                        "🎉 مرحله " +
+                                level +
+                                " تمام شد!",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                level++;
+
+                resetLevel();
+
+            } else {
+
+                Toast.makeText(
+                        BallGameActivity.this,
+                        "🏆 آفرین! همه ۱۰ مرحله تمام شد!",
+                        Toast.LENGTH_LONG
+                ).show();
+
+                level = 1;
+
+                resetLevel();
+            }
         }
 
         void jump() {
@@ -313,7 +529,9 @@ public class BallGameActivity extends Activity {
 
                 jumping = true;
 
-                velocityY = -18;
+                velocityY =
+                        -17 -
+                        (level * 0.2f);
 
                 invalidate();
             }
@@ -324,22 +542,21 @@ public class BallGameActivity extends Activity {
                 MotionEvent event
         ) {
 
-            if (
-                    event.getAction()
-                            == MotionEvent.ACTION_DOWN
-            ) {
+            if (event.getAction() ==
+                    MotionEvent.ACTION_DOWN) {
 
                 float x =
                         event.getX();
 
-                if (
-                        x < getWidth() / 3
-                ) {
+                float third =
+                        getWidth() / 3f;
+
+                if (x < third) {
 
                     moveLeft();
 
                 } else if (
-                        x > getWidth() * 2 / 3
+                        x > third * 2
                 ) {
 
                     moveRight();
