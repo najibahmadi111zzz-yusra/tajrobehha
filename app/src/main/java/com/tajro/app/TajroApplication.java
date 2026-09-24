@@ -75,7 +75,13 @@ public class TajroApplication extends Application {
 
                         Toast.makeText(
                                 this,
-                                "✅ Unity Ads آماده شد.",
+                                text(
+                                        "✅ Unity Ads آماده شد.",
+                                        "✅ Unity Ads is ready.",
+                                        "✅ Unity Ads چمتو شو.",
+                                        "✅ Unity Ads تیار ہے۔",
+                                        "✅ Unity Ads तैयार है।"
+                                ),
                                 Toast.LENGTH_SHORT
                         ).show();
 
@@ -92,8 +98,13 @@ public class TajroApplication extends Application {
 
                         Toast.makeText(
                                 this,
-                                "❌ خطای Unity Ads: "
-                                        + message,
+                                text(
+                                        "❌ خطای Unity Ads: ",
+                                        "❌ Unity Ads error: ",
+                                        "❌ د Unity Ads تېروتنه: ",
+                                        "❌ Unity Ads کی خرابی: ",
+                                        "❌ Unity Ads त्रुटि: "
+                                ) + message,
                                 Toast.LENGTH_LONG
                         ).show();
                     }
@@ -108,5 +119,37 @@ public class TajroApplication extends Application {
                 config,
                 listener
         );
+    }
+
+    // =========================
+    // ترجمه متن
+    // =========================
+    private String text(
+            String fa,
+            String en,
+            String ps,
+            String ur,
+            String hi) {
+
+        String language =
+                LanguageManager.getLanguage(this);
+
+        if ("en".equals(language)) {
+            return en;
+        }
+
+        if ("ps".equals(language)) {
+            return ps;
+        }
+
+        if ("ur".equals(language)) {
+            return ur;
+        }
+
+        if ("hi".equals(language)) {
+            return hi;
+        }
+
+        return fa;
     }
 }
