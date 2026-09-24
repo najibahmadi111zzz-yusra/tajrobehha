@@ -1,41 +1,53 @@
 workflows:
-  android-build:
-    name: Tajrobehha Android APK
-    max_build_duration: 60
-    instance_type: mac_mini_m2
+android-build:
+name: Tajrobehha Android APK
+max_build_duration: 60
+instance_type: mac_mini_m2
 
-    environment:
-      groups:
-        - OPENROUTER
+environment:
+  groups:
+    - OPENROUTER
 
-    scripts:
-      - name: Prepare Gradle
-        script: |
-          gradle wrapper --gradle-version 8.9
-          chmod +x gradlew
+scripts:
+  - name: Prepare Gradle
+    script: |
+      gradle wrapper --gradle-version 8.9
+      chmod +x gradlew
 
-      - name: Get SHA1 and SHA-256
-        script: |
-          mkdir -p ~/.android
+  - name: Get SHA1 and SHA-256
+    script: |
+      mkdir -p ~/.android
 
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkeypair \
-              -v \
-              -keystore ~/.android/debug.keystore \
-              -storepass android \
-              -alias AndroidDebugKey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-          fi
+      if [ ! -f ~/.android/debug.keystore ]; then
+        keytool -genkeypair \
+          -v \
+          -keystore ~/.android/debug.keystore \
+          -storepass android \
+          -alias AndroidDebugKey \
+          -keypass android \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -dname "CN=Android Debug,O=Android,C=US"
+      fi
 
-          ./gradlew signingReport
+      ./gradlew signingReport
 
-      - name: Build Android APK
-        script: |
-          ./gradlew assembleDebug
+  - name: Prepare Android SDK
+    script: |
+      echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
 
-    artifacts:
-      - app/build/outputs/apk/debug/app-debug.apk
+      SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+
+      "$SDKMANAGER" --install "platforms;android-35" "build-tools;35.0.1"
+
+      if [ -f "$CM_BUILD_DIR/app/build.gradle" ]; then
+        sed -i.bak 's/buildToolsVersion[[:space:]]*["'\'']34\.0\.0["'\'']/buildToolsVersion "35.0.1"/g' "$CM_BUILD_DIR/app/build.gradle"
+      fi
+
+  - name: Build Android APK
+    script: |
+      ./gradlew assembleDebug --no-daemon
+
+artifacts:
+  - app/build/outputs/apk/debug/app-debug.apk
