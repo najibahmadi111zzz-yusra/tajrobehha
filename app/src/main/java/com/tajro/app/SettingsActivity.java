@@ -2,6 +2,7 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
@@ -31,6 +32,57 @@ public class SettingsActivity extends Activity {
             Color.rgb(12, 91, 120);
 
     private boolean nightMode = false;
+
+    private String appliedLanguage;
+
+    // ==================================
+    // اعمال زبان
+    // ==================================
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(
+                LanguageManager.applyLanguage(newBase)
+        );
+    }
+
+    // ==================================
+    // متن چندزبانه
+    // ==================================
+
+    private String text(
+            String fa,
+            String en,
+            String ps,
+            String ur,
+            String hi
+    ) {
+
+        String language =
+                LanguageManager.getLanguage(this);
+
+        if ("en".equals(language)) {
+            return en;
+        }
+
+        if ("ps".equals(language)) {
+            return ps;
+        }
+
+        if ("ur".equals(language)) {
+            return ur;
+        }
+
+        if ("hi".equals(language)) {
+            return hi;
+        }
+
+        return fa;
+    }
+
+    // ==================================
+    // اندازه
+    // ==================================
 
     private int dp(int value) {
 
@@ -110,6 +162,9 @@ public class SettingsActivity extends Activity {
 
         super.onCreate(savedInstanceState);
 
+        appliedLanguage =
+                LanguageManager.getLanguage(this);
+
         preferences =
                 getSharedPreferences(
                         "tajrobehha_settings",
@@ -129,6 +184,26 @@ public class SettingsActivity extends Activity {
                 );
 
         buildSettings();
+    }
+
+    // ==================================
+    // بررسی تغییر زبان
+    // ==================================
+
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+
+        String currentLanguage =
+                LanguageManager.getLanguage(this);
+
+        if (appliedLanguage != null &&
+                !currentLanguage.equals(appliedLanguage)) {
+
+            recreate();
+            return;
+        }
     }
 
     // ==================================
@@ -168,7 +243,13 @@ public class SettingsActivity extends Activity {
                 new TextView(this);
 
         title.setText(
-                "⚙️ تنظیمات تجربه‌ها"
+                text(
+                        "⚙️ تنظیمات تجربه‌ها",
+                        "⚙️ Experiences Settings",
+                        "⚙️ د تجربو ترتیبات",
+                        "⚙️ تجربات کی ترتیبات",
+                        "⚙️ अनुभव सेटिंग्स"
+                )
         );
 
         title.setTextSize(28);
@@ -199,7 +280,13 @@ public class SettingsActivity extends Activity {
 
         Button colorButton =
                 createSettingButton(
-                        "🎨 طرح و رنگ برنامه"
+                        text(
+                                "🎨 طرح و رنگ برنامه",
+                                "🎨 App Theme & Color",
+                                "🎨 د پروګرام بڼه او رنګ",
+                                "🎨 ایپ کی تھیم اور رنگ",
+                                "🎨 ऐप थीम और रंग"
+                        )
                 );
 
         mainLayout.addView(
@@ -218,7 +305,13 @@ public class SettingsActivity extends Activity {
                 new Switch(this);
 
         nightSwitch.setText(
-                "🌙 حالت شب"
+                text(
+                        "🌙 حالت شب",
+                        "🌙 Night Mode",
+                        "🌙 د شپې حالت",
+                        "🌙 نائٹ موڈ",
+                        "🌙 नाइट मोड"
+                )
         );
 
         nightSwitch.setTextSize(18);
@@ -256,8 +349,20 @@ public class SettingsActivity extends Activity {
                     Toast.makeText(
                             this,
                             isChecked
-                                    ? "🌙 حالت شب فعال شد"
-                                    : "☀️ حالت روز فعال شد",
+                                    ? text(
+                                        "🌙 حالت شب فعال شد",
+                                        "🌙 Night mode enabled",
+                                        "🌙 د شپې حالت فعال شو",
+                                        "🌙 نائٹ موڈ فعال ہوگیا",
+                                        "🌙 नाइट मोड चालू हो गया"
+                                    )
+                                    : text(
+                                        "☀️ حالت روز فعال شد",
+                                        "☀️ Day mode enabled",
+                                        "☀️ د ورځې حالت فعال شو",
+                                        "☀️ ڈے موڈ فعال ہوگیا",
+                                        "☀️ डे मोड चालू हो गया"
+                                    ),
                             Toast.LENGTH_SHORT
                     ).show();
 
@@ -271,7 +376,13 @@ public class SettingsActivity extends Activity {
 
         Button languageButton =
                 createSettingButton(
-                        "🌐 زبان برنامه"
+                        text(
+                                "🌐 زبان برنامه",
+                                "🌐 App Language",
+                                "🌐 د پروګرام ژبه",
+                                "🌐 ایپ کی زبان",
+                                "🌐 ऐप की भाषा"
+                        )
                 );
 
         mainLayout.addView(
@@ -288,7 +399,13 @@ public class SettingsActivity extends Activity {
 
         Button accountButton =
                 createSettingButton(
-                        "👤 اکانت من"
+                        text(
+                                "👤 اکانت من",
+                                "👤 My Account",
+                                "👤 زما اکاونټ",
+                                "👤 میرا اکاؤنٹ",
+                                "👤 मेरा अकाउंट"
+                        )
                 );
 
         mainLayout.addView(
@@ -314,7 +431,13 @@ public class SettingsActivity extends Activity {
 
         Button privacyButton =
                 createSettingButton(
-                        "🔒 حریم خصوصی"
+                        text(
+                                "🔒 حریم خصوصی",
+                                "🔒 Privacy",
+                                "🔒 محرمیت",
+                                "🔒 رازداری",
+                                "🔒 गोपनीयता"
+                        )
                 );
 
         mainLayout.addView(
@@ -331,7 +454,13 @@ public class SettingsActivity extends Activity {
 
         Button logoutButton =
                 createSettingButton(
-                        "🚪 خروج از حساب"
+                        text(
+                                "🚪 خروج از حساب",
+                                "🚪 Log Out",
+                                "🚪 له اکاونټ څخه وتل",
+                                "🚪 اکاؤنٹ سے لاگ آؤٹ",
+                                "🚪 लॉग आउट"
+                        )
                 );
 
         mainLayout.addView(
@@ -348,7 +477,13 @@ public class SettingsActivity extends Activity {
 
         Button aboutButton =
                 createSettingButton(
-                        "ℹ️ درباره برنامه"
+                        text(
+                                "ℹ️ درباره برنامه",
+                                "ℹ️ About App",
+                                "ℹ️ د پروګرام په اړه",
+                                "ℹ️ ایپ کے بارے میں",
+                                "ℹ️ ऐप के बारे में"
+                        )
                 );
 
         mainLayout.addView(
@@ -384,8 +519,23 @@ public class SettingsActivity extends Activity {
         }
 
         versionText.setText(
-                "\n📱 تجربه‌ها\nنسخه "
-                        + version
+                "\n📱 " +
+                text(
+                        "تجربه‌ها",
+                        "Experiences",
+                        "تجربې",
+                        "تجربات",
+                        "अनुभव"
+                ) +
+                "\n" +
+                text(
+                        "نسخه ",
+                        "Version ",
+                        "نسخه ",
+                        "ورژن ",
+                        "संस्करण "
+                ) +
+                version
         );
 
         versionText.setTextSize(15);
@@ -413,7 +563,13 @@ public class SettingsActivity extends Activity {
 
         Button backButton =
                 createSettingButton(
-                        "↩️ برگشت"
+                        text(
+                                "↩️ برگشت",
+                                "↩️ Back",
+                                "↩️ شاته",
+                                "↩️ واپس",
+                                "↩️ वापस"
+                        )
                 );
 
         mainLayout.addView(
@@ -462,11 +618,41 @@ public class SettingsActivity extends Activity {
     private void showColorDialog() {
 
         String[] colors = {
-                "آبی اصلی",
-                "سبز آرام",
-                "بنفش",
-                "نارنجی",
-                "سرمه‌ای"
+                text(
+                        "آبی اصلی",
+                        "Main Blue",
+                        "اصلي شین",
+                        "مرکزی نیلا",
+                        "मुख्य नीला"
+                ),
+                text(
+                        "سبز آرام",
+                        "Calm Green",
+                        "ارام شین",
+                        "پرسکون سبز",
+                        "शांत हरा"
+                ),
+                text(
+                        "بنفش",
+                        "Purple",
+                        "ارغواني",
+                        "جامنی",
+                        "बैंगनी"
+                ),
+                text(
+                        "نارنجی",
+                        "Orange",
+                        "نارنجي",
+                        "نارنجی",
+                        "नारंगी"
+                ),
+                text(
+                        "سرمه‌ای",
+                        "Navy Blue",
+                        "تیاره شین",
+                        "گہرا نیلا",
+                        "गहरा नीला"
+                )
         };
 
         int[] colorValues = {
@@ -479,7 +665,13 @@ public class SettingsActivity extends Activity {
 
         new AlertDialog.Builder(this)
                 .setTitle(
-                        "🎨 انتخاب رنگ"
+                        text(
+                                "🎨 انتخاب رنگ",
+                                "🎨 Choose Color",
+                                "🎨 رنګ وټاکئ",
+                                "🎨 رنگ منتخب کریں",
+                                "🎨 रंग चुनें"
+                        )
                 )
                 .setItems(
                         colors,
@@ -497,7 +689,13 @@ public class SettingsActivity extends Activity {
 
                             Toast.makeText(
                                     this,
-                                    "✅ رنگ برنامه تغییر کرد",
+                                    text(
+                                            "✅ رنگ برنامه تغییر کرد",
+                                            "✅ App color changed",
+                                            "✅ د پروګرام رنګ بدل شو",
+                                            "✅ ایپ کا رنگ تبدیل ہوگیا",
+                                            "✅ ऐप का रंग बदल गया"
+                                    ),
                                     Toast.LENGTH_SHORT
                             ).show();
 
@@ -523,7 +721,13 @@ public class SettingsActivity extends Activity {
 
         new AlertDialog.Builder(this)
                 .setTitle(
-                        "🌐 زبان برنامه"
+                        text(
+                                "🌐 زبان برنامه",
+                                "🌐 App Language",
+                                "🌐 د پروګرام ژبه",
+                                "🌐 ایپ کی زبان",
+                                "🌐 ऐप की भाषा"
+                        )
                 )
                 .setItems(
                         languages,
@@ -532,43 +736,34 @@ public class SettingsActivity extends Activity {
                             String languageCode;
 
                             if (which == 0) {
-
                                 languageCode = "fa";
-
                             } else if (which == 1) {
-
                                 languageCode = "en";
-
                             } else if (which == 2) {
-
                                 languageCode = "ps";
-
                             } else if (which == 3) {
-
                                 languageCode = "ur";
-
                             } else {
-
                                 languageCode = "hi";
                             }
 
-                            // ذخیره زبان با سیستم جدید
                             LanguageManager.setLanguage(
                                     SettingsActivity.this,
                                     languageCode
                             );
 
-                            // پیام موفقیت
                             Toast.makeText(
                                     SettingsActivity.this,
-                                    "✅ زبان با موفقیت انتخاب شد",
+                                    text(
+                                            "✅ زبان با موفقیت انتخاب شد",
+                                            "✅ Language selected successfully",
+                                            "✅ ژبه په بریالیتوب وټاکل شوه",
+                                            "✅ زبان کامیابی سے منتخب ہوگئی",
+                                            "✅ भाषा सफलतापूर्वक चुनी गई"
+                                    ),
                                     Toast.LENGTH_SHORT
                             ).show();
 
-                            /*
-                             * صفحه فعلی دوباره ساخته می‌شود
-                             * تا زبان انتخاب‌شده از ابتدا اعمال شود.
-                             */
                             recreate();
                         }
                 )
@@ -583,35 +778,110 @@ public class SettingsActivity extends Activity {
 
         String lockStatus =
                 AppLockManager.hasPassword(this)
-                        ? "فعال"
-                        : "غیرفعال";
+                        ? text(
+                            "فعال",
+                            "Enabled",
+                            "فعال",
+                            "فعال",
+                            "सक्रिय"
+                        )
+                        : text(
+                            "غیرفعال",
+                            "Disabled",
+                            "غیرفعال",
+                            "غیر فعال",
+                            "निष्क्रिय"
+                        );
 
         String hideStatus =
                 AppLockManager.isPersonalInfoHidden(this)
-                        ? "فعال"
-                        : "غیرفعال";
+                        ? text(
+                            "فعال",
+                            "Enabled",
+                            "فعال",
+                            "فعال",
+                            "सक्रिय"
+                        )
+                        : text(
+                            "غیرفعال",
+                            "Disabled",
+                            "غیرفعال",
+                            "غیر فعال",
+                            "निष्क्रिय"
+                        );
 
         String message =
-                "🔐 قفل برنامه: " + lockStatus +
-                "\n👁️ مخفی‌کردن اطلاعات: " + hideStatus +
+                "🔐 " +
+                text(
+                        "قفل برنامه: ",
+                        "App lock: ",
+                        "د پروګرام قفل: ",
+                        "ایپ لاک: ",
+                        "ऐप लॉक: "
+                ) +
+                lockStatus +
+                "\n👁️ " +
+                text(
+                        "مخفی‌کردن اطلاعات: ",
+                        "Hide personal information: ",
+                        "د شخصي معلوماتو پټول: ",
+                        "ذاتی معلومات چھپانا: ",
+                        "व्यक्तिगत जानकारी छिपाना: "
+                ) +
+                hideStatus +
                 "\n\n" +
-                "از گزینه‌های زیر استفاده کنید.";
+                text(
+                        "از گزینه‌های زیر استفاده کنید.",
+                        "Use the options below.",
+                        "لاندې انتخابونه وکاروئ.",
+                        "نیچے دیے گئے اختیارات استعمال کریں۔",
+                        "नीचे दिए गए विकल्पों का उपयोग करें।"
+                );
 
         new AlertDialog.Builder(this)
-                .setTitle("🔒 حریم خصوصی")
+                .setTitle(
+                        "🔒 " +
+                        text(
+                                "حریم خصوصی",
+                                "Privacy",
+                                "محرمیت",
+                                "رازداری",
+                                "गोपनीयता"
+                        )
+                )
                 .setMessage(message)
                 .setPositiveButton(
-                        "🔐 قفل برنامه",
+                        "🔐 " +
+                        text(
+                                "قفل برنامه",
+                                "App Lock",
+                                "د پروګرام قفل",
+                                "ایپ لاک",
+                                "ऐप लॉक"
+                        ),
                         (dialog, which) ->
                                 showLockSettings()
                 )
                 .setNeutralButton(
-                        "👁️ اطلاعات شخصی",
+                        "👁️ " +
+                        text(
+                                "اطلاعات شخصی",
+                                "Personal Information",
+                                "شخصي معلومات",
+                                "ذاتی معلومات",
+                                "व्यक्तिगत जानकारी"
+                        ),
                         (dialog, which) ->
                                 showPersonalInfoSettings()
                 )
                 .setNegativeButton(
-                        "بستن",
+                        text(
+                                "بستن",
+                                "Close",
+                                "بندول",
+                                "بند کریں",
+                                "बंद करें"
+                        ),
                         null
                 )
                 .show();
@@ -632,17 +902,44 @@ public class SettingsActivity extends Activity {
         if (!hasPassword) {
 
             new AlertDialog.Builder(this)
-                    .setTitle("🔐 ساخت رمز قفل")
+                    .setTitle(
+                            "🔐 " +
+                            text(
+                                    "ساخت رمز قفل",
+                                    "Create Lock Password",
+                                    "د قفل رمز جوړول",
+                                    "لاک پاس ورڈ بنائیں",
+                                    "लॉक पासवर्ड बनाएं"
+                            )
+                    )
                     .setMessage(
-                            "برای قفل برنامه یک رمز دقیقاً ۶ رقمی بسازید."
+                            text(
+                                    "برای قفل برنامه یک رمز دقیقاً ۶ رقمی بسازید.",
+                                    "Create an exactly 6-digit password for the app lock.",
+                                    "د پروګرام د قفل لپاره دقیقاً ۶ عددي رمز جوړ کړئ.",
+                                    "ایپ لاک کے لیے بالکل ۶ ہندسوں کا پاس ورڈ بنائیں۔",
+                                    "ऐप लॉक के लिए ठीक 6 अंकों का पासवर्ड बनाएं।"
+                            )
                     )
                     .setPositiveButton(
-                            "ساخت رمز",
+                            text(
+                                    "ساخت رمز",
+                                    "Create Password",
+                                    "رمز جوړول",
+                                    "پاس ورڈ بنائیں",
+                                    "पासवर्ड बनाएं"
+                            ),
                             (dialog, which) ->
                                     showCreatePasswordDialog()
                     )
                     .setNegativeButton(
-                            "انصراف",
+                            text(
+                                    "انصراف",
+                                    "Cancel",
+                                    "لغوه",
+                                    "منسوخ",
+                                    "रद्द करें"
+                            ),
                             null
                     )
                     .show();
@@ -655,20 +952,57 @@ public class SettingsActivity extends Activity {
         if (lockEnabled) {
 
             options = new String[]{
-                    "🔑 تغییر رمز",
-                    "🔓 غیرفعال کردن قفل"
+                    "🔑 " +
+                    text(
+                            "تغییر رمز",
+                            "Change Password",
+                            "رمز بدلول",
+                            "پاس ورڈ تبدیل کریں",
+                            "पासवर्ड बदलें"
+                    ),
+                    "🔓 " +
+                    text(
+                            "غیرفعال کردن قفل",
+                            "Disable Lock",
+                            "قفل غیر فعالول",
+                            "لاک غیر فعال کریں",
+                            "लॉक बंद करें"
+                    )
             };
 
         } else {
 
             options = new String[]{
-                    "🔐 فعال کردن قفل",
-                    "🔑 تغییر رمز"
+                    "🔐 " +
+                    text(
+                            "فعال کردن قفل",
+                            "Enable Lock",
+                            "قفل فعالول",
+                            "لاک فعال کریں",
+                            "लॉक चालू करें"
+                    ),
+                    "🔑 " +
+                    text(
+                            "تغییر رمز",
+                            "Change Password",
+                            "رمز بدلول",
+                            "پاس ورڈ تبدیل کریں",
+                            "पासवर्ड बदलें"
+                    )
             };
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("🔐 تنظیمات قفل")
+                .setTitle(
+                        "🔐 " +
+                        text(
+                                "تنظیمات قفل",
+                                "Lock Settings",
+                                "د قفل ترتیبات",
+                                "لاک کی ترتیبات",
+                                "लॉक सेटिंग्स"
+                        )
+                )
                 .setItems(
                         options,
                         (dialog, which) -> {
@@ -711,22 +1045,49 @@ public class SettingsActivity extends Activity {
 
         EditText password =
                 createPasswordInput(
-                        "رمز جدید: ۶ رقم"
+                        text(
+                                "رمز جدید: ۶ رقم",
+                                "New password: 6 digits",
+                                "نوی رمز: ۶ عددې",
+                                "نیا پاس ورڈ: ۶ ہندسے",
+                                "नया पासवर्ड: 6 अंक"
+                        )
                 );
 
         EditText confirm =
                 createPasswordInput(
-                        "تکرار رمز: ۶ رقم"
+                        text(
+                                "تکرار رمز: ۶ رقم",
+                                "Confirm password: 6 digits",
+                                "د رمز تکرار: ۶ عددې",
+                                "پاس ورڈ دوبارہ: ۶ ہندسے",
+                                "पासवर्ड दोबारा: 6 अंक"
+                        )
                 );
 
         layout.addView(password);
         layout.addView(confirm);
 
         new AlertDialog.Builder(this)
-                .setTitle("🔐 ساخت رمز قفل")
+                .setTitle(
+                        "🔐 " +
+                        text(
+                                "ساخت رمز قفل",
+                                "Create Lock Password",
+                                "د قفل رمز جوړول",
+                                "لاک پاس ورڈ بنائیں",
+                                "लॉक पासवर्ड बनाएं"
+                        )
+                )
                 .setView(layout)
                 .setPositiveButton(
-                        "ذخیره",
+                        text(
+                                "ذخیره",
+                                "Save",
+                                "ساتل",
+                                "محفوظ کریں",
+                                "सहेजें"
+                        ),
                         (dialog, which) -> {
 
                             String p =
@@ -741,7 +1102,13 @@ public class SettingsActivity extends Activity {
 
                                 Toast.makeText(
                                         this,
-                                        "رمز باید دقیقاً ۶ رقم باشد",
+                                        text(
+                                                "رمز باید دقیقاً ۶ رقم باشد",
+                                                "Password must be exactly 6 digits",
+                                                "رمز باید دقیقاً ۶ عددې وي",
+                                                "پاس ورڈ بالکل ۶ ہندسوں کا ہونا چاہیے",
+                                                "पासवर्ड ठीक 6 अंकों का होना चाहिए"
+                                        ),
                                         Toast.LENGTH_SHORT
                                 ).show();
 
@@ -752,7 +1119,13 @@ public class SettingsActivity extends Activity {
 
                                 Toast.makeText(
                                         this,
-                                        "دو رمز یکسان نیستند",
+                                        text(
+                                                "دو رمز یکسان نیستند",
+                                                "The two passwords do not match",
+                                                "دواړه رمزونه یو شان نه دي",
+                                                "دونوں پاس ورڈ ایک جیسے نہیں ہیں",
+                                                "दोनों पासवर्ड समान नहीं हैं"
+                                        ),
                                         Toast.LENGTH_SHORT
                                 ).show();
 
@@ -771,7 +1144,13 @@ public class SettingsActivity extends Activity {
 
                                 Toast.makeText(
                                         this,
-                                        "رمز ۶ رقمی ساخته شد ✅",
+                                        text(
+                                                "رمز ۶ رقمی ساخته شد ✅",
+                                                "6-digit password created ✅",
+                                                "۶ عددي رمز جوړ شو ✅",
+                                                "۶ ہندسوں کا پاس ورڈ بن گیا ✅",
+                                                "6 अंकों का पासवर्ड बनाया गया ✅"
+                                        ),
                                         Toast.LENGTH_SHORT
                                 ).show();
 
@@ -779,14 +1158,26 @@ public class SettingsActivity extends Activity {
 
                                 Toast.makeText(
                                         this,
-                                        "ساخت رمز ناموفق بود",
+                                        text(
+                                                "ساخت رمز ناموفق بود",
+                                                "Failed to create password",
+                                                "د رمز جوړول ناکام شول",
+                                                "پاس ورڈ بنانا ناکام ہوگیا",
+                                                "पासवर्ड बनाना विफल हुआ"
+                                        ),
                                         Toast.LENGTH_SHORT
                                 ).show();
                             }
                         }
                 )
                 .setNegativeButton(
-                        "انصراف",
+                        text(
+                                "انصراف",
+                                "Cancel",
+                                "لغوه",
+                                "منسوخ",
+                                "रद्द करें"
+                        ),
                         null
                 )
                 .show();
@@ -803,17 +1194,35 @@ public class SettingsActivity extends Activity {
 
         EditText oldPassword =
                 createPasswordInput(
-                        "رمز فعلی: ۶ رقم"
+                        text(
+                                "رمز فعلی: ۶ رقم",
+                                "Current password: 6 digits",
+                                "اوسنی رمز: ۶ عددې",
+                                "موجودہ پاس ورڈ: ۶ ہندسے",
+                                "वर्तमान पासवर्ड: 6 अंक"
+                        )
                 );
 
         EditText newPassword =
                 createPasswordInput(
-                        "رمز جدید: ۶ رقم"
+                        text(
+                                "رمز جدید: ۶ رقم",
+                                "New password: 6 digits",
+                                "نوی رمز: ۶ عددې",
+                                "نیا پاس ورڈ: ۶ ہندسے",
+                                "नया पासवर्ड: 6 अंक"
+                        )
                 );
 
         EditText confirmPassword =
                 createPasswordInput(
-                        "تکرار رمز جدید"
+                        text(
+                                "تکرار رمز جدید",
+                                "Confirm new password",
+                                "د نوي رمز تکرار",
+                                "نئے پاس ورڈ کی تصدیق",
+                                "नए पासवर्ड की पुष्टि करें"
+                        )
                 );
 
         layout.addView(oldPassword);
@@ -821,10 +1230,25 @@ public class SettingsActivity extends Activity {
         layout.addView(confirmPassword);
 
         new AlertDialog.Builder(this)
-                .setTitle("🔑 تغییر رمز")
+                .setTitle(
+                        "🔑 " +
+                        text(
+                                "تغییر رمز",
+                                "Change Password",
+                                "رمز بدلول",
+                                "پاس ورڈ تبدیل کریں",
+                                "पासवर्ड बदलें"
+                        )
+                )
                 .setView(layout)
                 .setPositiveButton(
-                        "تغییر",
+                        text(
+                                "تغییر",
+                                "Change",
+                                "بدلول",
+                                "تبدیل کریں",
+                                "बदलें"
+                        ),
                         (dialog, which) -> {
 
                             String oldPass =
@@ -845,7 +1269,13 @@ public class SettingsActivity extends Activity {
 
                                 Toast.makeText(
                                         this,
-                                        "رمز فعلی باید دقیقاً ۶ رقم باشد",
+                                        text(
+                                                "رمز فعلی باید دقیقاً ۶ رقم باشد",
+                                                "Current password must be exactly 6 digits",
+                                                "اوسنی رمز باید دقیقاً ۶ عددې وي",
+                                                "موجودہ پاس ورڈ بالکل ۶ ہندسوں کا ہونا چاہیے",
+                                                "वर्तमान पासवर्ड ठीक 6 अंकों का होना चाहिए"
+                                        ),
                                         Toast.LENGTH_SHORT
                                 ).show();
 
@@ -858,7 +1288,13 @@ public class SettingsActivity extends Activity {
 
                                 Toast.makeText(
                                         this,
-                                        "رمز جدید باید دقیقاً ۶ رقم باشد",
+                                        text(
+                                                "رمز جدید باید دقیقاً ۶ رقم باشد",
+                                                "New password must be exactly 6 digits",
+                                                "نوی رمز باید دقیقاً ۶ عددې وي",
+                                                "نیا پاس ورڈ بالکل ۶ ہندسوں کا ہونا چاہیے",
+                                                "नया पासवर्ड ठीक 6 अंकों का होना चाहिए"
+                                        ),
                                         Toast.LENGTH_SHORT
                                 ).show();
 
@@ -869,7 +1305,13 @@ public class SettingsActivity extends Activity {
 
                                 Toast.makeText(
                                         this,
-                                        "رمز جدید و تکرار آن یکسان نیست",
+                                        text(
+                                                "رمز جدید و تکرار آن یکسان نیست",
+                                                "New password and confirmation do not match",
+                                                "نوی رمز او تکرار یې یو شان نه دي",
+                                                "نیا پاس ورڈ اور تصدیق ایک جیسے نہیں ہیں",
+                                                "नया पासवर्ड और पुष्टि समान नहीं हैं"
+                                        ),
                                         Toast.LENGTH_SHORT
                                 ).show();
 
@@ -884,7 +1326,13 @@ public class SettingsActivity extends Activity {
 
                                 Toast.makeText(
                                         this,
-                                        "رمز با موفقیت تغییر کرد ✅",
+                                        text(
+                                                "رمز با موفقیت تغییر کرد ✅",
+                                                "Password changed successfully ✅",
+                                                "رمز په بریالیتوب بدل شو ✅",
+                                                "پاس ورڈ کامیابی سے تبدیل ہوگیا ✅",
+                                                "पासवर्ड सफलतापूर्वक बदल गया ✅"
+                                        ),
                                         Toast.LENGTH_SHORT
                                 ).show();
 
@@ -892,14 +1340,26 @@ public class SettingsActivity extends Activity {
 
                                 Toast.makeText(
                                         this,
-                                        "رمز فعلی اشتباه است ❌",
+                                        text(
+                                                "رمز فعلی اشتباه است ❌",
+                                                "Current password is incorrect ❌",
+                                                "اوسنی رمز ناسم دی ❌",
+                                                "موجودہ پاس ورڈ غلط ہے ❌",
+                                                "वर्तमान पासवर्ड गलत है ❌"
+                                        ),
                                         Toast.LENGTH_SHORT
                                 ).show();
                             }
                         }
                 )
                 .setNegativeButton(
-                        "انصراف",
+                        text(
+                                "انصراف",
+                                "Cancel",
+                                "لغوه",
+                                "منسوخ",
+                                "रद्द करें"
+                        ),
                         null
                 )
                 .show();
@@ -918,7 +1378,13 @@ public class SettingsActivity extends Activity {
 
         Toast.makeText(
                 this,
-                "🔐 قفل برنامه فعال شد",
+                text(
+                        "🔐 قفل برنامه فعال شد",
+                        "🔐 App lock enabled",
+                        "🔐 د پروګرام قفل فعال شو",
+                        "🔐 ایپ لاک فعال ہوگیا",
+                        "🔐 ऐप लॉक चालू हो गया"
+                ),
                 Toast.LENGTH_SHORT
         ).show();
     }
@@ -930,16 +1396,43 @@ public class SettingsActivity extends Activity {
     private void disableLock() {
 
         new AlertDialog.Builder(this)
-                .setTitle("🔓 غیرفعال کردن قفل")
+                .setTitle(
+                        "🔓 " +
+                        text(
+                                "غیرفعال کردن قفل",
+                                "Disable Lock",
+                                "قفل غیر فعالول",
+                                "لاک غیر فعال کریں",
+                                "लॉक बंद करें"
+                        )
+                )
                 .setMessage(
-                        "آیا می‌خواهید قفل برنامه غیرفعال شود؟"
+                        text(
+                                "آیا می‌خواهید قفل برنامه غیرفعال شود؟",
+                                "Do you want to disable the app lock?",
+                                "ایا غواړئ د پروګرام قفل غیر فعال کړئ؟",
+                                "کیا آپ ایپ لاک غیر فعال کرنا چاہتے ہیں؟",
+                                "क्या आप ऐप लॉक बंद करना चाहते हैं?"
+                        )
                 )
                 .setNegativeButton(
-                        "انصراف",
+                        text(
+                                "انصراف",
+                                "Cancel",
+                                "لغوه",
+                                "منسوخ",
+                                "रद्द करें"
+                        ),
                         null
                 )
                 .setPositiveButton(
-                        "غیرفعال",
+                        text(
+                                "غیرفعال",
+                                "Disable",
+                                "غیر فعال",
+                                "غیر فعال کریں",
+                                "बंद करें"
+                        ),
                         (dialog, which) -> {
 
                             AppLockManager.setLockEnabled(
@@ -949,7 +1442,13 @@ public class SettingsActivity extends Activity {
 
                             Toast.makeText(
                                     this,
-                                    "قفل برنامه غیرفعال شد",
+                                    text(
+                                            "قفل برنامه غیرفعال شد",
+                                            "App lock disabled",
+                                            "د پروګرام قفل غیر فعال شو",
+                                            "ایپ لاک غیر فعال ہوگیا",
+                                            "ऐप लॉक बंद हो गया"
+                                    ),
                                     Toast.LENGTH_SHORT
                             ).show();
                         }
@@ -967,12 +1466,35 @@ public class SettingsActivity extends Activity {
                 AppLockManager.isPersonalInfoHidden(this);
 
         String[] options = {
-                "👁️ نمایش اطلاعات شخصی",
-                "🙈 مخفی‌کردن اطلاعات شخصی"
+                "👁️ " +
+                text(
+                        "نمایش اطلاعات شخصی",
+                        "Show Personal Information",
+                        "شخصي معلومات ښکاره کول",
+                        "ذاتی معلومات دکھائیں",
+                        "व्यक्तिगत जानकारी दिखाएं"
+                ),
+                "🙈 " +
+                text(
+                        "مخفی‌کردن اطلاعات شخصی",
+                        "Hide Personal Information",
+                        "شخصي معلومات پټول",
+                        "ذاتی معلومات چھپائیں",
+                        "व्यक्तिगत जानकारी छिपाएं"
+                )
         };
 
         new AlertDialog.Builder(this)
-                .setTitle("👁️ اطلاعات شخصی")
+                .setTitle(
+                        "👁️ " +
+                        text(
+                                "اطلاعات شخصی",
+                                "Personal Information",
+                                "شخصي معلومات",
+                                "ذاتی معلومات",
+                                "व्यक्तिगत जानकारी"
+                        )
+                )
                 .setSingleChoiceItems(
                         options,
                         hidden ? 1 : 0,
@@ -990,8 +1512,20 @@ public class SettingsActivity extends Activity {
                             Toast.makeText(
                                     this,
                                     hide
-                                            ? "اطلاعات شخصی مخفی شد 🙈"
-                                            : "اطلاعات شخصی نمایش داده می‌شود 👁️",
+                                            ? text(
+                                                "اطلاعات شخصی مخفی شد 🙈",
+                                                "Personal information hidden 🙈",
+                                                "شخصي معلومات پټ شول 🙈",
+                                                "ذاتی معلومات چھپا دیے گئے 🙈",
+                                                "व्यक्तिगत जानकारी छिपाई गई 🙈"
+                                            )
+                                            : text(
+                                                "اطلاعات شخصی نمایش داده می‌شود 👁️",
+                                                "Personal information is visible 👁️",
+                                                "شخصي معلومات ښکاره کېږي 👁️",
+                                                "ذاتی معلومات دکھائے جا رہے ہیں 👁️",
+                                                "व्यक्तिगत जानकारी दिखाई जा रही है 👁️"
+                                            ),
                                     Toast.LENGTH_SHORT
                             ).show();
 
@@ -999,7 +1533,13 @@ public class SettingsActivity extends Activity {
                         }
                 )
                 .setNegativeButton(
-                        "بستن",
+                        text(
+                                "بستن",
+                                "Close",
+                                "بندول",
+                                "بند کریں",
+                                "बंद करें"
+                        ),
                         null
                 )
                 .show();
@@ -1080,18 +1620,43 @@ public class SettingsActivity extends Activity {
 
         new AlertDialog.Builder(this)
                 .setTitle(
-                        "🚪 خروج از حساب"
+                        "🚪 " +
+                        text(
+                                "خروج از حساب",
+                                "Log Out",
+                                "له اکاونټ څخه وتل",
+                                "اکاؤنٹ سے لاگ آؤٹ",
+                                "लॉग आउट"
+                        )
                 )
                 .setMessage(
-                        "آیا مطمئن هستید که می‌خواهید " +
-                        "از حساب خود خارج شوید؟"
+                        text(
+                                "آیا مطمئن هستید که می‌خواهید " +
+                                "از حساب خود خارج شوید؟",
+                                "Are you sure you want to log out?",
+                                "ایا ډاډه یاست چې غواړئ له خپل اکاونټ څخه ووځئ؟",
+                                "کیا آپ واقعی اپنے اکاؤنٹ سے لاگ آؤٹ کرنا چاہتے ہیں؟",
+                                "क्या आप वाकई अपने अकाउंट से लॉग आउट करना चाहते हैं?"
+                        )
                 )
                 .setNegativeButton(
-                        "انصراف",
+                        text(
+                                "انصراف",
+                                "Cancel",
+                                "لغوه",
+                                "منسوخ",
+                                "रद्द करें"
+                        ),
                         null
                 )
                 .setPositiveButton(
-                        "خروج",
+                        text(
+                                "خروج",
+                                "Log Out",
+                                "وتل",
+                                "لاگ آؤٹ",
+                                "लॉग आउट"
+                        ),
                         (dialog, which) -> {
 
                             FirebaseAuth
@@ -1102,7 +1667,13 @@ public class SettingsActivity extends Activity {
 
                             Toast.makeText(
                                     this,
-                                    "از حساب خارج شدید",
+                                    text(
+                                            "از حساب خارج شدید",
+                                            "You have logged out",
+                                            "له اکاونټ څخه ووتل",
+                                            "آپ لاگ آؤٹ ہوگئے ہیں",
+                                            "आप लॉग आउट हो गए हैं"
+                                    ),
                                     Toast.LENGTH_SHORT
                             ).show();
 
@@ -1120,18 +1691,50 @@ public class SettingsActivity extends Activity {
 
         new AlertDialog.Builder(this)
                 .setTitle(
-                        "ℹ️ درباره برنامه"
+                        "ℹ️ " +
+                        text(
+                                "درباره برنامه",
+                                "About App",
+                                "د پروګرام په اړه",
+                                "ایپ کے بارے میں",
+                                "ऐप के बारे में"
+                        )
                 )
                 .setMessage(
-                        "تجربه‌ها\n\n" +
-                        "محلی برای ثبت، یادگیری و " +
-                        "شریک‌کردن تجربه‌ها.\n\n" +
-                        "یاد بگیر • تجربه کن • شریک کن\n\n" +
-                        "نسخه برنامه: "
-                                + getVersionName()
+                        text(
+                                "تجربه‌ها\n\n" +
+                                "محلی برای ثبت، یادگیری و " +
+                                "شریک‌کردن تجربه‌ها.\n\n" +
+                                "یاد بگیر • تجربه کن • شریک کن\n\n" +
+                                "نسخه برنامه: ",
+                                "Experiences\n\n" +
+                                "A place to record, learn from, and " +
+                                "share experiences.\n\n" +
+                                "Learn • Experience • Share\n\n" +
+                                "App version: ",
+                                "تجربې\n\n" +
+                                "د تجربو د ثبت، زده کړې او شریکولو لپاره یو ځای.\n\n" +
+                                "زده کړه • تجربه کړه • شریک یې کړه\n\n" +
+                                "د پروګرام نسخه: ",
+                                "تجربات\n\n" +
+                                "تجربات درج کرنے، سیکھنے اور شیئر کرنے کی جگہ۔\n\n" +
+                                "سیکھیں • تجربہ کریں • شیئر کریں\n\n" +
+                                "ایپ ورژن: ",
+                                "अनुभव\n\n" +
+                                "अनुभव दर्ज करने, सीखने और साझा करने की जगह।\n\n" +
+                                "सीखें • अनुभव करें • साझा करें\n\n" +
+                                "ऐप संस्करण: "
+                        )
+                        + getVersionName()
                 )
                 .setPositiveButton(
-                        "بستن",
+                        text(
+                                "بستن",
+                                "Close",
+                                "بندول",
+                                "بند کریں",
+                                "बंद करें"
+                        ),
                         null
                 )
                 .show();
