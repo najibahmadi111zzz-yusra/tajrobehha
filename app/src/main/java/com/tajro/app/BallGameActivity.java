@@ -1872,19 +1872,13 @@ public class BallGameActivity extends Activity {
                                 ) %
                                         300;
 
-                float y =
-                        bottom -
-                                20 +
-                                (
-                                        float
-                                                Math.sin(
-                                                        time *
-                                                                2 +
-                                                                i
-                                                )
-                                ) *
-                                        18;
-
+            float y =
+        bottom -
+                20 +
+                (float) Math.sin(
+                        time * 2 + i
+                ) * 18;
+                
                 canvas.drawCircle(
                         x,
                         y,
