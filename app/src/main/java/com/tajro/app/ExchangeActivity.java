@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -24,7 +25,6 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -48,9 +48,21 @@ public class ExchangeActivity extends Activity {
 
     private String[] currencies;
 
+    private String appliedLanguage;
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(
+                LanguageManager.applyLanguage(newBase)
+        );
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        appliedLanguage =
+                LanguageManager.getLanguage(this);
 
         exchangeData = ExchangeData.get(this);
         currencies = ExchangeData.getCurrencies();
@@ -58,7 +70,207 @@ public class ExchangeActivity extends Activity {
         createScreen();
     }
 
+    // =========================================================
+    // زبان
+    // =========================================================
+
+    private String text(
+            String fa,
+            String en,
+            String ps,
+            String ur,
+            String hi
+    ) {
+
+        String lang =
+                LanguageManager.getLanguage(this);
+
+        if ("en".equals(lang)) {
+            return en;
+        }
+
+        if ("ps".equals(lang)) {
+            return ps;
+        }
+
+        if ("ur".equals(lang)) {
+            return ur;
+        }
+
+        if ("hi".equals(lang)) {
+            return hi;
+        }
+
+        return fa;
+    }
+
+    private String getCurrencyDisplayName(
+            String currency
+    ) {
+
+        if (ExchangeData.AFN.equals(currency)) {
+            return text(
+                    "افغانی",
+                    "Afghani",
+                    "افغانۍ",
+                    "افغانی",
+                    "अफ़गानी"
+            );
+        }
+
+        if (ExchangeData.USD.equals(currency)) {
+            return text(
+                    "دالر",
+                    "US Dollar",
+                    "ډالر",
+                    "ڈالر",
+                    "डॉलर"
+            );
+        }
+
+        if (ExchangeData.EUR.equals(currency)) {
+            return text(
+                    "یورو",
+                    "Euro",
+                    "یورو",
+                    "یورو",
+                    "यूरो"
+            );
+        }
+
+        if (ExchangeData.GBP.equals(currency)) {
+            return text(
+                    "پوند انگلیس",
+                    "British Pound",
+                    "برتانوي پونډ",
+                    "برطانوی پاؤنڈ",
+                    "ब्रिटिश पाउंड"
+            );
+        }
+
+        if (ExchangeData.SAR.equals(currency)) {
+            return text(
+                    "ریال سعودی",
+                    "Saudi Riyal",
+                    "سعودي ریال",
+                    "سعودی ریال",
+                    "सऊदी रियाल"
+            );
+        }
+
+        if (ExchangeData.AED.equals(currency)) {
+            return text(
+                    "درهم امارات",
+                    "UAE Dirham",
+                    "اماراتي درهم",
+                    "اماراتی درہم",
+                    "यूएई दिरहम"
+            );
+        }
+
+        if (ExchangeData.IQD.equals(currency)) {
+            return text(
+                    "دینار عراق",
+                    "Iraqi Dinar",
+                    "عراقي دینار",
+                    "عراقی دینار",
+                    "इराकी दीनार"
+            );
+        }
+
+        if (ExchangeData.INR.equals(currency)) {
+            return text(
+                    "روپیه هند",
+                    "Indian Rupee",
+                    "هندي روپۍ",
+                    "بھارتی روپیہ",
+                    "भारतीय रुपया"
+            );
+        }
+
+        if (ExchangeData.PKR.equals(currency)) {
+            return text(
+                    "روپیه پاکستانی",
+                    "Pakistani Rupee",
+                    "پاکستانۍ روپۍ",
+                    "پاکستانی روپیہ",
+                    "पाकिस्तानी रुपया"
+            );
+        }
+
+        if (ExchangeData.TRY.equals(currency)) {
+            return text(
+                    "لیر ترکیه",
+                    "Turkish Lira",
+                    "ترکي لیره",
+                    "ترکی لیرا",
+                    "तुर्की लीरा"
+            );
+        }
+
+        if (ExchangeData.TOMAN.equals(currency)) {
+            return text(
+                    "تومان",
+                    "Toman",
+                    "تومان",
+                    "تومان",
+                    "तोमान"
+            );
+        }
+
+        return currency;
+    }
+
+    private String getDisplayedTransactionType(
+            String canonical
+    ) {
+
+        if ("خرید".equals(canonical)) {
+            return text(
+                    "خرید",
+                    "Buy",
+                    "پېرود",
+                    "خرید",
+                    "खरीद"
+            );
+        }
+
+        if ("فروش".equals(canonical)) {
+            return text(
+                    "فروش",
+                    "Sell",
+                    "پلور",
+                    "فروخت",
+                    "बिक्री"
+            );
+        }
+
+        return canonical;
+    }
+
+    private String getDisplayedAccountStatus(
+            String canonical
+    ) {
+
+        if ("نقدی".equals(canonical)) {
+            return text(
+                    "نقدی",
+                    "Cash",
+                    "نغدي",
+                    "نقد",
+                    "नकद"
+            );
+        }
+
+        return canonical;
+    }
+
+    // =========================================================
+    // اندازه
+    // =========================================================
+
     private int dp(int value) {
+
         return (int) (
                 value *
                         getResources()
@@ -68,11 +280,15 @@ public class ExchangeActivity extends Activity {
         );
     }
 
-    private TextView makeText(String text, float size) {
+    private TextView makeText(
+            String value,
+            float size
+    ) {
 
-        TextView tv = new TextView(this);
+        TextView tv =
+                new TextView(this);
 
-        tv.setText(text);
+        tv.setText(value);
         tv.setTextSize(size);
 
         tv.setPadding(
@@ -85,9 +301,12 @@ public class ExchangeActivity extends Activity {
         return tv;
     }
 
-    private EditText makeInput(String hint) {
+    private EditText makeInput(
+            String hint
+    ) {
 
-        EditText input = new EditText(this);
+        EditText input =
+                new EditText(this);
 
         input.setHint(hint);
         input.setTextSize(16);
@@ -102,11 +321,14 @@ public class ExchangeActivity extends Activity {
         return input;
     }
 
-    private Button makeButton(String text) {
+    private Button makeButton(
+            String value
+    ) {
 
-        Button button = new Button(this);
+        Button button =
+                new Button(this);
 
-        button.setText(text);
+        button.setText(value);
         button.setTextSize(15);
 
         return button;
@@ -116,19 +338,53 @@ public class ExchangeActivity extends Activity {
     // پرچم ارز
     // =========================================================
 
-    private String getCurrencyFlag(String currency) {
+    private String getCurrencyFlag(
+            String currency
+    ) {
 
-        if (ExchangeData.AFN.equals(currency)) return "🇦🇫";
-        if (ExchangeData.USD.equals(currency)) return "🇺🇸";
-        if (ExchangeData.EUR.equals(currency)) return "🇪🇺";
-        if (ExchangeData.GBP.equals(currency)) return "🇬🇧";
-        if (ExchangeData.SAR.equals(currency)) return "🇸🇦";
-        if (ExchangeData.AED.equals(currency)) return "🇦🇪";
-        if (ExchangeData.IQD.equals(currency)) return "🇮🇶";
-        if (ExchangeData.INR.equals(currency)) return "🇮🇳";
-        if (ExchangeData.PKR.equals(currency)) return "🇵🇰";
-        if (ExchangeData.TRY.equals(currency)) return "🇹🇷";
-        if (ExchangeData.TOMAN.equals(currency)) return "🇮🇷";
+        if (ExchangeData.AFN.equals(currency)) {
+            return "🇦🇫";
+        }
+
+        if (ExchangeData.USD.equals(currency)) {
+            return "🇺🇸";
+        }
+
+        if (ExchangeData.EUR.equals(currency)) {
+            return "🇪🇺";
+        }
+
+        if (ExchangeData.GBP.equals(currency)) {
+            return "🇬🇧";
+        }
+
+        if (ExchangeData.SAR.equals(currency)) {
+            return "🇸🇦";
+        }
+
+        if (ExchangeData.AED.equals(currency)) {
+            return "🇦🇪";
+        }
+
+        if (ExchangeData.IQD.equals(currency)) {
+            return "🇮🇶";
+        }
+
+        if (ExchangeData.INR.equals(currency)) {
+            return "🇮🇳";
+        }
+
+        if (ExchangeData.PKR.equals(currency)) {
+            return "🇵🇰";
+        }
+
+        if (ExchangeData.TRY.equals(currency)) {
+            return "🇹🇷";
+        }
+
+        if (ExchangeData.TOMAN.equals(currency)) {
+            return "🇮🇷";
+        }
 
         return "🌐";
     }
@@ -161,12 +417,13 @@ public class ExchangeActivity extends Activity {
                                 parent
                         );
 
-                String currency = items[position];
+                String currency =
+                        items[position];
 
                 tv.setText(
                         getCurrencyFlag(currency)
                                 + "  "
-                                + currency
+                                + getCurrencyDisplayName(currency)
                 );
 
                 tv.setTextSize(16);
@@ -200,12 +457,13 @@ public class ExchangeActivity extends Activity {
                                 parent
                         );
 
-                String currency = items[position];
+                String currency =
+                        items[position];
 
                 tv.setText(
                         getCurrencyFlag(currency)
                                 + "  "
-                                + currency
+                                + getCurrencyDisplayName(currency)
                 );
 
                 tv.setTextSize(16);
@@ -253,7 +511,13 @@ public class ExchangeActivity extends Activity {
 
         TextView title =
                 makeText(
-                        "💱 صرافی تجربه‌ها",
+                        text(
+                                "💱 صرافی تجربه‌ها",
+                                "💱 Tajro Exchange",
+                                "💱 د تجربو صرافي",
+                                "💱 تجربہ ایکسچینج",
+                                "💱 तजरो एक्सचेंज"
+                        ),
                         25
                 );
 
@@ -263,7 +527,13 @@ public class ExchangeActivity extends Activity {
 
         TextView subtitle =
                 makeText(
-                        "ثبت و مدیریت خرید و فروش ارز",
+                        text(
+                                "ثبت و مدیریت خرید و فروش ارز",
+                                "Register and manage currency buying and selling",
+                                "د اسعارو پېر او پلور ثبت او مدیریت",
+                                "کرنسی کی خرید و فروخت کا اندراج اور انتظام",
+                                "मुद्रा खरीद और बिक्री का प्रबंधन"
+                        ),
                         17
                 );
 
@@ -272,12 +542,28 @@ public class ExchangeActivity extends Activity {
         main.addView(subtitle);
 
         customerNameInput =
-                makeInput("نام مشتری");
+                makeInput(
+                        text(
+                                "نام مشتری",
+                                "Customer name",
+                                "د پېرودونکي نوم",
+                                "صارف کا نام",
+                                "ग्राहक का नाम"
+                        )
+                );
 
         main.addView(customerNameInput);
 
         phoneInput =
-                makeInput("شماره تلفن");
+                makeInput(
+                        text(
+                                "شماره تلفن",
+                                "Phone number",
+                                "د ټیلیفون شمېره",
+                                "فون نمبر",
+                                "फ़ोन नंबर"
+                        )
+                );
 
         phoneInput.setInputType(
                 InputType.TYPE_CLASS_PHONE
@@ -286,7 +572,16 @@ public class ExchangeActivity extends Activity {
         main.addView(phoneInput);
 
         main.addView(
-                makeText("انتخاب ارز", 16)
+                makeText(
+                        text(
+                                "انتخاب ارز",
+                                "Select currency",
+                                "اسعار وټاکئ",
+                                "کرنسی منتخب کریں",
+                                "मुद्रा चुनें"
+                        ),
+                        16
+                )
         );
 
         currencySpinner =
@@ -306,7 +601,16 @@ public class ExchangeActivity extends Activity {
         main.addView(currencySpinner);
 
         main.addView(
-                makeText("نوع معامله", 16)
+                makeText(
+                        text(
+                                "نوع معامله",
+                                "Transaction type",
+                                "د معاملې ډول",
+                                "معاملے کی قسم",
+                                "लेन-देन का प्रकार"
+                        ),
+                        16
+                )
         );
 
         typeSpinner =
@@ -317,11 +621,16 @@ public class ExchangeActivity extends Activity {
                 "فروش"
         };
 
+        String[] displayedTypes = {
+                getDisplayedTransactionType("خرید"),
+                getDisplayedTransactionType("فروش")
+        };
+
         ArrayAdapter<String> typeAdapter =
                 new ArrayAdapter<>(
                         this,
                         android.R.layout.simple_spinner_item,
-                        types
+                        displayedTypes
                 );
 
         typeAdapter.setDropDownViewResource(
@@ -333,7 +642,15 @@ public class ExchangeActivity extends Activity {
         main.addView(typeSpinner);
 
         amountInput =
-                makeInput("مقدار ارز");
+                makeInput(
+                        text(
+                                "مقدار ارز",
+                                "Currency amount",
+                                "د اسعارو اندازه",
+                                "کرنسی کی مقدار",
+                                "मुद्रा की मात्रा"
+                        )
+                );
 
         amountInput.setInputType(
                 InputType.TYPE_CLASS_NUMBER |
@@ -343,7 +660,15 @@ public class ExchangeActivity extends Activity {
         main.addView(amountInput);
 
         rateInput =
-                makeInput("نرخ هر واحد به افغانی");
+                makeInput(
+                        text(
+                                "نرخ هر واحد به افغانی",
+                                "Rate per unit in Afghani",
+                                "د هر واحد نرخ په افغانۍ",
+                                "فی یونٹ افغانی نرخ",
+                                "प्रति इकाई अफ़गानी दर"
+                        )
+                );
 
         rateInput.setInputType(
                 InputType.TYPE_CLASS_NUMBER |
@@ -353,13 +678,27 @@ public class ExchangeActivity extends Activity {
         main.addView(rateInput);
 
         noteInput =
-                makeInput("یادداشت / توضیحات");
+                makeInput(
+                        text(
+                                "یادداشت / توضیحات",
+                                "Note / description",
+                                "یادښت / توضیحات",
+                                "نوٹ / وضاحت",
+                                "नोट / विवरण"
+                        )
+                );
 
         main.addView(noteInput);
 
         totalText =
                 makeText(
-                        "مجموع: 0 افغانی",
+                        text(
+                                "مجموع: 0 افغانی",
+                                "Total: 0 Afghani",
+                                "ټول: ۰ افغانۍ",
+                                "کل: 0 افغانی",
+                                "कुल: 0 अफ़गानी"
+                        ),
                         18
                 );
 
@@ -369,7 +708,13 @@ public class ExchangeActivity extends Activity {
 
         balanceText =
                 makeText(
-                        "موجودی: 0",
+                        text(
+                                "موجودی: 0",
+                                "Balance: 0",
+                                "موجودي: ۰",
+                                "بیلنس: 0",
+                                "शेष: 0"
+                        ),
                         17
                 );
 
@@ -378,7 +723,15 @@ public class ExchangeActivity extends Activity {
         main.addView(balanceText);
 
         Button calculateButton =
-                makeButton("🧮 محاسبه");
+                makeButton(
+                        text(
+                                "🧮 محاسبه",
+                                "🧮 Calculate",
+                                "🧮 حساب",
+                                "🧮 حساب کریں",
+                                "🧮 गणना"
+                        )
+                );
 
         main.addView(calculateButton);
 
@@ -387,7 +740,15 @@ public class ExchangeActivity extends Activity {
         );
 
         Button saveButton =
-                makeButton("💾 ثبت معامله");
+                makeButton(
+                        text(
+                                "💾 ثبت معامله",
+                                "💾 Save transaction",
+                                "💾 معامله ثبت کړئ",
+                                "💾 معاملہ محفوظ کریں",
+                                "💾 लेन-देन सहेजें"
+                        )
+                );
 
         main.addView(saveButton);
 
@@ -396,7 +757,15 @@ public class ExchangeActivity extends Activity {
         );
 
         Button historyButton =
-                makeButton("📜 تاریخچه معاملات");
+                makeButton(
+                        text(
+                                "📜 تاریخچه معاملات",
+                                "📜 Transaction history",
+                                "📜 د معاملو تاریخچه",
+                                "📜 معاملات کی تاریخ",
+                                "📜 लेन-देन इतिहास"
+                        )
+                );
 
         main.addView(historyButton);
 
@@ -405,7 +774,15 @@ public class ExchangeActivity extends Activity {
         );
 
         Button customersButton =
-                makeButton("👤 مشتریان");
+                makeButton(
+                        text(
+                                "👤 مشتریان",
+                                "👤 Customers",
+                                "👤 پېرودونکي",
+                                "👤 صارفین",
+                                "👤 ग्राहक"
+                        )
+                );
 
         main.addView(customersButton);
 
@@ -414,7 +791,15 @@ public class ExchangeActivity extends Activity {
         );
 
         Button reportButton =
-                makeButton("📊 گزارش صرافی");
+                makeButton(
+                        text(
+                                "📊 گزارش صرافی",
+                                "📊 Exchange report",
+                                "📊 د صرافۍ راپور",
+                                "📊 ایکسچینج رپورٹ",
+                                "📊 एक्सचेंज रिपोर्ट"
+                        )
+                );
 
         main.addView(reportButton);
 
@@ -427,7 +812,15 @@ public class ExchangeActivity extends Activity {
         // =====================================================
 
         Button manageBalanceButton =
-                makeButton("💰 مدیریت موجودی");
+                makeButton(
+                        text(
+                                "💰 مدیریت موجودی",
+                                "💰 Balance management",
+                                "💰 د موجودۍ مدیریت",
+                                "💰 بیلنس کا انتظام",
+                                "💰 शेष प्रबंधन"
+                        )
+                );
 
         main.addView(manageBalanceButton);
 
@@ -436,7 +829,15 @@ public class ExchangeActivity extends Activity {
         );
 
         Button balancesButton =
-                makeButton("💰 موجودی همه ارزها");
+                makeButton(
+                        text(
+                                "💰 موجودی همه ارزها",
+                                "💰 All currency balances",
+                                "💰 د ټولو اسعارو موجودي",
+                                "💰 تمام کرنسیوں کا بیلنس",
+                                "💰 सभी मुद्राओं का शेष"
+                        )
+                );
 
         main.addView(balancesButton);
 
@@ -445,7 +846,15 @@ public class ExchangeActivity extends Activity {
         );
 
         Button converterButton =
-                makeButton("🔄 تبدیل ارز");
+                makeButton(
+                        text(
+                                "🔄 تبدیل ارز",
+                                "🔄 Currency converter",
+                                "🔄 د اسعارو بدلول",
+                                "🔄 کرنسی تبدیل کریں",
+                                "🔄 मुद्रा परिवर्तक"
+                        )
+                );
 
         main.addView(converterButton);
 
@@ -454,7 +863,15 @@ public class ExchangeActivity extends Activity {
         );
 
         Button vaultButton =
-                makeButton("🔐 گاوصندوق هوشمند");
+                makeButton(
+                        text(
+                                "🔐 گاوصندوق هوشمند",
+                                "🔐 Smart vault",
+                                "🔐 سمارټ خزانه",
+                                "🔐 اسمارٹ والٹ",
+                                "🔐 स्मार्ट तिजोरी"
+                        )
+                );
 
         main.addView(vaultButton);
 
@@ -474,7 +891,13 @@ public class ExchangeActivity extends Activity {
 
                         Toast.makeText(
                                 this,
-                                "گاوصندوق در دسترس نیست",
+                                text(
+                                        "گاوصندوق در دسترس نیست",
+                                        "Vault is not available",
+                                        "خزانه شتون نه لري",
+                                        "والٹ دستیاب نہیں ہے",
+                                        "तिजोरी उपलब्ध नहीं है"
+                                ),
                                 Toast.LENGTH_SHORT
                         ).show();
                     }
@@ -482,7 +905,15 @@ public class ExchangeActivity extends Activity {
         );
 
         Button settingsButton =
-                makeButton("⚙️ تنظیمات");
+                makeButton(
+                        text(
+                                "⚙️ تنظیمات",
+                                "⚙️ Settings",
+                                "⚙️ تنظیمات",
+                                "⚙️ ترتیبات",
+                                "⚙️ सेटिंग्स"
+                        )
+                );
 
         main.addView(settingsButton);
 
@@ -553,7 +984,13 @@ public class ExchangeActivity extends Activity {
 
         TextView currentText =
                 makeText(
-                        "موجودی فعلی: 0",
+                        text(
+                                "موجودی فعلی: 0",
+                                "Current balance: 0",
+                                "اوسنی موجودي: ۰",
+                                "موجودہ بیلنس: 0",
+                                "वर्तमान शेष: 0"
+                        ),
                         17
                 );
 
@@ -563,7 +1000,13 @@ public class ExchangeActivity extends Activity {
 
         EditText amount =
                 makeInput(
-                        "مقدار موجودی جدید"
+                        text(
+                                "مقدار موجودی جدید",
+                                "New balance amount",
+                                "د نوې موجودۍ اندازه",
+                                "نئے بیلنس کی مقدار",
+                                "नए शेष की मात्रा"
+                        )
                 );
 
         amount.setInputType(
@@ -573,12 +1016,24 @@ public class ExchangeActivity extends Activity {
 
         Button save =
                 makeButton(
-                        "💾 ذخیره موجودی"
+                        text(
+                                "💾 ذخیره موجودی",
+                                "💾 Save balance",
+                                "💾 موجودي خوندي کړئ",
+                                "💾 بیلنس محفوظ کریں",
+                                "💾 शेष सहेजें"
+                        )
                 );
 
         layout.addView(
                 makeText(
-                        "ارز را انتخاب کنید",
+                        text(
+                                "ارز را انتخاب کنید",
+                                "Select currency",
+                                "اسعار وټاکئ",
+                                "کرنسی منتخب کریں",
+                                "मुद्रा चुनें"
+                        ),
                         16
                 )
         );
@@ -603,7 +1058,13 @@ public class ExchangeActivity extends Activity {
                                 currencies[position];
 
                         currentText.setText(
-                                "موجودی فعلی: " +
+                                text(
+                                        "موجودی فعلی: ",
+                                        "Current balance: ",
+                                        "اوسنی موجودي: ",
+                                        "موجودہ بیلنس: ",
+                                        "वर्तमान शेष: "
+                                ) +
                                         getCurrencyFlag(currency) +
                                         " " +
                                         formatNumber(
@@ -640,7 +1101,13 @@ public class ExchangeActivity extends Activity {
 
                         Toast.makeText(
                                 this,
-                                "مقدار موجودی را وارد کنید",
+                                text(
+                                        "مقدار موجودی را وارد کنید",
+                                        "Enter the balance amount",
+                                        "د موجودۍ اندازه ولیکئ",
+                                        "بیلنس کی مقدار درج کریں",
+                                        "शेष की मात्रा दर्ज करें"
+                                ),
                                 Toast.LENGTH_SHORT
                         ).show();
 
@@ -668,7 +1135,13 @@ public class ExchangeActivity extends Activity {
                         updateBalance();
 
                         currentText.setText(
-                                "موجودی فعلی: " +
+                                text(
+                                        "موجودی فعلی: ",
+                                        "Current balance: ",
+                                        "اوسنی موجودي: ",
+                                        "موجودہ بیلنس: ",
+                                        "वर्तमान शेष: "
+                                ) +
                                         getCurrencyFlag(currency) +
                                         " " +
                                         formatNumber(newBalance)
@@ -678,9 +1151,23 @@ public class ExchangeActivity extends Activity {
 
                         Toast.makeText(
                                 this,
-                                "✅ موجودی " +
-                                        currency +
-                                        " ذخیره شد",
+                                text(
+                                        "✅ موجودی " +
+                                                getCurrencyDisplayName(currency) +
+                                                " ذخیره شد",
+                                        "✅ Balance of " +
+                                                getCurrencyDisplayName(currency) +
+                                                " saved",
+                                        "✅ د " +
+                                                getCurrencyDisplayName(currency) +
+                                                " موجودي خوندي شوه",
+                                        "✅ " +
+                                                getCurrencyDisplayName(currency) +
+                                                " کا بیلنس محفوظ ہوگیا",
+                                        "✅ " +
+                                                getCurrencyDisplayName(currency) +
+                                                " का शेष सहेजा गया"
+                                ),
                                 Toast.LENGTH_SHORT
                         ).show();
 
@@ -688,7 +1175,13 @@ public class ExchangeActivity extends Activity {
 
                         Toast.makeText(
                                 this,
-                                "مقدار موجودی نادرست است",
+                                text(
+                                        "مقدار موجودی نادرست است",
+                                        "Invalid balance amount",
+                                        "د موجودۍ اندازه ناسمه ده",
+                                        "بیلنس کی مقدار غلط ہے",
+                                        "शेष की मात्रा गलत है"
+                                ),
                                 Toast.LENGTH_SHORT
                         ).show();
                     }
@@ -696,10 +1189,24 @@ public class ExchangeActivity extends Activity {
         );
 
         new AlertDialog.Builder(this)
-                .setTitle("💰 مدیریت موجودی")
+                .setTitle(
+                        text(
+                                "💰 مدیریت موجودی",
+                                "💰 Balance management",
+                                "💰 د موجودۍ مدیریت",
+                                "💰 بیلنس کا انتظام",
+                                "💰 शेष प्रबंधन"
+                        )
+                )
                 .setView(layout)
                 .setNegativeButton(
-                        "بستن",
+                        text(
+                                "بستن",
+                                "Close",
+                                "بندول",
+                                "بند کریں",
+                                "बंद करें"
+                        ),
                         null
                 )
                 .show();
@@ -770,10 +1277,16 @@ public class ExchangeActivity extends Activity {
                 exchangeData.getBalance(currency);
 
         balanceText.setText(
-                "موجودی " +
+                text(
+                        "موجودی ",
+                        "Balance ",
+                        "موجودي ",
+                        "بیلنس ",
+                        "शेष "
+                ) +
                         getCurrencyFlag(currency) +
                         " " +
-                        currency +
+                        getCurrencyDisplayName(currency) +
                         ": " +
                         formatNumber(balance)
         );
@@ -810,16 +1323,35 @@ public class ExchangeActivity extends Activity {
             double total = amount * rate;
 
             totalText.setText(
-                    "مجموع: " +
+                    text(
+                            "مجموع: ",
+                            "Total: ",
+                            "ټول: ",
+                            "کل: ",
+                            "कुल: "
+                    ) +
                             formatNumber(total) +
-                            " افغانی"
+                            " " +
+                            text(
+                                    "افغانی",
+                                    "Afghani",
+                                    "افغانۍ",
+                                    "افغانی",
+                                    "अफ़गानी"
+                            )
             );
 
         } catch (Exception e) {
 
             Toast.makeText(
                     this,
-                    "مقدار و نرخ را درست وارد کنید",
+                    text(
+                            "مقدار و نرخ را درست وارد کنید",
+                            "Enter a valid amount and rate",
+                            "اندازه او نرخ سم ولیکئ",
+                            "مقدار اور نرخ درست درج کریں",
+                            "मात्रा और दर सही दर्ज करें"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
         }
@@ -844,16 +1376,17 @@ public class ExchangeActivity extends Activity {
         Object currencyObject =
                 currencySpinner.getSelectedItem();
 
-        Object typeObject =
-                typeSpinner.getSelectedItem();
+        if (currencyObject == null) {
 
-        if (
-                currencyObject == null ||
-                typeObject == null
-        ) {
             Toast.makeText(
                     this,
-                    "ارز و نوع معامله را انتخاب کنید",
+                    text(
+                            "ارز و نوع معامله را انتخاب کنید",
+                            "Select currency and transaction type",
+                            "اسعار او د معاملې ډول وټاکئ",
+                            "کرنسی اور معاملے کی قسم منتخب کریں",
+                            "मुद्रा और लेन-देन का प्रकार चुनें"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -863,8 +1396,16 @@ public class ExchangeActivity extends Activity {
         String currency =
                 currencyObject.toString();
 
-        String type =
-                typeObject.toString();
+        int typePosition =
+                typeSpinner.getSelectedItemPosition();
+
+        String type;
+
+        if (typePosition == 0) {
+            type = "خرید";
+        } else {
+            type = "فروش";
+        }
 
         String amountText =
                 amountInput.getText()
@@ -885,7 +1426,13 @@ public class ExchangeActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "مقدار ارز را وارد کنید",
+                    text(
+                            "مقدار ارز را وارد کنید",
+                            "Enter the currency amount",
+                            "د اسعارو اندازه ولیکئ",
+                            "کرنسی کی مقدار درج کریں",
+                            "मुद्रा की मात्रा दर्ज करें"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -896,7 +1443,13 @@ public class ExchangeActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "نرخ ارز را وارد کنید",
+                    text(
+                            "نرخ ارز را وارد کنید",
+                            "Enter the exchange rate",
+                            "د اسعارو نرخ ولیکئ",
+                            "کرنسی کی شرح درج کریں",
+                            "विनिमय दर दर्ज करें"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -918,7 +1471,13 @@ public class ExchangeActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "مقدار یا نرخ نادرست است",
+                    text(
+                            "مقدار یا نرخ نادرست است",
+                            "Invalid amount or rate",
+                            "اندازه یا نرخ ناسم دی",
+                            "مقدار یا شرح غلط ہے",
+                            "मात्रा या दर गलत है"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -936,7 +1495,13 @@ public class ExchangeActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "مقدار و نرخ باید بیشتر از صفر باشد",
+                    text(
+                            "مقدار و نرخ باید بیشتر از صفر باشد",
+                            "Amount and rate must be greater than zero",
+                            "اندازه او نرخ باید له صفر څخه زیات وي",
+                            "مقدار اور شرح صفر سے زیادہ ہونی چاہیے",
+                            "मात्रा और दर शून्य से अधिक होनी चाहिए"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -947,7 +1512,13 @@ public class ExchangeActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "افغانی ارز پایه است؛ ارز خارجی را انتخاب کنید.",
+                    text(
+                            "افغانی ارز پایه است؛ ارز خارجی را انتخاب کنید.",
+                            "Afghani is the base currency; select a foreign currency.",
+                            "افغانۍ بنسټیز اسعار دي؛ بهرني اسعار وټاکئ.",
+                            "افغانی بنیادی کرنسی ہے؛ غیر ملکی کرنسی منتخب کریں۔",
+                            "अफ़गानी आधार मुद्रा है; विदेशी मुद्रा चुनें।"
+                    ),
                     Toast.LENGTH_LONG
             ).show();
 
@@ -970,7 +1541,13 @@ public class ExchangeActivity extends Activity {
 
                 Toast.makeText(
                         this,
-                        "موجودی افغانی صرافی کافی نیست.",
+                        text(
+                                "موجودی افغانی صرافی کافی نیست.",
+                                "The exchange does not have enough Afghani balance.",
+                                "د صرافۍ افغانۍ موجودي کافي نه ده.",
+                                "ایکسچینج میں افغانی کا بیلنس کافی نہیں ہے۔",
+                                "एक्सचेंज में अफ़गानी का शेष पर्याप्त नहीं है।"
+                        ),
                         Toast.LENGTH_LONG
                 ).show();
 
@@ -983,9 +1560,21 @@ public class ExchangeActivity extends Activity {
 
                 Toast.makeText(
                         this,
-                        "موجودی " +
-                                currency +
-                                " کافی نیست.",
+                        text(
+                                "موجودی " +
+                                        getCurrencyDisplayName(currency) +
+                                        " کافی نیست.",
+                                "Not enough " +
+                                        getCurrencyDisplayName(currency) +
+                                        " balance.",
+                                "د " +
+                                        getCurrencyDisplayName(currency) +
+                                        " موجودي کافي نه ده.",
+                                getCurrencyDisplayName(currency) +
+                                        " کا بیلنس کافی نہیں ہے۔",
+                                getCurrencyDisplayName(currency) +
+                                        " का शेष पर्याप्त नहीं है।"
+                        ),
                         Toast.LENGTH_LONG
                 ).show();
 
@@ -1009,7 +1598,13 @@ public class ExchangeActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "خطا در ثبت معامله؛ موجودی تغییر نکرد.",
+                    text(
+                            "خطا در ثبت معامله؛ موجودی تغییر نکرد.",
+                            "Transaction could not be saved; balance was not changed.",
+                            "د معاملې په ثبتولو کې ستونزه؛ موجودي بدله نه شوه.",
+                            "معاملہ محفوظ نہیں ہوا؛ بیلنس تبدیل نہیں ہوا۔",
+                            "लेन-देन सहेजा नहीं गया; शेष नहीं बदला।"
+                    ),
                     Toast.LENGTH_LONG
             ).show();
 
@@ -1047,9 +1642,22 @@ public class ExchangeActivity extends Activity {
         );
 
         totalText.setText(
-                "مجموع: " +
+                text(
+                        "مجموع: ",
+                        "Total: ",
+                        "ټول: ",
+                        "کل: ",
+                        "कुल: "
+                ) +
                         formatNumber(total) +
-                        " افغانی"
+                        " " +
+                        text(
+                                "افغانی",
+                                "Afghani",
+                                "افغانۍ",
+                                "افغانی",
+                                "अफ़गानी"
+                        )
         );
 
         updateBalance();
@@ -1084,7 +1692,13 @@ public class ExchangeActivity extends Activity {
 
         Toast.makeText(
                 this,
-                "✅ معامله با موفقیت ثبت شد",
+                text(
+                        "✅ معامله با موفقیت ثبت شد",
+                        "✅ Transaction saved successfully",
+                        "✅ معامله په بریالیتوب ثبت شوه",
+                        "✅ معاملہ کامیابی سے محفوظ ہوگیا",
+                        "✅ लेन-देन सफलतापूर्वक सहेजा गया"
+                ),
                 Toast.LENGTH_SHORT
         ).show();
 
@@ -1116,11 +1730,27 @@ public class ExchangeActivity extends Activity {
         );
 
         receipt.append(
-                "       💱 تجربه‌ها\n"
+                "       💱 " +
+                        text(
+                                "تجربه‌ها",
+                                "Tajrobehha",
+                                "تجربې",
+                                "تجربے",
+                                "तजरोबेहा"
+                        ) +
+                        "\n"
         );
 
         receipt.append(
-                "       🧾 رسید معامله\n"
+                "       🧾 " +
+                        text(
+                                "رسید معامله",
+                                "Transaction receipt",
+                                "د معاملې رسید",
+                                "معاملے کی رسید",
+                                "लेन-देन रसीद"
+                        ) +
+                        "\n"
         );
 
         receipt.append(
@@ -1128,26 +1758,53 @@ public class ExchangeActivity extends Activity {
         );
 
         receipt.append(
-                "🆔 شناسه معامله: "
+                "🆔 " +
+                        text(
+                                "شناسه معامله: ",
+                                "Transaction ID: ",
+                                "د معاملې پېژندنه: ",
+                                "معاملے کی شناخت: ",
+                                "लेन-देन आईडी: "
+                        )
         );
 
         receipt.append(transactionId);
         receipt.append("\n");
 
         receipt.append(
-                "📅 تاریخ هجری: "
+                "📅 " +
+                        text(
+                                "تاریخ هجری: ",
+                                "Hijri date: ",
+                                "هجري نېټه: ",
+                                "ہجری تاریخ: ",
+                                "हिजरी तारीख: "
+                        )
         );
 
         receipt.append(date);
         receipt.append("\n\n");
 
         receipt.append(
-                "👤 مشتری: "
+                "👤 " +
+                        text(
+                                "مشتری: ",
+                                "Customer: ",
+                                "پېرودونکی: ",
+                                "صارف: ",
+                                "ग्राहक: "
+                        )
         );
 
         receipt.append(
                 customerName.isEmpty()
-                        ? "بدون نام"
+                        ? text(
+                                "بدون نام",
+                                "No name",
+                                "بې نومه",
+                                "بغیر نام",
+                                "बिना नाम"
+                        )
                         : customerName
         );
 
@@ -1156,7 +1813,14 @@ public class ExchangeActivity extends Activity {
         if (!phone.isEmpty()) {
 
             receipt.append(
-                    "📱 تلفن: "
+                    "📱 " +
+                            text(
+                                    "تلفن: ",
+                                    "Phone: ",
+                                    "ټیلیفون: ",
+                                    "فون: ",
+                                    "फ़ोन: "
+                            )
             );
 
             receipt.append(phone);
@@ -1166,14 +1830,31 @@ public class ExchangeActivity extends Activity {
         receipt.append("\n");
 
         receipt.append(
-                "🔄 نوع معامله: "
+                "🔄 " +
+                        text(
+                                "نوع معامله: ",
+                                "Transaction type: ",
+                                "د معاملې ډول: ",
+                                "معاملے کی قسم: ",
+                                "लेन-देन प्रकार: "
+                        )
         );
 
-        receipt.append(type);
+        receipt.append(
+                getDisplayedTransactionType(type)
+        );
+
         receipt.append("\n");
 
         receipt.append(
-                "💱 ارز: "
+                "💱 " +
+                        text(
+                                "ارز: ",
+                                "Currency: ",
+                                "اسعار: ",
+                                "کرنسی: ",
+                                "मुद्रा: "
+                        )
         );
 
         receipt.append(
@@ -1181,11 +1862,20 @@ public class ExchangeActivity extends Activity {
         );
 
         receipt.append(" ");
-        receipt.append(currency);
+        receipt.append(
+                getCurrencyDisplayName(currency)
+        );
         receipt.append("\n");
 
         receipt.append(
-                "📦 مقدار: "
+                "📦 " +
+                        text(
+                                "مقدار: ",
+                                "Amount: ",
+                                "اندازه: ",
+                                "مقدار: ",
+                                "मात्रा: "
+                        )
         );
 
         receipt.append(
@@ -1195,17 +1885,41 @@ public class ExchangeActivity extends Activity {
         receipt.append("\n");
 
         receipt.append(
-                "📈 نرخ هر واحد: "
+                "📈 " +
+                        text(
+                                "نرخ هر واحد: ",
+                                "Rate per unit: ",
+                                "د هر واحد نرخ: ",
+                                "فی یونٹ شرح: ",
+                                "प्रति इकाई दर: "
+                        )
         );
 
         receipt.append(
                 formatNumber(rate)
         );
 
-        receipt.append(" افغانی\n");
+        receipt.append(
+                " " +
+                        text(
+                                "افغانی",
+                                "Afghani",
+                                "افغانۍ",
+                                "افغانی",
+                                "अफ़गानी"
+                        ) +
+                        "\n"
+        );
 
         receipt.append(
-                "💰 مبلغ نهایی: "
+                "💰 " +
+                        text(
+                                "مبلغ نهایی: ",
+                                "Final amount: ",
+                                "وروستۍ اندازه: ",
+                                "حتمی رقم: ",
+                                "अंतिम राशि: "
+                        )
         );
 
         receipt.append(
@@ -1213,26 +1927,62 @@ public class ExchangeActivity extends Activity {
         );
 
         receipt.append(
-                " افغانی\n"
+                " " +
+                        text(
+                                "افغانی",
+                                "Afghani",
+                                "افغانۍ",
+                                "افغانی",
+                                "अफ़गानी"
+                        ) +
+                        "\n"
         );
 
         if (!note.isEmpty()) {
 
             receipt.append("\n");
-            receipt.append("📝 یادداشت: ");
+            receipt.append(
+                    "📝 " +
+                            text(
+                                    "یادداشت: ",
+                                    "Note: ",
+                                    "یادښت: ",
+                                    "نوٹ: ",
+                                    "नोट: "
+                            )
+            );
             receipt.append(note);
             receipt.append("\n");
         }
 
         receipt.append("\n");
-        receipt.append("💵 وضعیت حساب: نقدی\n");
+        receipt.append(
+                "💵 " +
+                        text(
+                                "وضعیت حساب: ",
+                                "Account status: ",
+                                "د حساب حالت: ",
+                                "اکاؤنٹ کی حالت: ",
+                                "खाते की स्थिति: "
+                        ) +
+                        getDisplayedAccountStatus("نقدی") +
+                        "\n"
+        );
 
         receipt.append(
                 "━━━━━━━━━━━━━━━━━━━━\n"
         );
 
         receipt.append(
-                "        تشکر از شما 🌹\n"
+                "        " +
+                        text(
+                                "تشکر از شما 🌹",
+                                "Thank you 🌹",
+                                "له تاسو مننه 🌹",
+                                "آپ کا شکریہ 🌹",
+                                "धन्यवाद 🌹"
+                        ) +
+                        "\n"
         );
 
         receipt.append(
@@ -1270,18 +2020,44 @@ public class ExchangeActivity extends Activity {
 
         AlertDialog dialog =
                 new AlertDialog.Builder(this)
-                        .setTitle("🧾 رسید معامله")
+                        .setTitle(
+                                text(
+                                        "🧾 رسید معامله",
+                                        "🧾 Transaction receipt",
+                                        "🧾 د معاملې رسید",
+                                        "🧾 معاملے کی رسید",
+                                        "🧾 लेन-देन रसीद"
+                                )
+                        )
                         .setView(scrollView)
                         .setNegativeButton(
-                                "بستن",
+                                text(
+                                        "بستن",
+                                        "Close",
+                                        "بندول",
+                                        "بند کریں",
+                                        "बंद करें"
+                                ),
                                 null
                         )
                         .setNeutralButton(
-                                "📋 کپی",
+                                text(
+                                        "📋 کپی",
+                                        "📋 Copy",
+                                        "📋 کاپي",
+                                        "📋 کاپی",
+                                        "📋 कॉपी"
+                                ),
                                 null
                         )
                         .setPositiveButton(
-                                "📤 اشتراک‌گذاری",
+                                text(
+                                        "📤 اشتراک‌گذاری",
+                                        "📤 Share",
+                                        "📤 شریکول",
+                                        "📤 شیئر کریں",
+                                        "📤 साझा करें"
+                                ),
                                 null
                         )
                         .create();
@@ -1312,7 +2088,9 @@ public class ExchangeActivity extends Activity {
         dialog.show();
     }
 
-    private void copyReceipt(String receipt) {
+    private void copyReceipt(
+            String receipt
+    ) {
 
         ClipboardManager clipboard =
                 (ClipboardManager)
@@ -1324,20 +2102,34 @@ public class ExchangeActivity extends Activity {
 
             clipboard.setPrimaryClip(
                     ClipData.newPlainText(
-                            "رسید معامله تجربه‌ها",
+                            text(
+                                    "رسید معامله تجربه‌ها",
+                                    "Tajrobehha transaction receipt",
+                                    "د تجربو د معاملې رسید",
+                                    "تجربے کی معاملے کی رسید",
+                                    "तजरोबेहा लेन-देन रसीद"
+                            ),
                             receipt
                     )
             );
 
             Toast.makeText(
                     this,
-                    "📋 رسید کپی شد",
+                    text(
+                            "📋 رسید کپی شد",
+                            "📋 Receipt copied",
+                            "📋 رسید کاپي شو",
+                            "📋 رسید کاپی ہوگئی",
+                            "📋 रसीद कॉपी की गई"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
         }
     }
 
-    private void shareReceipt(String receipt) {
+    private void shareReceipt(
+            String receipt
+    ) {
 
         Intent shareIntent =
                 new Intent(Intent.ACTION_SEND);
@@ -1346,12 +2138,24 @@ public class ExchangeActivity extends Activity {
 
         shareIntent.putExtra(
                 Intent.EXTRA_TITLE,
-                "🧾 رسید معامله تجربه‌ها"
+                text(
+                        "🧾 رسید معامله تجربه‌ها",
+                        "🧾 Tajrobehha transaction receipt",
+                        "🧾 د تجربو د معاملې رسید",
+                        "🧾 تجربے کی معاملے کی رسید",
+                        "🧾 तजरोबेहा लेन-देन रसीद"
+                )
         );
 
         shareIntent.putExtra(
                 Intent.EXTRA_SUBJECT,
-                "رسید معامله تجربه‌ها"
+                text(
+                        "رسید معامله تجربه‌ها",
+                        "Tajrobehha transaction receipt",
+                        "د تجربو د معاملې رسید",
+                        "تجربے کی معاملے کی رسید",
+                        "तजरोबेहा लेन-देन रसीद"
+                )
         );
 
         shareIntent.putExtra(
@@ -1366,7 +2170,13 @@ public class ExchangeActivity extends Activity {
             startActivity(
                     Intent.createChooser(
                             shareIntent,
-                            "📤 ارسال رسید با..."
+                            text(
+                                    "📤 ارسال رسید با...",
+                                    "📤 Send receipt with...",
+                                    "📤 رسید په دې سره ولېږئ...",
+                                    "📤 رسید اس کے ذریعے بھیجیں...",
+                                    "📤 रसीद इसके साथ भेजें..."
+                            )
                     )
             );
 
@@ -1374,7 +2184,13 @@ public class ExchangeActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "برنامه‌ای برای اشتراک‌گذاری پیدا نشد",
+                    text(
+                            "برنامه‌ای برای اشتراک‌گذاری پیدا نشد",
+                            "No app found for sharing",
+                            "د شریکولو لپاره کوم اپ ونه موندل شو",
+                            "شیئر کرنے کے لیے کوئی ایپ نہیں ملی",
+                            "साझा करने के लिए कोई ऐप नहीं मिला"
+                    ),
                     Toast.LENGTH_LONG
             ).show();
         }
@@ -1395,12 +2211,32 @@ public class ExchangeActivity extends Activity {
         ) {
 
             new AlertDialog.Builder(this)
-                    .setTitle("📜 تاریخچه معاملات")
+                    .setTitle(
+                            text(
+                                    "📜 تاریخچه معاملات",
+                                    "📜 Transaction history",
+                                    "📜 د معاملو تاریخچه",
+                                    "📜 معاملات کی تاریخ",
+                                    "📜 लेन-देन इतिहास"
+                            )
+                    )
                     .setMessage(
-                            "هنوز معامله‌ای ثبت نشده است."
+                            text(
+                                    "هنوز معامله‌ای ثبت نشده است.",
+                                    "No transactions have been recorded yet.",
+                                    "تر اوسه هېڅ معامله نه ده ثبت شوې.",
+                                    "ابھی تک کوئی معاملہ درج نہیں ہوا۔",
+                                    "अभी तक कोई लेन-देन दर्ज नहीं हुआ है।"
+                            )
                     )
                     .setPositiveButton(
-                            "باشه",
+                            text(
+                                    "باشه",
+                                    "OK",
+                                    "سمه ده",
+                                    "ٹھیک ہے",
+                                    "ठीक है"
+                            ),
                             null
                     )
                     .show();
@@ -1495,41 +2331,120 @@ public class ExchangeActivity extends Activity {
                             0
                     );
 
+            String itemText =
+                    "👤 " +
+                            text(
+                                    "مشتری: ",
+                                    "Customer: ",
+                                    "پېرودونکی: ",
+                                    "صارف: ",
+                                    "ग्राहक: "
+                            ) +
+                            customer +
+
+                            "\n📱 " +
+                            text(
+                                    "تلفن: ",
+                                    "Phone: ",
+                                    "ټیلیفون: ",
+                                    "فون: ",
+                                    "फ़ोन: "
+                            ) +
+                            phone +
+
+                            "\n💱 " +
+                            text(
+                                    "نوع: ",
+                                    "Type: ",
+                                    "ډول: ",
+                                    "قسم: ",
+                                    "प्रकार: "
+                            ) +
+                            getDisplayedTransactionType(type) +
+
+                            "\n💵 " +
+                            text(
+                                    "ارز: ",
+                                    "Currency: ",
+                                    "اسعار: ",
+                                    "کرنسی: ",
+                                    "मुद्रा: "
+                            ) +
+                            getCurrencyFlag(currency) +
+                            " " +
+                            getCurrencyDisplayName(currency) +
+
+                            "\n📦 " +
+                            text(
+                                    "مقدار: ",
+                                    "Amount: ",
+                                    "اندازه: ",
+                                    "مقدار: ",
+                                    "मात्रा: "
+                            ) +
+                            formatNumber(amount) +
+
+                            "\n📈 " +
+                            text(
+                                    "نرخ: ",
+                                    "Rate: ",
+                                    "نرخ: ",
+                                    "شرح: ",
+                                    "दर: "
+                            ) +
+                            formatNumber(rate) +
+
+                            "\n💰 " +
+                            text(
+                                    "مجموع: ",
+                                    "Total: ",
+                                    "ټول: ",
+                                    "کل: ",
+                                    "कुल: "
+                            ) +
+                            formatNumber(total) +
+                            " " +
+                            text(
+                                    "افغانی",
+                                    "Afghani",
+                                    "افغانۍ",
+                                    "افغانی",
+                                    "अफ़गानी"
+                            ) +
+
+                            "\n📋 " +
+                            text(
+                                    "حساب: ",
+                                    "Account: ",
+                                    "حساب: ",
+                                    "اکاؤنٹ: ",
+                                    "खाता: "
+                            ) +
+                            getDisplayedAccountStatus(accountStatus) +
+
+                            "\n📝 " +
+                            text(
+                                    "یادداشت: ",
+                                    "Note: ",
+                                    "یادښت: ",
+                                    "نوٹ: ",
+                                    "नोट: "
+                            ) +
+                            note +
+
+                            "\n📅 " +
+                            text(
+                                    "تاریخ هجری: ",
+                                    "Hijri date: ",
+                                    "هجري نېټه: ",
+                                    "ہجری تاریخ: ",
+                                    "हिजरी तारीख: "
+                            ) +
+                            formatDate(date);
+
             TextView item =
                     makeText(
-                            "👤 مشتری: " +
-                                    customer +
-
-                                    "\n📱 تلفن: " +
-                                    phone +
-
-                                    "\n💱 نوع: " +
-                                    type +
-
-                                    "\n💵 ارز: " +
-                                    getCurrencyFlag(currency) +
-                                    " " +
-                                    currency +
-
-                                    "\n📦 مقدار: " +
-                                    formatNumber(amount) +
-
-                                    "\n📈 نرخ: " +
-                                    formatNumber(rate) +
-
-                                    "\n💰 مجموع: " +
-                                    formatNumber(total) +
-                                    " افغانی" +
-
-                                    "\n📋 حساب: " +
-                                    accountStatus +
-
-                                    "\n📝 یادداشت: " +
-                                    note +
-
-                                    "\n📅 تاریخ هجری: " +
-                                    formatDate(date),
-
+                            itemText,
                             15
                     );
 
@@ -1554,10 +2469,24 @@ public class ExchangeActivity extends Activity {
         scroll.addView(list);
 
         new AlertDialog.Builder(this)
-                .setTitle("📜 تاریخچه معاملات")
+                .setTitle(
+                        text(
+                                "📜 تاریخچه معاملات",
+                                "📜 Transaction history",
+                                "📜 د معاملو تاریخچه",
+                                "📜 معاملات کی تاریخ",
+                                "📜 लेन-देन इतिहास"
+                        )
+                )
                 .setView(scroll)
                 .setPositiveButton(
-                        "بستن",
+                        text(
+                                "بستن",
+                                "Close",
+                                "بندول",
+                                "بند کریں",
+                                "बंद करें"
+                        ),
                         null
                 )
                 .show();
@@ -1578,12 +2507,32 @@ public class ExchangeActivity extends Activity {
         ) {
 
             new AlertDialog.Builder(this)
-                    .setTitle("👤 مشتریان")
+                    .setTitle(
+                            text(
+                                    "👤 مشتریان",
+                                    "👤 Customers",
+                                    "👤 پېرودونکي",
+                                    "👤 صارفین",
+                                    "👤 ग्राहक"
+                            )
+                    )
                     .setMessage(
-                            "هنوز مشتری ثبت نشده است."
+                            text(
+                                    "هنوز مشتری ثبت نشده است.",
+                                    "No customers have been registered yet.",
+                                    "تر اوسه هېڅ پېرودونکی نه دی ثبت شوی.",
+                                    "ابھی تک کوئی صارف درج نہیں ہوا۔",
+                                    "अभी तक कोई ग्राहक दर्ज नहीं हुआ है।"
+                            )
                     )
                     .setPositiveButton(
-                            "باشه",
+                            text(
+                                    "باشه",
+                                    "OK",
+                                    "سمه ده",
+                                    "ٹھیک ہے",
+                                    "ठीक है"
+                            ),
                             null
                     )
                     .show();
@@ -1611,7 +2560,13 @@ public class ExchangeActivity extends Activity {
         searchView.setIconifiedByDefault(false);
 
         searchView.setQueryHint(
-                "🔎 جستجوی نام مشتری"
+                text(
+                        "🔎 جستجوی نام مشتری",
+                        "🔎 Search customer name",
+                        "🔎 د پېرودونکي نوم ولټوئ",
+                        "🔎 صارف کا نام تلاش کریں",
+                        "🔎 ग्राहक का नाम खोजें"
+                )
         );
 
         layout.addView(searchView);
@@ -1686,10 +2641,24 @@ public class ExchangeActivity extends Activity {
         );
 
         new AlertDialog.Builder(this)
-                .setTitle("👤 مشتریان")
+                .setTitle(
+                        text(
+                                "👤 مشتریان",
+                                "👤 Customers",
+                                "👤 پېرودونکي",
+                                "👤 صارفین",
+                                "👤 ग्राहक"
+                        )
+                )
                 .setView(layout)
                 .setPositiveButton(
-                        "بستن",
+                        text(
+                                "بستن",
+                                "Close",
+                                "بندول",
+                                "بند کریں",
+                                "बंद करें"
+                        ),
                         null
                 )
                 .show();
@@ -1707,7 +2676,7 @@ public class ExchangeActivity extends Activity {
         String search =
                 normalizePersian(query);
 
-        StringBuilder text =
+        StringBuilder result =
                 new StringBuilder();
 
         int count = 0;
@@ -1740,49 +2709,117 @@ public class ExchangeActivity extends Activity {
             double balance =
                     exchangeData.getCustomerBalance(name);
 
-            text.append("━━━━━━━━━━━━━━━━\n");
+            result.append("━━━━━━━━━━━━━━━━\n");
 
-            text.append("👤 ")
+            result.append("👤 ")
                     .append(name)
                     .append("\n");
 
-            text.append("🔴 بدهکاری: ")
+            result.append(
+                    "🔴 " +
+                            text(
+                                    "بدهکاری: ",
+                                    "Debt: ",
+                                    "پور: ",
+                                    "واجب الادا: ",
+                                    "ऋण: "
+                            )
+            )
                     .append(formatNumber(debt))
-                    .append(" افغانی\n");
+                    .append(" ")
+                    .append(
+                            text(
+                                    "افغانی\n",
+                                    "Afghani\n",
+                                    "افغانۍ\n",
+                                    "افغانی\n",
+                                    "अफ़गानी\n"
+                            )
+                    );
 
-            text.append("🟢 طلبکاری: ")
+            result.append(
+                    "🟢 " +
+                            text(
+                                    "طلبکاری: ",
+                                    "Credit: ",
+                                    "طلب: ",
+                                    "قرض: ",
+                                    "लेनदार: "
+                            )
+            )
                     .append(formatNumber(credit))
-                    .append(" افغانی\n");
+                    .append(" ")
+                    .append(
+                            text(
+                                    "افغانی\n",
+                                    "Afghani\n",
+                                    "افغانۍ\n",
+                                    "افغانی\n",
+                                    "अफ़गानी\n"
+                            )
+                    );
 
-            text.append("💰 مانده حساب: ")
+            result.append(
+                    "💰 " +
+                            text(
+                                    "مانده حساب: ",
+                                    "Account balance: ",
+                                    "د حساب پاتې: ",
+                                    "اکاؤنٹ بیلنس: ",
+                                    "खाते का शेष: "
+                            )
+            )
                     .append(formatNumber(balance))
-                    .append(" افغانی\n");
+                    .append(" ")
+                    .append(
+                            text(
+                                    "افغانی\n",
+                                    "Afghani\n",
+                                    "افغانۍ\n",
+                                    "افغانی\n",
+                                    "अफ़गानी\n"
+                            )
+                    );
 
             count++;
         }
 
         if (count == 0) {
 
-            return "🔎 مشتری با این نام پیدا نشد.";
+            return text(
+                    "🔎 مشتری با این نام پیدا نشد.",
+                    "🔎 No customer found with this name.",
+                    "🔎 په دې نوم کوم پېرودونکی ونه موندل شو.",
+                    "🔎 اس نام سے کوئی صارف نہیں ملا۔",
+                    "🔎 इस नाम का कोई ग्राहक नहीं मिला।"
+            );
         }
 
-        return "👥 تعداد نتیجه: " +
+        return text(
+                "👥 تعداد نتیجه: ",
+                "👥 Results: ",
+                "👥 د پایلو شمېر: ",
+                "👥 نتائج کی تعداد: ",
+                "👥 परिणाम: "
+        ) +
                 count +
                 "\n\n" +
-                text.toString();
+                result.toString();
     }
 
     // =========================================================
     // یکسان‌سازی حروف فارسی برای جستجو
     // =========================================================
 
-    private String normalizePersian(String text) {
+    private String normalizePersian(
+            String value
+    ) {
 
-        if (text == null) {
+        if (value == null) {
             return "";
         }
 
-        return text
+        return value
                 .trim()
                 .replace('ي', 'ی')
                 .replace('ى', 'ی')
@@ -1809,28 +2846,98 @@ public class ExchangeActivity extends Activity {
                 sell - buy;
 
         String report =
-                "📊 گزارش صرافی" +
+                "📊 " +
+                        text(
+                                "گزارش صرافی",
+                                "Exchange report",
+                                "د صرافۍ راپور",
+                                "ایکسچینج رپورٹ",
+                                "एक्सचेंज रिपोर्ट"
+                        ) +
 
-                        "\n\nتعداد معاملات: " +
+                        "\n\n" +
+                        text(
+                                "تعداد معاملات: ",
+                                "Transactions: ",
+                                "معاملې: ",
+                                "معاملات: ",
+                                "लेन-देन: "
+                        ) +
                         count +
 
-                        "\n\nمجموع خرید: " +
+                        "\n\n" +
+                        text(
+                                "مجموع خرید: ",
+                                "Total purchases: ",
+                                "ټول پېرود: ",
+                                "کل خرید: ",
+                                "कुल खरीद: "
+                        ) +
                         formatNumber(buy) +
-                        " افغانی" +
+                        " " +
+                        text(
+                                "افغانی",
+                                "Afghani",
+                                "افغانۍ",
+                                "افغانی",
+                                "अफ़गानी"
+                        ) +
 
-                        "\n\nمجموع فروش: " +
+                        "\n\n" +
+                        text(
+                                "مجموع فروش: ",
+                                "Total sales: ",
+                                "ټول پلور: ",
+                                "کل فروخت: ",
+                                "कुल बिक्री: "
+                        ) +
                         formatNumber(sell) +
-                        " افغانی" +
+                        " " +
+                        text(
+                                "افغانی",
+                                "Afghani",
+                                "افغانۍ",
+                                "افغانی",
+                                "अफ़गानी"
+                        ) +
 
-                        "\n\nاختلاف فروش و خرید: " +
+                        "\n\n" +
+                        text(
+                                "اختلاف فروش و خرید: ",
+                                "Sales minus purchases: ",
+                                "د پلور او پېرود توپیر: ",
+                                "فروخت اور خرید کا فرق: ",
+                                "बिक्री और खरीद का अंतर: "
+                        ) +
                         formatNumber(difference) +
-                        " افغانی";
+                        " " +
+                        text(
+                                "افغانی",
+                                "Afghani",
+                                "افغانۍ",
+                                "افغانی",
+                                "अफ़गानी"
+                        );
 
         new AlertDialog.Builder(this)
-                .setTitle("📊 گزارش")
+                .setTitle(
+                        text(
+                                "📊 گزارش",
+                                "📊 Report",
+                                "📊 راپور",
+                                "📊 رپورٹ",
+                                "📊 रिपोर्ट"
+                        )
+                )
                 .setMessage(report)
                 .setPositiveButton(
-                        "بستن",
+                        text(
+                                "بستن",
+                                "Close",
+                                "بندول",
+                                "بند کریں",
+                                "बंद करें"
+                        ),
                         null
                 )
                 .show();
@@ -1842,7 +2949,7 @@ public class ExchangeActivity extends Activity {
 
     private void showBalances() {
 
-        StringBuilder text =
+        StringBuilder result =
                 new StringBuilder();
 
         for (String currency : currencies) {
@@ -1853,37 +2960,67 @@ public class ExchangeActivity extends Activity {
             double rate =
                     exchangeData.getRate(currency);
 
-            text.append(
+            result.append(
                     getCurrencyFlag(currency)
             );
 
-            text.append(" ");
-            text.append(currency);
-
-            text.append(
-                    "\nموجودی: "
+            result.append(" ");
+            result.append(
+                    getCurrencyDisplayName(currency)
             );
 
-            text.append(
+            result.append(
+                    "\n" +
+                            text(
+                                    "موجودی: ",
+                                    "Balance: ",
+                                    "موجودي: ",
+                                    "بیلنس: ",
+                                    "शेष: "
+                            )
+            );
+
+            result.append(
                     formatNumber(balance)
             );
 
-            text.append(
-                    "\nنرخ: "
+            result.append(
+                    "\n" +
+                            text(
+                                    "نرخ: ",
+                                    "Rate: ",
+                                    "نرخ: ",
+                                    "شرح: ",
+                                    "दर: "
+                            )
             );
 
-            text.append(
+            result.append(
                     formatNumber(rate)
             );
 
-            text.append("\n\n");
+            result.append("\n\n");
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("💰 موجودی همه ارزها")
-                .setMessage(text.toString())
+                .setTitle(
+                        text(
+                                "💰 موجودی همه ارزها",
+                                "💰 All currency balances",
+                                "💰 د ټولو اسعارو موجودي",
+                                "💰 تمام کرنسیوں کا بیلنس",
+                                "💰 सभी मुद्राओं का शेष"
+                        )
+                )
+                .setMessage(result.toString())
                 .setPositiveButton(
-                        "بستن",
+                        text(
+                                "بستن",
+                                "Close",
+                                "بندول",
+                                "بند کریں",
+                                "बंद करें"
+                        ),
                         null
                 )
                 .show();
@@ -1933,7 +3070,15 @@ public class ExchangeActivity extends Activity {
         toSpinner.setAdapter(adapterTo);
 
         EditText amount =
-                makeInput("مقدار برای تبدیل");
+                makeInput(
+                        text(
+                                "مقدار برای تبدیل",
+                                "Amount to convert",
+                                "د بدلولو اندازه",
+                                "تبدیل کرنے کی مقدار",
+                                "परिवर्तित करने की मात्रा"
+                        )
+                );
 
         amount.setInputType(
                 InputType.TYPE_CLASS_NUMBER |
@@ -1942,21 +3087,53 @@ public class ExchangeActivity extends Activity {
 
         TextView result =
                 makeText(
-                        "نتیجه: 0",
+                        text(
+                                "نتیجه: 0",
+                                "Result: 0",
+                                "پایله: ۰",
+                                "نتیجہ: 0",
+                                "परिणाम: 0"
+                        ),
                         17
                 );
 
         Button convert =
-                makeButton("🔄 تبدیل");
+                makeButton(
+                        text(
+                                "🔄 تبدیل",
+                                "🔄 Convert",
+                                "🔄 بدلول",
+                                "🔄 تبدیل کریں",
+                                "🔄 बदलें"
+                        )
+                );
 
         layout.addView(
-                makeText("از ارز", 15)
+                makeText(
+                        text(
+                                "از ارز",
+                                "From currency",
+                                "له اسعارو",
+                                "کس کرنسی سے",
+                                "किस मुद्रा से"
+                        ),
+                        15
+                )
         );
 
         layout.addView(fromSpinner);
 
         layout.addView(
-                makeText("به ارز", 15)
+                makeText(
+                        text(
+                                "به ارز",
+                                "To currency",
+                                "ته اسعارو",
+                                "کس کرنسی میں",
+                                "किस मुद्रा में"
+                        ),
+                        15
+                )
         );
 
         layout.addView(toSpinner);
@@ -2011,19 +3188,31 @@ public class ExchangeActivity extends Activity {
                                 afn / toRate;
 
                         result.setText(
-                                "نتیجه: " +
+                                text(
+                                        "نتیجه: ",
+                                        "Result: ",
+                                        "پایله: ",
+                                        "نتیجہ: ",
+                                        "परिणाम: "
+                                ) +
                                         formatNumber(converted) +
                                         " " +
                                         getCurrencyFlag(to) +
                                         " " +
-                                        to
+                                        getCurrencyDisplayName(to)
                         );
 
                     } catch (Exception e) {
 
                         Toast.makeText(
                                 this,
-                                "مقدار را درست وارد کنید",
+                                text(
+                                        "مقدار را درست وارد کنید",
+                                        "Enter a valid amount",
+                                        "سمه اندازه ولیکئ",
+                                        "درست مقدار درج کریں",
+                                        "सही मात्रा दर्ज करें"
+                                ),
                                 Toast.LENGTH_SHORT
                         ).show();
                     }
@@ -2031,16 +3220,32 @@ public class ExchangeActivity extends Activity {
         );
 
         new AlertDialog.Builder(this)
-                .setTitle("🔄 تبدیل ارز")
+                .setTitle(
+                        text(
+                                "🔄 تبدیل ارز",
+                                "🔄 Currency converter",
+                                "🔄 د اسعارو بدلول",
+                                "🔄 کرنسی تبدیل کریں",
+                                "🔄 मुद्रा परिवर्तक"
+                        )
+                )
                 .setView(layout)
                 .setPositiveButton(
-                        "بستن",
+                        text(
+                                "بستن",
+                                "Close",
+                                "بندول",
+                                "بند کریں",
+                                "बंद करें"
+                        ),
                         null
                 )
                 .show();
     }
 
-    private double getRateToAFN(String currency) {
+    private double getRateToAFN(
+            String currency
+    ) {
 
         if (ExchangeData.AFN.equals(currency)) {
             return 1;
@@ -2056,12 +3261,32 @@ public class ExchangeActivity extends Activity {
     private void showSettings() {
 
         String[] options = {
-                "🗑 پاک کردن تاریخچه معاملات",
-                "⚠️ پاک کردن تمام اطلاعات صرافی"
+                text(
+                        "🗑 پاک کردن تاریخچه معاملات",
+                        "🗑 Clear transaction history",
+                        "🗑 د معاملو تاریخچه پاکول",
+                        "🗑 معاملات کی تاریخ صاف کریں",
+                        "🗑 लेन-देन इतिहास साफ करें"
+                ),
+                text(
+                        "⚠️ پاک کردن تمام اطلاعات صرافی",
+                        "⚠️ Clear all exchange data",
+                        "⚠️ د صرافۍ ټول معلومات پاکول",
+                        "⚠️ تمام ایکسچینج ڈیٹا صاف کریں",
+                        "⚠️ सभी एक्सचेंज डेटा साफ करें"
+                )
         };
 
         new AlertDialog.Builder(this)
-                .setTitle("⚙️ تنظیمات صرافی")
+                .setTitle(
+                        text(
+                                "⚙️ تنظیمات صرافی",
+                                "⚙️ Exchange settings",
+                                "⚙️ د صرافۍ تنظیمات",
+                                "⚙️ ایکسچینج ترتیبات",
+                                "⚙️ एक्सचेंज सेटिंग्स"
+                        )
+                )
                 .setItems(
                         options,
                         (dialog, which) -> {
@@ -2074,7 +3299,13 @@ public class ExchangeActivity extends Activity {
                         }
                 )
                 .setNegativeButton(
-                        "بستن",
+                        text(
+                                "بستن",
+                                "Close",
+                                "بندول",
+                                "بند کریں",
+                                "बंद करें"
+                        ),
                         null
                 )
                 .show();
@@ -2083,29 +3314,81 @@ public class ExchangeActivity extends Activity {
     private void confirmClearTransactions() {
 
         new AlertDialog.Builder(this)
-                .setTitle("⚠️ هشدار")
+                .setTitle(
+                        text(
+                                "⚠️ هشدار",
+                                "⚠️ Warning",
+                                "⚠️ خبرداری",
+                                "⚠️ انتباہ",
+                                "⚠️ चेतावनी"
+                        )
+                )
                 .setMessage(
-                        "آیا مطمئن هستید که تاریخچه معاملات حذف شود؟"
+                        text(
+                                "آیا مطمئن هستید که تاریخچه معاملات حذف شود؟",
+                                "Are you sure you want to delete the transaction history?",
+                                "ایا ډاډه یاست چې د معاملو تاریخچه پاکه شي؟",
+                                "کیا آپ واقعی معاملات کی تاریخ حذف کرنا چاہتے ہیں؟",
+                                "क्या आप वाकई लेन-देन इतिहास हटाना चाहते हैं؟"
+                        )
                 )
                 .setNegativeButton(
-                        "لغو",
+                        text(
+                                "لغو",
+                                "Cancel",
+                                "لغوه",
+                                "منسوخ",
+                                "रद्द करें"
+                        ),
                         null
                 )
                 .setPositiveButton(
-                        "ادامه",
+                        text(
+                                "ادامه",
+                                "Continue",
+                                "دوام",
+                                "جاری رکھیں",
+                                "जारी रखें"
+                        ),
                         (dialog, which) -> {
 
                             new AlertDialog.Builder(this)
-                                    .setTitle("تأیید نهایی")
+                                    .setTitle(
+                                            text(
+                                                    "تأیید نهایی",
+                                                    "Final confirmation",
+                                                    "وروستی تایید",
+                                                    "حتمی تصدیق",
+                                                    "अंतिम पुष्टि"
+                                            )
+                                    )
                                     .setMessage(
-                                            "این عملیات تاریخچه معاملات را حذف می‌کند."
+                                            text(
+                                                    "این عملیات تاریخچه معاملات را حذف می‌کند.",
+                                                    "This will delete the transaction history.",
+                                                    "دا کار به د معاملو تاریخچه پاکه کړي.",
+                                                    "یہ کارروائی معاملات کی تاریخ حذف کر دے گی۔",
+                                                    "यह कार्रवाई लेन-देन इतिहास हटा देगी।"
+                                            )
                                     )
                                     .setNegativeButton(
-                                            "لغو",
+                                            text(
+                                                    "لغو",
+                                                    "Cancel",
+                                                    "لغوه",
+                                                    "منسوخ",
+                                                    "रद्द करें"
+                                            ),
                                             null
                                     )
                                     .setPositiveButton(
-                                            "حذف",
+                                            text(
+                                                    "حذف",
+                                                    "Delete",
+                                                    "حذف",
+                                                    "حذف کریں",
+                                                    "हटाएं"
+                                            ),
                                             (d, w) -> {
 
                                                 exchangeData
@@ -2113,7 +3396,13 @@ public class ExchangeActivity extends Activity {
 
                                                 Toast.makeText(
                                                         this,
-                                                        "تاریخچه معاملات حذف شد",
+                                                        text(
+                                                                "تاریخچه معاملات حذف شد",
+                                                                "Transaction history deleted",
+                                                                "د معاملو تاریخچه پاکه شوه",
+                                                                "معاملات کی تاریخ حذف ہوگئی",
+                                                                "लेन-देन इतिहास हटा दिया गया"
+                                                        ),
                                                         Toast.LENGTH_LONG
                                                 ).show();
                                             }
@@ -2127,29 +3416,81 @@ public class ExchangeActivity extends Activity {
     private void confirmClearAllData() {
 
         new AlertDialog.Builder(this)
-                .setTitle("⚠️ هشدار بسیار مهم")
+                .setTitle(
+                        text(
+                                "⚠️ هشدار بسیار مهم",
+                                "⚠️ Very important warning",
+                                "⚠️ ډېره مهمه خبرداری",
+                                "⚠️ بہت اہم انتباہ",
+                                "⚠️ बहुत महत्वपूर्ण चेतावनी"
+                        )
+                )
                 .setMessage(
-                        "تمام موجودی‌ها، معاملات، مشتریان و نرخ‌ها حذف می‌شوند."
+                        text(
+                                "تمام موجودی‌ها، معاملات، مشتریان و نرخ‌ها حذف می‌شوند.",
+                                "All balances, transactions, customers and rates will be deleted.",
+                                "ټولې موجودۍ، معاملې، پېرودونکي او نرخونه به پاک شي.",
+                                "تمام بیلنس، معاملات، صارفین اور شرحیں حذف ہو جائیں گی۔",
+                                "सभी शेष, लेन-देन, ग्राहक और दरें हटा दी जाएंगी।"
+                        )
                 )
                 .setNegativeButton(
-                        "لغو",
+                        text(
+                                "لغو",
+                                "Cancel",
+                                "لغوه",
+                                "منسوخ",
+                                "रद्द करें"
+                        ),
                         null
                 )
                 .setPositiveButton(
-                        "ادامه",
+                        text(
+                                "ادامه",
+                                "Continue",
+                                "دوام",
+                                "جاری رکھیں",
+                                "जारी रखें"
+                        ),
                         (dialog, which) -> {
 
                             new AlertDialog.Builder(this)
-                                    .setTitle("تأیید نهایی")
+                                    .setTitle(
+                                            text(
+                                                    "تأیید نهایی",
+                                                    "Final confirmation",
+                                                    "وروستی تایید",
+                                                    "حتمی تصدیق",
+                                                    "अंतिम पुष्टि"
+                                            )
+                                    )
                                     .setMessage(
-                                            "آیا واقعاً می‌خواهید تمام اطلاعات صرافی پاک شود؟"
+                                            text(
+                                                    "آیا واقعاً می‌خواهید تمام اطلاعات صرافی پاک شود؟",
+                                                    "Do you really want to delete all exchange data?",
+                                                    "ایا رښتیا غواړئ د صرافۍ ټول معلومات پاک کړئ؟",
+                                                    "کیا آپ واقعی تمام ایکسچینج ڈیٹا حذف کرنا چاہتے ہیں؟",
+                                                    "क्या आप वाकई सभी एक्सचेंज डेटा हटाना चाहते हैं؟"
+                                            )
                                     )
                                     .setNegativeButton(
-                                            "لغو",
+                                            text(
+                                                    "لغو",
+                                                    "Cancel",
+                                                    "لغوه",
+                                                    "منسوخ",
+                                                    "रद्द करें"
+                                            ),
                                             null
                                     )
                                     .setPositiveButton(
-                                            "حذف همه",
+                                            text(
+                                                    "حذف همه",
+                                                    "Delete all",
+                                                    "ټول حذف کړئ",
+                                                    "سب حذف کریں",
+                                                    "सभी हटाएं"
+                                            ),
                                             (d, w) -> {
 
                                                 exchangeData
@@ -2160,7 +3501,13 @@ public class ExchangeActivity extends Activity {
 
                                                 Toast.makeText(
                                                         this,
-                                                        "تمام اطلاعات پاک شد",
+                                                        text(
+                                                                "تمام اطلاعات پاک شد",
+                                                                "All data deleted",
+                                                                "ټول معلومات پاک شول",
+                                                                "تمام معلومات حذف ہوگئے",
+                                                                "सभी डेटा हटा दिया गया"
+                                                        ),
                                                         Toast.LENGTH_LONG
                                                 ).show();
                                             }
@@ -2175,7 +3522,9 @@ public class ExchangeActivity extends Activity {
     // فرمت عدد
     // =========================================================
 
-    private String formatNumber(double value) {
+    private String formatNumber(
+            double value
+    ) {
 
         if (value == Math.floor(value)) {
 
@@ -2197,7 +3546,9 @@ public class ExchangeActivity extends Activity {
     // تبدیل میلادی به هجری شمسی
     // =========================================================
 
-    private String formatDate(long timestamp) {
+    private String formatDate(
+            long timestamp
+    ) {
 
         if (timestamp <= 0) {
             return "";
@@ -2251,7 +3602,10 @@ public class ExchangeActivity extends Activity {
         );
     }
 
+    // =========================================================
     // تبدیل دقیق تاریخ میلادی به جلالی
+    // =========================================================
+
     private int[] gregorianToJalali(
             int gy,
             int gm,
@@ -2342,7 +3696,7 @@ public class ExchangeActivity extends Activity {
     }
 
     // =========================================================
-    // برگشت
+    // برگشت / تغییر زبان
     // =========================================================
 
     @Override
@@ -2350,10 +3704,22 @@ public class ExchangeActivity extends Activity {
 
         super.onResume();
 
+        String currentLanguage =
+                LanguageManager.getLanguage(this);
+
+        if (
+                appliedLanguage != null &&
+                !currentLanguage.equals(appliedLanguage)
+        ) {
+
+            recreate();
+            return;
+        }
+
         if (exchangeData != null) {
 
             updateBalance();
             updateRate();
         }
     }
-                   }
+    }
