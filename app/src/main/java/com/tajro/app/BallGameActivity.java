@@ -95,8 +95,8 @@ public class BallGameActivity extends Activity {
         private final float maxSpeed = 440f;
         private final float acceleration = 1950f;
         private final float friction = 0.80f;
-        private final float jumpPower = 760f;
-        private final float highBounce = 1080f;
+        private final float jumpPower = 1060f;
+        private final float highBounce =1350f;
 
         private final int[] skyTop = {
                 0xFF48C8E8,
@@ -862,12 +862,18 @@ public class BallGameActivity extends Activity {
                 ballVX += acceleration * dt;
             }
 
-            if (!leftPressed && !rightPressed) {
-                ballVX *= Math.pow(
-                        friction,
-                        dt * 60f
-                );
-            }
+    if (!leftPressed && !rightPressed) {
+
+    float autoSpeed = 300f;
+
+    if (ballVX < autoSpeed) {
+        ballVX += acceleration * 0.55f * dt;
+
+        if (ballVX > autoSpeed) {
+            ballVX = autoSpeed;
+        }
+    }
+    }
 
             ballVX =
                     Math.max(
