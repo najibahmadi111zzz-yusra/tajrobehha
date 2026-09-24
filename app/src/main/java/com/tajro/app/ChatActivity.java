@@ -132,6 +132,10 @@ public class ChatActivity extends Activity {
     private final Set<String> hiddenUserIds =
             new HashSet<>();
 
+    // کاربران مسدودشده؛ فقط برای جلوگیری از نمایش اشتباه وضعیت آنلاین
+    private final Set<String> blockedUserIds =
+            new HashSet<>();
+
     private int themeColor = Color.rgb(12, 91, 120);
 
     private String pendingSaveUrl;
@@ -511,6 +515,47 @@ titleText =
                                 }
                             }
 
+                            loadBlockedUsers();
+                        }
+                )
+                .addOnFailureListener(
+                        e -> loadBlockedUsers()
+                );
+    }
+
+    private void loadBlockedUsers() {
+
+        blockedUserIds.clear();
+
+        db.collection("blocks")
+                .get()
+                .addOnSuccessListener(
+                        snapshot -> {
+
+                            for (
+                                    DocumentSnapshot d :
+                                    snapshot.getDocuments()
+                            ) {
+
+                                String ownerId =
+                                        d.getString("ownerId");
+
+                                String blockedId =
+                                        d.getString("blockedUserId");
+
+                                if (myId.equals(ownerId) &&
+                                        blockedId != null &&
+                                        !blockedId.isEmpty()) {
+                                    blockedUserIds.add(blockedId);
+                                }
+
+                                if (myId.equals(blockedId) &&
+                                        ownerId != null &&
+                                        !ownerId.isEmpty()) {
+                                    blockedUserIds.add(ownerId);
+                                }
+                            }
+
                             loadVisibleUsers();
                         }
                 )
@@ -540,15 +585,22 @@ titleText =
                                     snapshot.getDocuments()
                             ) {
 
+                                // شناسه واقعی حساب را از userId می‌گیریم، نه فقط Document ID.
+                                // اگر یک حساب دو سند داشته باشد، فقط یک‌بار نمایش داده می‌شود.
                                 String id =
-                                        d.getId();
+                                        d.getString("userId");
+
+                                if (id == null ||
+                                        id.trim().isEmpty()) {
+                                    id = d.getId();
+                                }
 
                                 if (id.equals(myId)) {
                                     continue;
                                 }
 
-                                if (hiddenUserIds
-                                        .contains(id)) {
+                                if (hiddenUserIds.contains(id) ||
+                                        hiddenUserIds.contains(d.getId())) {
                                     continue;
                                 }
 
@@ -619,7 +671,12 @@ titleText =
     ) {
 
         String uid =
-                d.getId();
+                d.getString("userId");
+
+        if (uid == null ||
+                uid.trim().isEmpty()) {
+            uid = d.getId();
+        }
 
         String name =
                 d.getString("name");
@@ -643,6 +700,15 @@ titleText =
         Boolean online =
                 d.getBoolean("online");
 
+        // کاربر بلاک‌شده نباید در فهرست به‌صورت آنلاین نمایش داده شود.
+        boolean isBlockedUser =
+                blockedUserIds.contains(uid);
+
+        if (isBlockedUser) {
+            online = false;
+        }
+
+        final boolean finalBlockedUser = isBlockedUser;
         final String finalUid = uid;
         final String finalName = name;
         final String finalPhotoUrl = photoUrl;
@@ -756,11 +822,19 @@ titleText =
 
         TextView status =
                 text(
-                        online != null && online
-                                ? " آنلاین"
-                                : " آفلاین",
+                        finalBlockedUser
+                                ? " 🚫 مسدود"
+                                : (online != null && online
+                                        ? " آنلاین"
+                                        : " آفلاین"),
                         13
                 );
+
+        if (finalBlockedUser) {
+            dot.setText("🚫");
+            dot.setTextColor(Color.rgb(190, 40, 40));
+            status.setTextColor(Color.rgb(190, 40, 40));
+        }
 
         statusRow.addView(dot);
         statusRow.addView(status);
@@ -4823,4 +4897,4 @@ private void blockCurrentUser() {
 
 }
     
-            }
+    }
