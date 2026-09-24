@@ -529,42 +529,47 @@ public class SettingsActivity extends Activity {
                         languages,
                         (dialog, which) -> {
 
-                            String language;
+                            String languageCode;
 
                             if (which == 0) {
 
-                                language = "دری";
+                                languageCode = "fa";
 
                             } else if (which == 1) {
 
-                                language = "English";
+                                languageCode = "en";
 
                             } else if (which == 2) {
 
-                                language = "پښتو";
+                                languageCode = "ps";
 
                             } else if (which == 3) {
 
-                                language = "اردو";
+                                languageCode = "ur";
 
                             } else {
 
-                                language = "हिन्दी";
+                                languageCode = "hi";
                             }
 
-                            preferences.edit()
-                                    .putString(
-                                            "language",
-                                            language
-                                    )
-                                    .apply();
+                            // ذخیره زبان با سیستم جدید
+                            LanguageManager.setLanguage(
+                                    SettingsActivity.this,
+                                    languageCode
+                            );
 
+                            // پیام موفقیت
                             Toast.makeText(
-                                    this,
-                                    "زبان انتخاب شد: "
-                                            + language,
+                                    SettingsActivity.this,
+                                    "✅ زبان با موفقیت انتخاب شد",
                                     Toast.LENGTH_SHORT
                             ).show();
+
+                            /*
+                             * صفحه فعلی دوباره ساخته می‌شود
+                             * تا زبان انتخاب‌شده از ابتدا اعمال شود.
+                             */
+                            recreate();
                         }
                 )
                 .show();
@@ -1093,7 +1098,6 @@ public class SettingsActivity extends Activity {
                                     .getInstance()
                                     .signOut();
 
-                            // بعد از خروج، قفل دوباره فعال شود
                             AppLockManager.lockSession(this);
 
                             Toast.makeText(
@@ -1155,4 +1159,4 @@ public class SettingsActivity extends Activity {
             return "1.0";
         }
     }
-            }
+}
