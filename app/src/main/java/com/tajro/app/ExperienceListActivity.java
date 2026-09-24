@@ -1,6 +1,7 @@
 package com.tajro.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.content.Intent;
 import android.graphics.Color;
@@ -17,18 +18,22 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.ImageView;
 import android.widget.Toast;
-import android.app.AlertDialog;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.Timestamp;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.FieldValue;
 
 import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ExperienceListActivity extends Activity {
 
@@ -36,9 +41,20 @@ public class ExperienceListActivity extends Activity {
     private FirebaseAuth auth;
     private LinearLayout layout;
 
+    /*
+     * برای جلوگیری از نمایش یک تجربه تکراری
+     */
+    private Set<String> displayedExperienceKeys =
+            new HashSet<>();
+
     private int dp(int value) {
-        return (int) (value * getResources()
-                .getDisplayMetrics().density);
+
+        return (int) (
+                value *
+                        getResources()
+                                .getDisplayMetrics()
+                                .density
+        );
     }
 
     @Override
@@ -48,16 +64,21 @@ public class ExperienceListActivity extends Activity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        ScrollView scrollView = new ScrollView(this);
+        ScrollView scrollView =
+                new ScrollView(this);
 
-        layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
+        layout =
+                new LinearLayout(this);
+
+        layout.setOrientation(
+                LinearLayout.VERTICAL
+        );
 
         layout.setPadding(
                 dp(16),
-                dp(25),
+                dp(24),
                 dp(16),
-                dp(25)
+                dp(30)
         );
 
         layout.setBackgroundColor(
@@ -72,26 +93,35 @@ public class ExperienceListActivity extends Activity {
                 )
         );
 
-        TextView title = new TextView(this);
+        TextView title =
+                new TextView(this);
 
-        title.setText("📚 تجربه‌های کاربران");
-        title.setTextSize(28);
+        title.setText(
+                "📚 تجربه‌های کاربران"
+        );
+
+        title.setTextSize(27);
+
         title.setTextColor(
                 Color.rgb(8, 65, 90)
         );
 
         title.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
+                Typeface.create(
+                        "sans-serif",
+                        Typeface.BOLD
+                )
         );
 
-        title.setGravity(Gravity.CENTER);
+        title.setGravity(
+                Gravity.CENTER
+        );
 
         title.setPadding(
                 0,
                 0,
                 0,
-                dp(25)
+                dp(22)
         );
 
         layout.addView(title);
@@ -103,6 +133,8 @@ public class ExperienceListActivity extends Activity {
 
     private void loadExperiences() {
 
+        displayedExperienceKeys.clear();
+
         db.collection("experiences")
                 .orderBy(
                         "timestamp",
@@ -112,34 +144,19 @@ public class ExperienceListActivity extends Activity {
                 .addOnSuccessListener(
                         queryDocumentSnapshots -> {
 
+                            layout.removeViews(
+                                    1,
+                                    Math.max(
+                                            0,
+                                            layout.getChildCount() - 1
+                                    )
+                            );
+
+                            displayedExperienceKeys.clear();
+
                             if (queryDocumentSnapshots.isEmpty()) {
 
-                                TextView empty =
-                                        new TextView(this);
-
-                                empty.setText(
-                                        "هنوز تجربه‌ای منتشر نشده است.\n\n" +
-                                        "اولین تجربه خود را ثبت کنید! ✍️"
-                                );
-
-                                empty.setTextSize(19);
-
-                                empty.setTextColor(
-                                        Color.DKGRAY
-                                );
-
-                                empty.setGravity(
-                                        Gravity.CENTER
-                                );
-
-                                empty.setPadding(
-                                        dp(20),
-                                        dp(40),
-                                        dp(20),
-                                        dp(40)
-                                );
-
-                                layout.addView(empty);
+                                showEmptyMessage();
 
                                 return;
                             }
@@ -147,20 +164,50 @@ public class ExperienceListActivity extends Activity {
                             FirebaseUser currentUser =
                                     auth.getCurrentUser();
 
-                            String currentUserId = null;
+                            String currentUserId =
+                                    null;
 
                             if (currentUser != null) {
+
                                 currentUserId =
                                         currentUser.getUid();
                             }
 
-                            for (DocumentSnapshot document :
-                                    queryDocumentSnapshots) {
+                            int displayedCount = 0;
+
+                            for (
+                                    DocumentSnapshot document :
+                                    queryDocumentSnapshots
+                            ) {
+
+                                /*
+                                 * جلوگیری از نمایش تجربه‌های تکراری
+                                 */
+                                String uniqueKey =
+                                        getExperienceUniqueKey(
+                                                document
+                                        );
+
+                                if (displayedExperienceKeys
+                                        .contains(uniqueKey)) {
+
+                                    continue;
+                                }
+
+                                displayedExperienceKeys
+                                        .add(uniqueKey);
 
                                 createExperienceCard(
                                         document,
                                         currentUserId
                                 );
+
+                                displayedCount++;
+                            }
+
+                            if (displayedCount == 0) {
+
+                                showEmptyMessage();
                             }
                         }
                 )
@@ -169,12 +216,112 @@ public class ExperienceListActivity extends Activity {
 
                             Toast.makeText(
                                     ExperienceListActivity.this,
-                                    "خطا در دریافت تجربه‌ها: " +
-                                            e.getMessage(),
+                                    "خطا در دریافت تجربه‌ها",
                                     Toast.LENGTH_LONG
                             ).show();
                         }
                 );
+    }
+
+    private String getExperienceUniqueKey(
+            DocumentSnapshot document
+    ) {
+
+        String contentKey =
+                document.getString(
+                        "contentKey"
+                );
+
+        if (contentKey != null &&
+                !contentKey.trim().isEmpty()) {
+
+            return contentKey;
+        }
+
+        String userId =
+                document.getString("userId");
+
+        String title =
+                document.getString("title");
+
+        String text =
+                document.getString("text");
+
+        if (userId == null) {
+            userId = "";
+        }
+
+        if (title == null) {
+            title = "";
+        }
+
+        if (text == null) {
+            text = "";
+        }
+
+        String value =
+                userId +
+                        "|" +
+                        normalizeText(title) +
+                        "|" +
+                        normalizeText(text);
+
+        return Integer.toHexString(
+                value.hashCode()
+        );
+    }
+
+    private String normalizeText(
+            String value
+    ) {
+
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .trim()
+                .replaceAll("\\s+", " ")
+                .toLowerCase(
+                        java.util.Locale.ROOT
+                );
+    }
+
+    private void showEmptyMessage() {
+
+        TextView empty =
+                new TextView(this);
+
+        empty.setText(
+                "هنوز تجربه‌ای منتشر نشده است.\n\n" +
+                        "اولین تجربه خود را ثبت کنید! ✍️"
+        );
+
+        empty.setTextSize(18);
+
+        empty.setTextColor(
+                Color.rgb(80, 90, 95)
+        );
+
+        empty.setTypeface(
+                Typeface.create(
+                        "sans-serif",
+                        Typeface.NORMAL
+                )
+        );
+
+        empty.setGravity(
+                Gravity.CENTER
+        );
+
+        empty.setPadding(
+                dp(20),
+                dp(45),
+                dp(20),
+                dp(45)
+        );
+
+        layout.addView(empty);
     }
 
     private void createExperienceCard(
@@ -194,8 +341,11 @@ public class ExperienceListActivity extends Activity {
         String userId =
                 document.getString("userId");
 
-        if (experienceTitle == null) {
-            experienceTitle = "بدون عنوان";
+        if (experienceTitle == null ||
+                experienceTitle.trim().isEmpty()) {
+
+            experienceTitle =
+                    "بدون عنوان";
         }
 
         if (experienceText == null) {
@@ -203,7 +353,8 @@ public class ExperienceListActivity extends Activity {
         }
 
         if (authorEmail == null ||
-                authorEmail.isEmpty()) {
+                authorEmail.trim().isEmpty()) {
+
             authorEmail = "کاربر";
         }
 
@@ -218,10 +369,10 @@ public class ExperienceListActivity extends Activity {
         );
 
         card.setPadding(
-                dp(18),
-                dp(18),
-                dp(18),
-                dp(12)
+                dp(17),
+                dp(16),
+                dp(17),
+                dp(11)
         );
 
         GradientDrawable cardBackground =
@@ -255,7 +406,7 @@ public class ExperienceListActivity extends Activity {
         card.setLayoutParams(cardParams);
 
         /*
-         * نام و عکس کاربر
+         * اطلاعات نویسنده
          */
         LinearLayout authorRow =
                 new LinearLayout(this);
@@ -297,15 +448,17 @@ public class ExperienceListActivity extends Activity {
                 "👤 " + authorEmail
         );
 
-        authorName.setTextSize(17);
+        authorName.setTextSize(16);
 
         authorName.setTextColor(
                 Color.rgb(8, 65, 90)
         );
 
         authorName.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
+                Typeface.create(
+                        "sans-serif-medium",
+                        Typeface.NORMAL
+                )
         );
 
         authorName.setGravity(
@@ -322,8 +475,8 @@ public class ExperienceListActivity extends Activity {
         authorRow.addView(
                 profileImage,
                 new LinearLayout.LayoutParams(
-                        dp(52),
-                        dp(52)
+                        dp(54),
+                        dp(54)
                 )
         );
 
@@ -331,17 +484,15 @@ public class ExperienceListActivity extends Activity {
                 authorName,
                 new LinearLayout.LayoutParams(
                         0,
-                        dp(52),
+                        dp(54),
                         1
                 )
         );
 
         card.addView(authorRow);
 
-        /*
-         * گرفتن نام و عکس واقعی کاربر
-         */
-        if (userId != null && !userId.isEmpty()) {
+        if (userId != null &&
+                !userId.isEmpty()) {
 
             loadUserProfile(
                     userId,
@@ -351,33 +502,87 @@ public class ExperienceListActivity extends Activity {
             );
         }
 
+        /*
+         * عنوان تجربه
+         */
+        TextView experienceTitleView =
+                new TextView(this);
+
+        experienceTitleView.setText(
+                experienceTitle
+        );
+
+        experienceTitleView.setTextSize(19);
+
+        experienceTitleView.setTextColor(
+                Color.rgb(8, 65, 90)
+        );
+
+        experienceTitleView.setTypeface(
+                Typeface.create(
+                        "sans-serif-medium",
+                        Typeface.NORMAL
+                )
+        );
+
+        experienceTitleView.setGravity(
+                Gravity.RIGHT
+        );
+
+        experienceTitleView.setPadding(
+                dp(5),
+                dp(17),
+                dp(5),
+                dp(3)
+        );
+
+        card.addView(
+                experienceTitleView
+        );
+
+        /*
+         * متن اصلی تجربه
+         */
         TextView experience =
                 new TextView(this);
 
         experience.setText(
-                "📖 " +
-                        experienceTitle +
-                        "\n\n" +
-                        experienceText
+                experienceText
         );
 
-        experience.setTextSize(18);
+        experience.setTextSize(17);
 
         experience.setTextColor(
-                Color.DKGRAY
+                Color.rgb(45, 50, 53)
+        );
+
+        experience.setTypeface(
+                Typeface.create(
+                        "sans-serif",
+                        Typeface.NORMAL
+                )
+        );
+
+        experience.setGravity(
+                Gravity.RIGHT
+        );
+
+        experience.setLineSpacing(
+                dp(3),
+                1.05f
         );
 
         experience.setPadding(
                 dp(5),
-                dp(15),
                 dp(5),
-                dp(10)
+                dp(5),
+                dp(12)
         );
 
         card.addView(experience);
 
         /*
-         * بخش لایک + تاریخ و ساعت
+         * لایک و تاریخ
          */
         LinearLayout likeRow =
                 new LinearLayout(this);
@@ -391,20 +596,17 @@ public class ExperienceListActivity extends Activity {
         );
 
         likeRow.setPadding(
-                dp(5),
-                dp(4),
-                dp(5),
-                dp(8)
+                dp(3),
+                dp(2),
+                dp(3),
+                dp(5)
         );
 
         TextView likeButton =
                 new TextView(this);
 
-        likeButton.setText(
-                "♡"
-        );
-
-        likeButton.setTextSize(30);
+        likeButton.setText("♡");
+        likeButton.setTextSize(28);
 
         likeButton.setTextColor(
                 Color.rgb(210, 40, 60)
@@ -415,9 +617,9 @@ public class ExperienceListActivity extends Activity {
         );
 
         likeButton.setPadding(
-                dp(4),
                 0,
-                dp(4),
+                0,
+                0,
                 0
         );
 
@@ -426,14 +628,19 @@ public class ExperienceListActivity extends Activity {
         TextView likeCount =
                 new TextView(this);
 
-        likeCount.setText(
-                "0"
-        );
+        likeCount.setText("0");
 
-        likeCount.setTextSize(14);
+        likeCount.setTextSize(13);
 
         likeCount.setTextColor(
-                Color.GRAY
+                Color.rgb(100, 100, 100)
+        );
+
+        likeCount.setTypeface(
+                Typeface.create(
+                        "sans-serif-medium",
+                        Typeface.NORMAL
+                )
         );
 
         likeCount.setGravity(
@@ -441,57 +648,49 @@ public class ExperienceListActivity extends Activity {
         );
 
         likeCount.setPadding(
-                dp(3),
+                dp(1),
                 0,
-                dp(12),
+                dp(10),
                 0
         );
 
         likeRow.addView(
                 likeButton,
                 new LinearLayout.LayoutParams(
-                        dp(45),
-                        dp(45)
+                        dp(40),
+                        dp(40)
                 )
         );
 
         likeRow.addView(
                 likeCount,
                 new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        dp(45)
+                        dp(35),
+                        dp(40)
                 )
         );
 
-        /*
-         * تاریخ و ساعت دقیق ثبت تجربه
-         * کوچک و در سمت راست
-         */
         TextView dateTime =
                 new TextView(this);
 
         dateTime.setText(
-                getExperienceDateTime(document)
+                getExperienceDateTime(
+                        document
+                )
         );
 
         dateTime.setTextSize(10);
 
         dateTime.setTextColor(
-                Color.rgb(125, 125, 125)
+                Color.rgb(135, 135, 135)
         );
 
         dateTime.setGravity(
-                Gravity.CENTER_VERTICAL | Gravity.RIGHT
+                Gravity.CENTER_VERTICAL |
+                        Gravity.RIGHT
         );
 
         dateTime.setSingleLine(true);
-
-        dateTime.setPadding(
-                dp(5),
-                0,
-                0,
-                0
-        );
 
         LinearLayout.LayoutParams dateParams =
                 new LinearLayout.LayoutParams(
@@ -499,9 +698,6 @@ public class ExperienceListActivity extends Activity {
                         dp(35),
                         1
                 );
-
-        dateParams.gravity =
-                Gravity.CENTER_VERTICAL;
 
         likeRow.addView(
                 dateTime,
@@ -541,12 +737,12 @@ public class ExperienceListActivity extends Activity {
         );
 
         /*
-         * ویرایش و حذف فقط برای صاحب تجربه
+         * ویرایش و حذف صاحب تجربه
          */
         boolean isMyExperience =
                 currentUserId != null &&
-                userId != null &&
-                currentUserId.equals(userId);
+                        userId != null &&
+                        currentUserId.equals(userId);
 
         if (isMyExperience) {
 
@@ -555,6 +751,10 @@ public class ExperienceListActivity extends Activity {
 
             buttons.setOrientation(
                     LinearLayout.HORIZONTAL
+            );
+
+            buttons.setGravity(
+                    Gravity.CENTER
             );
 
             Button editButton =
@@ -625,9 +825,6 @@ public class ExperienceListActivity extends Activity {
                     }
             );
 
-            /*
-             * حذف دومرحله‌ای
-             */
             deleteButton.setOnClickListener(
                     v -> {
 
@@ -635,7 +832,7 @@ public class ExperienceListActivity extends Activity {
                                 ExperienceListActivity.this
                         )
                                 .setMessage(
-                                        "مطمئن هستید حذف شود؟"
+                                        "مطمئن هستید این تجربه حذف شود؟"
                                 )
                                 .setNegativeButton(
                                         "لغو",
@@ -645,8 +842,12 @@ public class ExperienceListActivity extends Activity {
                                         "حذف",
                                         (dialog, which) -> {
 
-                                            db.collection("experiences")
-                                                    .document(documentId)
+                                            db.collection(
+                                                    "experiences"
+                                            )
+                                                    .document(
+                                                            documentId
+                                                    )
                                                     .delete()
                                                     .addOnSuccessListener(
                                                             unused -> {
@@ -683,9 +884,345 @@ public class ExperienceListActivity extends Activity {
     }
 
     /*
-     * تبدیل Timestamp فایربیس به تاریخ و ساعت افغانی
-     * تقویم هجری شمسی
+     * لایک:
+     * زیر هر تجربه یک سند برای هر کاربر
+     * در experiences/{experienceId}/likes/{userId}
+     *
+     * بنابراین یک کاربر نمی‌تواند
+     * برای یک تجربه چند لایک داشته باشد.
      */
+    private void loadLikeStatus(
+            DocumentSnapshot experience,
+            String currentUserId,
+            TextView likeButton,
+            TextView likeCount
+    ) {
+
+        DocumentReference likesReference =
+                experience.getReference()
+                        .collection("likes")
+                        .document(
+                                currentUserId == null
+                                        ? "anonymous"
+                                        : currentUserId
+                        );
+
+        likesReference.get()
+                .addOnSuccessListener(
+                        likeDocument -> {
+
+                            boolean liked =
+                                    likeDocument.exists();
+
+                            likeButton.setText(
+                                    liked
+                                            ? "♥"
+                                            : "♡"
+                            );
+
+                            loadLikeCount(
+                                    experience,
+                                    likeCount
+                            );
+                        }
+                )
+                .addOnFailureListener(
+                        e -> loadLikeCount(
+                                experience,
+                                likeCount
+                        )
+                );
+    }
+
+    private void loadLikeCount(
+            DocumentSnapshot experience,
+            TextView likeCount
+    ) {
+
+        /*
+         * اگر likesCount قبلاً ذخیره شده باشد،
+         * سریع‌تر آن را نمایش می‌دهیم.
+         */
+        Long savedCount =
+                experience.getLong(
+                        "likesCount"
+                );
+
+        if (savedCount != null) {
+
+            likeCount.setText(
+                    formatCount(savedCount)
+            );
+
+            /*
+             * برای اطمینان، تعداد واقعی زیرمجموعه
+             * likes نیز بررسی می‌شود.
+             */
+        }
+
+        experience.getReference()
+                .collection("likes")
+                .get()
+                .addOnSuccessListener(
+                        querySnapshot -> {
+
+                            long count =
+                                    querySnapshot.size();
+
+                            likeCount.setText(
+                                    formatCount(count)
+                            );
+                        }
+                );
+    }
+
+    private void toggleLike(
+            DocumentSnapshot experience,
+            String currentUserId,
+            TextView likeButton,
+            TextView likeCount
+    ) {
+
+        if (currentUserId == null) {
+            return;
+        }
+
+        DocumentReference experienceReference =
+                experience.getReference();
+
+        DocumentReference likeReference =
+                experienceReference
+                        .collection("likes")
+                        .document(currentUserId);
+
+        likeReference.get()
+                .addOnSuccessListener(
+                        likeDocument -> {
+
+                            if (likeDocument.exists()) {
+
+                                likeReference
+                                        .delete()
+                                        .addOnSuccessListener(
+                                                unused -> {
+
+                                                    likeButton.setText(
+                                                            "♡"
+                                                    );
+
+                                                    decreaseLikeCount(
+                                                            experienceReference,
+                                                            likeCount
+                                                    );
+                                                }
+                                        )
+                                        .addOnFailureListener(
+                                                e -> {
+
+                                                    Toast.makeText(
+                                                            ExperienceListActivity.this,
+                                                            "خطا در برداشتن لایک",
+                                                            Toast.LENGTH_SHORT
+                                                    ).show();
+                                                }
+                                        );
+
+                            } else {
+
+                                HashSet<String> dataSet =
+                                        new HashSet<>();
+
+                                java.util.HashMap<
+                                        String,
+                                        Object
+                                        > likeData =
+                                        new java.util.HashMap<>();
+
+                                likeData.put(
+                                        "userId",
+                                        currentUserId
+                                );
+
+                                likeData.put(
+                                        "timestamp",
+                                        FieldValue.serverTimestamp()
+                                );
+
+                                likeReference
+                                        .set(likeData)
+                                        .addOnSuccessListener(
+                                                unused -> {
+
+                                                    likeButton.setText(
+                                                            "♥"
+                                                    );
+
+                                                    increaseLikeCount(
+                                                            experienceReference,
+                                                            likeCount
+                                                    );
+                                                }
+                                        )
+                                        .addOnFailureListener(
+                                                e -> {
+
+                                                    Toast.makeText(
+                                                            ExperienceListActivity.this,
+                                                            "خطا در ثبت لایک",
+                                                            Toast.LENGTH_SHORT
+                                                    ).show();
+                                                }
+                                        );
+                            }
+                        }
+                )
+                .addOnFailureListener(
+                        e -> {
+
+                            Toast.makeText(
+                                    ExperienceListActivity.this,
+                                    "خطا در بررسی لایک",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                );
+    }
+
+    private void increaseLikeCount(
+            DocumentReference experienceReference,
+            TextView likeCount
+    ) {
+
+        experienceReference
+                .update(
+                        "likesCount",
+                        FieldValue.increment(1)
+                )
+                .addOnSuccessListener(
+                        unused -> {
+
+                            int oldCount =
+                                    getCountFromText(
+                                            likeCount
+                                    );
+
+                            likeCount.setText(
+                                    formatCount(
+                                            oldCount + 1
+                                    )
+                            );
+                        }
+                )
+                .addOnFailureListener(
+                        e -> {
+
+                            loadLikeCountFromSubcollection(
+                                    experienceReference,
+                                    likeCount
+                            );
+                        }
+                );
+    }
+
+    private void decreaseLikeCount(
+            DocumentReference experienceReference,
+            TextView likeCount
+    ) {
+
+        experienceReference
+                .update(
+                        "likesCount",
+                        FieldValue.increment(-1)
+                )
+                .addOnSuccessListener(
+                        unused -> {
+
+                            int oldCount =
+                                    getCountFromText(
+                                            likeCount
+                                    );
+
+                            if (oldCount > 0) {
+                                oldCount--;
+                            }
+
+                            likeCount.setText(
+                                    formatCount(
+                                            oldCount
+                                    )
+                            );
+                        }
+                )
+                .addOnFailureListener(
+                        e -> {
+
+                            loadLikeCountFromSubcollection(
+                                    experienceReference,
+                                    likeCount
+                            );
+                        }
+                );
+    }
+
+    private void loadLikeCountFromSubcollection(
+            DocumentReference experienceReference,
+            TextView likeCount
+    ) {
+
+        experienceReference
+                .collection("likes")
+                .get()
+                .addOnSuccessListener(
+                        snapshot -> {
+
+                            likeCount.setText(
+                                    formatCount(
+                                            snapshot.size()
+                                    )
+                            );
+                        }
+                );
+    }
+
+    private String formatCount(long count) {
+
+        return toPersianDigits(
+                String.valueOf(count)
+        );
+    }
+
+    private int getCountFromText(
+            TextView textView
+    ) {
+
+        try {
+
+            String value =
+                    textView.getText()
+                            .toString()
+                            .trim();
+
+            value =
+                    value
+                            .replace("۰", "0")
+                            .replace("۱", "1")
+                            .replace("۲", "2")
+                            .replace("۳", "3")
+                            .replace("۴", "4")
+                            .replace("۵", "5")
+                            .replace("۶", "6")
+                            .replace("۷", "7")
+                            .replace("۸", "8")
+                            .replace("۹", "9");
+
+            return Integer.parseInt(value);
+
+        } catch (Exception e) {
+
+            return 0;
+        }
+    }
+
     private String getExperienceDateTime(
             DocumentSnapshot document
     ) {
@@ -693,7 +1230,9 @@ public class ExperienceListActivity extends Activity {
         try {
 
             Timestamp timestamp =
-                    document.getTimestamp("timestamp");
+                    document.getTimestamp(
+                            "timestamp"
+                    );
 
             if (timestamp == null) {
                 return "";
@@ -744,7 +1283,9 @@ public class ExperienceListActivity extends Activity {
                             second
                     );
 
-            return toPersianDigits(dateText);
+            return toPersianDigits(
+                    dateText
+            );
 
         } catch (Exception e) {
 
@@ -752,9 +1293,6 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-    /*
-     * تبدیل میلادی به هجری شمسی
-     */
     private int[] gregorianToJalali(
             int gy,
             int gm,
@@ -771,9 +1309,14 @@ public class ExperienceListActivity extends Activity {
                 30, 30, 30, 30, 30, 29
         };
 
-        int gy2 = gy - 1600;
-        int gm2 = gm - 1;
-        int gd2 = gd - 1;
+        int gy2 =
+                gy - 1600;
+
+        int gm2 =
+                gm - 1;
+
+        int gd2 =
+                gd - 1;
 
         int gDayNo =
                 365 * gy2
@@ -782,12 +1325,18 @@ public class ExperienceListActivity extends Activity {
                         + (gy2 + 399) / 400;
 
         for (int i = 0; i < gm2; ++i) {
-            gDayNo += gDaysInMonth[i];
+
+            gDayNo +=
+                    gDaysInMonth[i];
         }
 
         if (gm2 > 1 &&
-                ((gy % 4 == 0 && gy % 100 != 0) ||
-                        (gy % 400 == 0))) {
+                (
+                        (gy % 4 == 0 &&
+                                gy % 100 != 0)
+                                ||
+                                (gy % 400 == 0)
+                )) {
 
             gDayNo++;
         }
@@ -803,8 +1352,9 @@ public class ExperienceListActivity extends Activity {
         jDayNo %= 12053;
 
         int jy =
-                979 + 33 * jNp
-                        + 4 * (jDayNo / 1461);
+                979 +
+                        33 * jNp +
+                        4 * (jDayNo / 1461);
 
         jDayNo %= 1461;
 
@@ -820,10 +1370,13 @@ public class ExperienceListActivity extends Activity {
         int jm;
         int jd;
 
-        for (jm = 0;
-             jm < 11 &&
-                     jDayNo >= jDaysInMonth[jm];
-             ++jm) {
+        for (
+                jm = 0;
+                jm < 11 &&
+                        jDayNo >=
+                                jDaysInMonth[jm];
+                ++jm
+        ) {
 
             jDayNo -=
                     jDaysInMonth[jm];
@@ -839,9 +1392,6 @@ public class ExperienceListActivity extends Activity {
         };
     }
 
-    /*
-     * تبدیل اعداد انگلیسی به فارسی
-     */
     private String toPersianDigits(
             String value
     ) {
@@ -859,9 +1409,6 @@ public class ExperienceListActivity extends Activity {
                 .replace("9", "۹");
     }
 
-    /*
-     * دریافت نام نمایشی و عکس پروفایل
-     */
     private void loadUserProfile(
             String userId,
             TextView authorName,
@@ -876,14 +1423,19 @@ public class ExperienceListActivity extends Activity {
                         userDocument -> {
 
                             if (!userDocument.exists()) {
+
                                 authorName.setText(
-                                        "👤 " + fallbackName
+                                        "👤 " +
+                                                fallbackName
                                 );
+
                                 return;
                             }
 
                             String name =
-                                    userDocument.getString("name");
+                                    userDocument.getString(
+                                            "name"
+                                    );
 
                             if (name == null ||
                                     name.trim().isEmpty()) {
@@ -906,7 +1458,8 @@ public class ExperienceListActivity extends Activity {
                             if (name == null ||
                                     name.trim().isEmpty()) {
 
-                                name = fallbackName;
+                                name =
+                                        fallbackName;
                             }
 
                             authorName.setText(
@@ -938,22 +1491,32 @@ public class ExperienceListActivity extends Activity {
                             if (photo1 != null &&
                                     !photo1.trim().isEmpty()) {
 
-                                photoUrl = photo1;
+                                photoUrl =
+                                        photo1;
 
-                            } else if (photo2 != null &&
-                                    !photo2.trim().isEmpty()) {
+                            } else if (
+                                    photo2 != null &&
+                                            !photo2.trim().isEmpty()
+                            ) {
 
-                                photoUrl = photo2;
+                                photoUrl =
+                                        photo2;
 
-                            } else if (photo3 != null &&
-                                    !photo3.trim().isEmpty()) {
+                            } else if (
+                                    photo3 != null &&
+                                            !photo3.trim().isEmpty()
+                            ) {
 
-                                photoUrl = photo3;
+                                photoUrl =
+                                        photo3;
 
-                            } else if (photo4 != null &&
-                                    !photo4.trim().isEmpty()) {
+                            } else if (
+                                    photo4 != null &&
+                                            !photo4.trim().isEmpty()
+                            ) {
 
-                                photoUrl = photo4;
+                                photoUrl =
+                                        photo4;
                             }
 
                             if (photoUrl != null) {
@@ -967,9 +1530,6 @@ public class ExperienceListActivity extends Activity {
                 );
     }
 
-    /*
-     * بارگذاری عکس بدون نیاز به کتابخانه اضافی
-     */
     private void loadProfileImage(
             String photoUrl,
             ImageView imageView
@@ -993,255 +1553,17 @@ public class ExperienceListActivity extends Activity {
                         if (bitmap != null) {
 
                             runOnUiThread(
-                                    () -> imageView.setImageBitmap(
-                                            bitmap
-                                    )
+                                    () ->
+                                            imageView
+                                                    .setImageBitmap(
+                                                            bitmap
+                                                    )
                             );
                         }
 
                     } catch (Exception ignored) {
                     }
-
                 }
         ).start();
-    }
-
-    private void loadLikeStatus(
-            DocumentSnapshot experience,
-            String currentUserId,
-            TextView likeButton,
-            TextView likeCount
-    ) {
-
-        if (currentUserId == null) {
-
-            loadLikeCount(
-                    experience,
-                    likeButton,
-                    likeCount,
-                    false
-            );
-
-            return;
-        }
-
-        experience.getReference()
-                .collection("likes")
-                .document(currentUserId)
-                .get()
-                .addOnSuccessListener(
-                        likeDocument -> {
-
-                            boolean liked =
-                                    likeDocument.exists();
-
-                            if (liked) {
-
-                                likeButton.setText(
-                                        "♥"
-                                );
-
-                            } else {
-
-                                likeButton.setText(
-                                        "♡"
-                                );
-                            }
-
-                            loadLikeCount(
-                                    experience,
-                                    likeButton,
-                                    likeCount,
-                                    liked
-                            );
-                        }
-                )
-                .addOnFailureListener(
-                        e -> {
-
-                            loadLikeCount(
-                                    experience,
-                                    likeButton,
-                                    likeCount,
-                                    false
-                            );
-                        }
-                );
-    }
-
-    private void loadLikeCount(
-            DocumentSnapshot experience,
-            TextView likeButton,
-            TextView likeCount,
-            boolean liked
-    ) {
-
-        experience.getReference()
-                .collection("likes")
-                .get()
-                .addOnSuccessListener(
-                        querySnapshot -> {
-
-                            likeCount.setText(
-                                    String.valueOf(
-                                            querySnapshot.size()
-                                    )
-                            );
-
-                            if (liked) {
-
-                                likeButton.setText(
-                                        "♥"
-                                );
-
-                            } else {
-
-                                likeButton.setText(
-                                        "♡"
-                                );
-                            }
-                        }
-                );
-    }
-
-    private void toggleLike(
-            DocumentSnapshot experience,
-            String currentUserId,
-            TextView likeButton,
-            TextView likeCount
-    ) {
-
-        if (currentUserId == null) {
-            return;
-        }
-
-        com.google.firebase.firestore.DocumentReference
-                likeReference =
-                experience.getReference()
-                        .collection("likes")
-                        .document(currentUserId);
-
-        likeReference.get()
-                .addOnSuccessListener(
-                        likeDocument -> {
-
-                            if (likeDocument.exists()) {
-
-                                likeReference
-                                        .delete()
-                                        .addOnSuccessListener(
-                                                unused -> {
-
-                                                    likeButton.setText(
-                                                            "♡"
-                                                    );
-
-                                                    int oldCount =
-                                                            getCountFromText(
-                                                                    likeCount
-                                                            );
-
-                                                    if (oldCount > 0) {
-                                                        oldCount--;
-                                                    }
-
-                                                    likeCount.setText(
-                                                            String.valueOf(
-                                                                    oldCount
-                                                            )
-                                                    );
-                                                }
-                                        )
-                                        .addOnFailureListener(
-                                                e -> {
-
-                                                    Toast.makeText(
-                                                            ExperienceListActivity.this,
-                                                            "خطا در برداشتن لایک",
-                                                            Toast.LENGTH_SHORT
-                                                    ).show();
-                                                }
-                                        );
-
-                            } else {
-
-                                java.util.HashMap<String, Object>
-                                        likeData =
-                                        new java.util.HashMap<>();
-
-                                likeData.put(
-                                        "userId",
-                                        currentUserId
-                                );
-
-                                likeData.put(
-                                        "timestamp",
-                                        com.google.firebase.firestore.FieldValue.serverTimestamp()
-                                );
-
-                                likeReference
-                                        .set(likeData)
-                                        .addOnSuccessListener(
-                                                unused -> {
-
-                                                    likeButton.setText(
-                                                            "♥"
-                                                    );
-
-                                                    int oldCount =
-                                                            getCountFromText(
-                                                                    likeCount
-                                                            );
-
-                                                    oldCount++;
-
-                                                    likeCount.setText(
-                                                            String.valueOf(
-                                                                    oldCount
-                                                            )
-                                                    );
-                                                }
-                                        )
-                                        .addOnFailureListener(
-                                                e -> {
-
-                                                    Toast.makeText(
-                                                            ExperienceListActivity.this,
-                                                            "خطا در ثبت لایک",
-                                                            Toast.LENGTH_SHORT
-                                                    ).show();
-                                                }
-                                        );
-                            }
-                        }
-                )
-                .addOnFailureListener(
-                        e -> {
-
-                            Toast.makeText(
-                                    ExperienceListActivity.this,
-                                    "خطا در بررسی لایک",
-                                    Toast.LENGTH_SHORT
-                            ).show();
-                        }
-                );
-    }
-
-    private int getCountFromText(
-            TextView textView
-    ) {
-
-        try {
-
-            return Integer.parseInt(
-                    textView.getText()
-                            .toString()
-                            .trim()
-            );
-
-        } catch (Exception e) {
-
-            return 0;
-        }
     }
             }
