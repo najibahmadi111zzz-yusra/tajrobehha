@@ -3,6 +3,7 @@ package com.tajro.app;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.text.InputType;
@@ -45,6 +46,8 @@ public class VaultActivity extends Activity {
 
     private String[] currencies;
 
+    private String appliedLanguage;
+
     // --------------------------------------------------
     // دفتر رسیدهای امانت
     // --------------------------------------------------
@@ -59,16 +62,74 @@ public class VaultActivity extends Activity {
             "receipt_counter";
 
     @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(
+                LanguageManager.applyLanguage(newBase)
+        );
+    }
+
+    private String text(
+            String fa,
+            String en,
+            String ps,
+            String ur,
+            String hi
+    ) {
+        String lang =
+                LanguageManager.getLanguage(this);
+
+        if ("en".equals(lang)) {
+            return en;
+        }
+
+        if ("ps".equals(lang)) {
+            return ps;
+        }
+
+        if ("ur".equals(lang)) {
+            return ur;
+        }
+
+        if ("hi".equals(lang)) {
+            return hi;
+        }
+
+        return fa;
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        appliedLanguage =
+                LanguageManager.getLanguage(this);
+
         data = ExchangeData.get(this);
 
-        themeColor = ThemeManager.getThemeColor(this);
+        themeColor =
+                ThemeManager.getThemeColor(this);
 
-        currencies = ExchangeData.getCurrencies();
+        currencies =
+                ExchangeData.getCurrencies();
 
         buildScreen();
+
+        updateBalance();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        String currentLanguage =
+                LanguageManager.getLanguage(this);
+
+        if (appliedLanguage != null
+                && !currentLanguage.equals(appliedLanguage)) {
+
+            recreate();
+            return;
+        }
 
         updateBalance();
     }
@@ -79,9 +140,12 @@ public class VaultActivity extends Activity {
 
     private void buildScreen() {
 
-        LinearLayout root = new LinearLayout(this);
+        LinearLayout root =
+                new LinearLayout(this);
 
-        root.setOrientation(LinearLayout.VERTICAL);
+        root.setOrientation(
+                LinearLayout.VERTICAL
+        );
 
         root.setPadding(
                 30,
@@ -98,9 +162,18 @@ public class VaultActivity extends Activity {
                 getLightThemeColor()
         );
 
-        TextView title = new TextView(this);
+        TextView title =
+                new TextView(this);
 
-        title.setText("🔐 گاوصندوق هوشمند");
+        title.setText(
+                text(
+                        "🔐 گاوصندوق هوشمند",
+                        "🔐 Smart Vault",
+                        "🔐 هوښیار خوندي صندوق",
+                        "🔐 اسمارٹ سیف",
+                        "🔐 स्मार्ट वॉल्ट"
+                )
+        );
 
         title.setTextSize(26);
 
@@ -117,11 +190,26 @@ public class VaultActivity extends Activity {
 
         root.addView(title);
 
-        TextView info = new TextView(this);
+        TextView info =
+                new TextView(this);
 
         info.setText(
-                "محل امن برای ثبت دارایی‌های صرافی\n" +
-                "موجودی صرافی و امانت مشتریان کاملاً جدا هستند."
+                text(
+                        "محل امن برای ثبت دارایی‌های صرافی\n" +
+                                "موجودی صرافی و امانت مشتریان کاملاً جدا هستند.",
+
+                        "A secure place to record exchange assets\n" +
+                                "Exchange balance and customer deposits are completely separate.",
+
+                        "د صرافۍ د شتمنیو د ثبت لپاره خوندي ځای\n" +
+                                "د صرافۍ موجودي او د پیرودونکو امانتونه په بشپړه توګه جلا دي.",
+
+                        "صرافی کے اثاثوں کے اندراج کے لیے محفوظ جگہ\n" +
+                                "صرافی کا بیلنس اور صارفین کی امانتیں مکمل طور پر الگ ہیں۔",
+
+                        "एक्सचेंज की संपत्तियों को दर्ज करने के लिए सुरक्षित स्थान\n" +
+                                "एक्सचेंज बैलेंस और ग्राहकों की जमा राशि पूरी तरह अलग हैं।"
+                )
         );
 
         info.setTextSize(16);
@@ -141,13 +229,17 @@ public class VaultActivity extends Activity {
         // ارز گاوصندوق
         // ==========================================
 
-        currencySpinner = new Spinner(this);
+        currencySpinner =
+                new Spinner(this);
 
-        createCurrencyAdapter(currencySpinner);
+        createCurrencyAdapter(
+                currencySpinner
+        );
 
         root.addView(currencySpinner);
 
-        balanceText = new TextView(this);
+        balanceText =
+                new TextView(this);
 
         balanceText.setTextSize(22);
 
@@ -164,47 +256,86 @@ public class VaultActivity extends Activity {
 
         root.addView(balanceText);
 
-        amountInput = new EditText(this);
+        amountInput =
+                new EditText(this);
 
-        amountInput.setHint("مبلغ");
+        amountInput.setHint(
+                text(
+                        "مبلغ",
+                        "Amount",
+                        "مقدار",
+                        "رقم",
+                        "राशि"
+                )
+        );
 
         amountInput.setInputType(
                 InputType.TYPE_CLASS_NUMBER |
-                InputType.TYPE_NUMBER_FLAG_DECIMAL
+                        InputType.TYPE_NUMBER_FLAG_DECIMAL
         );
 
         root.addView(amountInput);
 
-        noteInput = new EditText(this);
+        noteInput =
+                new EditText(this);
 
-        noteInput.setHint("یادداشت / دلیل");
+        noteInput.setHint(
+                text(
+                        "یادداشت / دلیل",
+                        "Note / Reason",
+                        "یادښت / دلیل",
+                        "نوٹ / وجہ",
+                        "नोट / कारण"
+                )
+        );
 
         root.addView(noteInput);
 
-        Button depositButton = new Button(this);
+        Button depositButton =
+                new Button(this);
 
         depositButton.setText(
-                "➕ گذاشتن در گاوصندوق"
+                text(
+                        "➕ گذاشتن در گاوصندوق",
+                        "➕ Deposit into Vault",
+                        "➕ په خوندي صندوق کې ایښودل",
+                        "➕ سیف میں جمع کریں",
+                        "➕ वॉल्ट में जमा करें"
+                )
         );
 
         styleButton(depositButton);
 
         root.addView(depositButton);
 
-        Button withdrawButton = new Button(this);
+        Button withdrawButton =
+                new Button(this);
 
         withdrawButton.setText(
-                "➖ برداشت از گاوصندوق"
+                text(
+                        "➖ برداشت از گاوصندوق",
+                        "➖ Withdraw from Vault",
+                        "➖ له خوندي صندوق څخه ایستل",
+                        "➖ سیف سے نکالیں",
+                        "➖ वॉल्ट से निकालें"
+                )
         );
 
         styleButton(withdrawButton);
 
         root.addView(withdrawButton);
 
-        Button historyButton = new Button(this);
+        Button historyButton =
+                new Button(this);
 
         historyButton.setText(
-                "📋 تاریخچه گاوصندوق"
+                text(
+                        "📋 تاریخچه گاوصندوق",
+                        "📋 Vault History",
+                        "📋 د خوندي صندوق تاریخچه",
+                        "📋 سیف کی تاریخچہ",
+                        "📋 वॉल्ट इतिहास"
+                )
         );
 
         styleButton(historyButton);
@@ -215,10 +346,17 @@ public class VaultActivity extends Activity {
         // امانت مشتریان
         // ==========================================
 
-        TextView custodyTitle = new TextView(this);
+        TextView custodyTitle =
+                new TextView(this);
 
         custodyTitle.setText(
-                "🔐 امانت مشتریان"
+                text(
+                        "🔐 امانت مشتریان",
+                        "🔐 Customer Deposits",
+                        "🔐 د پیرودونکو امانتونه",
+                        "🔐 صارفین کی امانتیں",
+                        "🔐 ग्राहकों की जमा राशि"
+                )
         );
 
         custodyTitle.setTextSize(22);
@@ -236,11 +374,26 @@ public class VaultActivity extends Activity {
 
         root.addView(custodyTitle);
 
-        TextView custodyInfo = new TextView(this);
+        TextView custodyInfo =
+                new TextView(this);
 
         custodyInfo.setText(
-                "امانت مشتری از دارایی صرافی جداست.\n" +
-                "ثبت امانت هیچ تغییری در موجودی خود صرافی ایجاد نمی‌کند."
+                text(
+                        "امانت مشتری از دارایی صرافی جداست.\n" +
+                                "ثبت امانت هیچ تغییری در موجودی خود صرافی ایجاد نمی‌کند.",
+
+                        "Customer deposits are separate from exchange assets.\n" +
+                                "Recording a deposit does not change the exchange's own balance.",
+
+                        "د پیرودونکي امانت د صرافۍ له شتمنیو څخه جلا دی.\n" +
+                                "د امانت ثبتول د صرافۍ په خپل موجودي کې هېڅ بدلون نه راولي.",
+
+                        "صارف کی امانت صرافی کے اثاثوں سے الگ ہے۔\n" +
+                                "امانت درج کرنے سے صرافی کے اپنے بیلنس میں کوئی تبدیلی نہیں ہوتی۔",
+
+                        "ग्राहक की जमा राशि एक्सचेंज की संपत्ति से अलग है।\n" +
+                                "जमा दर्ज करने से एक्सचेंज के अपने बैलेंस में कोई बदलाव नहीं होता।"
+                )
         );
 
         custodyInfo.setTextSize(15);
@@ -256,20 +409,34 @@ public class VaultActivity extends Activity {
 
         root.addView(custodyInfo);
 
-        Button addCustodyButton = new Button(this);
+        Button addCustodyButton =
+                new Button(this);
 
         addCustodyButton.setText(
-                "🔐 ثبت امانت جدید"
+                text(
+                        "🔐 ثبت امانت جدید",
+                        "🔐 Add New Deposit",
+                        "🔐 نوی امانت ثبت کړئ",
+                        "🔐 نئی امانت درج کریں",
+                        "🔐 नई जमा दर्ज करें"
+                )
         );
 
         styleButton(addCustodyButton);
 
         root.addView(addCustodyButton);
 
-        Button custodyHistoryButton = new Button(this);
+        Button custodyHistoryButton =
+                new Button(this);
 
         custodyHistoryButton.setText(
-                "📋 امانت‌های مشتریان"
+                text(
+                        "📋 امانت‌های مشتریان",
+                        "📋 Customer Deposits",
+                        "📋 د پیرودونکو امانتونه",
+                        "📋 صارفین کی امانتیں",
+                        "📋 ग्राहकों की जमा राशि"
+                )
         );
 
         styleButton(custodyHistoryButton);
@@ -277,10 +444,17 @@ public class VaultActivity extends Activity {
         root.addView(custodyHistoryButton);
 
         // جستجوی مشتری
-        Button searchCustodyButton = new Button(this);
+        Button searchCustodyButton =
+                new Button(this);
 
         searchCustodyButton.setText(
-                "🔍 جستجوی مشتری و امانت"
+                text(
+                        "🔍 جستجوی مشتری و امانت",
+                        "🔍 Search Customer & Deposit",
+                        "🔍 د پیرودونکي او امانت لټون",
+                        "🔍 صارف اور امانت تلاش کریں",
+                        "🔍 ग्राहक और जमा खोजें"
+                )
         );
 
         styleButton(searchCustodyButton);
@@ -288,10 +462,17 @@ public class VaultActivity extends Activity {
         root.addView(searchCustodyButton);
 
         // رسیدها
-        Button receiptsButton = new Button(this);
+        Button receiptsButton =
+                new Button(this);
 
         receiptsButton.setText(
-                "🧾 رسیدهای امانت"
+                text(
+                        "🧾 رسیدهای امانت",
+                        "🧾 Deposit Receipts",
+                        "🧾 د امانت رسیدونه",
+                        "🧾 امانت کی رسیدیں",
+                        "🧾 जमा रसीदें"
+                )
         );
 
         styleButton(receiptsButton);
@@ -302,10 +483,17 @@ public class VaultActivity extends Activity {
         // بازگشت
         // ==========================================
 
-        Button backButton = new Button(this);
+        Button backButton =
+                new Button(this);
 
         backButton.setText(
-                "⬅️ بازگشت"
+                text(
+                        "⬅️ بازگشت",
+                        "⬅️ Back",
+                        "⬅️ شاته",
+                        "⬅️ واپس",
+                        "⬅️ वापस"
+                )
         );
 
         styleButton(backButton);
@@ -376,7 +564,9 @@ public class VaultActivity extends Activity {
     // ارز + پرچم
     // ==================================================
 
-    private void createCurrencyAdapter(Spinner spinner) {
+    private void createCurrencyAdapter(
+            Spinner spinner
+    ) {
 
         ArrayAdapter<String> adapter =
                 new ArrayAdapter<String>(
@@ -404,7 +594,9 @@ public class VaultActivity extends Activity {
                                         currencies[position]
                                 )
                                         + " "
-                                        + currencies[position]
+                                        + getCurrencyDisplayName(
+                                        currencies[position]
+                                )
                         );
 
                         text.setTextSize(17);
@@ -431,7 +623,9 @@ public class VaultActivity extends Activity {
                                         currencies[position]
                                 )
                                         + " "
-                                        + currencies[position]
+                                        + getCurrencyDisplayName(
+                                        currencies[position]
+                                )
                         );
 
                         text.setTextSize(17);
@@ -447,7 +641,126 @@ public class VaultActivity extends Activity {
         spinner.setAdapter(adapter);
     }
 
-    private String getCurrencyFlag(String currency) {
+    private String getCurrencyDisplayName(
+            String currency
+    ) {
+
+        if (ExchangeData.AFN.equals(currency)) {
+            return text(
+                    "افغانی",
+                    "Afghani",
+                    "افغانۍ",
+                    "افغانی",
+                    "अफ़गानी"
+            );
+        }
+
+        if (ExchangeData.USD.equals(currency)) {
+            return text(
+                    "دالر",
+                    "US Dollar",
+                    "ډالر",
+                    "ڈالر",
+                    "डॉलर"
+            );
+        }
+
+        if (ExchangeData.EUR.equals(currency)) {
+            return text(
+                    "یورو",
+                    "Euro",
+                    "یورو",
+                    "یورو",
+                    "यूरो"
+            );
+        }
+
+        if (ExchangeData.GBP.equals(currency)) {
+            return text(
+                    "پوند انگلیس",
+                    "British Pound",
+                    "برتانوي پونډ",
+                    "برطانوی پاؤنڈ",
+                    "ब्रिटिश पाउंड"
+            );
+        }
+
+        if (ExchangeData.SAR.equals(currency)) {
+            return text(
+                    "ریال سعودی",
+                    "Saudi Riyal",
+                    "سعودي ریال",
+                    "سعودی ریال",
+                    "सऊदी रियाल"
+            );
+        }
+
+        if (ExchangeData.AED.equals(currency)) {
+            return text(
+                    "درهم امارات",
+                    "UAE Dirham",
+                    "اماراتي درهم",
+                    "اماراتی درہم",
+                    "यूएई दिरहम"
+            );
+        }
+
+        if (ExchangeData.IQD.equals(currency)) {
+            return text(
+                    "دینار عراق",
+                    "Iraqi Dinar",
+                    "عراقي دینار",
+                    "عراقی دینار",
+                    "इराकी दीनार"
+            );
+        }
+
+        if (ExchangeData.INR.equals(currency)) {
+            return text(
+                    "روپیه هند",
+                    "Indian Rupee",
+                    "هندي روپۍ",
+                    "بھارتی روپیہ",
+                    "भारतीय रुपया"
+            );
+        }
+
+        if (ExchangeData.PKR.equals(currency)) {
+            return text(
+                    "روپیه پاکستانی",
+                    "Pakistani Rupee",
+                    "پاکستانۍ روپۍ",
+                    "پاکستانی روپیہ",
+                    "पाकिस्तानी रुपया"
+            );
+        }
+
+        if (ExchangeData.TRY.equals(currency)) {
+            return text(
+                    "لیر ترکیه",
+                    "Turkish Lira",
+                    "ترکي لیره",
+                    "ترکی لیرا",
+                    "तुर्की लीरा"
+            );
+        }
+
+        if (ExchangeData.TOMAN.equals(currency)) {
+            return text(
+                    "تومان",
+                    "Toman",
+                    "تومان",
+                    "تومان",
+                    "तोमान"
+            );
+        }
+
+        return currency;
+    }
+
+    private String getCurrencyFlag(
+            String currency
+    ) {
 
         if (ExchangeData.AFN.equals(currency))
             return "🇦🇫";
@@ -493,6 +806,7 @@ public class VaultActivity extends Activity {
 
         if (currencySpinner == null
                 || currencySpinner.getSelectedItem() == null) {
+
             return ExchangeData.AFN;
         }
 
@@ -527,14 +841,21 @@ public class VaultActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "لطفاً مبلغ درست وارد کنید.",
+                    text(
+                            "لطفاً مبلغ درست وارد کنید.",
+                            "Please enter a valid amount.",
+                            "مهرباني وکړئ سمه اندازه دننه کړئ.",
+                            "براہ کرم درست رقم درج کریں۔",
+                            "कृपया सही राशि दर्ज करें।"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
 
             return;
         }
 
-        String currency = getSelectedCurrency();
+        String currency =
+                getSelectedCurrency();
 
         data.addBalance(
                 currency,
@@ -554,7 +875,13 @@ public class VaultActivity extends Activity {
 
         Toast.makeText(
                 this,
-                "مبلغ با موفقیت وارد گاوصندوق شد.",
+                text(
+                        "مبلغ با موفقیت وارد گاوصندوق شد.",
+                        "Amount was successfully added to the vault.",
+                        "مقدار په بریالیتوب سره خوندي صندوق ته داخل شو.",
+                        "رقم کامیابی سے سیف میں جمع ہو گئی۔",
+                        "राशि सफलतापूर्वक वॉल्ट में जमा हो गई।"
+                ),
                 Toast.LENGTH_SHORT
         ).show();
     }
@@ -567,14 +894,21 @@ public class VaultActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "لطفاً مبلغ درست وارد کنید.",
+                    text(
+                            "لطفاً مبلغ درست وارد کنید.",
+                            "Please enter a valid amount.",
+                            "مهرباني وکړئ سمه اندازه دننه کړئ.",
+                            "براہ کرم درست رقم درج کریں۔",
+                            "कृपया सही राशि दर्ज करें।"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
 
             return;
         }
 
-        String currency = getSelectedCurrency();
+        String currency =
+                getSelectedCurrency();
 
         boolean success =
                 data.subtractBalance(
@@ -589,9 +923,27 @@ public class VaultActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "موجودی کافی نیست.\n" +
-                    "موجودی فعلی: "
-                            + formatNumber(current),
+                    text(
+                            "موجودی کافی نیست.\n" +
+                                    "موجودی فعلی: " +
+                                    formatNumber(current),
+
+                            "Insufficient balance.\n" +
+                                    "Current balance: " +
+                                    formatNumber(current),
+
+                            "موجودي کافي نه دی.\n" +
+                                    "اوسنی موجودي: " +
+                                    formatNumber(current),
+
+                            "بیلنس کافی نہیں ہے۔\n" +
+                                    "موجودہ بیلنس: " +
+                                    formatNumber(current),
+
+                            "पर्याप्त बैलेंस नहीं है।\n" +
+                                    "वर्तमान बैलेंस: " +
+                                    formatNumber(current)
+                    ),
                     Toast.LENGTH_LONG
             ).show();
 
@@ -611,7 +963,13 @@ public class VaultActivity extends Activity {
 
         Toast.makeText(
                 this,
-                "مبلغ از گاوصندوق برداشت شد.",
+                text(
+                        "مبلغ از گاوصندوق برداشت شد.",
+                        "Amount was withdrawn from the vault.",
+                        "مقدار له خوندي صندوق څخه وایستل شو.",
+                        "رقم سیف سے نکال لی گئی۔",
+                        "राशि वॉल्ट से निकाल ली गई।"
+                ),
                 Toast.LENGTH_SHORT
         ).show();
     }
@@ -621,18 +979,27 @@ public class VaultActivity extends Activity {
         if (currencySpinner == null
                 || currencySpinner.getSelectedItem() == null
                 || balanceText == null) {
+
             return;
         }
 
-        String currency = getSelectedCurrency();
+        String currency =
+                getSelectedCurrency();
 
         double balance =
                 data.getBalance(currency);
 
         balanceText.setText(
                 getCurrencyFlag(currency)
-                        + " موجودی "
-                        + currency
+                        + " "
+                        + text(
+                        "موجودی ",
+                        "Balance ",
+                        "موجودي ",
+                        "بیلنس ",
+                        "बैलेंस "
+                )
+                        + getCurrencyDisplayName(currency)
                         + "\n"
                         + formatNumber(balance)
         );
@@ -662,7 +1029,13 @@ public class VaultActivity extends Activity {
                 new EditText(this);
 
         custodyNameInput.setHint(
-                "نام مشتری"
+                text(
+                        "نام مشتری",
+                        "Customer name",
+                        "د پیرودونکي نوم",
+                        "صارف کا نام",
+                        "ग्राहक का नाम"
+                )
         );
 
         custodyNameInput.setSingleLine(true);
@@ -675,7 +1048,13 @@ public class VaultActivity extends Activity {
                 new EditText(this);
 
         custodyPhoneInput.setHint(
-                "شماره تلفن"
+                text(
+                        "شماره تلفن",
+                        "Phone number",
+                        "د تلیفون شمېره",
+                        "فون نمبر",
+                        "फ़ोन नंबर"
+                )
         );
 
         custodyPhoneInput.setInputType(
@@ -703,12 +1082,18 @@ public class VaultActivity extends Activity {
                 new EditText(this);
 
         custodyAmountInput.setHint(
-                "مبلغ امانت"
+                text(
+                        "مبلغ امانت",
+                        "Deposit amount",
+                        "د امانت مقدار",
+                        "امانت کی رقم",
+                        "जमा राशि"
+                )
         );
 
         custodyAmountInput.setInputType(
                 InputType.TYPE_CLASS_NUMBER |
-                InputType.TYPE_NUMBER_FLAG_DECIMAL
+                        InputType.TYPE_NUMBER_FLAG_DECIMAL
         );
 
         custodyAmountInput.setSingleLine(true);
@@ -721,7 +1106,13 @@ public class VaultActivity extends Activity {
                 new EditText(this);
 
         custodyNoteInput.setHint(
-                "یادداشت / توضیح امانت"
+                text(
+                        "یادداشت / توضیح امانت",
+                        "Deposit note / description",
+                        "د امانت یادښت / توضیح",
+                        "امانت کا نوٹ / وضاحت",
+                        "जमा नोट / विवरण"
+                )
         );
 
         layout.addView(
@@ -731,19 +1122,51 @@ public class VaultActivity extends Activity {
         final AlertDialog dialog =
                 new AlertDialog.Builder(this)
                         .setTitle(
-                                "🔐 ثبت امانت مشتری"
+                                text(
+                                        "🔐 ثبت امانت مشتری",
+                                        "🔐 Add Customer Deposit",
+                                        "🔐 د پیرودونکي امانت ثبتول",
+                                        "🔐 صارف کی امانت درج کریں",
+                                        "🔐 ग्राहक की जमा दर्ज करें"
+                                )
                         )
                         .setMessage(
-                                "این مبلغ متعلق به مشتری است و " +
-                                "به موجودی خود صرافی اضافه نمی‌شود."
+                                text(
+                                        "این مبلغ متعلق به مشتری است و " +
+                                                "به موجودی خود صرافی اضافه نمی‌شود.",
+
+                                        "This amount belongs to the customer " +
+                                                "and is not added to the exchange's own balance.",
+
+                                        "دا مقدار د پیرودونکي دی او " +
+                                                "د صرافۍ خپل موجودي ته نه اضافه کېږي.",
+
+                                        "یہ رقم صارف کی ہے اور " +
+                                                "صرافی کے اپنے بیلنس میں شامل نہیں ہوتی۔",
+
+                                        "यह राशि ग्राहक की है और " +
+                                                "एक्सचेंज के अपने बैलेंस में नहीं जोड़ी जाती।"
+                                )
                         )
                         .setView(layout)
                         .setNegativeButton(
-                                "انصراف",
+                                text(
+                                        "انصراف",
+                                        "Cancel",
+                                        "لغوه",
+                                        "منسوخ",
+                                        "रद्द करें"
+                                ),
                                 null
                         )
                         .setPositiveButton(
-                                "ثبت امانت",
+                                text(
+                                        "ثبت امانت",
+                                        "Add Deposit",
+                                        "امانت ثبت کړئ",
+                                        "امانت درج کریں",
+                                        "जमा दर्ज करें"
+                                ),
                                 null
                         )
                         .create();
@@ -776,7 +1199,13 @@ public class VaultActivity extends Activity {
 
                                     Toast.makeText(
                                             this,
-                                            "لطفاً ارز امانت را انتخاب کنید.",
+                                            text(
+                                                    "لطفاً ارز امانت را انتخاب کنید.",
+                                                    "Please select the deposit currency.",
+                                                    "مهرباني وکړئ د امانت اسعار وټاکئ.",
+                                                    "براہ کرم امانت کی کرنسی منتخب کریں۔",
+                                                    "कृपया जमा मुद्रा चुनें।"
+                                            ),
                                             Toast.LENGTH_SHORT
                                     ).show();
 
@@ -803,7 +1232,13 @@ public class VaultActivity extends Activity {
                                 if (name.isEmpty()) {
 
                                     custodyNameInput.setError(
-                                            "نام مشتری را وارد کنید"
+                                            text(
+                                                    "نام مشتری را وارد کنید",
+                                                    "Enter customer name",
+                                                    "د پیرودونکي نوم دننه کړئ",
+                                                    "صارف کا نام درج کریں",
+                                                    "ग्राहक का नाम दर्ज करें"
+                                            )
                                     );
 
                                     custodyNameInput.requestFocus();
@@ -814,7 +1249,13 @@ public class VaultActivity extends Activity {
                                 if (amountText.isEmpty()) {
 
                                     custodyAmountInput.setError(
-                                            "مبلغ امانت را وارد کنید"
+                                            text(
+                                                    "مبلغ امانت را وارد کنید",
+                                                    "Enter deposit amount",
+                                                    "د امانت مقدار دننه کړئ",
+                                                    "امانت کی رقم درج کریں",
+                                                    "जमा राशि दर्ज करें"
+                                            )
                                     );
 
                                     custodyAmountInput.requestFocus();
@@ -834,7 +1275,13 @@ public class VaultActivity extends Activity {
                                 } catch (Exception e) {
 
                                     custodyAmountInput.setError(
-                                            "مبلغ درست وارد کنید"
+                                            text(
+                                                    "مبلغ درست وارد کنید",
+                                                    "Enter a valid amount",
+                                                    "سمه اندازه دننه کړئ",
+                                                    "درست رقم درج کریں",
+                                                    "सही राशि दर्ज करें"
+                                            )
                                     );
 
                                     custodyAmountInput.requestFocus();
@@ -845,7 +1292,13 @@ public class VaultActivity extends Activity {
                                 if (amount <= 0) {
 
                                     custodyAmountInput.setError(
-                                            "مبلغ باید بیشتر از صفر باشد"
+                                            text(
+                                                    "مبلغ باید بیشتر از صفر باشد",
+                                                    "Amount must be greater than zero",
+                                                    "مقدار باید له صفر څخه زیات وي",
+                                                    "رقم صفر سے زیادہ ہونی چاہیے",
+                                                    "राशि शून्य से अधिक होनी चाहिए"
+                                            )
                                     );
 
                                     custodyAmountInput.requestFocus();
@@ -866,7 +1319,13 @@ public class VaultActivity extends Activity {
 
                                     Toast.makeText(
                                             this,
-                                            "ثبت امانت انجام نشد.",
+                                            text(
+                                                    "ثبت امانت انجام نشد.",
+                                                    "Deposit could not be saved.",
+                                                    "امانت ثبت نه شو.",
+                                                    "امانت درج نہیں ہو سکی۔",
+                                                    "जमा सेव नहीं हो सकी।"
+                                            ),
                                             Toast.LENGTH_SHORT
                                     ).show();
 
@@ -877,7 +1336,13 @@ public class VaultActivity extends Activity {
 
                                 Toast.makeText(
                                         this,
-                                        "🔐 امانت با موفقیت ثبت شد.",
+                                        text(
+                                                "🔐 امانت با موفقیت ثبت شد.",
+                                                "🔐 Deposit saved successfully.",
+                                                "🔐 امانت په بریالیتوب ثبت شو.",
+                                                "🔐 امانت کامیابی سے درج ہو گئی۔",
+                                                "🔐 जमा सफलतापूर्वक दर्ज हुई।"
+                                        ),
                                         Toast.LENGTH_LONG
                                 ).show();
                             }
@@ -905,7 +1370,13 @@ public class VaultActivity extends Activity {
             if (records.length() == 0) {
 
                 text.append(
-                        "هنوز هیچ امانتی ثبت نشده است."
+                        text(
+                                "هنوز هیچ امانتی ثبت نشده است.",
+                                "No deposits have been registered yet.",
+                                "تر اوسه هېڅ امانت نه دی ثبت شوی.",
+                                "ابھی تک کوئی امانت درج نہیں ہوئی۔",
+                                "अभी तक कोई जमा दर्ज नहीं हुई है।"
+                        )
                 );
 
             } else {
@@ -961,7 +1432,10 @@ public class VaultActivity extends Activity {
 
                     double received =
                             getTotalReceiptsForCustody(
-                                    record.optLong("id", 0)
+                                    record.optLong(
+                                            "id",
+                                            0
+                                    )
                             );
 
                     double remaining =
@@ -978,11 +1452,21 @@ public class VaultActivity extends Activity {
                             getCurrencyFlag(currency)
                     )
                             .append(" ")
-                            .append(currency)
+                            .append(
+                                    getCurrencyDisplayName(
+                                            currency
+                                    )
+                            )
                             .append("\n");
 
                     text.append(
-                            "👤 مشتری: "
+                            text(
+                                    "👤 مشتری: ",
+                                    "👤 Customer: ",
+                                    "👤 پیرودونکی: ",
+                                    "👤 صارف: ",
+                                    "👤 ग्राहक: "
+                            )
                     )
                             .append(name)
                             .append("\n");
@@ -990,22 +1474,46 @@ public class VaultActivity extends Activity {
                     if (!phone.isEmpty()) {
 
                         text.append(
-                                "📞 شماره: "
+                                text(
+                                        "📞 شماره: ",
+                                        "📞 Phone: ",
+                                        "📞 شمېره: ",
+                                        "📞 نمبر: ",
+                                        "📞 नंबर: "
+                                )
                         )
                                 .append(phone)
                                 .append("\n");
                     }
 
                     text.append(
-                            "💰 مبلغ کل: "
+                            text(
+                                    "💰 مبلغ کل: ",
+                                    "💰 Total amount: ",
+                                    "💰 ټوله اندازه: ",
+                                    "💰 کل رقم: ",
+                                    "💰 कुल राशि: "
+                            )
                     )
                             .append(
                                     formatNumber(amount)
                             )
+                            .append(" ")
+                            .append(
+                                    getCurrencyDisplayName(
+                                            currency
+                                    )
+                            )
                             .append("\n");
 
                     text.append(
-                            "💵 تحویل/دریافت ثبت‌شده: "
+                            text(
+                                    "💵 تحویل/دریافت ثبت‌شده: ",
+                                    "💵 Recorded received/returned: ",
+                                    "💵 ثبت شوې ورکړه/تحویلي: ",
+                                    "💵 درج شدہ وصولی/واپسی: ",
+                                    "💵 दर्ज प्राप्त/वापसी: "
+                            )
                     )
                             .append(
                                     formatNumber(received)
@@ -1013,7 +1521,13 @@ public class VaultActivity extends Activity {
                             .append("\n");
 
                     text.append(
-                            "💰 باقی‌مانده: "
+                            text(
+                                    "💰 باقی‌مانده: ",
+                                    "💰 Remaining: ",
+                                    "💰 پاتې: ",
+                                    "💰 باقی: ",
+                                    "💰 शेष: "
+                            )
                     )
                             .append(
                                     formatNumber(remaining)
@@ -1023,26 +1537,54 @@ public class VaultActivity extends Activity {
                     if (remaining <= 0) {
 
                         text.append(
-                                "🟢 وضعیت: تسویه شده\n"
+                                text(
+                                        "🟢 وضعیت: تسویه شده\n",
+                                        "🟢 Status: Settled\n",
+                                        "🟢 حالت: تصفیه شوی\n",
+                                        "🟢 حیثیت: مکمل ادا شدہ\n",
+                                        "🟢 स्थिति: पूरा भुगतान\n"
+                                )
                         );
 
                     } else {
 
                         text.append(
-                                "🟠 وضعیت: باقی دارد\n"
+                                text(
+                                        "🟠 وضعیت: باقی دارد\n",
+                                        "🟠 Status: Remaining\n",
+                                        "🟠 حالت: پاتې لري\n",
+                                        "🟠 حیثیت: باقی ہے\n",
+                                        "🟠 स्थिति: बाकी है\n"
+                                )
                         );
                     }
 
                     text.append(
-                            "📌 وضعیت امانت: "
+                            text(
+                                    "📌 وضعیت امانت: ",
+                                    "📌 Deposit status: ",
+                                    "📌 د امانت حالت: ",
+                                    "📌 امانت کی حیثیت: ",
+                                    "📌 जमा स्थिति: "
+                            )
                     )
-                            .append(status)
+                            .append(
+                                    getDisplayedCustodyStatus(
+                                            status
+                                    )
+                            )
                             .append("\n");
 
                     if (date > 0) {
 
                         text.append(
-                                "📅 تاریخ: "
+                                text(
+                                        "📅 تاریخ: ",
+                                        "📅 Date: ",
+                                        "📅 نېټه: ",
+                                        "📅 تاریخ: ",
+                                        "📅 तारीख: "
+                                )
                         )
                                 .append(
                                         formatDate(date)
@@ -1053,7 +1595,13 @@ public class VaultActivity extends Activity {
                     if (!note.isEmpty()) {
 
                         text.append(
-                                "📝 یادداشت: "
+                                text(
+                                        "📝 یادداشت: ",
+                                        "📝 Note: ",
+                                        "📝 یادښت: ",
+                                        "📝 نوٹ: ",
+                                        "📝 नोट: "
+                                )
                         )
                                 .append(note)
                                 .append("\n");
@@ -1063,23 +1611,47 @@ public class VaultActivity extends Activity {
 
             new AlertDialog.Builder(this)
                     .setTitle(
-                            "🔐 امانت‌های مشتریان"
+                            text(
+                                    "🔐 امانت‌های مشتریان",
+                                    "🔐 Customer Deposits",
+                                    "🔐 د پیرودونکو امانتونه",
+                                    "🔐 صارفین کی امانتیں",
+                                    "🔐 ग्राहकों की जमा"
+                            )
                     )
                     .setMessage(
                             text.toString()
                     )
                     .setPositiveButton(
-                            "تحویل / ثبت رسید",
+                            text(
+                                    "تحویل / ثبت رسید",
+                                    "Return / Record Receipt",
+                                    "تحویلي / رسید ثبتول",
+                                    "واپسی / رسید درج کریں",
+                                    "वापसी / रसीद दर्ज करें"
+                            ),
                             (dialog, which) ->
                                     showReturnCustody()
                     )
                     .setNeutralButton(
-                            "🔍 جستجو",
+                            text(
+                                    "🔍 جستجو",
+                                    "🔍 Search",
+                                    "🔍 لټون",
+                                    "🔍 تلاش",
+                                    "🔍 खोजें"
+                            ),
                             (dialog, which) ->
                                     showCustomerSearch()
                     )
                     .setNegativeButton(
-                            "بستن",
+                            text(
+                                    "بستن",
+                                    "Close",
+                                    "بندول",
+                                    "بند کریں",
+                                    "बंद करें"
+                            ),
                             null
                     )
                     .show();
@@ -1088,7 +1660,13 @@ public class VaultActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "خطا در خواندن امانت‌ها.",
+                    text(
+                            "خطا در خواندن امانت‌ها.",
+                            "Error reading deposits.",
+                            "د امانتونو په لوستلو کې تېروتنه.",
+                            "امانتیں پڑھنے میں خرابی۔",
+                            "जमा पढ़ने में त्रुटि।"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
         }
@@ -1104,7 +1682,13 @@ public class VaultActivity extends Activity {
                 new EditText(this);
 
         searchInput.setHint(
-                "نام یا شماره مشتری"
+                text(
+                        "نام یا شماره مشتری",
+                        "Customer name or phone",
+                        "د پیرودونکي نوم یا شمېره",
+                        "صارف کا نام یا نمبر",
+                        "ग्राहक का नाम या नंबर"
+                )
         );
 
         searchInput.setSingleLine(true);
@@ -1135,15 +1719,33 @@ public class VaultActivity extends Activity {
         AlertDialog dialog =
                 new AlertDialog.Builder(this)
                         .setTitle(
-                                "🔍 جستجوی مشتری"
+                                text(
+                                        "🔍 جستجوی مشتری",
+                                        "🔍 Search Customer",
+                                        "🔍 د پیرودونکي لټون",
+                                        "🔍 صارف تلاش کریں",
+                                        "🔍 ग्राहक खोजें"
+                                )
                         )
                         .setView(layout)
                         .setPositiveButton(
-                                "جستجو",
+                                text(
+                                        "جستجو",
+                                        "Search",
+                                        "لټون",
+                                        "تلاش",
+                                        "खोजें"
+                                ),
                                 null
                         )
                         .setNegativeButton(
-                                "انصراف",
+                                text(
+                                        "انصراف",
+                                        "Cancel",
+                                        "لغوه",
+                                        "منسوخ",
+                                        "रद्द करें"
+                                ),
                                 null
                         )
                         .create();
@@ -1168,7 +1770,13 @@ public class VaultActivity extends Activity {
                                 if (query.isEmpty()) {
 
                                     searchInput.setError(
-                                            "نام یا شماره را وارد کنید"
+                                            text(
+                                                    "نام یا شماره را وارد کنید",
+                                                    "Enter name or phone",
+                                                    "نوم یا شمېره دننه کړئ",
+                                                    "نام یا نمبر درج کریں",
+                                                    "नाम या नंबर दर्ज करें"
+                                            )
                                     );
 
                                     return;
@@ -1185,7 +1793,9 @@ public class VaultActivity extends Activity {
         dialog.show();
     }
 
-    private void showSearchResults(String query) {
+    private void showSearchResults(
+            String query
+    ) {
 
         try {
 
@@ -1235,6 +1845,7 @@ public class VaultActivity extends Activity {
 
                 if (!nameLower.contains(q)
                         && !phoneLower.contains(q)) {
+
                     continue;
                 }
 
@@ -1295,11 +1906,21 @@ public class VaultActivity extends Activity {
                         getCurrencyFlag(currency)
                 )
                         .append(" ")
-                        .append(currency)
+                        .append(
+                                getCurrencyDisplayName(
+                                        currency
+                                )
+                        )
                         .append("\n");
 
                 result.append(
-                        "💰 کل: "
+                        text(
+                                "💰 کل: ",
+                                "💰 Total: ",
+                                "💰 ټول: ",
+                                "💰 کل: ",
+                                "💰 कुल: "
+                        )
                 )
                         .append(
                                 formatNumber(amount)
@@ -1307,7 +1928,13 @@ public class VaultActivity extends Activity {
                         .append("\n");
 
                 result.append(
-                        "💵 ثبت‌شده: "
+                        text(
+                                "💵 ثبت‌شده: ",
+                                "💵 Recorded: ",
+                                "💵 ثبت شوي: ",
+                                "💵 درج شدہ: ",
+                                "💵 दर्ज: "
+                        )
                 )
                         .append(
                                 formatNumber(received)
@@ -1315,7 +1942,13 @@ public class VaultActivity extends Activity {
                         .append("\n");
 
                 result.append(
-                        "💰 باقی: "
+                        text(
+                                "💰 باقی: ",
+                                "💰 Remaining: ",
+                                "💰 پاتې: ",
+                                "💰 باقی: ",
+                                "💰 शेष: "
+                        )
                 )
                         .append(
                                 formatNumber(remaining)
@@ -1325,28 +1958,58 @@ public class VaultActivity extends Activity {
                 if (remaining <= 0) {
 
                     result.append(
-                            "🟢 تسویه شده\n"
+                            text(
+                                    "🟢 تسویه شده\n",
+                                    "🟢 Settled\n",
+                                    "🟢 تصفیه شوی\n",
+                                    "🟢 مکمل ادا شدہ\n",
+                                    "🟢 पूरा भुगतान\n"
+                            )
                     );
 
                 } else {
 
                     result.append(
-                            "🟠 باقی دارد\n"
+                            text(
+                                    "🟠 باقی دارد\n",
+                                    "🟠 Remaining\n",
+                                    "🟠 پاتې لري\n",
+                                    "🟠 باقی ہے\n",
+                                    "🟠 बाकी है\n"
+                            )
                     );
                 }
 
                 result.append(
                         "📌 "
                 )
-                        .append(status)
+                        .append(
+                                getDisplayedCustodyStatus(
+                                        status
+                                )
+                        )
                         .append("\n");
 
                 if (remaining > 0
                         && "امانت نزد صرافی".equals(status)) {
 
                     result.append(
-                            "🧾 برای ثبت پرداخت/تحویل، " +
-                            "روی «ثبت رسید» بزنید.\n"
+                            text(
+                                    "🧾 برای ثبت پرداخت/تحویل، " +
+                                            "روی «ثبت رسید» بزنید.\n",
+
+                                    "🧾 To record a payment/return, " +
+                                            "tap “Record Receipt”.\n",
+
+                                    "🧾 د تادیې/تحویلي ثبتولو لپاره، " +
+                                            "«رسید ثبتول» ووهئ.\n",
+
+                                    "🧾 ادائیگی/واپسی درج کرنے کے لیے " +
+                                            "«رسید درج کریں» دبائیں۔\n",
+
+                                    "🧾 भुगतान/वापसी दर्ज करने के लिए " +
+                                            "«रसीद दर्ज करें» दबाएँ।\n"
+                            )
                     );
                 }
             }
@@ -1354,25 +2017,49 @@ public class VaultActivity extends Activity {
             if (count == 0) {
 
                 result.append(
-                        "❌ مشتری پیدا نشد."
+                        text(
+                                "❌ مشتری پیدا نشد.",
+                                "❌ Customer not found.",
+                                "❌ پیرودونکی پیدا نه شو.",
+                                "❌ صارف نہیں ملا۔",
+                                "❌ ग्राहक नहीं मिला।"
+                        )
                 );
             }
 
             AlertDialog resultDialog =
                     new AlertDialog.Builder(this)
                             .setTitle(
-                                    "🔍 نتیجه جستجو"
+                                    text(
+                                            "🔍 نتیجه جستجو",
+                                            "🔍 Search Results",
+                                            "🔍 د لټون پایله",
+                                            "🔍 تلاش کا نتیجہ",
+                                            "🔍 खोज परिणाम"
+                                    )
                             )
                             .setMessage(
                                     result.toString()
                             )
                             .setPositiveButton(
-                                    "ثبت رسید",
+                                    text(
+                                            "ثبت رسید",
+                                            "Record Receipt",
+                                            "رسید ثبتول",
+                                            "رسید درج کریں",
+                                            "रसीद दर्ज करें"
+                                    ),
                                     (dialog, which) ->
                                             showReturnCustody()
                             )
                             .setNegativeButton(
-                                    "بستن",
+                                    text(
+                                            "بستن",
+                                            "Close",
+                                            "بندول",
+                                            "بند کریں",
+                                            "बंद करें"
+                                    ),
                                     null
                             )
                             .create();
@@ -1383,7 +2070,13 @@ public class VaultActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "خطا در جستجوی مشتری.",
+                    text(
+                            "خطا در جستجوی مشتری.",
+                            "Error searching customer.",
+                            "د پیرودونکي په لټون کې تېروتنه.",
+                            "صارف تلاش کرنے میں خرابی۔",
+                            "ग्राहक खोजने में त्रुटि।"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
         }
@@ -1468,11 +2161,25 @@ public class VaultActivity extends Activity {
                         getCurrencyFlag(currency)
                                 + " "
                                 + name
-                                + " — کل "
+                                + " — "
+                                + text(
+                                "کل ",
+                                "Total ",
+                                "ټول ",
+                                "کل ",
+                                "कुल "
+                        )
                                 + formatNumber(amount)
                                 + " "
-                                + currency
-                                + " — باقی "
+                                + getCurrencyDisplayName(currency)
+                                + " — "
+                                + text(
+                                "باقی ",
+                                "Remaining ",
+                                "پاتې ",
+                                "باقی ",
+                                "शेष "
+                        )
                                 + formatNumber(remaining)
                 );
             }
@@ -1481,13 +2188,31 @@ public class VaultActivity extends Activity {
 
                 new AlertDialog.Builder(this)
                         .setTitle(
-                                "تحویل امانت"
+                                text(
+                                        "تحویل امانت",
+                                        "Return Deposit",
+                                        "امانت تحویلي",
+                                        "امانت واپس کریں",
+                                        "जमा वापस करें"
+                                )
                         )
                         .setMessage(
-                                "امانت فعالی برای ثبت رسید وجود ندارد."
+                                text(
+                                        "امانت فعالی برای ثبت رسید وجود ندارد.",
+                                        "There is no active deposit for recording a receipt.",
+                                        "د رسید ثبتولو لپاره فعاله امانت نشته.",
+                                        "رسید درج کرنے کے لیے کوئی فعال امانت موجود نہیں۔",
+                                        "रसीद दर्ज करने के लिए कोई सक्रिय जमा नहीं है।"
+                                )
                         )
                         .setPositiveButton(
-                                "باشه",
+                                text(
+                                        "باشه",
+                                        "OK",
+                                        "سمه ده",
+                                        "ٹھیک ہے",
+                                        "ठीक है"
+                                ),
                                 null
                         )
                         .show();
@@ -1502,7 +2227,13 @@ public class VaultActivity extends Activity {
 
             new AlertDialog.Builder(this)
                     .setTitle(
-                            "🧾 انتخاب مشتری برای رسید"
+                            text(
+                                    "🧾 انتخاب مشتری برای رسید",
+                                    "🧾 Select Customer for Receipt",
+                                    "🧾 د رسید لپاره پیرودونکی وټاکئ",
+                                    "🧾 رسید کے لیے صارف منتخب کریں",
+                                    "🧾 रसीद के लिए ग्राहक चुनें"
+                            )
                     )
                     .setItems(
                             itemArray,
@@ -1515,7 +2246,13 @@ public class VaultActivity extends Activity {
                             }
                     )
                     .setNegativeButton(
-                            "انصراف",
+                            text(
+                                    "انصراف",
+                                    "Cancel",
+                                    "لغوه",
+                                    "منسوخ",
+                                    "रद्द करें"
+                            ),
                             null
                     )
                     .show();
@@ -1524,7 +2261,13 @@ public class VaultActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "خطا در خواندن امانت‌ها.",
+                    text(
+                            "خطا در خواندن امانت‌ها.",
+                            "Error reading deposits.",
+                            "د امانتونو په لوستلو کې تېروتنه.",
+                            "امانتیں پڑھنے میں خرابی۔",
+                            "जमा पढ़ने में त्रुटि।"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
         }
@@ -1534,7 +2277,9 @@ public class VaultActivity extends Activity {
     // ثبت رسید
     // ==================================================
 
-    private void showReceiptDialog(long custodyId) {
+    private void showReceiptDialog(
+            long custodyId
+    ) {
 
         JSONObject custody =
                 findCustodyById(custodyId);
@@ -1543,7 +2288,13 @@ public class VaultActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "رکورد امانت پیدا نشد.",
+                    text(
+                            "رکورد امانت پیدا نشد.",
+                            "Deposit record not found.",
+                            "د امانت ریکارډ پیدا نه شو.",
+                            "امانت کا ریکارڈ نہیں ملا۔",
+                            "जमा रिकॉर्ड नहीं मिला।"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -1600,25 +2351,62 @@ public class VaultActivity extends Activity {
                 new TextView(this);
 
         info.setText(
-                "👤 مشتری: " + name +
-                "\n" +
-                (phone.isEmpty()
-                        ? ""
-                        : "📞 شماره: " + phone + "\n") +
-                "💰 مبلغ کل: "
+                text(
+                        "👤 مشتری: ",
+                        "👤 Customer: ",
+                        "👤 پیرودونکی: ",
+                        "👤 صارف: ",
+                        "👤 ग्राहक: "
+                )
+                        + name
+                        + "\n"
+                        +
+                        (phone.isEmpty()
+                                ? ""
+                                : text(
+                                "📞 شماره: ",
+                                "📞 Phone: ",
+                                "📞 شمېره: ",
+                                "📞 نمبر: ",
+                                "📞 नंबर: "
+                        )
+                                + phone
+                                + "\n")
+                        +
+                        text(
+                                "💰 مبلغ کل: ",
+                                "💰 Total amount: ",
+                                "💰 ټوله اندازه: ",
+                                "💰 کل رقم: ",
+                                "💰 कुल राशि: "
+                        )
                         + formatNumber(total)
                         + " "
-                        + currency +
-                "\n" +
-                "💵 قبلاً ثبت شده: "
+                        + getCurrencyDisplayName(currency)
+                        + "\n"
+                        +
+                        text(
+                                "💵 قبلاً ثبت شده: ",
+                                "💵 Previously recorded: ",
+                                "💵 مخکې ثبت شوی: ",
+                                "💵 پہلے درج شدہ: ",
+                                "💵 पहले दर्ज: "
+                        )
                         + formatNumber(received)
                         + " "
-                        + currency +
-                "\n" +
-                "🟠 باقی‌مانده: "
+                        + getCurrencyDisplayName(currency)
+                        + "\n"
+                        +
+                        text(
+                                "🟠 باقی‌مانده: ",
+                                "🟠 Remaining: ",
+                                "🟠 پاتې: ",
+                                "🟠 باقی: ",
+                                "🟠 शेष: "
+                        )
                         + formatNumber(remaining)
                         + " "
-                        + currency
+                        + getCurrencyDisplayName(currency)
         );
 
         info.setTextSize(16);
@@ -1636,12 +2424,18 @@ public class VaultActivity extends Activity {
                 new EditText(this);
 
         amount.setHint(
-                "مبلغ این رسید"
+                text(
+                        "مبلغ این رسید",
+                        "Receipt amount",
+                        "د دې رسید مقدار",
+                        "اس رسید کی رقم",
+                        "इस रसीद की राशि"
+                )
         );
 
         amount.setInputType(
                 InputType.TYPE_CLASS_NUMBER |
-                InputType.TYPE_NUMBER_FLAG_DECIMAL
+                        InputType.TYPE_NUMBER_FLAG_DECIMAL
         );
 
         amount.setSingleLine(true);
@@ -1652,7 +2446,13 @@ public class VaultActivity extends Activity {
                 new EditText(this);
 
         note.setHint(
-                "توضیح رسید"
+                text(
+                        "توضیح رسید",
+                        "Receipt note",
+                        "د رسید توضیح",
+                        "رسید کی وضاحت",
+                        "रसीद विवरण"
+                )
         );
 
         layout.addView(note);
@@ -1660,18 +2460,42 @@ public class VaultActivity extends Activity {
         final AlertDialog dialog =
                 new AlertDialog.Builder(this)
                         .setTitle(
-                                "🧾 ثبت رسید"
+                                text(
+                                        "🧾 ثبت رسید",
+                                        "🧾 Record Receipt",
+                                        "🧾 رسید ثبتول",
+                                        "🧾 رسید درج کریں",
+                                        "🧾 रसीद दर्ज करें"
+                                )
                         )
                         .setMessage(
-                                "رسید پس از ثبت قابل ویرایش یا حذف نیست."
+                                text(
+                                        "رسید پس از ثبت قابل ویرایش یا حذف نیست.",
+                                        "The receipt cannot be edited or deleted after registration.",
+                                        "رسید له ثبتېدو وروسته نه سمېږي او نه حذفېږي.",
+                                        "رسید درج ہونے کے بعد اس میں ترمیم یا حذف نہیں کیا جا سکتا۔",
+                                        "रसीद दर्ज करने के बाद इसे संपादित या हटाया नहीं जा सकता।"
+                                )
                         )
                         .setView(layout)
                         .setNegativeButton(
-                                "انصراف",
+                                text(
+                                        "انصراف",
+                                        "Cancel",
+                                        "لغوه",
+                                        "منسوخ",
+                                        "रद्द करें"
+                                ),
                                 null
                         )
                         .setPositiveButton(
-                                "ثبت رسید",
+                                text(
+                                        "ثبت رسید",
+                                        "Record Receipt",
+                                        "رسید ثبتول",
+                                        "رسید درج کریں",
+                                        "रसीद दर्ज करें"
+                                ),
                                 null
                         )
                         .create();
@@ -1695,7 +2519,13 @@ public class VaultActivity extends Activity {
                                 if (amountText.isEmpty()) {
 
                                     amount.setError(
-                                            "مبلغ را وارد کنید"
+                                            text(
+                                                    "مبلغ را وارد کنید",
+                                                    "Enter amount",
+                                                    "مقدار دننه کړئ",
+                                                    "رقم درج کریں",
+                                                    "राशि दर्ज करें"
+                                            )
                                     );
 
                                     return;
@@ -1713,7 +2543,13 @@ public class VaultActivity extends Activity {
                                 } catch (Exception e) {
 
                                     amount.setError(
-                                            "مبلغ درست وارد کنید"
+                                            text(
+                                                    "مبلغ درست وارد کنید",
+                                                    "Enter a valid amount",
+                                                    "سمه اندازه دننه کړئ",
+                                                    "درست رقم درج کریں",
+                                                    "सही राशि दर्ज करें"
+                                            )
                                     );
 
                                     return;
@@ -1722,7 +2558,13 @@ public class VaultActivity extends Activity {
                                 if (receiptAmount <= 0) {
 
                                     amount.setError(
-                                            "مبلغ باید بیشتر از صفر باشد"
+                                            text(
+                                                    "مبلغ باید بیشتر از صفر باشد",
+                                                    "Amount must be greater than zero",
+                                                    "مقدار باید له صفر څخه زیات وي",
+                                                    "رقم صفر سے زیادہ ہونی چاہیے",
+                                                    "राशि शून्य से अधिक होनी चाहिए"
+                                            )
                                     );
 
                                     return;
@@ -1731,7 +2573,13 @@ public class VaultActivity extends Activity {
                                 if (receiptAmount > remaining) {
 
                                     amount.setError(
-                                            "مبلغ بیشتر از باقی‌مانده است"
+                                            text(
+                                                    "مبلغ بیشتر از باقی‌مانده است",
+                                                    "Amount exceeds the remaining balance",
+                                                    "مقدار له پاتې اندازې څخه زیات دی",
+                                                    "رقم باقی رقم سے زیادہ ہے",
+                                                    "राशि शेष से अधिक है"
+                                            )
                                     );
 
                                     return;
@@ -1757,7 +2605,13 @@ public class VaultActivity extends Activity {
 
                                     Toast.makeText(
                                             this,
-                                            "ثبت رسید انجام نشد.",
+                                            text(
+                                                    "ثبت رسید انجام نشد.",
+                                                    "Receipt could not be saved.",
+                                                    "رسید ثبت نه شو.",
+                                                    "رسید درج نہیں ہو سکی۔",
+                                                    "रसीद सेव नहीं हो सकी।"
+                                            ),
                                             Toast.LENGTH_SHORT
                                     ).show();
 
@@ -1942,46 +2796,110 @@ public class VaultActivity extends Activity {
         if (remaining <= 0) {
 
             status =
-                    "🟢 تسویه کامل شد";
+                    text(
+                            "🟢 تسویه کامل شد",
+                            "🟢 Fully settled",
+                            "🟢 په بشپړه توګه تصفیه شو",
+                            "🟢 مکمل ادا ہو گیا",
+                            "🟢 पूरा भुगतान हो गया"
+                    );
 
         } else {
 
             status =
-                    "🟠 هنوز باقی دارد";
+                    text(
+                            "🟠 هنوز باقی دارد",
+                            "🟠 Amount remains",
+                            "🟠 لا هم پاتې لري",
+                            "🟠 ابھی رقم باقی ہے",
+                            "🟠 राशि अभी बाकी है"
+                    );
         }
 
         String message =
-                "🧾 رسید با موفقیت ثبت شد.\n\n" +
-                "🔢 کد رسید: "
+                text(
+                        "🧾 رسید با موفقیت ثبت شد.\n\n",
+                        "🧾 Receipt saved successfully.\n\n",
+                        "🧾 رسید په بریالیتوب ثبت شو.\n\n",
+                        "🧾 رسید کامیابی سے درج ہو گئی۔\n\n",
+                        "🧾 रसीद सफलतापूर्वक दर्ज हुई।\n\n"
+                ) +
+                        text(
+                                "🔢 کد رسید: ",
+                                "🔢 Receipt code: ",
+                                "🔢 د رسید کوډ: ",
+                                "🔢 رسید کوڈ: ",
+                                "🔢 रसीद कोड: "
+                        )
                         + code
-                        + "\n" +
-                "👤 مشتری: "
+                        + "\n"
+                        +
+                        text(
+                                "👤 مشتری: ",
+                                "👤 Customer: ",
+                                "👤 پیرودونکی: ",
+                                "👤 صارف: ",
+                                "👤 ग्राहक: "
+                        )
                         + customer
-                        + "\n" +
-                "💰 مبلغ رسید: "
+                        + "\n"
+                        +
+                        text(
+                                "💰 مبلغ رسید: ",
+                                "💰 Receipt amount: ",
+                                "💰 د رسید مقدار: ",
+                                "💰 رسید کی رقم: ",
+                                "💰 रसीद राशि: "
+                        )
                         + formatNumber(amount)
                         + " "
-                        + currency
-                        + "\n" +
-                "💵 باقی‌مانده: "
+                        + getCurrencyDisplayName(currency)
+                        + "\n"
+                        +
+                        text(
+                                "💵 باقی‌مانده: ",
+                                "💵 Remaining: ",
+                                "💵 پاتې: ",
+                                "💵 باقی: ",
+                                "💵 शेष: "
+                        )
                         + formatNumber(remaining)
                         + " "
-                        + currency
-                        + "\n" +
-                status
-                        + "\n\n" +
-                "📅 تاریخ: "
+                        + getCurrencyDisplayName(currency)
+                        + "\n"
+                        + status
+                        + "\n\n"
+                        +
+                        text(
+                                "📅 تاریخ: ",
+                                "📅 Date: ",
+                                "📅 نېټه: ",
+                                "📅 تاریخ: ",
+                                "📅 तारीख: "
+                        )
                         + formatDate(
-                                System.currentTimeMillis()
-                        );
+                        System.currentTimeMillis()
+                );
 
         new AlertDialog.Builder(this)
                 .setTitle(
-                        "✅ رسید ثبت شد"
+                        text(
+                                "✅ رسید ثبت شد",
+                                "✅ Receipt Recorded",
+                                "✅ رسید ثبت شو",
+                                "✅ رسید درج ہو گئی",
+                                "✅ रसीद दर्ज हुई"
+                        )
                 )
                 .setMessage(message)
                 .setPositiveButton(
-                        "باشه",
+                        text(
+                                "باشه",
+                                "OK",
+                                "سمه ده",
+                                "ٹھیک ہے",
+                                "ठीक है"
+                        ),
                         null
                 )
                 .show();
@@ -2016,7 +2934,13 @@ public class VaultActivity extends Activity {
             if (receipts.length() == 0) {
 
                 text.append(
-                        "هنوز هیچ رسیدی ثبت نشده است."
+                        text(
+                                "هنوز هیچ رسیدی ثبت نشده است.",
+                                "No receipts have been registered yet.",
+                                "تر اوسه هېڅ رسید نه دی ثبت شوی.",
+                                "ابھی تک کوئی رسید درج نہیں ہوئی۔",
+                                "अभी तक कोई रसीद दर्ज नहीं हुई है।"
+                        )
                 );
 
             } else {
@@ -2080,7 +3004,13 @@ public class VaultActivity extends Activity {
                             .append("\n");
 
                     text.append(
-                            "👤 مشتری: "
+                            text(
+                                    "👤 مشتری: ",
+                                    "👤 Customer: ",
+                                    "👤 پیرودونکی: ",
+                                    "👤 صارف: ",
+                                    "👤 ग्राहक: "
+                            )
                     )
                             .append(name)
                             .append("\n");
@@ -2088,26 +3018,48 @@ public class VaultActivity extends Activity {
                     if (!phone.isEmpty()) {
 
                         text.append(
-                                "📞 شماره: "
+                                text(
+                                        "📞 شماره: ",
+                                        "📞 Phone: ",
+                                        "📞 شمېره: ",
+                                        "📞 نمبر: ",
+                                        "📞 नंबर: "
+                                )
                         )
                                 .append(phone)
                                 .append("\n");
                     }
 
                     text.append(
-                            "💰 مبلغ: "
+                            text(
+                                    "💰 مبلغ: ",
+                                    "💰 Amount: ",
+                                    "💰 مقدار: ",
+                                    "💰 رقم: ",
+                                    "💰 राशि: "
+                            )
                     )
                             .append(
                                     formatNumber(amount)
                             )
                             .append(" ")
-                            .append(currency)
+                            .append(
+                                    getCurrencyDisplayName(
+                                            currency
+                                    )
+                            )
                             .append("\n");
 
                     if (date > 0) {
 
                         text.append(
-                                "📅 تاریخ: "
+                                text(
+                                        "📅 تاریخ: ",
+                                        "📅 Date: ",
+                                        "📅 نېټه: ",
+                                        "📅 تاریخ: ",
+                                        "📅 तारीख: "
+                                )
                         )
                                 .append(
                                         formatDate(date)
@@ -2118,14 +3070,26 @@ public class VaultActivity extends Activity {
                     if (!note.isEmpty()) {
 
                         text.append(
-                                "📝 توضیح: "
+                                text(
+                                        "📝 توضیح: ",
+                                        "📝 Description: ",
+                                        "📝 توضیح: ",
+                                        "📝 وضاحت: ",
+                                        "📝 विवरण: "
+                                )
                         )
                                 .append(note)
                                 .append("\n");
                     }
 
                     text.append(
-                            "🔒 غیرقابل ویرایش/حذف"
+                            text(
+                                    "🔒 غیرقابل ویرایش/حذف",
+                                    "🔒 Cannot be edited/deleted",
+                                    "🔒 نه سمېږي او نه حذفېږي",
+                                    "🔒 ترمیم یا حذف نہیں کیا جا سکتا",
+                                    "🔒 संपादित/हटाया नहीं जा सकता"
+                            )
                     )
                             .append("\n");
                 }
@@ -2133,13 +3097,25 @@ public class VaultActivity extends Activity {
 
             new AlertDialog.Builder(this)
                     .setTitle(
-                            "🧾 رسیدهای امانت"
+                            text(
+                                    "🧾 رسیدهای امانت",
+                                    "🧾 Deposit Receipts",
+                                    "🧾 د امانت رسیدونه",
+                                    "🧾 امانت کی رسیدیں",
+                                    "🧾 जमा रसीदें"
+                            )
                     )
                     .setMessage(
                             text.toString()
                     )
                     .setPositiveButton(
-                            "بستن",
+                            text(
+                                    "بستن",
+                                    "Close",
+                                    "بندول",
+                                    "بند کریں",
+                                    "बंद करें"
+                            ),
                             null
                     )
                     .show();
@@ -2148,7 +3124,13 @@ public class VaultActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "خطا در خواندن رسیدها.",
+                    text(
+                            "خطا در خواندن رسیدها.",
+                            "Error reading receipts.",
+                            "د رسیدونو په لوستلو کې تېروتنه.",
+                            "رسیدیں پڑھنے میں خرابی۔",
+                            "रसीद पढ़ने में त्रुटि।"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
         }
@@ -2158,7 +3140,9 @@ public class VaultActivity extends Activity {
     // پیدا کردن امانت
     // ==================================================
 
-    private JSONObject findCustodyById(long id) {
+    private JSONObject findCustodyById(
+            long id
+    ) {
 
         try {
 
@@ -2353,7 +3337,13 @@ public class VaultActivity extends Activity {
             if (records.length() == 0) {
 
                 text.append(
-                        "هنوز هیچ عملیاتی ثبت نشده است."
+                        text(
+                                "هنوز هیچ عملیاتی ثبت نشده است.",
+                                "No operations have been recorded yet.",
+                                "تر اوسه هېڅ عملیات نه دي ثبت شوي.",
+                                "ابھی تک کوئی کارروائی درج نہیں ہوئی۔",
+                                "अभी तक कोई ऑपरेशन दर्ज नहीं हुआ है।"
+                        )
                 );
 
             } else {
@@ -2391,17 +3381,37 @@ public class VaultActivity extends Activity {
                             getCurrencyFlag(currency)
                     )
                             .append(" ")
-                            .append(type)
+                            .append(
+                                    getDisplayedVaultType(
+                                            type
+                                    )
+                            )
                             .append("\n");
 
                     text.append(
-                            "ارز: "
+                            text(
+                                    "ارز: ",
+                                    "Currency: ",
+                                    "اسعار: ",
+                                    "کرنسی: ",
+                                    "मुद्रा: "
+                            )
                     )
-                            .append(currency)
+                            .append(
+                                    getCurrencyDisplayName(
+                                            currency
+                                    )
+                            )
                             .append("\n");
 
                     text.append(
-                            "مبلغ: "
+                            text(
+                                    "مبلغ: ",
+                                    "Amount: ",
+                                    "مقدار: ",
+                                    "رقم: ",
+                                    "राशि: "
+                            )
                     )
                             .append(
                                     formatNumber(amount)
@@ -2411,7 +3421,13 @@ public class VaultActivity extends Activity {
                     if (date > 0) {
 
                         text.append(
-                                "تاریخ: "
+                                text(
+                                        "تاریخ: ",
+                                        "Date: ",
+                                        "نېټه: ",
+                                        "تاریخ: ",
+                                        "तारीख: "
+                                )
                         )
                                 .append(
                                         formatDate(date)
@@ -2422,7 +3438,13 @@ public class VaultActivity extends Activity {
                     if (!note.isEmpty()) {
 
                         text.append(
-                                "یادداشت: "
+                                text(
+                                        "یادداشت: ",
+                                        "Note: ",
+                                        "یادښت: ",
+                                        "نوٹ: ",
+                                        "नोट: "
+                                )
                         )
                                 .append(note)
                                 .append("\n");
@@ -2432,13 +3454,25 @@ public class VaultActivity extends Activity {
 
             new AlertDialog.Builder(this)
                     .setTitle(
-                            "📋 تاریخچه گاوصندوق"
+                            text(
+                                    "📋 تاریخچه گاوصندوق",
+                                    "📋 Vault History",
+                                    "📋 د خوندي صندوق تاریخچه",
+                                    "📋 سیف کی تاریخچہ",
+                                    "📋 वॉल्ट इतिहास"
+                            )
                     )
                     .setMessage(
                             text.toString()
                     )
                     .setPositiveButton(
-                            "بستن",
+                            text(
+                                    "بستن",
+                                    "Close",
+                                    "بندول",
+                                    "بند کریں",
+                                    "बंद करें"
+                            ),
                             null
                     )
                     .show();
@@ -2447,17 +3481,87 @@ public class VaultActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "خطا در خواندن تاریخچه.",
+                    text(
+                            "خطا در خواندن تاریخچه.",
+                            "Error reading history.",
+                            "د تاریخچې په لوستلو کې تېروتنه.",
+                            "تاریخچہ پڑھنے میں خرابی۔",
+                            "इतिहास पढ़ने में त्रुटि।"
+                    ),
                     Toast.LENGTH_SHORT
             ).show();
         }
     }
 
     // ==================================================
+    // وضعیت‌های ذخیره‌شده — فقط برای نمایش ترجمه می‌شوند
+    // ==================================================
+
+    private String getDisplayedCustodyStatus(
+            String status
+    ) {
+
+        if ("امانت نزد صرافی".equals(status)) {
+
+            return text(
+                    "امانت نزد صرافی",
+                    "Deposit with Exchange",
+                    "د صرافۍ سره امانت",
+                    "صرافی کے پاس امانت",
+                    "एक्सचेंज के पास जमा"
+            );
+        }
+
+        if ("تحویل داده شد".equals(status)) {
+
+            return text(
+                    "تحویل داده شد",
+                    "Returned",
+                    "تحویل شو",
+                    "واپس کر دی گئی",
+                    "वापस कर दी गई"
+            );
+        }
+
+        return status;
+    }
+
+    private String getDisplayedVaultType(
+            String type
+    ) {
+
+        if ("ورود".equals(type)) {
+
+            return text(
+                    "ورود",
+                    "Deposit",
+                    "داخلول",
+                    "جمع",
+                    "जमा"
+            );
+        }
+
+        if ("خروج".equals(type)) {
+
+            return text(
+                    "خروج",
+                    "Withdrawal",
+                    "ایستل",
+                    "نکاسی",
+                    "निकासी"
+            );
+        }
+
+        return type;
+    }
+
+    // ==================================================
     // ابزارها
     // ==================================================
 
-    private String formatNumber(double number) {
+    private String formatNumber(
+            double number
+    ) {
 
         return String.format(
                 Locale.US,
@@ -2470,7 +3574,9 @@ public class VaultActivity extends Activity {
     // تاریخ هجری شمسی افغانستان
     // ==================================================
 
-    private String formatDate(long time) {
+    private String formatDate(
+            long time
+    ) {
 
         try {
 
@@ -2530,21 +3636,95 @@ public class VaultActivity extends Activity {
         }
     }
 
-    private String getAfghanMonthName(int month) {
+    private String getAfghanMonthName(
+            int month
+    ) {
 
         String[] months = {
-                "حمل",
-                "ثور",
-                "جوزا",
-                "سرطان",
-                "اسد",
-                "سنبله",
-                "میزان",
-                "عقرب",
-                "قوس",
-                "جدی",
-                "دلو",
-                "حوت"
+                text(
+                        "حمل",
+                        "Hamal",
+                        "وری",
+                        "حمل",
+                        "हमल"
+                ),
+                text(
+                        "ثور",
+                        "Sawr",
+                        "غویی",
+                        "ثور",
+                        "सौर"
+                ),
+                text(
+                        "جوزا",
+                        "Jawza",
+                        "غبرګولی",
+                        "جوزا",
+                        "जौज़ा"
+                ),
+                text(
+                        "سرطان",
+                        "Saratan",
+                        "چنګاښ",
+                        "سرطان",
+                        "सरतान"
+                ),
+                text(
+                        "اسد",
+                        "Asad",
+                        "زمری",
+                        "اسد",
+                        "असद"
+                ),
+                text(
+                        "سنبله",
+                        "Sonbola",
+                        "وږی",
+                        "سنبلہ",
+                        "सुनबुला"
+                ),
+                text(
+                        "میزان",
+                        "Mizan",
+                        "تله",
+                        "میزان",
+                        "मिज़ान"
+                ),
+                text(
+                        "عقرب",
+                        "Aqrab",
+                        "لړم",
+                        "عقرب",
+                        "अक़रब"
+                ),
+                text(
+                        "قوس",
+                        "Qaws",
+                        "لیندۍ",
+                        "قوس",
+                        "क़ौस"
+                ),
+                text(
+                        "جدی",
+                        "Jadi",
+                        "مرغومی",
+                        "جدی",
+                        "जदी"
+                ),
+                text(
+                        "دلو",
+                        "Dalwa",
+                        "سلواغه",
+                        "دلو",
+                        "दलवा"
+                ),
+                text(
+                        "حوت",
+                        "Hut",
+                        "کب",
+                        "حوت",
+                        "हूत"
+                )
         };
 
         if (month >= 1 && month <= 12) {
@@ -2663,7 +3843,9 @@ public class VaultActivity extends Activity {
         noteInput.setText("");
     }
 
-    private void styleButton(Button button) {
+    private void styleButton(
+            Button button
+    ) {
 
         GradientDrawable background =
                 new GradientDrawable();
@@ -2714,4 +3896,4 @@ public class VaultActivity extends Activity {
                 blue
         );
     }
-                     }
+            }
