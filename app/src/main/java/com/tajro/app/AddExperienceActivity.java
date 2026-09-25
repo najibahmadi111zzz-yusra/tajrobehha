@@ -2,6 +2,7 @@ package com.tajro.app;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -17,7 +18,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +30,201 @@ public class AddExperienceActivity extends Activity {
     private int themeColor;
 
     private boolean isPublishing = false;
+
+    // ================================
+    // اعمال زبان
+    // ================================
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(
+                LanguageManager.applyLanguage(newBase)
+        );
+    }
+
+    // ================================
+    // ترجمه متن‌ها
+    // ================================
+
+    private String text(String fa) {
+
+        String lang =
+                LanguageManager.getLanguage(this);
+
+        if ("en".equals(lang)) {
+
+            if (fa.equals("✍️ ثبت تجربه جدید"))
+                return "✍️ Add New Experience";
+
+            if (fa.equals("عنوان تجربه را بنویسید"))
+                return "Write the experience title";
+
+            if (fa.equals("تجربه خود را با دیگران شریک کنید..."))
+                return "Share your experience with others...";
+
+            if (fa.equals("🚀 انتشار تجربه"))
+                return "🚀 Publish Experience";
+
+            if (fa.equals("لطفاً ابتدا وارد اکانت خود شوید"))
+                return "Please log in to your account first";
+
+            if (fa.equals("لطفاً عنوان و متن تجربه را وارد کنید"))
+                return "Please enter the experience title and text";
+
+            if (fa.equals("عنوان تجربه خیلی طولانی است"))
+                return "The experience title is too long";
+
+            if (fa.equals("متن تجربه خیلی طولانی است"))
+                return "The experience text is too long";
+
+            if (fa.equals("⏳ در حال بررسی..."))
+                return "⏳ Checking...";
+
+            if (fa.equals("این تجربه قبلاً منتشر شده است ❤️"))
+                return "This experience has already been published ❤️";
+
+            if (fa.equals("تجربه با موفقیت منتشر شد! 🎉"))
+                return "Experience published successfully! 🎉";
+
+            if (fa.equals("خطا در بررسی تجربه: "))
+                return "Error checking experience: ";
+
+            if (fa.equals("خطا در انتشار تجربه: "))
+                return "Error publishing experience: ";
+        }
+
+        if ("ps".equals(lang)) {
+
+            if (fa.equals("✍️ ثبت تجربه جدید"))
+                return "✍️ نوې تجربه ثبت کړئ";
+
+            if (fa.equals("عنوان تجربه را بنویسید"))
+                return "د تجربې سرلیک ولیکئ";
+
+            if (fa.equals("تجربه خود را با دیگران شریک کنید..."))
+                return "خپله تجربه له نورو سره شریکه کړئ...";
+
+            if (fa.equals("🚀 انتشار تجربه"))
+                return "🚀 تجربه خپره کړئ";
+
+            if (fa.equals("لطفاً ابتدا وارد اکانت خود شوید"))
+                return "مهرباني وکړئ لومړی خپل حساب ته ننوځئ";
+
+            if (fa.equals("لطفاً عنوان و متن تجربه را وارد کنید"))
+                return "مهرباني وکړئ د تجربې سرلیک او متن ولیکئ";
+
+            if (fa.equals("عنوان تجربه خیلی طولانی است"))
+                return "د تجربې سرلیک ډېر اوږد دی";
+
+            if (fa.equals("متن تجربه خیلی طولانی است"))
+                return "د تجربې متن ډېر اوږد دی";
+
+            if (fa.equals("⏳ در حال بررسی..."))
+                return "⏳ د کتلو په حال کې...";
+
+            if (fa.equals("این تجربه قبلاً منتشر شده است ❤️"))
+                return "دا تجربه مخکې خپره شوې ده ❤️";
+
+            if (fa.equals("تجربه با موفقیت منتشر شد! 🎉"))
+                return "تجربه په بریالیتوب سره خپره شوه! 🎉";
+
+            if (fa.equals("خطا در بررسی تجربه: "))
+                return "د تجربې په کتلو کې تېروتنه: ";
+
+            if (fa.equals("خطا در انتشار تجربه: "))
+                return "د تجربې په خپرولو کې تېروتنه: ";
+        }
+
+        if ("ur".equals(lang)) {
+
+            if (fa.equals("✍️ ثبت تجربه جدید"))
+                return "✍️ نیا تجربہ درج کریں";
+
+            if (fa.equals("عنوان تجربه را بنویسید"))
+                return "تجربے کا عنوان لکھیں";
+
+            if (fa.equals("تجربه خود را با دیگران شریک کنید..."))
+                return "اپنا تجربہ دوسروں کے ساتھ شیئر کریں...";
+
+            if (fa.equals("🚀 انتشار تجربه"))
+                return "🚀 تجربہ شائع کریں";
+
+            if (fa.equals("لطفاً ابتدا وارد اکانت خود شوید"))
+                return "براہِ کرم پہلے اپنے اکاؤنٹ میں لاگ اِن کریں";
+
+            if (fa.equals("لطفاً عنوان و متن تجربه را وارد کنید"))
+                return "براہِ کرم تجربے کا عنوان اور متن درج کریں";
+
+            if (fa.equals("عنوان تجربه خیلی طولانی است"))
+                return "تجربے کا عنوان بہت لمبا ہے";
+
+            if (fa.equals("متن تجربه خیلی طولانی است"))
+                return "تجربے کا متن بہت لمبا ہے";
+
+            if (fa.equals("⏳ در حال بررسی..."))
+                return "⏳ جانچ جاری ہے...";
+
+            if (fa.equals("این تجربه قبلاً منتشر شده است ❤️"))
+                return "یہ تجربہ پہلے ہی شائع ہو چکا ہے ❤️";
+
+            if (fa.equals("تجربه با موفقیت منتشر شد! 🎉"))
+                return "تجربہ کامیابی سے شائع ہو گیا! 🎉";
+
+            if (fa.equals("خطا در بررسی تجربه: "))
+                return "تجربہ چیک کرنے میں خرابی: ";
+
+            if (fa.equals("خطا در انتشار تجربه: "))
+                return "تجربہ شائع کرنے میں خرابی: ";
+        }
+
+        if ("hi".equals(lang)) {
+
+            if (fa.equals("✍️ ثبت تجربه جدید"))
+                return "✍️ नया अनुभव जोड़ें";
+
+            if (fa.equals("عنوان تجربه را بنویسید"))
+                return "अनुभव का शीर्षक लिखें";
+
+            if (fa.equals("تجربه خود را با دیگران شریک کنید..."))
+                return "अपना अनुभव दूसरों के साथ साझा करें...";
+
+            if (fa.equals("🚀 انتشار تجربه"))
+                return "🚀 अनुभव प्रकाशित करें";
+
+            if (fa.equals("لطفاً ابتدا وارد اکانت خود شوید"))
+                return "कृपया पहले अपने खाते में लॉग इन करें";
+
+            if (fa.equals("لطفاً عنوان و متن تجربه را وارد کنید"))
+                return "कृपया अनुभव का शीर्षक और पाठ दर्ज करें";
+
+            if (fa.equals("عنوان تجربه خیلی طولانی است"))
+                return "अनुभव का शीर्षक बहुत लंबा है";
+
+            if (fa.equals("متن تجربه خیلی طولانی است"))
+                return "अनुभव का पाठ बहुत लंबा है";
+
+            if (fa.equals("⏳ در حال بررسی..."))
+                return "⏳ जाँच हो रही है...";
+
+            if (fa.equals("این تجربه قبلاً منتشر شده است ❤️"))
+                return "यह अनुभव पहले ही प्रकाशित हो चुका है ❤️";
+
+            if (fa.equals("تجربه با موفقیت منتشر شد! 🎉"))
+                return "अनुभव सफलतापूर्वक प्रकाशित हुआ! 🎉";
+
+            if (fa.equals("خطا در بررسی تجربه: "))
+                return "अनुभव जाँचने में त्रुटि: ";
+
+            if (fa.equals("خطا در انتشار تجربه: "))
+                return "अनुभव प्रकाशित करने में त्रुटि: ";
+        }
+
+        return fa;
+    }
+
+    // ================================
+    // شروع صفحه
+    // ================================
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,17 +246,29 @@ public class AddExperienceActivity extends Activity {
         layout.setBackgroundColor(getLightThemeColor());
 
         TextView title = new TextView(this);
-        title.setText("✍️ ثبت تجربه جدید");
+        title.setText(
+                text("✍️ ثبت تجربه جدید")
+        );
         title.setTextSize(25);
         title.setTextColor(themeColor);
         title.setTypeface(
-                Typeface.create("sans-serif", Typeface.BOLD)
+                Typeface.create(
+                        "sans-serif",
+                        Typeface.BOLD
+                )
         );
         title.setGravity(Gravity.CENTER);
-        title.setPadding(0, 0, 0, dp(25));
+        title.setPadding(
+                0,
+                0,
+                0,
+                dp(25)
+        );
 
         EditText experienceTitle = new EditText(this);
-        experienceTitle.setHint("عنوان تجربه را بنویسید");
+        experienceTitle.setHint(
+                text("عنوان تجربه را بنویسید")
+        );
         experienceTitle.setTextSize(17);
         experienceTitle.setSingleLine(true);
         experienceTitle.setPadding(
@@ -73,10 +280,12 @@ public class AddExperienceActivity extends Activity {
 
         EditText experienceText = new EditText(this);
         experienceText.setHint(
-                "تجربه خود را با دیگران شریک کنید..."
+                text("تجربه خود را با دیگران شریک کنید...")
         );
         experienceText.setTextSize(17);
-        experienceText.setGravity(Gravity.TOP | Gravity.RIGHT);
+        experienceText.setGravity(
+                Gravity.TOP | Gravity.RIGHT
+        );
         experienceText.setMinLines(7);
         experienceText.setPadding(
                 dp(14),
@@ -98,10 +307,16 @@ public class AddExperienceActivity extends Activity {
                 dp(20)
         );
 
-        experienceText.setLayoutParams(textParams);
+        experienceText.setLayoutParams(
+                textParams
+        );
 
         Button publishButton = new Button(this);
-        publishButton.setText("🚀 انتشار تجربه");
+
+        publishButton.setText(
+                text("🚀 انتشار تجربه")
+        );
+
         publishButton.setTextSize(16);
         styleButton(publishButton);
 
@@ -111,13 +326,16 @@ public class AddExperienceActivity extends Activity {
                 return;
             }
 
-            FirebaseUser user = auth.getCurrentUser();
+            FirebaseUser user =
+                    auth.getCurrentUser();
 
             if (user == null) {
 
                 Toast.makeText(
                         AddExperienceActivity.this,
-                        "لطفاً ابتدا وارد اکانت خود شوید",
+                        text(
+                                "لطفاً ابتدا وارد اکانت خود شوید"
+                        ),
                         Toast.LENGTH_LONG
                 ).show();
 
@@ -125,21 +343,25 @@ public class AddExperienceActivity extends Activity {
             }
 
             String titleText =
-                    experienceTitle.getText()
+                    experienceTitle
+                            .getText()
                             .toString()
                             .trim();
 
             String experience =
-                    experienceText.getText()
+                    experienceText
+                            .getText()
                             .toString()
                             .trim();
 
-            if (titleText.isEmpty() ||
-                    experience.isEmpty()) {
+            if (titleText.isEmpty()
+                    || experience.isEmpty()) {
 
                 Toast.makeText(
                         AddExperienceActivity.this,
-                        "لطفاً عنوان و متن تجربه را وارد کنید",
+                        text(
+                                "لطفاً عنوان و متن تجربه را وارد کنید"
+                        ),
                         Toast.LENGTH_SHORT
                 ).show();
 
@@ -150,7 +372,9 @@ public class AddExperienceActivity extends Activity {
 
                 Toast.makeText(
                         AddExperienceActivity.this,
-                        "عنوان تجربه خیلی طولانی است",
+                        text(
+                                "عنوان تجربه خیلی طولانی است"
+                        ),
                         Toast.LENGTH_SHORT
                 ).show();
 
@@ -161,7 +385,9 @@ public class AddExperienceActivity extends Activity {
 
                 Toast.makeText(
                         AddExperienceActivity.this,
-                        "متن تجربه خیلی طولانی است",
+                        text(
+                                "متن تجربه خیلی طولانی است"
+                        ),
                         Toast.LENGTH_SHORT
                 ).show();
 
@@ -172,11 +398,11 @@ public class AddExperienceActivity extends Activity {
 
             publishButton.setEnabled(false);
             publishButton.setAlpha(0.6f);
-            publishButton.setText("⏳ در حال بررسی...");
 
-            /*
-             * یک کلید ثابت برای تشخیص تجربه تکراری
-             */
+            publishButton.setText(
+                    text("⏳ در حال بررسی...")
+            );
+
             String contentKey =
                     createContentKey(
                             user.getUid(),
@@ -184,10 +410,6 @@ public class AddExperienceActivity extends Activity {
                             experience
                     );
 
-            /*
-             * اول بررسی می‌کنیم همین تجربه قبلاً
-             * توسط همین کاربر ثبت نشده باشد.
-             */
             db.collection("experiences")
                     .whereEqualTo(
                             "contentKey",
@@ -202,15 +424,23 @@ public class AddExperienceActivity extends Activity {
 
                                     isPublishing = false;
 
-                                    publishButton.setEnabled(true);
-                                    publishButton.setAlpha(1.0f);
+                                    publishButton
+                                            .setEnabled(true);
+
+                                    publishButton
+                                            .setAlpha(1.0f);
+
                                     publishButton.setText(
-                                            "🚀 انتشار تجربه"
+                                            text(
+                                                    "🚀 انتشار تجربه"
+                                            )
                                     );
 
                                     Toast.makeText(
                                             AddExperienceActivity.this,
-                                            "این تجربه قبلاً منتشر شده است ❤️",
+                                            text(
+                                                    "این تجربه قبلاً منتشر شده است ❤️"
+                                            ),
                                             Toast.LENGTH_LONG
                                     ).show();
 
@@ -233,16 +463,23 @@ public class AddExperienceActivity extends Activity {
 
                                 isPublishing = false;
 
-                                publishButton.setEnabled(true);
-                                publishButton.setAlpha(1.0f);
+                                publishButton
+                                        .setEnabled(true);
+
+                                publishButton
+                                        .setAlpha(1.0f);
+
                                 publishButton.setText(
-                                        "🚀 انتشار تجربه"
+                                        text(
+                                                "🚀 انتشار تجربه"
+                                        )
                                 );
 
                                 Toast.makeText(
                                         AddExperienceActivity.this,
-                                        "خطا در بررسی تجربه: " +
-                                                e.getMessage(),
+                                        text(
+                                                "خطا در بررسی تجربه: "
+                                        ) + e.getMessage(),
                                         Toast.LENGTH_LONG
                                 ).show();
                             }
@@ -257,7 +494,9 @@ public class AddExperienceActivity extends Activity {
                         LinearLayout.LayoutParams.WRAP_CONTENT
                 );
 
-        experienceTitle.setLayoutParams(titleParams);
+        experienceTitle.setLayoutParams(
+                titleParams
+        );
 
         layout.addView(experienceTitle);
         layout.addView(experienceText);
@@ -265,6 +504,10 @@ public class AddExperienceActivity extends Activity {
 
         setContentView(layout);
     }
+
+    // ================================
+    // انتشار تجربه
+    // ================================
 
     private void publishExperience(
             FirebaseUser user,
@@ -299,17 +542,11 @@ public class AddExperienceActivity extends Activity {
                 user.getEmail()
         );
 
-        /*
-         * برای جلوگیری از تجربه‌های تکراری
-         */
         experienceData.put(
                 "contentKey",
                 contentKey
         );
 
-        /*
-         * تعداد اولیه لایک
-         */
         experienceData.put(
                 "likesCount",
                 0L
@@ -327,7 +564,9 @@ public class AddExperienceActivity extends Activity {
 
                             Toast.makeText(
                                     AddExperienceActivity.this,
-                                    "تجربه با موفقیت منتشر شد! 🎉",
+                                    text(
+                                            "تجربه با موفقیت منتشر شد! 🎉"
+                                    ),
                                     Toast.LENGTH_LONG
                             ).show();
 
@@ -338,8 +577,11 @@ public class AddExperienceActivity extends Activity {
 
                             publishButton.setEnabled(true);
                             publishButton.setAlpha(1.0f);
+
                             publishButton.setText(
-                                    "🚀 انتشار تجربه"
+                                    text(
+                                            "🚀 انتشار تجربه"
+                                    )
                             );
                         }
                 )
@@ -350,23 +592,28 @@ public class AddExperienceActivity extends Activity {
 
                             publishButton.setEnabled(true);
                             publishButton.setAlpha(1.0f);
+
                             publishButton.setText(
-                                    "🚀 انتشار تجربه"
+                                    text(
+                                            "🚀 انتشار تجربه"
+                                    )
                             );
 
                             Toast.makeText(
                                     AddExperienceActivity.this,
-                                    "خطا در انتشار تجربه: " +
-                                            e.getMessage(),
+                                    text(
+                                            "خطا در انتشار تجربه: "
+                                    ) + e.getMessage(),
                                     Toast.LENGTH_LONG
                             ).show();
                         }
                 );
     }
 
-    /*
-     * ساخت شناسه ثابت برای عنوان + متن + کاربر
-     */
+    // ================================
+    // ساخت شناسه ثابت
+    // ================================
+
     private String createContentKey(
             String userId,
             String title,
@@ -394,8 +641,14 @@ public class AddExperienceActivity extends Activity {
         return value
                 .trim()
                 .replaceAll("\\s+", " ")
-                .toLowerCase(java.util.Locale.ROOT);
+                .toLowerCase(
+                        java.util.Locale.ROOT
+                );
     }
+
+    // ================================
+    // اندازه
+    // ================================
 
     private int dp(int value) {
 
@@ -407,16 +660,24 @@ public class AddExperienceActivity extends Activity {
         );
     }
 
+    // ================================
+    // استایل دکمه
+    // ================================
+
     private void styleButton(Button button) {
 
         GradientDrawable background =
                 new GradientDrawable();
 
         background.setColor(themeColor);
-        background.setCornerRadius(dp(22));
+        background.setCornerRadius(
+                dp(22)
+        );
 
         button.setBackground(background);
+
         button.setTextColor(Color.WHITE);
+
         button.setTypeface(
                 Typeface.create(
                         "sans-serif",
@@ -424,6 +685,10 @@ public class AddExperienceActivity extends Activity {
                 )
         );
     }
+
+    // ================================
+    // رنگ پس‌زمینه
+    // ================================
 
     private int getLightThemeColor() {
 
@@ -449,4 +714,4 @@ public class AddExperienceActivity extends Activity {
                 blue
         );
     }
-    }
+}
