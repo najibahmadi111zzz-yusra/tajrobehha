@@ -1,4 +1,3 @@
-{"variant":"document","id":"73514","title":"AccountActivity.java — نسخه چندزبانه"}
 package com.tajro.app;
 
 import android.app.Activity;
