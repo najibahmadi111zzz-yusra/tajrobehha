@@ -32,6 +32,7 @@ public class MainActivity extends Activity {
     private TextView title;
     private TextView welcome;
     private TextView footer;
+    private String appliedLanguage;
 
     private Button addButton;
     private Button listButton;
@@ -213,6 +214,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        appliedLanguage = LanguageManager.getLanguage(this);
 
         // ==================================
         // قفل امنیتی
@@ -835,27 +838,26 @@ public class MainActivity extends Activity {
     // ==================================
 
     @Override
-    protected void onResume() {
-        super.onResume();
+protected void onResume() {
+    super.onResume();
 
-        if (mainLayout != null) {
+    if (mainLayout != null) {
 
-            // اگر زبان در تنظیمات تغییر کرده باشد،
-            // صفحه اصلی دوباره با زبان جدید ساخته می‌شود.
-            String currentLanguage =
-                    LanguageManager.getLanguage(this);
+        String currentLanguage =
+                LanguageManager.getLanguage(this);
 
-            if (!currentLanguage.equals(
-                    getAppliedLanguage()
-            )) {
+        if (appliedLanguage != null
+                && !currentLanguage.equals(appliedLanguage)) {
 
-                recreate();
-                return;
-            }
+            appliedLanguage = currentLanguage;
 
-            applyTheme();
+            recreate();
+            return;
         }
+
+        applyTheme();
     }
+}
 
     // ==================================
     // زبان فعلی صفحه
