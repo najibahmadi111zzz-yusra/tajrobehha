@@ -194,19 +194,7 @@ public class ChatActivity extends Activity {
         loadUsers();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
 
-        String currentLanguage =
-                LanguageManager.getLanguage(this);
-
-        if (appliedLanguage != null
-                && !currentLanguage.equals(appliedLanguage)) {
-
-            recreate();
-        }
-    }
 
     private String tr(String fa) {
         String lang = LanguageManager.getLanguage(this);
@@ -4901,31 +4889,37 @@ header.addView(chatMenu,
     }
 
     @Override
-    protected void onResume() {
+protected void onResume() {
 
-        super.onResume();
+    super.onResume();
 
-        if (myId != null) {
+    // آنلاین بودن کاربر
+    if (myId != null) {
 
-            db.collection("users")
-                    .document(myId)
-                    .set(
-                            new HashMap<String, Object>() {{
-                                put(
-                                        "online",
-                                        true
-                                );
-
-                                put(
-                                        "lastSeen",
-                                        FieldValue
-                                                .serverTimestamp()
-                                );
-                            }},
-                            SetOptions.merge()
-                    );
-        }
+        db.collection("users")
+                .document(myId)
+                .set(
+                        new HashMap<String, Object>() {{
+                            put("online", true);
+                            put(
+                                    "lastSeen",
+                                    FieldValue.serverTimestamp()
+                            );
+                        }},
+                        SetOptions.merge()
+                );
     }
+
+    // بررسی تغییر زبان
+    String currentLanguage =
+            LanguageManager.getLanguage(this);
+
+    if (appliedLanguage != null
+            && !currentLanguage.equals(appliedLanguage)) {
+
+        recreate();
+    }
+}
 
     @Override
     protected void onPause() {
