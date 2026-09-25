@@ -92,8 +92,8 @@ public class BallGameActivity extends Activity {
         private ToneGenerator tone;
 
         private final float gravity = 1550f;
-        private final float maxSpeed = 440f;
-        private final float acceleration = 1950f;
+        private final float maxSpeed = 700f;
+        private final float acceleration = 3000f;
         private final float friction = 0.80f;
         private final float jumpPower = 1060f;
         private final float highBounce =1350f;
@@ -165,6 +165,7 @@ public class BallGameActivity extends Activity {
             if (w > 0 && h > 0) {
                 viewReady = true;
                 resetLevel();
+                startGame();
             }
         }
 
@@ -861,19 +862,6 @@ public class BallGameActivity extends Activity {
             if (rightPressed) {
                 ballVX += acceleration * dt;
             }
-
-    if (!leftPressed && !rightPressed) {
-
-    float autoSpeed = 300f;
-
-    if (ballVX < autoSpeed) {
-        ballVX += acceleration * 0.55f * dt;
-
-        if (ballVX > autoSpeed) {
-            ballVX = autoSpeed;
-        }
-    }
-    }
 
             ballVX =
                     Math.max(
