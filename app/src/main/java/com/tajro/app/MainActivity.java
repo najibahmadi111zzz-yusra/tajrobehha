@@ -891,7 +891,7 @@ public class MainActivity extends Activity {
         if (backgroundImage != null) {
 
             backgroundImage.setAlpha(
-                    0.22f
+                    0.35f
             );
 
             backgroundImage.setScaleX(
