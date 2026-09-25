@@ -3,6 +3,7 @@ package com.tajro.app;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -26,7 +27,6 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.FieldValue;
 
 import java.net.URL;
@@ -46,6 +46,241 @@ public class ExperienceListActivity extends Activity {
      */
     private Set<String> displayedExperienceKeys =
             new HashSet<>();
+
+    // ================================
+    // اعمال زبان
+    // ================================
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(
+                LanguageManager.applyLanguage(newBase)
+        );
+    }
+
+    // ================================
+    // ترجمه
+    // ================================
+
+    private String text(String fa) {
+
+        String lang =
+                LanguageManager.getLanguage(this);
+
+        // English
+        if ("en".equals(lang)) {
+
+            if (fa.equals("📚 تجربه‌های کاربران"))
+                return "📚 Users' Experiences";
+
+            if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
+                return "No experiences have been published yet.\n\nShare your first experience! ✍️";
+
+            if (fa.equals("بدون عنوان"))
+                return "No title";
+
+            if (fa.equals("کاربر"))
+                return "User";
+
+            if (fa.equals("برای لایک کردن وارد حساب شوید"))
+                return "Please log in to like";
+
+            if (fa.equals("✏️ ویرایش"))
+                return "✏️ Edit";
+
+            if (fa.equals("🗑️ حذف"))
+                return "🗑️ Delete";
+
+            if (fa.equals("مطمئن هستید این تجربه حذف شود؟"))
+                return "Are you sure you want to delete this experience?";
+
+            if (fa.equals("لغو"))
+                return "Cancel";
+
+            if (fa.equals("حذف"))
+                return "Delete";
+
+            if (fa.equals("تجربه حذف شد 🗑️"))
+                return "Experience deleted 🗑️";
+
+            if (fa.equals("خطا در حذف تجربه"))
+                return "Error deleting experience";
+
+            if (fa.equals("خطا در دریافت تجربه‌ها"))
+                return "Error loading experiences";
+
+            if (fa.equals("خطا در برداشتن لایک"))
+                return "Error removing like";
+
+            if (fa.equals("خطا در ثبت لایک"))
+                return "Error adding like";
+
+            if (fa.equals("خطا در بررسی لایک"))
+                return "Error checking like";
+        }
+
+        // پښتو
+        if ("ps".equals(lang)) {
+
+            if (fa.equals("📚 تجربه‌های کاربران"))
+                return "📚 د کاروونکو تجربې";
+
+            if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
+                return "تر اوسه هېڅ تجربه نه ده خپره شوې.\n\nخپله لومړۍ تجربه ثبت کړئ! ✍️";
+
+            if (fa.equals("بدون عنوان"))
+                return "بې سرلیک";
+
+            if (fa.equals("کاربر"))
+                return "کارن";
+
+            if (fa.equals("برای لایک کردن وارد حساب شوید"))
+                return "د خوښولو لپاره خپل حساب ته ننوځئ";
+
+            if (fa.equals("✏️ ویرایش"))
+                return "✏️ سمون";
+
+            if (fa.equals("🗑️ حذف"))
+                return "🗑️ ړنګول";
+
+            if (fa.equals("مطمئن هستید این تجربه حذف شود؟"))
+                return "ایا ډاډه یاست چې دا تجربه ړنګه شي؟";
+
+            if (fa.equals("لغو"))
+                return "لغوه";
+
+            if (fa.equals("حذف"))
+                return "ړنګول";
+
+            if (fa.equals("تجربه حذف شد 🗑️"))
+                return "تجربه ړنګه شوه 🗑️";
+
+            if (fa.equals("خطا در حذف تجربه"))
+                return "د تجربې په ړنګولو کې تېروتنه";
+
+            if (fa.equals("خطا در دریافت تجربه‌ها"))
+                return "د تجربو په ترلاسه کولو کې تېروتنه";
+
+            if (fa.equals("خطا در برداشتن لایک"))
+                return "د خوښونې په لرې کولو کې تېروتنه";
+
+            if (fa.equals("خطا در ثبت لایک"))
+                return "د خوښونې په ثبتولو کې تېروتنه";
+
+            if (fa.equals("خطا در بررسی لایک"))
+                return "د خوښونې په کتلو کې تېروتنه";
+        }
+
+        // اردو
+        if ("ur".equals(lang)) {
+
+            if (fa.equals("📚 تجربه‌های کاربران"))
+                return "📚 صارفین کے تجربات";
+
+            if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
+                return "ابھی تک کوئی تجربہ شائع نہیں ہوا۔\n\nاپنا پہلا تجربہ شیئر کریں! ✍️";
+
+            if (fa.equals("بدون عنوان"))
+                return "بغیر عنوان";
+
+            if (fa.equals("کاربر"))
+                return "صارف";
+
+            if (fa.equals("برای لایک کردن وارد حساب شوید"))
+                return "لائک کرنے کے لیے اپنے اکاؤنٹ میں لاگ اِن کریں";
+
+            if (fa.equals("✏️ ویرایش"))
+                return "✏️ ترمیم";
+
+            if (fa.equals("🗑️ حذف"))
+                return "🗑️ حذف";
+
+            if (fa.equals("مطمئن هستید این تجربه حذف شود؟"))
+                return "کیا آپ واقعی یہ تجربہ حذف کرنا چاہتے ہیں؟";
+
+            if (fa.equals("لغو"))
+                return "منسوخ";
+
+            if (fa.equals("حذف"))
+                return "حذف";
+
+            if (fa.equals("تجربه حذف شد 🗑️"))
+                return "تجربہ حذف ہوگیا 🗑️";
+
+            if (fa.equals("خطا در حذف تجربه"))
+                return "تجربہ حذف کرنے میں خرابی";
+
+            if (fa.equals("خطا در دریافت تجربه‌ها"))
+                return "تجربات حاصل کرنے میں خرابی";
+
+            if (fa.equals("خطا در برداشتن لایک"))
+                return "لائک ہٹانے میں خرابی";
+
+            if (fa.equals("خطا در ثبت لایک"))
+                return "لائک کرنے میں خرابی";
+
+            if (fa.equals("خطا در بررسی لایک"))
+                return "لائک چیک کرنے میں خرابی";
+        }
+
+        // हिन्दी
+        if ("hi".equals(lang)) {
+
+            if (fa.equals("📚 تجربه‌های کاربران"))
+                return "📚 उपयोगकर्ताओं के अनुभव";
+
+            if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
+                return "अभी तक कोई अनुभव प्रकाशित नहीं हुआ है।\n\nअपना पहला अनुभव साझा करें! ✍️";
+
+            if (fa.equals("بدون عنوان"))
+                return "बिना शीर्षक";
+
+            if (fa.equals("کاربر"))
+                return "उपयोगकर्ता";
+
+            if (fa.equals("برای لایک کردن وارد حساب شوید"))
+                return "लाइक करने के लिए अपने खाते में लॉग इन करें";
+
+            if (fa.equals("✏️ ویرایش"))
+                return "✏️ संपादित करें";
+
+            if (fa.equals("🗑️ حذف"))
+                return "🗑️ हटाएँ";
+
+            if (fa.equals("مطمئن هستید این تجربه حذف شود؟"))
+                return "क्या आप वाकई इस अनुभव को हटाना चाहते हैं?";
+
+            if (fa.equals("لغو"))
+                return "रद्द करें";
+
+            if (fa.equals("حذف"))
+                return "हटाएँ";
+
+            if (fa.equals("تجربه حذف شد 🗑️"))
+                return "अनुभव हटा दिया गया 🗑️";
+
+            if (fa.equals("خطا در حذف تجربه"))
+                return "अनुभव हटाने में त्रुटि";
+
+            if (fa.equals("خطا در دریافت تجربه‌ها"))
+                return "अनुभव प्राप्त करने में त्रुटि";
+
+            if (fa.equals("خطا در برداشتن لایک"))
+                return "लाइक हटाने में त्रुटि";
+
+            if (fa.equals("خطا در ثبت لایک"))
+                return "लाइक करने में त्रुटि";
+
+            if (fa.equals("خطا در بررسی لایک"))
+                return "लाइक जाँचने में त्रुटि";
+        }
+
+        return fa;
+    }
+
+    // ================================
+    // اندازه
+    // ================================
 
     private int dp(int value) {
 
@@ -97,7 +332,7 @@ public class ExperienceListActivity extends Activity {
                 new TextView(this);
 
         title.setText(
-                "📚 تجربه‌های کاربران"
+                text("📚 تجربه‌های کاربران")
         );
 
         title.setTextSize(27);
@@ -180,9 +415,6 @@ public class ExperienceListActivity extends Activity {
                                     queryDocumentSnapshots
                             ) {
 
-                                /*
-                                 * جلوگیری از نمایش تجربه‌های تکراری
-                                 */
                                 String uniqueKey =
                                         getExperienceUniqueKey(
                                                 document
@@ -216,7 +448,9 @@ public class ExperienceListActivity extends Activity {
 
                             Toast.makeText(
                                     ExperienceListActivity.this,
-                                    "خطا در دریافت تجربه‌ها",
+                                    text(
+                                            "خطا در دریافت تجربه‌ها"
+                                    ),
                                     Toast.LENGTH_LONG
                             ).show();
                         }
@@ -293,8 +527,10 @@ public class ExperienceListActivity extends Activity {
                 new TextView(this);
 
         empty.setText(
-                "هنوز تجربه‌ای منتشر نشده است.\n\n" +
-                        "اولین تجربه خود را ثبت کنید! ✍️"
+                text(
+                        "هنوز تجربه‌ای منتشر نشده است.\n\n" +
+                                "اولین تجربه خود را ثبت کنید! ✍️"
+                )
         );
 
         empty.setTextSize(18);
@@ -345,7 +581,7 @@ public class ExperienceListActivity extends Activity {
                 experienceTitle.trim().isEmpty()) {
 
             experienceTitle =
-                    "بدون عنوان";
+                    text("بدون عنوان");
         }
 
         if (experienceText == null) {
@@ -355,7 +591,8 @@ public class ExperienceListActivity extends Activity {
         if (authorEmail == null ||
                 authorEmail.trim().isEmpty()) {
 
-            authorEmail = "کاربر";
+            authorEmail =
+                    text("کاربر");
         }
 
         String documentId =
@@ -405,9 +642,6 @@ public class ExperienceListActivity extends Activity {
 
         card.setLayoutParams(cardParams);
 
-        /*
-         * اطلاعات نویسنده
-         */
         LinearLayout authorRow =
                 new LinearLayout(this);
 
@@ -502,9 +736,6 @@ public class ExperienceListActivity extends Activity {
             );
         }
 
-        /*
-         * عنوان تجربه
-         */
         TextView experienceTitleView =
                 new TextView(this);
 
@@ -540,9 +771,6 @@ public class ExperienceListActivity extends Activity {
                 experienceTitleView
         );
 
-        /*
-         * متن اصلی تجربه
-         */
         TextView experience =
                 new TextView(this);
 
@@ -581,9 +809,6 @@ public class ExperienceListActivity extends Activity {
 
         card.addView(experience);
 
-        /*
-         * لایک و تاریخ
-         */
         LinearLayout likeRow =
                 new LinearLayout(this);
 
@@ -720,7 +945,9 @@ public class ExperienceListActivity extends Activity {
 
                         Toast.makeText(
                                 ExperienceListActivity.this,
-                                "برای لایک کردن وارد حساب شوید",
+                                text(
+                                        "برای لایک کردن وارد حساب شوید"
+                                ),
                                 Toast.LENGTH_SHORT
                         ).show();
 
@@ -736,9 +963,6 @@ public class ExperienceListActivity extends Activity {
                 }
         );
 
-        /*
-         * ویرایش و حذف صاحب تجربه
-         */
         boolean isMyExperience =
                 currentUserId != null &&
                         userId != null &&
@@ -761,14 +985,14 @@ public class ExperienceListActivity extends Activity {
                     new Button(this);
 
             editButton.setText(
-                    "✏️ ویرایش"
+                    text("✏️ ویرایش")
             );
 
             Button deleteButton =
                     new Button(this);
 
             deleteButton.setText(
-                    "🗑️ حذف"
+                    text("🗑️ حذف")
             );
 
             buttons.addView(
@@ -832,14 +1056,16 @@ public class ExperienceListActivity extends Activity {
                                 ExperienceListActivity.this
                         )
                                 .setMessage(
-                                        "مطمئن هستید این تجربه حذف شود؟"
+                                        text(
+                                                "مطمئن هستید این تجربه حذف شود؟"
+                                        )
                                 )
                                 .setNegativeButton(
-                                        "لغو",
+                                        text("لغو"),
                                         null
                                 )
                                 .setPositiveButton(
-                                        "حذف",
+                                        text("حذف"),
                                         (dialog, which) -> {
 
                                             db.collection(
@@ -854,7 +1080,9 @@ public class ExperienceListActivity extends Activity {
 
                                                                 Toast.makeText(
                                                                         ExperienceListActivity.this,
-                                                                        "تجربه حذف شد 🗑️",
+                                                                        text(
+                                                                                "تجربه حذف شد 🗑️"
+                                                                        ),
                                                                         Toast.LENGTH_SHORT
                                                                 ).show();
 
@@ -868,7 +1096,9 @@ public class ExperienceListActivity extends Activity {
 
                                                                 Toast.makeText(
                                                                         ExperienceListActivity.this,
-                                                                        "خطا در حذف تجربه",
+                                                                        text(
+                                                                                "خطا در حذف تجربه"
+                                                                        ),
                                                                         Toast.LENGTH_LONG
                                                                 ).show();
                                                             }
@@ -883,14 +1113,6 @@ public class ExperienceListActivity extends Activity {
         layout.addView(card);
     }
 
-    /*
-     * لایک:
-     * زیر هر تجربه یک سند برای هر کاربر
-     * در experiences/{experienceId}/likes/{userId}
-     *
-     * بنابراین یک کاربر نمی‌تواند
-     * برای یک تجربه چند لایک داشته باشد.
-     */
     private void loadLikeStatus(
             DocumentSnapshot experience,
             String currentUserId,
@@ -939,10 +1161,6 @@ public class ExperienceListActivity extends Activity {
             TextView likeCount
     ) {
 
-        /*
-         * اگر likesCount قبلاً ذخیره شده باشد،
-         * سریع‌تر آن را نمایش می‌دهیم.
-         */
         Long savedCount =
                 experience.getLong(
                         "likesCount"
@@ -953,11 +1171,6 @@ public class ExperienceListActivity extends Activity {
             likeCount.setText(
                     formatCount(savedCount)
             );
-
-            /*
-             * برای اطمینان، تعداد واقعی زیرمجموعه
-             * likes نیز بررسی می‌شود.
-             */
         }
 
         experience.getReference()
@@ -1021,16 +1234,15 @@ public class ExperienceListActivity extends Activity {
 
                                                     Toast.makeText(
                                                             ExperienceListActivity.this,
-                                                            "خطا در برداشتن لایک",
+                                                            text(
+                                                                    "خطا در برداشتن لایک"
+                                                            ),
                                                             Toast.LENGTH_SHORT
                                                     ).show();
                                                 }
                                         );
 
                             } else {
-
-                                HashSet<String> dataSet =
-                                        new HashSet<>();
 
                                 java.util.HashMap<
                                         String,
@@ -1068,7 +1280,9 @@ public class ExperienceListActivity extends Activity {
 
                                                     Toast.makeText(
                                                             ExperienceListActivity.this,
-                                                            "خطا در ثبت لایک",
+                                                            text(
+                                                                    "خطا در ثبت لایک"
+                                                            ),
                                                             Toast.LENGTH_SHORT
                                                     ).show();
                                                 }
@@ -1081,7 +1295,9 @@ public class ExperienceListActivity extends Activity {
 
                             Toast.makeText(
                                     ExperienceListActivity.this,
-                                    "خطا در بررسی لایک",
+                                    text(
+                                            "خطا در بررسی لایک"
+                                    ),
                                     Toast.LENGTH_SHORT
                             ).show();
                         }
