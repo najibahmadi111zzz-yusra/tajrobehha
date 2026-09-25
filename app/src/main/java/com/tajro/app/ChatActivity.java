@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -141,14 +142,26 @@ public class ChatActivity extends Activity {
     private String pendingSaveUrl;
     private String pendingSaveName = "tajrobehha.jpg";
 
+    private String appliedLanguage;
+
     private interface SupabaseUploadCallback {
         void onSuccess(String publicUrl);
         void onError(String error);
     }
 
     @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(
+                LanguageManager.applyLanguage(newBase)
+        );
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        appliedLanguage =
+                LanguageManager.getLanguage(this);
 
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
@@ -159,7 +172,7 @@ public class ChatActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "لطفاً اول وارد حساب شوید",
+                    tr("لطفاً اول وارد حساب شوید"),
                     Toast.LENGTH_LONG
             ).show();
 
@@ -179,6 +192,518 @@ public class ChatActivity extends Activity {
         ensureUserProfile();
         createUsersScreen();
         loadUsers();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        String currentLanguage =
+                LanguageManager.getLanguage(this);
+
+        if (appliedLanguage != null
+                && !currentLanguage.equals(appliedLanguage)) {
+
+            recreate();
+        }
+    }
+
+    private String tr(String fa) {
+        String lang = LanguageManager.getLanguage(this);
+
+        if ("en".equals(lang)) {
+            switch (fa) {
+                case "لطفاً اول وارد حساب شوید": return "Please log in first";
+                case "💬 کاربران": return "💬 Users";
+                case "یک کاربر را انتخاب کنید تا چت خصوصی باز شود.": return "Select a user to open a private chat.";
+                case "هنوز کاربر دیگری پیدا نشد.": return "No other users found yet.";
+                case "خطا در دریافت کاربران": return "Error loading users";
+                case "کاربر": return "User";
+                case " 🚫 مسدود": return " 🚫 Blocked";
+                case " آنلاین": return " Online";
+                case " آفلاین": return " Offline";
+                case "👁 مخفی کردن / رفع مخفی": return "👁 Hide / Unhide";
+                case "🚫 بلاک / رفع مسدودیت": return "🚫 Block / Unblock";
+                case "مخفی بودن کاربر رفع شد": return "User is no longer hidden";
+                case "کاربر مخفی شد": return "User hidden";
+                case "مسدودیت کاربر رفع شد": return "User unblocked";
+                case "کاربر بلاک شد؛ ارسال پیام و صدا متوقف شد": return "User blocked; messages and voice are stopped";
+                case "📷 تغییر عکس پروفایل": return "📷 Change profile photo";
+                case "🔒 تنظیمات حریم خصوصی": return "🔒 Privacy settings";
+                case "🚫 فهرست مسدودشده‌ها": return "🚫 Blocked users";
+                case "پروفایل": return "Profile";
+                case "بستن": return "Close";
+                case "هیچ کاربری مسدود نشده است.": return "No users are blocked.";
+                case "   •   رفع مسدودی": return "   •   Unblock";
+                case "رفع مسدودی": return "Unblock";
+                case "آیا می‌خواهید «": return "Do you want to unblock «";
+                case "» را از مسدودی خارج کنید؟": return "»?";
+                case "لغو": return "Cancel";
+                case "مسدودی برداشته شد": return "Unblocked";
+                case "دریافت فهرست مسدودشده‌ها انجام نشد": return "Failed to load blocked users";
+                case "در حال بررسی...": return "Checking...";
+                case "پیام خود را بنویسید...": return "Write your message...";
+                case "پیام حذف شد": return "Message deleted";
+                case "▶️ پخش پیام صوتی": return "▶️ Play voice message";
+                case "حذف برای من": return "Delete for me";
+                case "حذف برای همه": return "Delete for everyone";
+                case "حذف پیام ناموفق بود": return "Failed to delete message";
+                case "این کاربر بلاک شده است": return "This user is blocked";
+                case "خطا در ارسال پیام": return "Error sending message";
+                case "آنلاین": return "Online";
+                case "آفلاین": return "Offline";
+                case "در حال نوشتن...": return "Typing...";
+                case "🚫 این کاربر مسدود است": return "🚫 This user is blocked";
+                case "🚫 مسدود شده": return "🚫 Blocked";
+                case "این کاربر مسدود شده است": return "This user is blocked";
+                case "این کاربر شما را مسدود کرده است": return "This user has blocked you";
+                case "این نوع فایل پشتیبانی نمی‌شود": return "This file type is not supported";
+                case "در حال ارسال فایل...": return "Sending file...";
+                case "خطای ارسال:\n": return "Send error:\n";
+                case "این کاربر بلاک شده است؛ فایل ارسال نشد": return "This user is blocked; file was not sent";
+                case "خطا در ذخیره پیام فایل": return "Error saving file message";
+                case "🎤 در حال ضبط... دوباره بزنید تا ارسال شود": return "🎤 Recording... tap again to send";
+                case "خطا در شروع ضبط: ": return "Error starting recording: ";
+                case "ضبط صدا ناموفق بود": return "Voice recording failed";
+                case "این کاربر بلاک شده است؛ پیام صوتی ارسال نشد": return "This user is blocked; voice message was not sent";
+                case "فایل صوتی پیدا نشد": return "Audio file not found";
+                case "فایل صوتی خالی است": return "Audio file is empty";
+                case "در حال ارسال پیام صوتی...": return "Sending voice message...";
+                case "خطای ارسال پیام صوتی:\n": return "Error sending voice message:\n";
+                case "خطا در ذخیره پیام صوتی": return "Error saving voice message";
+                case "پخش صدا ناموفق بود": return "Failed to play audio";
+                case "خطا در پخش صدا": return "Error playing audio";
+                case "در حال ارسال عکس پروفایل...": return "Uploading profile photo...";
+                case "عکس پروفایل ذخیره شد": return "Profile photo saved";
+                case "خطای عکس پروفایل:\n": return "Profile photo error:\n";
+                case "فایل وجود ندارد": return "File does not exist";
+                case "فایل خالی است": return "File is empty";
+                case "فایل قابل خواندن نیست": return "File is not readable";
+                case "💾 ذخیره عکس در گالری": return "💾 Save image to gallery";
+                case "تصویر": return "Image";
+                case "گالری قابل دسترسی نیست": return "Gallery is not accessible";
+                case "فضای ذخیره‌سازی باز نشد": return "Storage could not be opened";
+                case "✅ عکس در گالری ذخیره شد": return "✅ Image saved to gallery";
+                case "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمی‌شود": return "Direct gallery saving is not supported on this Android version";
+                case "خطا در ذخیره عکس": return "Error saving image";
+                case "خطای ذخیره عکس:\n": return "Image save error:\n";
+                case "اجازه میکروفون داده نشد": return "Microphone permission was denied";
+                case "🔕 بی‌صدا کردن اعلان‌های این چت": return "🔕 Mute notifications for this chat";
+                case "👤 مشاهده پروفایل": return "👤 View profile";
+                case "🗑️ حذف کامل چت": return "🗑️ Delete entire chat";
+                case "🚫 مسدود کردن": return "🚫 Block";
+                case "تنظیمات چت": return "Chat settings";
+                case "اعلان‌های این چت بی‌صدا شد": return "Chat notifications muted";
+                case "⚠️ حذف کامل چت": return "⚠️ Delete entire chat";
+                case "آیا مطمئن هستید که می‌خواهید تمام این گفتگو را حذف کنید؟": return "Are you sure you want to delete this entire conversation?";
+                case "مرحله اول": return "Step 1";
+                case "تأیید نهایی حذف": return "Final deletion confirmation";
+                case "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟": return "This will delete all messages in this conversation and cannot be undone. Continue?";
+                case "حذف کامل": return "Delete all";
+                case "مسدود کردن کاربر": return "Block user";
+                case "آیا می‌خواهید این کاربر را مسدود کنید؟": return "Do you want to block this user?";
+                case "مسدود کردن": return "Block";
+                case "نمایش آنلاین بودن": return "Show online status";
+                case "نمایش آخرین بازدید": return "Show last seen";
+                case "نمایش «در حال نوشتن…»": return "Show “typing…”";
+                case "نمایش رسید خوانده شدن ✓✓": return "Show read receipts ✓✓";
+                case "ذخیره": return "Save";
+                case "تنظیمات ذخیره شد": return "Settings saved";
+                case "ذخیره تنظیمات ناموفق بود": return "Failed to save settings";
+                case "گزارش شما ثبت شد": return "Your report was submitted";
+                case "ثبت گزارش ناموفق بود": return "Failed to submit report";
+                case "چت از حساب شما پاک شد": return "Chat deleted from your account";
+                case "پاک کردن چت ناموفق بود": return "Failed to delete chat";
+                case "دسترسی به پیام‌های چت ناموفق بود": return "Failed to access chat messages";
+                case "کاربر انتخاب نشده است": return "No user selected";
+                case "کاربر مسدود شد؛ پیام و صدا متوقف شد": return "User blocked; messages and voice stopped";
+                case "خطای نامشخص": return "Unknown error";
+                case "مسدود کردن ناموفق بود:\n": return "Failed to block:\n";
+                case "🚫 فهرست مسدودشدهها": return "🚫 Blocked users";
+                case "آیا میخواهید «": return "Do you want to unblock «";
+                case "دریافت فهرست مسدودشدهها انجام نشد": return "Failed to load blocked users";
+                case "این نوع فایل پشتیبانی نمیشود": return "This file type is not supported";
+                case "فضای ذخیرهسازی باز نشد": return "Storage could not be opened";
+                case "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمیشود": return "Direct gallery saving is not supported on this Android version";
+                case "🔕 بیصدا کردن اعلانهای این چت": return "🔕 Mute notifications for this chat";
+                case "اعلانهای این چت بیصدا شد": return "Chat notifications muted";
+                case "آیا مطمئن هستید که میخواهید تمام این گفتگو را حذف کنید؟": return "Are you sure you want to delete this entire conversation?";
+                case "این کار تمام پیامهای این گفتگو را حذف میکند و قابل برگشت نیست. ادامه میدهید؟": return "This will delete all messages in this conversation and cannot be undone. Continue?";
+                case "آیا میخواهید این کاربر را مسدود کنید؟": return "Do you want to block this user?";
+                case "دسترسی به پیامهای چت ناموفق بود": return "Failed to access chat messages";
+            }
+        }
+
+        if ("ps".equals(lang)) {
+            switch (fa) {
+                case "لطفاً اول وارد حساب شوید": return "مهرباني وکړئ لومړی حساب ته ننوځئ";
+                case "💬 کاربران": return "💬 کاروونکي";
+                case "یک کاربر را انتخاب کنید تا چت خصوصی باز شود.": return "د شخصي چټ د خلاصولو لپاره یو کاروونکی وټاکئ.";
+                case "هنوز کاربر دیگری پیدا نشد.": return "تر اوسه بل کاروونکی ونه موندل شو.";
+                case "خطا در دریافت کاربران": return "د کاروونکو په ترلاسه کولو کې تېروتنه";
+                case "کاربر": return "کاروونکی";
+                case " 🚫 مسدود": return " 🚫 بند شوی";
+                case " آنلاین": return " آنلاین";
+                case " آفلاین": return " آفلاین";
+                case "👁 مخفی کردن / رفع مخفی": return "👁 پټول / له پټه ایستل";
+                case "🚫 بلاک / رفع مسدودیت": return "🚫 بندول / بندیز لرې کول";
+                case "مخفی بودن کاربر رفع شد": return "د کاروونکي پټوالی لرې شو";
+                case "کاربر مخفی شد": return "کاروونکی پټ شو";
+                case "مسدودیت کاربر رفع شد": return "د کاروونکي بندیز لرې شو";
+                case "کاربر بلاک شد؛ ارسال پیام و صدا متوقف شد": return "کاروونکی بند شو؛ پیغامونه او غږ بند شول";
+                case "📷 تغییر عکس پروفایل": return "📷 د پروفایل انځور بدلول";
+                case "🔒 تنظیمات حریم خصوصی": return "🔒 د محرمیت تنظیمات";
+                case "🚫 فهرست مسدودشده‌ها": return "🚫 بند شوي کاروونکي";
+                case "پروفایل": return "پروفایل";
+                case "بستن": return "بندول";
+                case "هیچ کاربری مسدود نشده است.": return "هیڅ کاروونکی بند شوی نه دی.";
+                case "   •   رفع مسدودی": return "   •   بندیز لرې کول";
+                case "رفع مسدودی": return "بندیز لرې کول";
+                case "آیا می‌خواهید «": return "ایا غواړئ «";
+                case "» را از مسدودی خارج کنید؟": return "» له بندیز څخه لرې کړئ؟";
+                case "لغو": return "لغوه";
+                case "مسدودی برداشته شد": return "بندیز لرې شو";
+                case "دریافت فهرست مسدودشده‌ها انجام نشد": return "د بند شوو کاروونکو لېست ترلاسه نه شو";
+                case "در حال بررسی...": return "کتنه روانه ده...";
+                case "پیام خود را بنویسید...": return "خپل پیغام ولیکئ...";
+                case "پیام حذف شد": return "پیغام ړنګ شو";
+                case "▶️ پخش پیام صوتی": return "▶️ غږیز پیغام غږول";
+                case "حذف برای من": return "یوازې زما لپاره ړنګول";
+                case "حذف برای همه": return "د ټولو لپاره ړنګول";
+                case "حذف پیام ناموفق بود": return "د پیغام ړنګول ناکام شول";
+                case "این کاربر بلاک شده است": return "دا کاروونکی بند شوی دی";
+                case "خطا در ارسال پیام": return "د پیغام په لېږلو کې تېروتنه";
+                case "آنلاین": return "آنلاین";
+                case "آفلاین": return "آفلاین";
+                case "در حال نوشتن...": return "د لیکلو په حال کې...";
+                case "🚫 این کاربر مسدود است": return "🚫 دا کاروونکی بند شوی دی";
+                case "🚫 مسدود شده": return "🚫 بند شوی";
+                case "این کاربر مسدود شده است": return "دا کاروونکی بند شوی دی";
+                case "این کاربر شما را مسدود کرده است": return "دې کاروونکي تاسو بند کړي یاست";
+                case "این نوع فایل پشتیبانی نمی‌شود": return "د دې فایل ډول ملاتړ نه کېږي";
+                case "در حال ارسال فایل...": return "فایل لېږل کېږي...";
+                case "خطای ارسال:\n": return "د لېږلو تېروتنه:\n";
+                case "این کاربر بلاک شده است؛ فایل ارسال نشد": return "دا کاروونکی بند شوی؛ فایل ونه لېږل شو";
+                case "خطا در ذخیره پیام فایل": return "د فایل پیغام په خوندي کولو کې تېروتنه";
+                case "🎤 در حال ضبط... دوباره بزنید تا ارسال شود": return "🎤 ثبت روان دی... د لېږلو لپاره بیا کېکاږئ";
+                case "خطا در شروع ضبط: ": return "د ثبتولو په پیل کې تېروتنه: ";
+                case "ضبط صدا ناموفق بود": return "د غږ ثبتول ناکام شول";
+                case "این کاربر بلاک شده است؛ پیام صوتی ارسال نشد": return "دا کاروونکی بند شوی؛ غږیز پیغام ونه لېږل شو";
+                case "فایل صوتی پیدا نشد": return "غږیز فایل ونه موندل شو";
+                case "فایل صوتی خالی است": return "غږیز فایل تش دی";
+                case "در حال ارسال پیام صوتی...": return "غږیز پیغام لېږل کېږي...";
+                case "خطای ارسال پیام صوتی:\n": return "د غږیز پیغام په لېږلو کې تېروتنه:\n";
+                case "خطا در ذخیره پیام صوتی": return "د غږیز پیغام په خوندي کولو کې تېروتنه";
+                case "پخش صدا ناموفق بود": return "غږ غږول ناکام شول";
+                case "خطا در پخش صدا": return "د غږ په غږولو کې تېروتنه";
+                case "در حال ارسال عکس پروفایل...": return "د پروفایل انځور اپلوډ کېږي...";
+                case "عکس پروفایل ذخیره شد": return "د پروفایل انځور خوندي شو";
+                case "خطای عکس پروفایل:\n": return "د پروفایل انځور تېروتنه:\n";
+                case "فایل وجود ندارد": return "فایل شتون نه لري";
+                case "فایل خالی است": return "فایل تش دی";
+                case "فایل قابل خواندن نیست": return "فایل د لوستلو وړ نه دی";
+                case "💾 ذخیره عکس در گالری": return "💾 انځور ګالري ته خوندي کړئ";
+                case "تصویر": return "انځور";
+                case "گالری قابل دسترسی نیست": return "ګالري ته لاسرسی نشته";
+                case "فضای ذخیره‌سازی باز نشد": return "ذخیره ځای پرانیستل نه شول";
+                case "✅ عکس در گالری ذخیره شد": return "✅ انځور ګالري ته خوندي شو";
+                case "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمی‌شود": return "په دې Android نسخه کې ګالري ته مستقیم خوندي کول نه ملاتړ کېږي";
+                case "خطا در ذخیره عکس": return "د انځور په خوندي کولو کې تېروتنه";
+                case "خطای ذخیره عکس:\n": return "د انځور خوندي کولو تېروتنه:\n";
+                case "اجازه میکروفون داده نشد": return "د مایکروفون اجازه ورنه کړل شوه";
+                case "🔕 بی‌صدا کردن اعلان‌های این چت": return "🔕 د دې چټ خبرتیاوې غلې کړئ";
+                case "👤 مشاهده پروفایل": return "👤 پروفایل وګورئ";
+                case "🗑️ حذف کامل چت": return "🗑️ ټول چټ ړنګ کړئ";
+                case "🚫 مسدود کردن": return "🚫 بندول";
+                case "تنظیمات چت": return "د چټ تنظیمات";
+                case "اعلان‌های این چت بی‌صدا شد": return "د چټ خبرتیاوې غلې شوې";
+                case "⚠️ حذف کامل چت": return "⚠️ ټول چټ ړنګ کړئ";
+                case "آیا مطمئن هستید که می‌خواهید تمام این گفتگو را حذف کنید؟": return "ایا ډاډه یاست چې دا ټوله خبرې اترې ړنګول غواړئ؟";
+                case "مرحله اول": return "لومړی پړاو";
+                case "تأیید نهایی حذف": return "د ړنګولو وروستۍ تایید";
+                case "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟": return "دا به د دې خبرو ټول پیغامونه ړنګ کړي او بېرته نه راګرځي. دوام ورکړئ؟";
+                case "حذف کامل": return "ټول ړنګول";
+                case "مسدود کردن کاربر": return "کاروونکی بندول";
+                case "آیا می‌خواهید این کاربر را مسدود کنید؟": return "ایا غواړئ دا کاروونکی بند کړئ؟";
+                case "مسدود کردن": return "بندول";
+                case "نمایش آنلاین بودن": return "آنلاین حالت ښکاره کول";
+                case "نمایش آخرین بازدید": return "وروستی لیدل شوی وخت ښکاره کول";
+                case "نمایش «در حال نوشتن…»": return "«د لیکلو په حال کې…» ښکاره کول";
+                case "نمایش رسید خوانده شدن ✓✓": return "د لوستل کېدو رسید ✓✓ ښکاره کول";
+                case "ذخیره": return "خوندي کول";
+                case "تنظیمات ذخیره شد": return "تنظیمات خوندي شول";
+                case "ذخیره تنظیمات ناموفق بود": return "د تنظیماتو خوندي کول ناکام شول";
+                case "گزارش شما ثبت شد": return "ستاسو راپور ثبت شو";
+                case "ثبت گزارش ناموفق بود": return "د راپور ثبتول ناکام شول";
+                case "چت از حساب شما پاک شد": return "چټ ستاسو له حساب څخه ړنګ شو";
+                case "پاک کردن چت ناموفق بود": return "د چټ ړنګول ناکام شول";
+                case "دسترسی به پیام‌های چت ناموفق بود": return "د چټ پیغامونو ته لاسرسی ناکام شو";
+                case "کاربر انتخاب نشده است": return "هیڅ کاروونکی نه دی ټاکل شوی";
+                case "کاربر مسدود شد؛ پیام و صدا متوقف شد": return "کاروونکی بند شو؛ پیغامونه او غږ ودرول شول";
+                case "خطای نامشخص": return "ناڅرګنده تېروتنه";
+                case "مسدود کردن ناموفق بود:\n": return "د بندولو ناکامي:\n";
+                case "🚫 فهرست مسدودشدهها": return "🚫 بند شوي کاروونکي";
+                case "آیا میخواهید «": return "ایا غواړئ «";
+                case "دریافت فهرست مسدودشدهها انجام نشد": return "د بند شوو کاروونکو لېست ترلاسه نه شو";
+                case "این نوع فایل پشتیبانی نمیشود": return "د دې فایل ډول ملاتړ نه کېږي";
+                case "فضای ذخیرهسازی باز نشد": return "ذخیره ځای پرانیستل نه شول";
+                case "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمیشود": return "په دې Android نسخه کې ګالري ته مستقیم خوندي کول نه ملاتړ کېږي";
+                case "🔕 بیصدا کردن اعلانهای این چت": return "🔕 د دې چټ خبرتیاوې غلې کړئ";
+                case "اعلانهای این چت بیصدا شد": return "د چټ خبرتیاوې غلې شوې";
+                case "آیا مطمئن هستید که میخواهید تمام این گفتگو را حذف کنید؟": return "ایا ډاډه یاست چې دا ټوله خبرې اترې ړنګول غواړئ؟";
+                case "این کار تمام پیامهای این گفتگو را حذف میکند و قابل برگشت نیست. ادامه میدهید؟": return "دا به د دې خبرو ټول پیغامونه ړنګ کړي او بېرته نه راګرځي. دوام ورکړئ؟";
+                case "آیا میخواهید این کاربر را مسدود کنید؟": return "ایا غواړئ دا کاروونکی بند کړئ؟";
+                case "دسترسی به پیامهای چت ناموفق بود": return "د چټ پیغامونو ته لاسرسی ناکام شو";
+            }
+        }
+
+        if ("ur".equals(lang)) {
+            switch (fa) {
+                case "لطفاً اول وارد حساب شوید": return "براہِ کرم پہلے اکاؤنٹ میں لاگ اِن کریں";
+                case "💬 کاربران": return "💬 صارفین";
+                case "یک کاربر را انتخاب کنید تا چت خصوصی باز شود.": return "نجی چیٹ کھولنے کے لیے صارف منتخب کریں۔";
+                case "هنوز کاربر دیگری پیدا نشد.": return "ابھی کوئی دوسرا صارف نہیں ملا۔";
+                case "خطا در دریافت کاربران": return "صارفین حاصل کرنے میں خرابی";
+                case "کاربر": return "صارف";
+                case " 🚫 مسدود": return " 🚫 مسدود";
+                case " آنلاین": return " آن لائن";
+                case " آفلاین": return " آف لائن";
+                case "👁 مخفی کردن / رفع مخفی": return "👁 چھپائیں / ظاہر کریں";
+                case "🚫 بلاک / رفع مسدودیت": return "🚫 بلاک / ان بلاک";
+                case "مخفی بودن کاربر رفع شد": return "صارف کو ظاہر کر دیا گیا";
+                case "کاربر مخفی شد": return "صارف چھپا دیا گیا";
+                case "مسدودیت کاربر رفع شد": return "صارف کو ان بلاک کر دیا گیا";
+                case "کاربر بلاک شد؛ ارسال پیام و صدا متوقف شد": return "صارف بلاک ہے؛ پیغامات اور آواز بند کر دیے گئے";
+                case "📷 تغییر عکس پروفایل": return "📷 پروفائل تصویر تبدیل کریں";
+                case "🔒 تنظیمات حریم خصوصی": return "🔒 رازداری کی ترتیبات";
+                case "🚫 فهرست مسدودشده‌ها": return "🚫 مسدود صارفین";
+                case "پروفایل": return "پروفائل";
+                case "بستن": return "بند کریں";
+                case "هیچ کاربری مسدود نشده است.": return "کوئی صارف مسدود نہیں ہے۔";
+                case "   •   رفع مسدودی": return "   •   ان بلاک";
+                case "رفع مسدودی": return "ان بلاک";
+                case "آیا می‌خواهید «": return "کیا آپ «";
+                case "» را از مسدودی خارج کنید؟": return "» کو ان بلاک کرنا چاہتے ہیں؟";
+                case "لغو": return "منسوخ کریں";
+                case "مسدودی برداشته شد": return "مسدودی ختم کر دی گئی";
+                case "دریافت فهرست مسدودشده‌ها انجام نشد": return "مسدود صارفین کی فہرست حاصل نہیں ہو سکی";
+                case "در حال بررسی...": return "جانچ جاری ہے...";
+                case "پیام خود را بنویسید...": return "اپنا پیغام لکھیں...";
+                case "پیام حذف شد": return "پیغام حذف کر دیا گیا";
+                case "▶️ پخش پیام صوتی": return "▶️ صوتی پیغام چلائیں";
+                case "حذف برای من": return "میرے لیے حذف کریں";
+                case "حذف برای همه": return "سب کے لیے حذف کریں";
+                case "حذف پیام ناموفق بود": return "پیغام حذف نہیں ہو سکا";
+                case "این کاربر بلاک شده است": return "یہ صارف بلاک ہے";
+                case "خطا در ارسال پیام": return "پیغام بھیجنے میں خرابی";
+                case "آنلاین": return "آن لائن";
+                case "آفلاین": return "آف لائن";
+                case "در حال نوشتن...": return "لکھ رہا ہے...";
+                case "🚫 این کاربر مسدود است": return "🚫 یہ صارف بلاک ہے";
+                case "🚫 مسدود شده": return "🚫 مسدود";
+                case "این کاربر مسدود شده است": return "یہ صارف بلاک ہے";
+                case "این کاربر شما را مسدود کرده است": return "اس صارف نے آپ کو بلاک کر دیا ہے";
+                case "این نوع فایل پشتیبانی نمی‌شود": return "اس فائل کی قسم سپورٹ نہیں ہے";
+                case "در حال ارسال فایل...": return "فائل بھیجی جا رہی ہے...";
+                case "خطای ارسال:\n": return "بھیجنے میں خرابی:\n";
+                case "این کاربر بلاک شده است؛ فایل ارسال نشد": return "یہ صارف بلاک ہے؛ فائل نہیں بھیجی گئی";
+                case "خطا در ذخیره پیام فایل": return "فائل پیغام محفوظ کرنے میں خرابی";
+                case "🎤 در حال ضبط... دوباره بزنید تا ارسال شود": return "🎤 ریکارڈنگ جاری ہے... بھیجنے کے لیے دوبارہ دبائیں";
+                case "خطا در شروع ضبط: ": return "ریکارڈنگ شروع کرنے میں خرابی: ";
+                case "ضبط صدا ناموفق بود": return "صوتی ریکارڈنگ ناکام رہی";
+                case "این کاربر بلاک شده است؛ پیام صوتی ارسال نشد": return "یہ صارف بلاک ہے؛ صوتی پیغام نہیں بھیجا گیا";
+                case "فایل صوتی پیدا نشد": return "آڈیو فائل نہیں ملی";
+                case "فایل صوتی خالی است": return "آڈیو فائل خالی ہے";
+                case "در حال ارسال پیام صوتی...": return "صوتی پیغام بھیجا جا رہا ہے...";
+                case "خطای ارسال پیام صوتی:\n": return "صوتی پیغام بھیجنے میں خرابی:\n";
+                case "خطا در ذخیره پیام صوتی": return "صوتی پیغام محفوظ کرنے میں خرابی";
+                case "پخش صدا ناموفق بود": return "آواز چلانے میں ناکامی";
+                case "خطا در پخش صدا": return "آواز چلانے میں خرابی";
+                case "در حال ارسال عکس پروفایل...": return "پروفائل تصویر اپ لوڈ ہو رہی ہے...";
+                case "عکس پروفایل ذخیره شد": return "پروفائل تصویر محفوظ ہو گئی";
+                case "خطای عکس پروفایل:\n": return "پروفائل تصویر کی خرابی:\n";
+                case "فایل وجود ندارد": return "فائل موجود نہیں ہے";
+                case "فایل خالی است": return "فائل خالی ہے";
+                case "فایل قابل خواندن نیست": return "فائل قابلِ مطالعہ نہیں ہے";
+                case "💾 ذخیره عکس در گالری": return "💾 تصویر گیلری میں محفوظ کریں";
+                case "تصویر": return "تصویر";
+                case "گالری قابل دسترسی نیست": return "گیلری تک رسائی نہیں ہے";
+                case "فضای ذخیره‌سازی باز نشد": return "اسٹوریج نہیں کھل سکا";
+                case "✅ عکس در گالری ذخیره شد": return "✅ تصویر گیلری میں محفوظ ہو گئی";
+                case "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمی‌شود": return "اس Android ورژن میں گیلری میں براہِ راست محفوظ کرنا سپورٹ نہیں ہے";
+                case "خطا در ذخیره عکس": return "تصویر محفوظ کرنے میں خرابی";
+                case "خطای ذخیره عکس:\n": return "تصویر محفوظ کرنے کی خرابی:\n";
+                case "اجازه میکروفون داده نشد": return "مائیکروفون کی اجازت نہیں دی گئی";
+                case "🔕 بی‌صدا کردن اعلان‌های این چت": return "🔕 اس چیٹ کی اطلاعات خاموش کریں";
+                case "👤 مشاهده پروفایل": return "👤 پروفائل دیکھیں";
+                case "🗑️ حذف کامل چت": return "🗑️ پوری چیٹ حذف کریں";
+                case "🚫 مسدود کردن": return "🚫 بلاک کریں";
+                case "تنظیمات چت": return "چیٹ کی ترتیبات";
+                case "اعلان‌های این چت بی‌صدا شد": return "چیٹ کی اطلاعات خاموش کر دی گئی ہیں";
+                case "⚠️ حذف کامل چت": return "⚠️ پوری چیٹ حذف کریں";
+                case "آیا مطمئن هستید که می‌خواهید تمام این گفتگو را حذف کنید؟": return "کیا آپ واقعی پوری گفتگو حذف کرنا چاہتے ہیں؟";
+                case "مرحله اول": return "پہلا مرحلہ";
+                case "تأیید نهایی حذف": return "حذف کی آخری تصدیق";
+                case "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟": return "یہ اس گفتگو کے تمام پیغامات حذف کر دے گا اور واپس نہیں ہو سکتا۔ جاری رکھیں؟";
+                case "حذف کامل": return "مکمل حذف";
+                case "مسدود کردن کاربر": return "صارف کو بلاک کریں";
+                case "آیا می‌خواهید این کاربر را مسدود کنید؟": return "کیا آپ اس صارف کو بلاک کرنا چاہتے ہیں؟";
+                case "مسدود کردن": return "بلاک کریں";
+                case "نمایش آنلاین بودن": return "آن لائن حالت دکھائیں";
+                case "نمایش آخرین بازدید": return "آخری بار دیکھا گیا دکھائیں";
+                case "نمایش «در حال نوشتن…»": return "“ٹائپ کر رہا ہے…” دکھائیں";
+                case "نمایش رسید خوانده شدن ✓✓": return "پڑھے جانے کی رسید ✓✓ دکھائیں";
+                case "ذخیره": return "محفوظ کریں";
+                case "تنظیمات ذخیره شد": return "ترتیبات محفوظ ہو گئیں";
+                case "ذخیره تنظیمات ناموفق بود": return "ترتیبات محفوظ نہیں ہو سکیں";
+                case "گزارش شما ثبت شد": return "آپ کی رپورٹ جمع ہو گئی";
+                case "ثبت گزارش ناموفق بود": return "رپورٹ جمع نہیں ہو سکی";
+                case "چت از حساب شما پاک شد": return "چیٹ آپ کے اکاؤنٹ سے حذف کر دی گئی";
+                case "پاک کردن چت ناموفق بود": return "چیٹ حذف نہیں ہو سکی";
+                case "دسترسی به پیام‌های چت ناموفق بود": return "چیٹ پیغامات تک رسائی ناکام رہی";
+                case "کاربر انتخاب نشده است": return "کوئی صارف منتخب نہیں کیا گیا";
+                case "کاربر مسدود شد؛ پیام و صدا متوقف شد": return "صارف بلاک ہے؛ پیغامات اور آواز روک دی گئی";
+                case "خطای نامشخص": return "نامعلوم خرابی";
+                case "مسدود کردن ناموفق بود:\n": return "بلاک کرنے میں ناکامی:\n";
+                case "🚫 فهرست مسدودشدهها": return "🚫 مسدود صارفین";
+                case "آیا میخواهید «": return "کیا آپ «";
+                case "دریافت فهرست مسدودشدهها انجام نشد": return "مسدود صارفین کی فہرست حاصل نہیں ہو سکی";
+                case "این نوع فایل پشتیبانی نمیشود": return "اس فائل کی قسم سپورٹ نہیں ہے";
+                case "فضای ذخیرهسازی باز نشد": return "اسٹوریج نہیں کھل سکا";
+                case "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمیشود": return "اس Android ورژن میں گیلری میں براہِ راست محفوظ کرنا سپورٹ نہیں ہے";
+                case "🔕 بیصدا کردن اعلانهای این چت": return "🔕 اس چیٹ کی اطلاعات خاموش کریں";
+                case "اعلانهای این چت بیصدا شد": return "چیٹ کی اطلاعات خاموش کر دی گئی ہیں";
+                case "آیا مطمئن هستید که میخواهید تمام این گفتگو را حذف کنید؟": return "کیا آپ واقعی پوری گفتگو حذف کرنا چاہتے ہیں؟";
+                case "این کار تمام پیامهای این گفتگو را حذف میکند و قابل برگشت نیست. ادامه میدهید؟": return "یہ اس گفتگو کے تمام پیغامات حذف کر دے گا اور واپس نہیں ہو سکتا۔ جاری رکھیں؟";
+                case "آیا میخواهید این کاربر را مسدود کنید؟": return "کیا آپ اس صارف کو بلاک کرنا چاہتے ہیں؟";
+                case "دسترسی به پیامهای چت ناموفق بود": return "چیٹ پیغامات تک رسائی ناکام رہی";
+            }
+        }
+
+        if ("hi".equals(lang)) {
+            switch (fa) {
+                case "لطفاً اول وارد حساب شوید": return "कृपया पहले खाते में लॉग इन करें";
+                case "💬 کاربران": return "💬 उपयोगकर्ता";
+                case "یک کاربر را انتخاب کنید تا چت خصوصی باز شود.": return "निजी चैट खोलने के लिए उपयोगकर्ता चुनें।";
+                case "هنوز کاربر دیگری پیدا نشد.": return "अभी कोई अन्य उपयोगकर्ता नहीं मिला।";
+                case "خطا در دریافت کاربران": return "उपयोगकर्ताओं को प्राप्त करने में त्रुटि";
+                case "کاربر": return "उपयोगकर्ता";
+                case " 🚫 مسدود": return " 🚫 अवरुद्ध";
+                case " آنلاین": return " ऑनलाइन";
+                case " آفلاین": return " ऑफ़लाइन";
+                case "👁 مخفی کردن / رفع مخفی": return "👁 छिपाएँ / दिखाएँ";
+                case "🚫 بلاک / رفع مسدودیت": return "🚫 ब्लॉक / अनब्लॉक";
+                case "مخفی بودن کاربر رفع شد": return "उपयोगकर्ता को दिखाया गया";
+                case "کاربر مخفی شد": return "उपयोगकर्ता छिपा दिया गया";
+                case "مسدودیت کاربر رفع شد": return "उपयोगकर्ता को अनब्लॉक कर दिया गया";
+                case "کاربر بلاک شد؛ ارسال پیام و صدا متوقف شد": return "उपयोगकर्ता ब्लॉक है; संदेश और आवाज़ रोक दी गई";
+                case "📷 تغییر عکس پروفایل": return "📷 प्रोफ़ाइल फ़ोटो बदलें";
+                case "🔒 تنظیمات حریم خصوصی": return "🔒 गोपनीयता सेटिंग्स";
+                case "🚫 فهرست مسدودشده‌ها": return "🚫 अवरुद्ध उपयोगकर्ता";
+                case "پروفایل": return "प्रोफ़ाइल";
+                case "بستن": return "बंद करें";
+                case "هیچ کاربری مسدود نشده است.": return "कोई उपयोगकर्ता अवरुद्ध नहीं है।";
+                case "   •   رفع مسدودی": return "   •   अनब्लॉक";
+                case "رفع مسدودی": return "अनब्लॉक";
+                case "آیا می‌خواهید «": return "क्या आप «";
+                case "» را از مسدودی خارج کنید؟": return "» को अनब्लॉक करना चाहते हैं?";
+                case "لغو": return "रद्द करें";
+                case "مسدودی برداشته شد": return "अनब्लॉक किया गया";
+                case "دریافت فهرست مسدودشده‌ها انجام نشد": return "अवरुद्ध उपयोगकर्ताओं की सूची प्राप्त नहीं हो सकी";
+                case "در حال بررسی...": return "जाँच हो रही है...";
+                case "پیام خود را بنویسید...": return "अपना संदेश लिखें...";
+                case "پیام حذف شد": return "संदेश हटा दिया गया";
+                case "▶️ پخش پیام صوتی": return "▶️ वॉइस संदेश चलाएँ";
+                case "حذف برای من": return "मेरे लिए हटाएँ";
+                case "حذف برای همه": return "सबके लिए हटाएँ";
+                case "حذف پیام ناموفق بود": return "संदेश हटाया नहीं जा सका";
+                case "این کاربر بلاک شده است": return "यह उपयोगकर्ता ब्लॉक है";
+                case "خطا در ارسال پیام": return "संदेश भेजने में त्रुटि";
+                case "آنلاین": return "ऑनलाइन";
+                case "آفلاین": return "ऑफ़लाइन";
+                case "در حال نوشتن...": return "टाइप कर रहा है...";
+                case "🚫 این کاربر مسدود است": return "🚫 यह उपयोगकर्ता ब्लॉक है";
+                case "🚫 مسدود شده": return "🚫 अवरुद्ध";
+                case "این کاربر مسدود شده است": return "यह उपयोगकर्ता ब्लॉक है";
+                case "این کاربر شما را مسدود کرده است": return "इस उपयोगकर्ता ने आपको ब्लॉक किया है";
+                case "این نوع فایل پشتیبانی نمی‌شود": return "यह फ़ाइल प्रकार समर्थित नहीं है";
+                case "در حال ارسال فایل...": return "फ़ाइल भेजी जा रही है...";
+                case "خطای ارسال:\n": return "भेजने में त्रुटि:\n";
+                case "این کاربر بلاک شده است؛ فایل ارسال نشد": return "यह उपयोगकर्ता ब्लॉक है; फ़ाइल नहीं भेजी गई";
+                case "خطا در ذخیره پیام فایل": return "फ़ाइल संदेश सहेजने में त्रुटि";
+                case "🎤 در حال ضبط... دوباره بزنید تا ارسال شود": return "🎤 रिकॉर्डिंग... भेजने के लिए फिर दबाएँ";
+                case "خطا در شروع ضبط: ": return "रिकॉर्डिंग शुरू करने में त्रुटि: ";
+                case "ضبط صدا ناموفق بود": return "वॉइस रिकॉर्डिंग विफल हुई";
+                case "این کاربر بلاک شده است؛ پیام صوتی ارسال نشد": return "यह उपयोगकर्ता ब्लॉक है; वॉइस संदेश नहीं भेजा गया";
+                case "فایل صوتی پیدا نشد": return "ऑडियो फ़ाइल नहीं मिली";
+                case "فایل صوتی خالی است": return "ऑडियो फ़ाइल खाली है";
+                case "در حال ارسال پیام صوتی...": return "वॉइस संदेश भेजा जा रहा है...";
+                case "خطای ارسال پیام صوتی:\n": return "वॉइस संदेश भेजने में त्रुटि:\n";
+                case "خطا در ذخیره پیام صوتی": return "वॉइस संदेश सहेजने में त्रुटि";
+                case "پخش صدا ناموفق بود": return "ऑडियो चलाना विफल हुआ";
+                case "خطا در پخش صدا": return "ऑडियो चलाने में त्रुटि";
+                case "در حال ارسال عکس پروفایل...": return "प्रोफ़ाइल फ़ोटो अपलोड हो रही है...";
+                case "عکس پروفایل ذخیره شد": return "प्रोफ़ाइल फ़ोटो सहेजी गई";
+                case "خطای عکس پروفایل:\n": return "प्रोफ़ाइल फ़ोटो त्रुटि:\n";
+                case "فایل وجود ندارد": return "फ़ाइल मौजूद नहीं है";
+                case "فایل خالی است": return "फ़ाइल खाली है";
+                case "فایل قابل خواندن نیست": return "फ़ाइल पढ़ने योग्य नहीं है";
+                case "💾 ذخیره عکس در گالری": return "💾 गैलरी में फ़ोटो सहेजें";
+                case "تصویر": return "छवि";
+                case "گالری قابل دسترسی نیست": return "गैलरी उपलब्ध नहीं है";
+                case "فضای ذخیره‌سازی باز نشد": return "स्टोरेज नहीं खोला जा सका";
+                case "✅ عکس در گالری ذخیره شد": return "✅ फ़ोटो गैलरी में सहेजी गई";
+                case "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمی‌شود": return "इस Android संस्करण में गैलरी में सीधे सहेजना समर्थित नहीं है";
+                case "خطا در ذخیره عکس": return "फ़ोटो सहेजने में त्रुटि";
+                case "خطای ذخیره عکس:\n": return "फ़ोटो सहेजने में त्रुटि:\n";
+                case "اجازه میکروفون داده نشد": return "माइक्रोफ़ोन की अनुमति नहीं दी गई";
+                case "🔕 بی‌صدا کردن اعلان‌های این چت": return "🔕 इस चैट की सूचनाएँ म्यूट करें";
+                case "👤 مشاهده پروفایل": return "👤 प्रोफ़ाइल देखें";
+                case "🗑️ حذف کامل چت": return "🗑️ पूरी चैट हटाएँ";
+                case "🚫 مسدود کردن": return "🚫 ब्लॉक करें";
+                case "تنظیمات چت": return "चैट सेटिंग्स";
+                case "اعلان‌های این چت بی‌صدا شد": return "चैट सूचनाएँ म्यूट कर दी गईं";
+                case "⚠️ حذف کامل چت": return "⚠️ पूरी चैट हटाएँ";
+                case "آیا مطمئن هستید که می‌خواهید تمام این گفتگو را حذف کنید؟": return "क्या आप वाकई पूरी बातचीत हटाना चाहते हैं?";
+                case "مرحله اول": return "चरण 1";
+                case "تأیید نهایی حذف": return "हटाने की अंतिम पुष्टि";
+                case "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟": return "यह इस बातचीत के सभी संदेश हटा देगा और इसे वापस नहीं किया जा सकता। जारी रखें?";
+                case "حذف کامل": return "सब हटाएँ";
+                case "مسدود کردن کاربر": return "उपयोगकर्ता को ब्लॉक करें";
+                case "آیا می‌خواهید این کاربر را مسدود کنید؟": return "क्या आप इस उपयोगकर्ता को ब्लॉक करना चाहते हैं?";
+                case "مسدود کردن": return "ब्लॉक करें";
+                case "نمایش آنلاین بودن": return "ऑनलाइन स्थिति दिखाएँ";
+                case "نمایش آخرین بازدید": return "अंतिम बार देखा गया दिखाएँ";
+                case "نمایش «در حال نوشتن…»": return "“टाइप कर रहा है…” दिखाएँ";
+                case "نمایش رسید خوانده شدن ✓✓": return "पढ़े जाने की रसीद ✓✓ दिखाएँ";
+                case "ذخیره": return "सहेजें";
+                case "تنظیمات ذخیره شد": return "सेटिंग्स सहेजी गईं";
+                case "ذخیره تنظیمات ناموفق بود": return "सेटिंग्स सहेजी نہیں जा सकीं";
+                case "گزارش شما ثبت شد": return "आपकी रिपोर्ट दर्ज हो गई";
+                case "ثبت گزارش ناموفق بود": return "रिपोर्ट दर्ज नहीं हो सकी";
+                case "چت از حساب شما پاک شد": return "चैट आपके खाते से हटा दी गई";
+                case "پاک کردن چت ناموفق بود": return "चैट हटाई नहीं जा सकी";
+                case "دسترسی به پیام‌های چت ناموفق بود": return "चैट संदेशों तक पहुँच विफल हुई";
+                case "کاربر انتخاب نشده است": return "कोई उपयोगकर्ता चयनित नहीं है";
+                case "کاربر مسدود شد؛ پیام و صدا متوقف شد": return "उपयोगकर्ता ब्लॉक है; संदेश और आवाज़ रोक दी गई";
+                case "خطای نامشخص": return "अज्ञात त्रुटि";
+                case "مسدود کردن ناموفق بود:\n": return "ब्लॉक करने में विफल:\n";
+                case "🚫 فهرست مسدودشدهها": return "🚫 अवरुद्ध उपयोगकर्ता";
+                case "آیا میخواهید «": return "क्या आप «";
+                case "دریافت فهرست مسدودشدهها انجام نشد": return "अवरुद्ध उपयोगकर्ताओं की सूची प्राप्त नहीं हो सकी";
+                case "این نوع فایل پشتیبانی نمیشود": return "यह फ़ाइल प्रकार समर्थित नहीं है";
+                case "فضای ذخیرهسازی باز نشد": return "स्टोरेज नहीं खोला जा सका";
+                case "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمیشود": return "इस Android संस्करण में गैलरी में सीधे सहेजना समर्थित नहीं है";
+                case "🔕 بیصدا کردن اعلانهای این چت": return "🔕 इस चैट की सूचनाएँ म्यूट करें";
+                case "اعلانهای این چت بیصدا شد": return "चैट सूचनाएँ म्यूट कर दी गईं";
+                case "آیا مطمئن هستید که میخواهید تمام این گفتگو را حذف کنید؟": return "क्या आप वाकई पूरी बातचीत हटाना चाहते हैं?";
+                case "این کار تمام پیامهای این گفتگو را حذف میکند و قابل برگشت نیست. ادامه میدهید؟": return "यह इस बातचीत के सभी संदेश हटा देगा और इसे वापस नहीं किया जा सकता। जारी रखें?";
+                case "آیا میخواهید این کاربر را مسدود کنید؟": return "क्या आप इस उपयोगकर्ता को ब्लॉक करना चाहते हैं?";
+                case "دسترسی به پیامهای چت ناموفق بود": return "चैट संदेशों तक पहुँच विफल हुई";
+            }
+        }
+
+        return fa;
     }
 
     private int dp(int value) {
@@ -392,7 +917,7 @@ header.addView(
 );
 
 titleText =
-        text("💬 کاربران", 21);
+        text(tr("💬 کاربران"), 21);
 
         titleText.setTextColor(
                 Color.WHITE
@@ -442,7 +967,7 @@ titleText =
 
         TextView info =
                 text(
-                        "یک کاربر را انتخاب کنید تا چت خصوصی باز شود.",
+                        tr("یک کاربر را انتخاب کنید تا چت خصوصی باز شود."),
                         14
                 );
 
@@ -633,7 +1158,7 @@ titleText =
 
                                 TextView empty =
                                         text(
-                                                "هنوز کاربر دیگری پیدا نشد.",
+                                                tr("هنوز کاربر دیگری پیدا نشد."),
                                                 16
                                         );
 
@@ -660,7 +1185,7 @@ titleText =
                         e ->
                                 Toast.makeText(
                                         this,
-                                        "خطا در دریافت کاربران",
+                                        tr("خطا در دریافت کاربران"),
                                         Toast.LENGTH_SHORT
                                 ).show()
                 );
@@ -691,7 +1216,7 @@ titleText =
         if (name == null ||
                 name.trim().isEmpty()) {
 
-            name = "کاربر";
+            name = tr("کاربر");
         }
 
         String photoUrl =
@@ -823,10 +1348,10 @@ titleText =
         TextView status =
                 text(
                         finalBlockedUser
-                                ? " 🚫 مسدود"
+                                ? tr(" 🚫 مسدود")
                                 : (online != null && online
-                                        ? " آنلاین"
-                                        : " آفلاین"),
+                                        ? tr(" آنلاین")
+                                        : tr(" آفلاین")),
                         13
                 );
 
@@ -895,8 +1420,8 @@ private void showUserMenu(
 ) {
 
     String[] items = {
-            "👁 مخفی کردن / رفع مخفی",
-            "🚫 بلاک / رفع مسدودیت"
+            tr("👁 مخفی کردن / رفع مخفی"),
+            tr("🚫 بلاک / رفع مسدودیت")
     };
 
     new AlertDialog.Builder(this)
@@ -927,7 +1452,7 @@ private void showUserMenu(
 
                                             Toast.makeText(
                                                     this,
-                                                    "مخفی بودن کاربر رفع شد",
+                                                    tr("مخفی بودن کاربر رفع شد"),
                                                     Toast.LENGTH_SHORT
                                             ).show();
 
@@ -960,7 +1485,7 @@ private void showUserMenu(
                                                             x -> {
                                                                 Toast.makeText(
                                                                         this,
-                                                                        "کاربر مخفی شد",
+                                                                        tr("کاربر مخفی شد"),
                                                                         Toast.LENGTH_SHORT
                                                                 ).show();
 
@@ -1000,7 +1525,7 @@ private void showUserMenu(
 
                                             Toast.makeText(
                                                     this,
-                                                    "مسدودیت کاربر رفع شد",
+                                                    tr("مسدودیت کاربر رفع شد"),
                                                     Toast.LENGTH_SHORT
                                             ).show();
 
@@ -1044,7 +1569,7 @@ private void showUserMenu(
 
                                                                 Toast.makeText(
                                                                         this,
-                                                                        "کاربر بلاک شد؛ ارسال پیام و صدا متوقف شد",
+                                                                        tr("کاربر بلاک شد؛ ارسال پیام و صدا متوقف شد"),
                                                                         Toast.LENGTH_SHORT
                                                                 ).show();
 
@@ -1079,7 +1604,7 @@ private void showUserMenu(
                                     d.getString("photoUrl");
 
                             if (name == null) {
-                                name = "کاربر";
+                                name = tr("کاربر");
                             }
 
                             showProfileDialog(
@@ -1163,7 +1688,7 @@ private void showUserMenu(
                 new Button(this);
 
         change.setText(
-                "📷 تغییر عکس پروفایل"
+                tr("📷 تغییر عکس پروفایل")
         );
 
         if (!uid.equals(myId)) {
@@ -1185,7 +1710,7 @@ if (uid.equals(myId)) {
             new Button(this);
 
     privacy.setText(
-            "🔒 تنظیمات حریم خصوصی"
+            tr("🔒 تنظیمات حریم خصوصی")
     );
 
     privacy.setOnClickListener(
@@ -1199,7 +1724,7 @@ if (uid.equals(myId)) {
             new Button(this);
 
     blocked.setText(
-            "🚫 فهرست مسدودشده‌ها"
+            tr("🚫 فهرست مسدودشده‌ها")
     );
 
     blocked.setOnClickListener(
@@ -1210,10 +1735,10 @@ if (uid.equals(myId)) {
 }
         AlertDialog dialog =
                 new AlertDialog.Builder(this)
-                        .setTitle("پروفایل")
+                        .setTitle(tr("پروفایل"))
                         .setView(box)
                         .setPositiveButton(
-                                "بستن",
+                                tr("بستن"),
                                 null
                         )
                         .create();
@@ -1236,13 +1761,13 @@ if (uid.equals(myId)) {
 
                             new AlertDialog.Builder(this)
                                     .setTitle(
-                                            "🚫 فهرست مسدودشده‌ها"
+                                            tr("🚫 فهرست مسدودشده‌ها")
                                     )
                                     .setMessage(
-                                            "هیچ کاربری مسدود نشده است."
+                                            tr("هیچ کاربری مسدود نشده است.")
                                     )
                                     .setPositiveButton(
-                                            "بستن",
+                                            tr("بستن"),
                                             null
                                     )
                                     .show();
@@ -1286,7 +1811,7 @@ if (uid.equals(myId)) {
 
                             if (name == null ||
                                     name.isEmpty()) {
-                                name = "کاربر";
+                                name = tr("کاربر");
                             }
 
                             Button unblock =
@@ -1295,7 +1820,7 @@ if (uid.equals(myId)) {
                             unblock.setText(
                                     "🚫 " +
                                     name +
-                                    "   •   رفع مسدودی"
+                                    tr("   •   رفع مسدودی")
                             );
 
                             String finalName = name;
@@ -1307,19 +1832,19 @@ if (uid.equals(myId)) {
                                                 this
                                         )
                                                 .setTitle(
-                                                        "رفع مسدودی"
+                                                        tr("رفع مسدودی")
                                                 )
                                                 .setMessage(
-                                                        "آیا می‌خواهید «" +
+                                                        tr("آیا می‌خواهید «") +
                                                         finalName +
-                                                        "» را از مسدودی خارج کنید؟"
+                                                        tr("» را از مسدودی خارج کنید؟")
                                                 )
                                                 .setNegativeButton(
-                                                        "لغو",
+                                                        tr("لغو"),
                                                         null
                                                 )
                                                 .setPositiveButton(
-                                                        "رفع مسدودی",
+                                                        tr("رفع مسدودی"),
                                                         (d, w) -> {
 
                                                             db.collection(
@@ -1334,7 +1859,7 @@ if (uid.equals(myId)) {
 
                                                                                 Toast.makeText(
                                                                                         this,
-                                                                                        "مسدودی برداشته شد",
+                                                                                        tr("مسدودی برداشته شد"),
                                                                                         Toast.LENGTH_SHORT
                                                                                 ).show();
 
@@ -1354,11 +1879,11 @@ if (uid.equals(myId)) {
 
                         new AlertDialog.Builder(this)
                                 .setTitle(
-                                        "🚫 فهرست مسدودشده‌ها"
+                                        tr("🚫 فهرست مسدودشده‌ها")
                                 )
                                 .setView(box)
                                 .setPositiveButton(
-                                        "بستن",
+                                        tr("بستن"),
                                         null
                                 )
                                 .show();
@@ -1367,7 +1892,7 @@ if (uid.equals(myId)) {
             .addOnFailureListener(
                     e -> Toast.makeText(
                             this,
-                            "دریافت فهرست مسدودشده‌ها انجام نشد",
+                            tr("دریافت فهرست مسدودشده‌ها انجام نشد"),
                             Toast.LENGTH_SHORT
                     ).show()
             );
@@ -1526,7 +2051,7 @@ receiverPhotoUrl = photoUrl;
 
         statusText =
                 text(
-                        "در حال بررسی...",
+                        tr("در حال بررسی..."),
                         13
                 );
 
@@ -1656,7 +2181,7 @@ header.addView(chatMenu,
                 new EditText(this);
 
         messageInput.setHint(
-                "پیام خود را بنویسید..."
+                tr("پیام خود را بنویسید...")
         );
 
         messageInput.setTextSize(15);
@@ -1923,7 +2448,7 @@ header.addView(chatMenu,
                 deleted) {
 
             addSimpleMessage(
-                    "پیام حذف شد",
+                    tr("پیام حذف شد"),
                     sender,
                     d.getId()
             );
@@ -2189,7 +2714,7 @@ header.addView(chatMenu,
                 new Button(this);
 
         play.setText(
-                "▶️ پخش پیام صوتی"
+                tr("▶️ پخش پیام صوتی")
         );
 
         play.setTextSize(14);
@@ -2244,8 +2769,8 @@ header.addView(chatMenu,
     ) {
 
         String[] items = {
-                "حذف برای من",
-                "حذف برای همه"
+                tr("حذف برای من"),
+                tr("حذف برای همه")
         };
 
         new AlertDialog.Builder(this)
@@ -2297,7 +2822,7 @@ header.addView(chatMenu,
                         e ->
                                 Toast.makeText(
                                         this,
-                                        "حذف پیام ناموفق بود",
+                                        tr("حذف پیام ناموفق بود"),
                                         Toast.LENGTH_SHORT
                                 ).show()
                 );
@@ -2320,7 +2845,7 @@ header.addView(chatMenu,
                         e ->
                                 Toast.makeText(
                                         this,
-                                        "حذف پیام ناموفق بود",
+                                        tr("حذف پیام ناموفق بود"),
                                         Toast.LENGTH_SHORT
                                 ).show()
                 );
@@ -2332,7 +2857,7 @@ header.addView(chatMenu,
 
             Toast.makeText(
                     this,
-                    "این کاربر بلاک شده است",
+                    tr("این کاربر بلاک شده است"),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -2412,7 +2937,7 @@ header.addView(chatMenu,
                         e ->
                                 Toast.makeText(
                                         this,
-                                        "خطا در ارسال پیام",
+                                        tr("خطا در ارسال پیام"),
                                         Toast.LENGTH_SHORT
                                 ).show()
                 );
@@ -2487,7 +3012,7 @@ header.addView(chatMenu,
                                             online) {
 
                                         statusText.setText(
-                                                "آنلاین"
+                                                tr("آنلاین")
                                         );
 
                                         headerOnlineDot
@@ -2502,7 +3027,7 @@ header.addView(chatMenu,
                                     } else {
 
                                         statusText.setText(
-                                                "آفلاین"
+                                                tr("آفلاین")
                                         );
 
                                         headerOnlineDot
@@ -2546,7 +3071,7 @@ header.addView(chatMenu,
                                     )) {
 
                                         statusText.setText(
-                                                "در حال نوشتن..."
+                                                tr("در حال نوشتن...")
                                         );
                                     }
                                 }
@@ -2631,7 +3156,7 @@ header.addView(chatMenu,
 
             if (messageInput != null) {
                 messageInput.setEnabled(false);
-                messageInput.setHint("🚫 این کاربر مسدود است");
+                messageInput.setHint(tr("🚫 این کاربر مسدود است"));
             }
 
             if (sendButton != null) {
@@ -2647,15 +3172,15 @@ header.addView(chatMenu,
             }
 
             if (statusText != null) {
-                statusText.setText("🚫 مسدود شده");
+                statusText.setText(tr("🚫 مسدود شده"));
             }
 
             if (changed) {
                 Toast.makeText(
                         this,
                         blockedByMe
-                                ? "این کاربر مسدود شده است"
-                                : "این کاربر شما را مسدود کرده است",
+                                ? tr("این کاربر مسدود شده است")
+                                : tr("این کاربر شما را مسدود کرده است"),
                         Toast.LENGTH_SHORT
                 ).show();
             }
@@ -2664,7 +3189,7 @@ header.addView(chatMenu,
 
             if (messageInput != null) {
                 messageInput.setEnabled(true);
-                messageInput.setHint("پیام خود را بنویسید...");
+                messageInput.setHint(tr("پیام خود را بنویسید..."));
             }
 
             if (sendButton != null) {
@@ -2848,7 +3373,7 @@ header.addView(chatMenu,
 
             Toast.makeText(
                     this,
-                    "این کاربر بلاک شده است",
+                    tr("این کاربر بلاک شده است"),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -2875,7 +3400,7 @@ header.addView(chatMenu,
 
             Toast.makeText(
                     this,
-                    "این نوع فایل پشتیبانی نمی‌شود",
+                    tr("این نوع فایل پشتیبانی نمی‌شود"),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -2924,7 +3449,7 @@ header.addView(chatMenu,
 
         Toast.makeText(
                 this,
-                "در حال ارسال فایل...",
+                tr("در حال ارسال فایل..."),
                 Toast.LENGTH_SHORT
         ).show();
 
@@ -2955,7 +3480,7 @@ header.addView(chatMenu,
 
                         Toast.makeText(
                                 ChatActivity.this,
-                                "خطای ارسال:\n" +
+                                tr("خطای ارسال:\n") +
                                         error,
                                 Toast.LENGTH_LONG
                         ).show();
@@ -2972,7 +3497,7 @@ header.addView(chatMenu,
         if (blocked) {
             Toast.makeText(
                     this,
-                    "این کاربر بلاک شده است؛ فایل ارسال نشد",
+                    tr("این کاربر بلاک شده است؛ فایل ارسال نشد"),
                     Toast.LENGTH_SHORT
             ).show();
             return;
@@ -3032,7 +3557,7 @@ header.addView(chatMenu,
                         e ->
                                 Toast.makeText(
                                         this,
-                                        "خطا در ذخیره پیام فایل",
+                                        tr("خطا در ذخیره پیام فایل"),
                                         Toast.LENGTH_SHORT
                                 ).show()
                 );
@@ -3060,7 +3585,7 @@ header.addView(chatMenu,
 
             Toast.makeText(
                     this,
-                    "این کاربر بلاک شده است",
+                    tr("این کاربر بلاک شده است"),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -3126,7 +3651,7 @@ header.addView(chatMenu,
 
             Toast.makeText(
                     this,
-                    "🎤 در حال ضبط... دوباره بزنید تا ارسال شود",
+                    tr("🎤 در حال ضبط... دوباره بزنید تا ارسال شود"),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -3136,7 +3661,7 @@ header.addView(chatMenu,
 
             Toast.makeText(
                     this,
-                    "خطا در شروع ضبط: " +
+                    tr("خطا در شروع ضبط: ") +
                             e.getMessage(),
                     Toast.LENGTH_LONG
             ).show();
@@ -3163,7 +3688,7 @@ header.addView(chatMenu,
 
             Toast.makeText(
                     this,
-                    "ضبط صدا ناموفق بود",
+                    tr("ضبط صدا ناموفق بود"),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -3211,7 +3736,7 @@ header.addView(chatMenu,
         if (blocked) {
             Toast.makeText(
                     this,
-                    "این کاربر بلاک شده است؛ پیام صوتی ارسال نشد",
+                    tr("این کاربر بلاک شده است؛ پیام صوتی ارسال نشد"),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -3230,7 +3755,7 @@ header.addView(chatMenu,
 
             Toast.makeText(
                     this,
-                    "فایل صوتی پیدا نشد",
+                    tr("فایل صوتی پیدا نشد"),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -3245,7 +3770,7 @@ header.addView(chatMenu,
 
             Toast.makeText(
                     this,
-                    "فایل صوتی خالی است",
+                    tr("فایل صوتی خالی است"),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -3267,7 +3792,7 @@ header.addView(chatMenu,
 
         Toast.makeText(
                 this,
-                "در حال ارسال پیام صوتی...",
+                tr("در حال ارسال پیام صوتی..."),
                 Toast.LENGTH_SHORT
         ).show();
 
@@ -3298,7 +3823,7 @@ header.addView(chatMenu,
 
                         Toast.makeText(
                                 ChatActivity.this,
-                                "خطای ارسال پیام صوتی:\n" +
+                                tr("خطای ارسال پیام صوتی:\n") +
                                         error,
                                 Toast.LENGTH_LONG
                         ).show();
@@ -3314,7 +3839,7 @@ header.addView(chatMenu,
         if (blocked) {
             Toast.makeText(
                     this,
-                    "این کاربر بلاک شده است؛ پیام صوتی ارسال نشد",
+                    tr("این کاربر بلاک شده است؛ پیام صوتی ارسال نشد"),
                     Toast.LENGTH_SHORT
             ).show();
             return;
@@ -3374,7 +3899,7 @@ header.addView(chatMenu,
                         e ->
                                 Toast.makeText(
                                         this,
-                                        "خطا در ذخیره پیام صوتی",
+                                        tr("خطا در ذخیره پیام صوتی"),
                                         Toast.LENGTH_SHORT
                                 ).show()
                 );
@@ -3414,7 +3939,7 @@ header.addView(chatMenu,
 
                         Toast.makeText(
                                 this,
-                                "پخش صدا ناموفق بود",
+                                tr("پخش صدا ناموفق بود"),
                                 Toast.LENGTH_SHORT
                         ).show();
 
@@ -3428,7 +3953,7 @@ header.addView(chatMenu,
 
             Toast.makeText(
                     this,
-                    "خطا در پخش صدا",
+                    tr("خطا در پخش صدا"),
                     Toast.LENGTH_SHORT
             ).show();
         }
@@ -3476,7 +4001,7 @@ header.addView(chatMenu,
 
         Toast.makeText(
                 this,
-                "در حال ارسال عکس پروفایل...",
+                tr("در حال ارسال عکس پروفایل..."),
                 Toast.LENGTH_SHORT
         ).show();
 
@@ -3511,7 +4036,7 @@ header.addView(chatMenu,
 
                                             Toast.makeText(
                                                     ChatActivity.this,
-                                                    "عکس پروفایل ذخیره شد",
+                                                    tr("عکس پروفایل ذخیره شد"),
                                                     Toast.LENGTH_SHORT
                                             ).show();
 
@@ -3527,7 +4052,7 @@ header.addView(chatMenu,
 
                         Toast.makeText(
                                 ChatActivity.this,
-                                "خطای عکس پروفایل:\n" +
+                                tr("خطای عکس پروفایل:\n") +
                                         error,
                                 Toast.LENGTH_LONG
                         ).show();
@@ -3623,14 +4148,14 @@ header.addView(chatMenu,
                             if (!file.exists()) {
 
                                 throw new Exception(
-                                        "فایل وجود ندارد"
+                                        tr("فایل وجود ندارد")
                                 );
                             }
 
                             if (file.length() <= 0) {
 
                                 throw new Exception(
-                                        "فایل خالی است"
+                                        tr("فایل خالی است")
                                 );
                             }
 
@@ -3653,7 +4178,7 @@ header.addView(chatMenu,
                             if (input == null) {
 
                                 throw new Exception(
-                                        "فایل قابل خواندن نیست"
+                                        tr("فایل قابل خواندن نیست")
                                 );
                             }
 
@@ -4073,7 +4598,7 @@ header.addView(chatMenu,
                 new Button(this);
 
         save.setText(
-                "💾 ذخیره عکس در گالری"
+                tr("💾 ذخیره عکس در گالری")
         );
 
         box.addView(
@@ -4108,10 +4633,10 @@ header.addView(chatMenu,
         );
 
         new AlertDialog.Builder(this)
-                .setTitle("تصویر")
+                .setTitle(tr("تصویر"))
                 .setView(box)
                 .setPositiveButton(
-                        "بستن",
+                        tr("بستن"),
                         null
                 )
                 .show();
@@ -4201,7 +4726,7 @@ header.addView(chatMenu,
                             if (imageUri == null) {
 
                                 throw new Exception(
-                                        "گالری قابل دسترسی نیست"
+                                        tr("گالری قابل دسترسی نیست")
                                 );
                             }
 
@@ -4214,7 +4739,7 @@ header.addView(chatMenu,
                             if (output == null) {
 
                                 throw new Exception(
-                                        "فضای ذخیره‌سازی باز نشد"
+                                        tr("فضای ذخیره‌سازی باز نشد")
                                 );
                             }
 
@@ -4262,7 +4787,7 @@ header.addView(chatMenu,
                                     () ->
                                             Toast.makeText(
                                                     this,
-                                                    "✅ عکس در گالری ذخیره شد",
+                                                    tr("✅ عکس در گالری ذخیره شد"),
                                                     Toast.LENGTH_SHORT
                                             ).show()
                             );
@@ -4275,7 +4800,7 @@ header.addView(chatMenu,
                                     () ->
                                             Toast.makeText(
                                                     this,
-                                                    "ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمی‌شود",
+                                                    tr("ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمی‌شود"),
                                                     Toast.LENGTH_LONG
                                             ).show()
                             );
@@ -4291,7 +4816,7 @@ header.addView(chatMenu,
                         if (error == null) {
 
                             error =
-                                    "خطا در ذخیره عکس";
+                                    tr("خطا در ذخیره عکس");
                         }
 
                         String finalError =
@@ -4301,7 +4826,7 @@ header.addView(chatMenu,
                                 () ->
                                         Toast.makeText(
                                                 this,
-                                                "خطای ذخیره عکس:\n" +
+                                                tr("خطای ذخیره عکس:\n") +
                                                         finalError,
                                                 Toast.LENGTH_LONG
                                         ).show()
@@ -4505,7 +5030,7 @@ public void onRequestPermissionsResult(
 
             Toast.makeText(
                     this,
-                    "اجازه میکروفون داده نشد",
+                    tr("اجازه میکروفون داده نشد"),
                     Toast.LENGTH_SHORT
             ).show();
         }
@@ -4515,15 +5040,15 @@ public void onRequestPermissionsResult(
 private void showChatMenu() {
 
     String[] options = {
-            "🔕 بی‌صدا کردن اعلان‌های این چت",
-            "👤 مشاهده پروفایل",
-            "🔒 تنظیمات حریم خصوصی",
-            "🗑️ حذف کامل چت",
-            "🚫 مسدود کردن"
+            tr("🔕 بی‌صدا کردن اعلان‌های این چت"),
+            tr("👤 مشاهده پروفایل"),
+            tr("🔒 تنظیمات حریم خصوصی"),
+            tr("🗑️ حذف کامل چت"),
+            tr("🚫 مسدود کردن")
     };
 
     new AlertDialog.Builder(this)
-            .setTitle("تنظیمات چت")
+            .setTitle(tr("تنظیمات چت"))
             .setItems(
                     options,
                     (dialog, which) -> {
@@ -4532,7 +5057,7 @@ private void showChatMenu() {
 
                             Toast.makeText(
                                     ChatActivity.this,
-                                    "اعلان‌های این چت بی‌صدا شد",
+                                    tr("اعلان‌های این چت بی‌صدا شد"),
                                     Toast.LENGTH_SHORT
                             ).show();
 
@@ -4553,33 +5078,33 @@ private void showChatMenu() {
                             new AlertDialog.Builder(
                                     ChatActivity.this
                             )
-                                    .setTitle("⚠️ حذف کامل چت")
+                                    .setTitle(tr("⚠️ حذف کامل چت"))
                                     .setMessage(
-                                            "آیا مطمئن هستید که می‌خواهید تمام این گفتگو را حذف کنید؟"
+                                            tr("آیا مطمئن هستید که می‌خواهید تمام این گفتگو را حذف کنید؟")
                                     )
                                     .setNegativeButton(
-                                            "لغو",
+                                            tr("لغو"),
                                             null
                                     )
                                     .setPositiveButton(
-                                            "مرحله اول",
+                                            tr("مرحله اول"),
                                             (d, w) -> {
 
                                                 new AlertDialog.Builder(
                                                         ChatActivity.this
                                                 )
                                                         .setTitle(
-                                                                "تأیید نهایی حذف"
+                                                                tr("تأیید نهایی حذف")
                                                         )
                                                         .setMessage(
-                                                                "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟"
+                                                                tr("این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟")
                                                         )
                                                         .setNegativeButton(
-                                                                "لغو",
+                                                                tr("لغو"),
                                                                 null
                                                         )
                                                         .setPositiveButton(
-                                                                "حذف کامل",
+                                                                tr("حذف کامل"),
                                                                 (d2, w2) ->
                                                                         deleteCurrentChatForMe()
                                                         )
@@ -4593,16 +5118,16 @@ private void showChatMenu() {
                             new AlertDialog.Builder(
                                     ChatActivity.this
                             )
-                                    .setTitle("مسدود کردن کاربر")
+                                    .setTitle(tr("مسدود کردن کاربر"))
                                     .setMessage(
-                                            "آیا می‌خواهید این کاربر را مسدود کنید؟"
+                                            tr("آیا می‌خواهید این کاربر را مسدود کنید؟")
                                     )
                                     .setNegativeButton(
-                                            "لغو",
+                                            tr("لغو"),
                                             null
                                     )
                                     .setPositiveButton(
-                                            "مسدود کردن",
+                                            tr("مسدود کردن"),
                                             (d, w) ->
                                                     blockCurrentUser()
                                     )
@@ -4616,10 +5141,10 @@ private void showChatMenu() {
 private void showChatPrivacySettings() {
 
     final String[] items = {
-            "نمایش آنلاین بودن",
-            "نمایش آخرین بازدید",
-            "نمایش «در حال نوشتن…»",
-            "نمایش رسید خوانده شدن ✓✓"
+            tr("نمایش آنلاین بودن"),
+            tr("نمایش آخرین بازدید"),
+            tr("نمایش «در حال نوشتن…»"),
+            tr("نمایش رسید خوانده شدن ✓✓")
     };
 
     final boolean[] checked = {
@@ -4630,7 +5155,7 @@ private void showChatPrivacySettings() {
     };
 
     new AlertDialog.Builder(this)
-            .setTitle("🔒 تنظیمات حریم خصوصی")
+            .setTitle(tr("🔒 تنظیمات حریم خصوصی"))
             .setMultiChoiceItems(
                     items,
                     checked,
@@ -4638,11 +5163,11 @@ private void showChatPrivacySettings() {
                             checked[which] = isChecked
             )
             .setNegativeButton(
-                    "لغو",
+                    tr("لغو"),
                     null
             )
             .setPositiveButton(
-                    "ذخیره",
+                    tr("ذخیره"),
                     (dialog, which) -> {
 
                         Map<String, Object> privacy =
@@ -4678,7 +5203,7 @@ private void showChatPrivacySettings() {
                                         v ->
                                                 Toast.makeText(
                                                         ChatActivity.this,
-                                                        "تنظیمات ذخیره شد",
+                                                        tr("تنظیمات ذخیره شد"),
                                                         Toast.LENGTH_SHORT
                                                 ).show()
                                 )
@@ -4686,7 +5211,7 @@ private void showChatPrivacySettings() {
                                         e ->
                                                 Toast.makeText(
                                                         ChatActivity.this,
-                                                        "ذخیره تنظیمات ناموفق بود",
+                                                        tr("ذخیره تنظیمات ناموفق بود"),
                                                         Toast.LENGTH_SHORT
                                                 ).show()
                                 );
@@ -4726,7 +5251,7 @@ private void reportCurrentUser() {
                     v ->
                             Toast.makeText(
                                     ChatActivity.this,
-                                    "گزارش شما ثبت شد",
+                                    tr("گزارش شما ثبت شد"),
                                     Toast.LENGTH_SHORT
                             ).show()
             )
@@ -4734,7 +5259,7 @@ private void reportCurrentUser() {
                     e ->
                             Toast.makeText(
                                     ChatActivity.this,
-                                    "ثبت گزارش ناموفق بود",
+                                    tr("ثبت گزارش ناموفق بود"),
                                     Toast.LENGTH_SHORT
                             ).show()
             );
@@ -4786,7 +5311,7 @@ private void deleteCurrentChatForMe() {
 
                                             Toast.makeText(
                                                     ChatActivity.this,
-                                                    "چت از حساب شما پاک شد",
+                                                    tr("چت از حساب شما پاک شد"),
                                                     Toast.LENGTH_SHORT
                                             ).show();
                                         }
@@ -4795,7 +5320,7 @@ private void deleteCurrentChatForMe() {
                                         e ->
                                                 Toast.makeText(
                                                         ChatActivity.this,
-                                                        "پاک کردن چت ناموفق بود",
+                                                        tr("پاک کردن چت ناموفق بود"),
                                                         Toast.LENGTH_SHORT
                                                 ).show()
                                 );
@@ -4805,7 +5330,7 @@ private void deleteCurrentChatForMe() {
                     e ->
                             Toast.makeText(
                                     ChatActivity.this,
-                                    "دسترسی به پیام‌های چت ناموفق بود",
+                                    tr("دسترسی به پیام‌های چت ناموفق بود"),
                                     Toast.LENGTH_SHORT
                             ).show()
             );
@@ -4818,7 +5343,7 @@ private void blockCurrentUser() {
 
         Toast.makeText(
                 ChatActivity.this,
-                "کاربر انتخاب نشده است",
+                tr("کاربر انتخاب نشده است"),
                 Toast.LENGTH_SHORT
         ).show();
 
@@ -4845,7 +5370,7 @@ private void blockCurrentUser() {
             "blockedUserName",
             receiverName == null ||
                     receiverName.trim().isEmpty()
-                    ? "کاربر"
+                    ? tr("کاربر")
                     : receiverName
     );
 
@@ -4868,7 +5393,7 @@ private void blockCurrentUser() {
 
                         Toast.makeText(
                                 ChatActivity.this,
-                                "کاربر مسدود شد؛ پیام و صدا متوقف شد",
+                                tr("کاربر مسدود شد؛ پیام و صدا متوقف شد"),
                                 Toast.LENGTH_SHORT
                         ).show();
                     }
@@ -4883,12 +5408,12 @@ private void blockCurrentUser() {
                                 error.trim().isEmpty()) {
 
                             error =
-                                    "خطای نامشخص";
+                                    tr("خطای نامشخص");
                         }
 
                         Toast.makeText(
                                 ChatActivity.this,
-                                "مسدود کردن ناموفق بود:\n" +
+                                tr("مسدود کردن ناموفق بود:\n") +
                                         error,
                                 Toast.LENGTH_LONG
                         ).show();
