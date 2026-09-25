@@ -9,6 +9,9 @@ import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -44,7 +47,10 @@ public class ColorSortActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (gameView != null) gameView.stopAnimation();
+        if (gameView != null) {
+            gameView.stopAnimation();
+            gameView.releaseAudio();
+        }
     }
 
     @Override
@@ -60,6 +66,16 @@ public class ColorSortActivity extends Activity {
         private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Handler handler = new Handler();
         private final Random random = new Random();
+
+        // --- Premium visual/audio state ---
+        private final SharedPreferences progressPrefs =
+                ColorSortActivity.this.getSharedPreferences("color_sort_progress", MODE_PRIVATE);
+        private ToneGenerator toneGenerator;
+        private boolean soundEnabled = true;
+        private float liquidWave = 0f;
+        private float bottleGlow = 0f;
+        private long victoryStart = 0L;
+        private final Random sparkleRandom = new Random(7319);
 
         private final List<List<Integer>> tubes = new ArrayList<>();
         private final List<Move> history = new ArrayList<>();
@@ -104,6 +120,8 @@ public class ColorSortActivity extends Activity {
         private final Runnable frame = new Runnable() {
             @Override public void run() {
                 if (!running) return;
+                liquidWave += 0.13f;
+                bottleGlow += 0.035f;
                 invalidate();
                 handler.postDelayed(this, 16);
             }
@@ -116,11 +134,17 @@ public class ColorSortActivity extends Activity {
             stroke.setAntiAlias(true);
             text.setAntiAlias(true);
             setFocusable(true);
+            soundEnabled = progressPrefs.getBoolean("sound", true);
+            level = Math.max(1, Math.min(MAX_LEVEL, progressPrefs.getInt("level", 1)));
+            coins = Math.max(0, progressPrefs.getInt("coins", 0));
+            totalStars = Math.max(0, progressPrefs.getInt("stars", 0));
+            createToneGenerator();
             resetLevel();
         }
 
         void startAnimation() {
             running = true;
+            createToneGenerator();
             handler.removeCallbacks(frame);
             handler.post(frame);
         }
@@ -128,6 +152,50 @@ public class ColorSortActivity extends Activity {
         void stopAnimation() {
             running = false;
             handler.removeCallbacks(frame);
+            saveProgress();
+        }
+
+        private void createToneGenerator() {
+            if (toneGenerator == null) {
+                try {
+                    toneGenerator = new ToneGenerator(AudioManager.STREAM_MUSIC, 72);
+                } catch (Exception ignored) {
+                    toneGenerator = null;
+                }
+            }
+        }
+
+        private void releaseToneGenerator() {
+            if (toneGenerator != null) {
+                try {
+                    toneGenerator.release();
+                } catch (Exception ignored) {
+                }
+                toneGenerator = null;
+            }
+        }
+
+        private void playSound(int tone) {
+            if (!soundEnabled) return;
+            createToneGenerator();
+            if (toneGenerator == null) return;
+            try {
+                toneGenerator.startTone(tone, 95);
+            } catch (Exception ignored) {
+            }
+        }
+
+        private void saveProgress() {
+            progressPrefs.edit()
+                    .putInt("level", level)
+                    .putInt("coins", coins)
+                    .putInt("stars", totalStars)
+                    .putBoolean("sound", soundEnabled)
+                    .apply();
+        }
+
+        void releaseAudio() {
+            releaseToneGenerator();
         }
 
         void resetLevel() {
@@ -138,6 +206,7 @@ public class ColorSortActivity extends Activity {
             animFrom = -1;
             animTo = -1;
             animProgress = 1f;
+            victoryStart = 0L;
             tubes.clear();
             history.clear();
 
@@ -361,28 +430,78 @@ public class ColorSortActivity extends Activity {
         }
 
         private void drawTube(Canvas c, int index, float cx, float cy, float tw, float th) {
-            float left = cx - tw / 2f, right = cx + tw / 2f;
-            float top = cy - th / 2f, bottom = cy + th / 2f;
+            float left = cx - tw / 2f;
+            float right = cx + tw / 2f;
+            float top = cy - th / 2f;
+            float bottom = cy + th / 2f;
             boolean selected = index == selectedTube;
+            boolean pouring = animProgress < 1f && index == animFrom;
             List<Integer> tube = tubes.get(index);
 
-            if (selected) {
-                p.setColor(Color.argb(110, 0, 238, 255));
-                p.setShadowLayer(20, 0, 0, Color.CYAN);
-                c.drawRoundRect(new RectF(left - 5, top - 5, right + 5, bottom + 5), 25, 25, p);
+            // A subtle glow makes the selected/pouring bottle feel alive.
+            if (selected || pouring || isTubeComplete(tube)) {
+                int glowColor = isTubeComplete(tube)
+                        ? Color.rgb(255, 213, 70)
+                        : Color.rgb(50, 225, 255);
+                p.setStyle(Paint.Style.FILL);
+                p.setColor(Color.argb(selected ? 80 : 42, Color.red(glowColor),
+                        Color.green(glowColor), Color.blue(glowColor)));
+                p.setShadowLayer(selected ? 28 : 18, 0, 4, glowColor);
+                c.drawRoundRect(new RectF(left - 8, top - 8, right + 8, bottom + 8), 28, 28, p);
                 p.clearShadowLayer();
             }
 
-            // Bottle body
+            float angle = 0f;
+            if (pouring) {
+                float direction = getTubeGeometry(animTo)[0] >= cx ? 1f : -1f;
+                float wave = (float) Math.sin(animProgress * Math.PI);
+                angle = direction * 13f * wave;
+            }
+
+            c.save();
+            c.rotate(angle, cx, bottom - 18);
+
+            // Outer glass shadow.
             p.setStyle(Paint.Style.FILL);
+            p.setColor(Color.argb(65, 0, 0, 0));
+            p.setShadowLayer(16, 0, 10, Color.argb(180, 0, 0, 0));
+            c.drawRoundRect(new RectF(left - 2, top + 13, right + 2, bottom + 2), 25, 25, p);
+            p.clearShadowLayer();
+
+            // Glass body: several transparent gradients create depth.
             p.setShader(new LinearGradient(left, top, right, bottom,
-                    Color.argb(100, 255, 255, 255),
-                    Color.argb(20, 90, 170, 255),
+                    Color.argb(120, 255, 255, 255),
+                    Color.argb(18, 78, 165, 255),
                     Shader.TileMode.CLAMP));
             c.drawRoundRect(new RectF(left, top + 12, right, bottom), 24, 24, p);
             p.setShader(null);
 
-            float innerL = left + 8, innerR = right - 8, innerB = bottom - 8;
+            // Inner blue glass tint.
+            p.setShader(new LinearGradient(left, top, right, bottom,
+                    Color.argb(30, 190, 235, 255),
+                    Color.argb(55, 20, 85, 180),
+                    Shader.TileMode.CLAMP));
+            c.drawRoundRect(new RectF(left + 4, top + 18, right - 4, bottom - 5), 20, 20, p);
+            p.setShader(null);
+
+            float neckTop = top - 1;
+            float neckBottom = top + 28;
+            float neckL = left + 11;
+            float neckR = right - 11;
+
+            // Neck and mouth of the bottle.
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(Color.argb(52, 255, 255, 255));
+            c.drawRoundRect(new RectF(neckL, neckTop + 5, neckR, neckBottom), 10, 10, p);
+            stroke.setStyle(Paint.Style.STROKE);
+            stroke.setStrokeWidth(2.6f);
+            stroke.setColor(Color.argb(235, 224, 250, 255));
+            c.drawRoundRect(new RectF(neckL, neckTop, neckR, neckBottom), 10, 10, stroke);
+
+            // Liquid is inset from the glass walls, with rounded lower corners.
+            float innerL = left + 8;
+            float innerR = right - 8;
+            float innerB = bottom - 8;
             float layerH = (bottom - top - 30) / CAPACITY;
 
             for (int j = 0; j < tube.size(); j++) {
@@ -391,38 +510,79 @@ public class ColorSortActivity extends Activity {
                 drawLiquid(c, innerL, lt, innerR, lb, tube.get(j), j == tube.size() - 1);
             }
 
-            // Animated stream
-            if (animProgress < 1f && index == animFrom) {
-                float a = 1f - animProgress;
-                p.setColor(Color.argb((int)(220 * a), Color.red(colors[animColor]),
-                        Color.green(colors[animColor]), Color.blue(colors[animColor])));
-                float sx = cx;
-                float sy = top + 25;
-                float ex = getTubeGeometry(animTo)[1];
-                c.drawRoundRect(new RectF(sx - 5, sy, sx + 5, sy + 40 + 30 * animProgress), 5, 5, p);
-                p.setColor(Color.argb((int)(160 * a), 255, 255, 255));
-                c.drawCircle(sx - 8, sy + 25 * animProgress, 3, p);
-            }
+            // The pouring stream is drawn from the tilted mouth toward the target mouth.
+            if (pouring) drawPourStream(c, cx, top + 16, animTo, animColor, animProgress, angle);
 
-            // Glass outline and rim
+            // Front glass reflections: broad stripe + thin bright line.
+            p.setShader(new LinearGradient(left + 7, 0, left + 28, 0,
+                    Color.argb(145, 255, 255, 255), Color.argb(0, 255, 255, 255),
+                    Shader.TileMode.CLAMP));
+            c.drawRoundRect(new RectF(left + 7, top + 22, left + 27, bottom - 14), 9, 9, p);
+            p.setShader(null);
+
+            p.setColor(Color.argb(125, 255, 255, 255));
+            c.drawRoundRect(new RectF(left + 13, top + 16, right - 18, top + 20), 3, 3, p);
+
+            // Outer glass outline and reinforced base.
             stroke.setStyle(Paint.Style.STROKE);
-            stroke.setStrokeWidth(selected ? 4 : 2.8f);
-            stroke.setColor(selected ? Color.rgb(80, 240, 255) : Color.argb(230, 215, 248, 255));
+            stroke.setStrokeWidth(selected ? 4.2f : 2.7f);
+            stroke.setColor(selected
+                    ? Color.rgb(83, 244, 255)
+                    : Color.argb(238, 225, 250, 255));
             c.drawRoundRect(new RectF(left, top + 12, right, bottom), 24, 24, stroke);
+            stroke.setStrokeWidth(2.2f);
+            c.drawArc(new RectF(left + 4, bottom - 19, right - 4, bottom + 5),
+                    0, 180, false, stroke);
 
-            stroke.setStrokeWidth(3);
-            c.drawRoundRect(new RectF(left + 4, top, right - 4, top + 28), 11, 11, stroke);
+            // Mouth rim and a second inner rim for a real glass look.
+            stroke.setStrokeWidth(3f);
+            c.drawRoundRect(new RectF(left + 3, top, right - 3, top + 27), 11, 11, stroke);
+            stroke.setStrokeWidth(1.4f);
+            stroke.setColor(Color.argb(180, 255, 255, 255));
+            c.drawRoundRect(new RectF(left + 7, top + 5, right - 7, top + 18), 7, 7, stroke);
 
-            p.setColor(Color.argb(120, 255, 255, 255));
-            p.setStrokeWidth(4);
-            c.drawLine(left + 13, top + 35, left + 13, bottom - 25, p);
-            c.drawLine(left + 18, top + 18, right - 22, top + 18, p);
+            c.restore();
 
-            // Wooden cap for completed tube
-            if (isTubeComplete(tube)) drawCap(c, cx, top + 2, tw);
-
-            // Bottle number
+            // Cork is outside the rotating glass, so it remains seated on the mouth.
+            if (isTubeComplete(tube)) drawCap(c, cx, top + 1, tw);
             drawBadge(c, cx, bottom + 11, String.valueOf(index + 1), selected);
+        }
+
+        private void drawPourStream(Canvas c, float sx, float sy, int targetIndex,
+                                    int colorIndex, float progress, float angle) {
+            if (targetIndex < 0 || colorIndex < 0 || colorIndex >= colors.length) return;
+            float[] target = getTubeGeometry(targetIndex);
+            float tx = target[0];
+            float ty = target[1] - target[3] / 2f + 25;
+
+            float eased = progress * progress * (3f - 2f * progress);
+            float startX = sx + (float) Math.sin(Math.toRadians(angle)) * 12f;
+            float startY = sy + 7;
+            float endX = tx;
+            float endY = ty + Math.min(28f, eased * 36f);
+
+            int base = colors[colorIndex];
+            int bright = lighten(base, 1.35f);
+            int alpha = (int) (235 * (1f - progress * .22f));
+
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(Color.argb(alpha, Color.red(base), Color.green(base), Color.blue(base)));
+            p.setShadowLayer(10, 0, 2, base);
+            c.drawRoundRect(new RectF(startX - 5, startY, endX + 5, endY), 6, 6, p);
+            p.clearShadowLayer();
+
+            p.setColor(Color.argb(150, Color.red(bright), Color.green(bright), Color.blue(bright)));
+            c.drawRoundRect(new RectF(startX - 2, startY, endX + 1, endY), 3, 3, p);
+
+            // Falling droplets make the pour visibly liquid rather than a static line.
+            int drops = 2 + (int) (progress * 4f);
+            for (int i = 0; i < drops; i++) {
+                float t = ((i + 1) / (float) (drops + 1));
+                float dx = startX + (endX - startX) * t;
+                float dy = startY + (endY - startY) * t;
+                float pulse = .7f + .3f * (float) Math.sin(liquidWave + i);
+                c.drawCircle(dx, dy, 2.2f * pulse, p);
+            }
         }
 
         private float[] getTubeGeometry(int idx) {
@@ -444,22 +604,44 @@ public class ColorSortActivity extends Activity {
         private void drawLiquid(Canvas c, float left, float top, float right, float bottom,
                                 int colorIndex, boolean topLayer) {
             int base = colors[colorIndex];
-            int light = lighten(base, 1.3f);
-            int dark = darken(base, .58f);
+            int light = lighten(base, 1.34f);
+            int dark = darken(base, .52f);
+            float radius = Math.min(8f, (bottom - top) * .18f);
+
             p.setStyle(Paint.Style.FILL);
-            p.setShader(new LinearGradient(0, top, 0, bottom, light, dark, Shader.TileMode.CLAMP));
-            c.drawRect(left, top, right, bottom, p);
+            p.setShader(new LinearGradient(0, top, 0, bottom,
+                    light, dark, Shader.TileMode.CLAMP));
+            c.drawRoundRect(new RectF(left, top, right, bottom), radius, radius, p);
             p.setShader(null);
 
-            p.setColor(Color.argb(70, 255, 255, 255));
-            c.drawRect(left + 3, top, left + 13, bottom, p);
+            // Deep inner body gives the liquid a thick, translucent appearance.
+            p.setShader(new LinearGradient(left, 0, right, 0,
+                    Color.argb(35, 255, 255, 255),
+                    Color.argb(0, 255, 255, 255),
+                    Shader.TileMode.CLAMP));
+            c.drawRoundRect(new RectF(left + 3, top + 2, right - 3, bottom - 2),
+                    radius, radius, p);
+            p.setShader(null);
+
+            // Bright vertical refraction.
+            p.setColor(Color.argb(82, 255, 255, 255));
+            c.drawRoundRect(new RectF(left + 4, top + 2, left + 12, bottom - 2), 4, 4, p);
 
             if (topLayer) {
-                p.setColor(Color.argb(125, 255, 255, 255));
-                c.drawOval(new RectF(left + 3, top + 1, right - 3, top + 13), p);
-                p.setColor(Color.argb(90, 255, 255, 255));
-                c.drawCircle(left + 15, top + 22, 3, p);
-                c.drawCircle(right - 15, top + 28, 2.5f, p);
+                float wave = (float) Math.sin(liquidWave) * 2.2f;
+                RectF surface = new RectF(left + 2, top + 1 + wave,
+                        right - 2, top + 13 + wave);
+
+                p.setColor(Color.argb(150, 255, 255, 255));
+                c.drawOval(surface, p);
+                p.setColor(Color.argb(75, Color.red(light), Color.green(light), Color.blue(light)));
+                c.drawOval(new RectF(left + 4, top + 5 + wave, right - 4, top + 14 + wave), p);
+
+                // Tiny moving highlights on the liquid surface.
+                float shine = (float) Math.sin(liquidWave * 1.7f) * 5f;
+                p.setColor(Color.argb(135, 255, 255, 255));
+                c.drawCircle(left + 16 + shine, top + 8 + wave, 2.5f, p);
+                c.drawCircle(right - 15 - shine, top + 10 + wave, 1.8f, p);
             }
         }
 
@@ -471,17 +653,34 @@ public class ColorSortActivity extends Activity {
         }
 
         private void drawCap(Canvas c, float cx, float y, float tw) {
-            float capW = tw * .55f;
-            p.setShader(new LinearGradient(0, y, 0, y + 25,
-                    Color.rgb(255, 214, 111), Color.rgb(153, 82, 28), Shader.TileMode.CLAMP));
-            c.drawRoundRect(new RectF(cx - capW / 2, y, cx + capW / 2, y + 24), 8, 8, p);
+            float capW = tw * .58f;
+            float capH = 27f;
+
+            p.setStyle(Paint.Style.FILL);
+            p.setShader(new LinearGradient(0, y, 0, y + capH,
+                    Color.rgb(255, 222, 132),
+                    Color.rgb(139, 69, 18), Shader.TileMode.CLAMP));
+            p.setShadowLayer(9, 0, 3, Color.argb(160, 0, 0, 0));
+            c.drawRoundRect(new RectF(cx - capW / 2, y, cx + capW / 2, y + capH),
+                    8, 8, p);
+            p.clearShadowLayer();
             p.setShader(null);
+
+            // Wood grain and metallic-looking rim.
+            p.setColor(Color.argb(100, 96, 48, 15));
+            for (int i = -3; i <= 3; i++) {
+                float xx = cx + i * 6;
+                c.drawLine(xx, y + 4, xx + (i % 2) * 2, y + capH - 4, p);
+            }
+            p.setColor(Color.argb(100, 255, 244, 190));
+            c.drawRoundRect(new RectF(cx - capW / 2 + 4, y + 3,
+                    cx + capW / 2 - 4, y + 8), 4, 4, p);
+
             stroke.setStyle(Paint.Style.STROKE);
-            stroke.setStrokeWidth(2);
-            stroke.setColor(Color.rgb(255, 235, 165));
-            c.drawRoundRect(new RectF(cx - capW / 2, y, cx + capW / 2, y + 24), 8, 8, stroke);
-            p.setColor(Color.argb(90, 100, 55, 15));
-            for (int i = -2; i <= 2; i++) c.drawLine(cx + i * 7, y + 4, cx + i * 7, y + 20, p);
+            stroke.setStrokeWidth(2.2f);
+            stroke.setColor(Color.rgb(255, 239, 174));
+            c.drawRoundRect(new RectF(cx - capW / 2, y, cx + capW / 2, y + capH),
+                    8, 8, stroke);
         }
 
         private void drawBadge(Canvas c, float cx, float cy, String s, boolean selected) {
@@ -507,7 +706,7 @@ public class ColorSortActivity extends Activity {
             c.drawText("حرکت‌ها", w / 2f + 50, y - 4, text);
             text.setTextSize(25);
             c.drawText(String.valueOf(moves), w / 2f + 50, y + 23, text);
-            drawCircleButton(c, w - 75, y, 52, Color.rgb(49, 228, 36), "🔊");
+            drawCircleButton(c, w - 75, y, 52, soundEnabled ? Color.rgb(49, 228, 36) : Color.rgb(115, 115, 125), soundEnabled ? "🔊" : "🔇");
 
             text.setTextSize(14);
             text.setColor(Color.WHITE);
@@ -560,6 +759,7 @@ public class ColorSortActivity extends Activity {
             p.setShadowLayer(30, 0, 0, Color.MAGENTA);
             c.drawRoundRect(new RectF(30, h / 2f - 150, w - 30, h / 2f + 150), 35, 35, p);
             p.clearShadowLayer();
+            drawVictoryParticles(c, w, h);
 
             text.setTextAlign(Paint.Align.CENTER);
             text.setTypeface(Typeface.DEFAULT_BOLD);
@@ -585,6 +785,21 @@ public class ColorSortActivity extends Activity {
 
             text.setColor(Color.rgb(210, 230, 255));
             c.drawText("امتیاز کل: " + coins + " سکه", w / 2f, h / 2f + 78, text);
+        }
+
+        private void drawVictoryParticles(Canvas c, float w, float h) {
+            long now = SystemClock.uptimeMillis();
+            float age = victoryStart <= 0 ? 0f : (now - victoryStart) / 1000f;
+            for (int i = 0; i < 28; i++) {
+                float seedX = (sparkleRandom.nextInt(1000) / 1000f);
+                float seedY = (sparkleRandom.nextInt(1000) / 1000f);
+                float x = seedX * w;
+                float y = h * .22f + ((seedY * h * .55f + age * (35 + i)) % (h * .62f));
+                float r = 2f + (i % 4);
+                int alpha = (int) (190 * Math.max(0f, 1f - age / 2.4f));
+                p.setColor(Color.argb(alpha, 255, 190 + (i % 3) * 20, 55));
+                c.drawCircle(x, y, r, p);
+            }
         }
 
         private int calculateStars() {
@@ -703,6 +918,15 @@ public class ColorSortActivity extends Activity {
             }
             if (distance(x, y, w / 2f - 105, controlY) < 65) {
                 showHint();
+                playSound(ToneGenerator.TONE_PROP_BEEP);
+                return true;
+            }
+
+            if (distance(x, y, w - 75, controlY) < 65) {
+                soundEnabled = !soundEnabled;
+                saveProgress();
+                if (soundEnabled) playSound(ToneGenerator.TONE_PROP_ACK);
+                invalidate();
                 return true;
             }
 
@@ -739,6 +963,7 @@ public class ColorSortActivity extends Activity {
                     return;
                 }
                 selectedTube = idx;
+                playSound(ToneGenerator.TONE_PROP_BEEP);
                 invalidate();
                 return;
             }
@@ -752,6 +977,7 @@ public class ColorSortActivity extends Activity {
             if (canMove(selectedTube, idx)) {
                 saveMove(selectedTube, idx);
                 beginAnimatedMove(selectedTube, idx);
+                playSound(ToneGenerator.TONE_PROP_ACK);
                 moves++;
                 selectedTube = -1;
             } else {
@@ -788,7 +1014,9 @@ public class ColorSortActivity extends Activity {
             animColor = -1;
             animAmount = 0;
             animProgress = 1f;
+            playSound(ToneGenerator.TONE_PROP_BEEP);
             if (isLevelComplete()) completeLevel();
+            saveProgress();
             invalidate();
         }
 
@@ -861,6 +1089,10 @@ public class ColorSortActivity extends Activity {
             lastEarnedCoins = calculateReward(stars);
             coins += lastEarnedCoins;
             totalStars += stars;
+            victoryStart = SystemClock.uptimeMillis();
+            playSound(ToneGenerator.TONE_PROP_ACK);
+            playSound(ToneGenerator.TONE_PROP_BEEP);
+            saveProgress();
             invalidate();
 
             handler.postDelayed(new Runnable() {
@@ -886,4 +1118,4 @@ public class ColorSortActivity extends Activity {
             }
         }
     }
-        }
+}
