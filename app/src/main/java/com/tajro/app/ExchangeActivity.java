@@ -598,6 +598,17 @@ public class ExchangeActivity extends Activity {
                 currencyAdapter
         );
 
+        // ارز پیش‌فرض محلی فقط برای انتخاب اولیه؛ منطق نرخ و معاملات دست‌نخورده می‌ماند.
+        String preferredCurrency =
+                LocalCurrencyManager.getSelectedOrDetectedCurrency(this);
+
+        for (int i = 0; i < currencies.length; i++) {
+            if (preferredCurrency.equals(currencies[i])) {
+                currencySpinner.setSelection(i);
+                break;
+            }
+        }
+
         main.addView(currencySpinner);
 
         main.addView(
@@ -934,6 +945,14 @@ public class ExchangeActivity extends Activity {
 
                         updateBalance();
                         updateRate();
+
+                        // انتخاب دستی کاربر برای دفعات بعد ذخیره می‌شود.
+                        if (position >= 0 && position < currencies.length) {
+                            LocalCurrencyManager.saveSelectedCurrency(
+                                    ExchangeActivity.this,
+                                    currencies[position]
+                            );
+                        }
                     }
 
                     @Override
