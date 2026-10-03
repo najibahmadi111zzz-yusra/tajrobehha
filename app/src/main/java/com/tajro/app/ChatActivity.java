@@ -83,8 +83,8 @@ public class ChatActivity extends Activity {
     private static final String SUPABASE_PUBLISHABLE_KEY =
             "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
 
-    private static final String CHAT_BUCKET = "chat_media_private";
-    private static final String VOICE_BUCKET = "voice_messages_private";
+    private static final String CHAT_BUCKET = "chat_media";
+    private static final String VOICE_BUCKET = "voice_messages";
 
     private FirebaseAuth auth;
     private FirebaseFirestore db;
@@ -3102,26 +3102,23 @@ header.addView(chatMenu,
     }
 
     private void downloadToFile(String urlString, File destination) throws Exception {
-        FirebaseUser user = auth.getCurrentUser();
-        if (user == null) throw new IllegalStateException("Not authenticated");
-
-        com.google.firebase.auth.GetTokenResult realTokenResult =
-                com.google.android.gms.tasks.Tasks.await(user.getIdToken(false));
-        String token = realTokenResult.getToken();
-        if (token == null || token.isEmpty()) throw new IllegalStateException("No Firebase token");
-
         Exception firstError = null;
+
         try {
-            downloadToFileOnce(urlString, destination, token);
+            downloadToFileOnce(urlString, destination);
             return;
         } catch (Exception e) {
             firstError = e;
         }
 
-        String fallback = urlString.replace("/storage/v1/object/authenticated/", "/storage/v1/object/");
+        String fallback = urlString.replace(
+                "/storage/v1/object/authenticated/",
+                "/storage/v1/object/public/"
+        );
+
         if (!fallback.equals(urlString)) {
             try {
-                downloadToFileOnce(fallback, destination, token);
+                downloadToFileOnce(fallback, destination);
                 return;
             } catch (Exception secondError) {
                 throw new Exception(
@@ -3130,32 +3127,37 @@ header.addView(chatMenu,
                 );
             }
         }
+
         throw firstError;
     }
 
     private void downloadToFileOnce(
             String urlString,
-            File destination,
-            String token
+            File destination
     ) throws Exception {
         HttpURLConnection connection =
                 (HttpURLConnection) new URL(urlString).openConnection();
+
         connection.setConnectTimeout(20000);
         connection.setReadTimeout(60000);
         connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
-        connection.setRequestProperty("Authorization", "Bearer " + token);
 
         int code = connection.getResponseCode();
+
         if (code < 200 || code >= 300) {
             String error = readErrorResponse(connection);
             connection.disconnect();
-            throw new Exception("HTTP " + code + (error.isEmpty() ? "" : "\n" + error));
+            throw new Exception(
+                    "HTTP " + code +
+                            (error.isEmpty() ? "" : "\n" + error)
+            );
         }
 
         InputStream input = connection.getInputStream();
         OutputStream output = new FileOutputStream(destination);
         byte[] buffer = new byte[8192];
         int count;
+
         try {
             while ((count = input.read(buffer)) != -1) {
                 output.write(buffer, 0, count);
@@ -4619,16 +4621,6 @@ header.addView(chatMenu,
                 FirebaseUser user = auth.getCurrentUser();
                 if (user == null) throw new Exception(tr("لطفاً اول وارد حساب شوید"));
 
-                com.google.firebase.auth.GetTokenResult tokenResult =
-                        com.google.android.gms.tasks.Tasks.await(
-                                user.getIdToken(false)
-                        );
-
-                String firebaseToken = tokenResult.getToken();
-                if (firebaseToken == null || firebaseToken.isEmpty()) {
-                    throw new Exception(tr("توکن امنیتی دریافت نشد"));
-                }
-
                 String endpoint =
                         SUPABASE_URL +
                                 "/storage/v1/object/" +
@@ -4645,7 +4637,6 @@ header.addView(chatMenu,
                 connection.setReadTimeout(60000);
 
                 connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
-                connection.setRequestProperty("Authorization", "Bearer " + firebaseToken);
                 connection.setRequestProperty("Accept", "application/json");
                 connection.setRequestProperty("Content-Type", contentType);
 
@@ -4680,7 +4671,7 @@ header.addView(chatMenu,
                 int code = connection.getResponseCode();
 
                 if (code >= 200 && code < 300) {
-                    String authenticatedUrl = getSupabaseAuthenticatedUrl(bucket, objectPath);
+                    String authenticatedUrl = getSupabasePublicUrl(bucket, objectPath);
                     runOnUiThread(() -> callback.onSuccess(authenticatedUrl));
                 } else {
                     String body = readErrorResponse(connection);
@@ -4842,19 +4833,7 @@ header.addView(chatMenu,
             String bucket,
             String path
     ) {
-        try {
-            return SUPABASE_URL +
-                    "/storage/v1/object/authenticated/" +
-                    bucket +
-                    "/" +
-                    encodePath(path);
-        } catch (Exception e) {
-            return SUPABASE_URL +
-                    "/storage/v1/object/authenticated/" +
-                    bucket +
-                    "/" +
-                    path;
-        }
+        return getSupabasePublicUrl(bucket, path);
     }
 
     private String getSupabasePublicUrl(
