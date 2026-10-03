@@ -275,11 +275,9 @@ public class ChatActivity extends Activity {
                 case "این کاربر بلاک شده است؛ پیام صوتی ارسال نشد": return "This user is blocked; voice message was not sent";
                 case "فایل صوتی پیدا نشد": return "Audio file not found";
                 case "فایل صوتی خالی است": return "Audio file is empty";
-                case "در حال ارسال پیام صوتی...": return "Sending voice message...";
                 case "خطای ارسال پیام صوتی:\n": return "Error sending voice message:\n";
                 case "خطا در ذخیره پیام صوتی": return "Error saving voice message";
                 case "پخش صدا ناموفق بود": return "Failed to play audio";
-                case "پخش ویدیو ناموفق بود": return "Failed to play video";
                 case "جستجوی نام، شماره یا ایمیل": return "Search name, phone or email";
                 case "کاربری با این مشخصات پیدا نشد.": return "No user found with these details.";
                 case "خطا در پخش صدا": return "Error playing audio";
