@@ -265,7 +265,6 @@ public class ChatActivity extends Activity {
                 case "ارسال فایل ناموفق بود": return "File could not be sent";
                 case "در حال ارسال پیام صوتی...": return "Sending voice message...";
                 case "ارسال پیام صوتی ناموفق بود": return "Voice message could not be sent";
-                case "پخش ویدیو ناموفق بود": return "Failed to play video";
                 case "خطای ارسال:\n": return "Send error:\n";
                 case "این کاربر بلاک شده است؛ فایل ارسال نشد": return "This user is blocked; file was not sent";
                 case "خطا در ذخیره پیام فایل": return "Error saving file message";
@@ -278,6 +277,7 @@ public class ChatActivity extends Activity {
                 case "خطای ارسال پیام صوتی:\n": return "Error sending voice message:\n";
                 case "خطا در ذخیره پیام صوتی": return "Error saving voice message";
                 case "پخش صدا ناموفق بود": return "Failed to play audio";
+                case "پخش ویدیو ناموفق بود": return "Failed to play video";
                 case "جستجوی نام، شماره یا ایمیل": return "Search name, phone or email";
                 case "کاربری با این مشخصات پیدا نشد.": return "No user found with these details.";
                 case "خطا در پخش صدا": return "Error playing audio";
@@ -2452,6 +2452,34 @@ header.addView(chatMenu,
         }
 
         renderMessages();
+        markIncomingMessagesAsRead();
+    }
+
+    private void markIncomingMessagesAsRead() {
+        if (!insideChat || currentChatId == null || myId == null) return;
+
+        db.collection("users").document(myId).get()
+                .addOnSuccessListener(userDoc -> {
+                    Boolean receipts = userDoc.getBoolean("readReceipts");
+                    if (Boolean.FALSE.equals(receipts)) return;
+
+                    db.collection("messages")
+                            .whereEqualTo("chatId", currentChatId)
+                            .get()
+                            .addOnSuccessListener(snapshot -> {
+                                com.google.firebase.firestore.WriteBatch batch = db.batch();
+                                int count = 0;
+                                for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                                    String receiver = doc.getString("receiverId");
+                                    Boolean read = doc.getBoolean("read");
+                                    if (myId.equals(receiver) && !Boolean.TRUE.equals(read)) {
+                                        batch.update(doc.getReference(), "read", true);
+                                        count++;
+                                    }
+                                }
+                                if (count > 0) batch.commit();
+                            });
+                });
     }
 
     private void renderMessages() {
@@ -2603,7 +2631,8 @@ header.addView(chatMenu,
                             d.getString("iv"),
                             wrapped,
                             sender,
-                            d.getId()
+                            d.getId(),
+                            d.getString("originalMime")
                     );
                 } else {
                     addMediaMessage(url, "video".equals(type), sender, d.getId());
@@ -2625,7 +2654,8 @@ header.addView(chatMenu,
                             d.getString("iv"),
                             wrapped,
                             sender,
-                            d.getId()
+                            d.getId(),
+                            "audio/3gpp"
                     );
                 } else {
                     addAudioMessage(url, sender, d.getId());
@@ -2710,6 +2740,11 @@ header.addView(chatMenu,
                         : Color.DKGRAY
         );
 
+        if (mine && messageId != null) {
+            bubble.setText(message + "  ✓");
+            updateReadReceiptForBubble(bubble, messageId);
+        }
+
         bubble.setBackground(
                 bg(
                         mine
@@ -2764,13 +2799,41 @@ header.addView(chatMenu,
         }
     }
 
+    private void updateReadReceiptForBubble(
+            TextView bubble,
+            String messageId
+    ) {
+        if (receiverId == null || messageId == null) return;
+
+        db.collection("users").document(receiverId).get()
+                .addOnSuccessListener(receiverDoc -> {
+                    Boolean receipts = receiverDoc.getBoolean("readReceipts");
+                    if (Boolean.FALSE.equals(receipts)) return;
+
+                    db.collection("messages").document(messageId).get()
+                            .addOnSuccessListener(messageDoc -> {
+                                if (messageDoc.exists() &&
+                                        Boolean.TRUE.equals(messageDoc.getBoolean("read"))) {
+                                    if (bubble != null) {
+                                        String text = bubble.getText().toString();
+                                        int pos = text.lastIndexOf("  ✓");
+                                        if (pos >= 0) {
+                                            bubble.setText(text.substring(0, pos) + "  ✓✓");
+                                        }
+                                    }
+                                }
+                            });
+                });
+    }
+
     private void addEncryptedMediaMessage(
             String url,
             boolean video,
             String iv,
             String wrappedKey,
             String sender,
-            String messageId
+            String messageId,
+            String originalMime
     ) {
         if (!video) {
             ImageView image = new ImageView(this);
@@ -2819,7 +2882,7 @@ header.addView(chatMenu,
         videoBox.addView(play, playParams);
 
         View.OnClickListener playListener = v ->
-                showEncryptedVideoPlayer(url, iv, wrappedKey);
+                showEncryptedVideoPlayer(url, iv, wrappedKey, originalMime);
         videoBox.setOnClickListener(playListener);
         preview.setOnClickListener(playListener);
         play.setOnClickListener(playListener);
@@ -2839,12 +2902,13 @@ header.addView(chatMenu,
             String iv,
             String wrappedKey,
             String sender,
-            String messageId
+            String messageId,
+            String originalMime
     ) {
         Button play = new Button(this);
         play.setText(tr("▶️ پخش پیام صوتی"));
         play.setTextSize(14);
-        play.setOnClickListener(v -> playEncryptedAudio(url, iv, wrappedKey));
+        play.setOnClickListener(v -> playEncryptedAudio(url, iv, wrappedKey, originalMime));
 
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -2865,7 +2929,8 @@ header.addView(chatMenu,
     private void showEncryptedVideoPlayer(
             String url,
             String iv,
-            String wrappedKey
+            String wrappedKey,
+            String originalMime
     ) {
         AlertDialog dialog = new AlertDialog.Builder(this).create();
         VideoView videoView = new VideoView(this);
@@ -2880,6 +2945,7 @@ header.addView(chatMenu,
                 encrypted = new File(getCacheDir(), "enc_video_" + System.currentTimeMillis());
                 downloadToFile(url, encrypted);
                 decrypted = ChatCrypto.decryptFile(this, encrypted, iv, wrappedKey, myId);
+                decrypted = ensureMediaExtension(decrypted, originalMime, "video");
                 File finalDecrypted = decrypted;
                 runOnUiThread(() -> {
                     try {
@@ -2955,7 +3021,8 @@ header.addView(chatMenu,
     private void playEncryptedAudio(
             String url,
             String iv,
-            String wrappedKey
+            String wrappedKey,
+            String originalMime
     ) {
         new Thread(() -> {
             File encrypted = null;
@@ -2964,6 +3031,7 @@ header.addView(chatMenu,
                 encrypted = new File(getCacheDir(), "enc_audio_" + System.currentTimeMillis());
                 downloadToFile(url, encrypted);
                 decrypted = ChatCrypto.decryptFile(this, encrypted, iv, wrappedKey, myId);
+                decrypted = ensureMediaExtension(decrypted, originalMime, "audio");
                 File finalDecrypted = decrypted;
 
                 runOnUiThread(() -> {
@@ -3004,18 +3072,74 @@ header.addView(chatMenu,
         }).start();
     }
 
+    private File ensureMediaExtension(
+            File file,
+            String mime,
+            String kind
+    ) {
+        if (file == null) return null;
+        String extension = "";
+        String m = mime == null ? "" : mime.toLowerCase();
+        if ("audio".equals(kind)) {
+            if (m.contains("mpeg") || m.contains("mp3")) extension = ".mp3";
+            else if (m.contains("wav")) extension = ".wav";
+            else extension = ".3gp";
+        } else if ("video".equals(kind)) {
+            if (m.contains("webm")) extension = ".webm";
+            else if (m.contains("3gpp") || m.contains("3gp")) extension = ".3gp";
+            else if (m.contains("mkv")) extension = ".mkv";
+            else extension = ".mp4";
+        } else if (m.contains("png")) {
+            extension = ".png";
+        } else if (m.contains("webp")) {
+            extension = ".webp";
+        } else {
+            extension = ".jpg";
+        }
+        File target = new File(file.getParentFile(), file.getName() + extension);
+        if (file.renameTo(target)) return target;
+        return file;
+    }
+
     private void downloadToFile(String urlString, File destination) throws Exception {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) throw new IllegalStateException("Not authenticated");
 
-        com.google.android.gms.tasks.Task<com.google.firebase.auth.GetTokenResult> tokenTask =
-                user.getIdToken(false);
-        com.google.firebase.auth.GetTokenResult tokenResult =
-                com.google.android.gms.tasks.Tasks.await(tokenTask);
-        String token = tokenResult.getToken();
+        com.google.firebase.auth.GetTokenResult realTokenResult =
+                com.google.android.gms.tasks.Tasks.await(user.getIdToken(false));
+        String token = realTokenResult.getToken();
         if (token == null || token.isEmpty()) throw new IllegalStateException("No Firebase token");
 
-        HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
+        Exception firstError = null;
+        try {
+            downloadToFileOnce(urlString, destination, token);
+            return;
+        } catch (Exception e) {
+            firstError = e;
+        }
+
+        String fallback = urlString.replace("/storage/v1/object/authenticated/", "/storage/v1/object/");
+        if (!fallback.equals(urlString)) {
+            try {
+                downloadToFileOnce(fallback, destination, token);
+                return;
+            } catch (Exception secondError) {
+                throw new Exception(
+                        firstError.getMessage() + " | " + secondError.getMessage(),
+                        secondError
+                );
+            }
+        }
+        throw firstError;
+    }
+
+    private void downloadToFileOnce(
+            String urlString,
+            File destination,
+            String token
+    ) throws Exception {
+        HttpURLConnection connection =
+                (HttpURLConnection) new URL(urlString).openConnection();
         connection.setConnectTimeout(20000);
         connection.setReadTimeout(60000);
         connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
@@ -3036,10 +3160,15 @@ header.addView(chatMenu,
             while ((count = input.read(buffer)) != -1) {
                 output.write(buffer, 0, count);
             }
+            output.flush();
         } finally {
             try { input.close(); } catch (Exception ignored) {}
             try { output.close(); } catch (Exception ignored) {}
             connection.disconnect();
+        }
+
+        if (!destination.exists() || destination.length() <= 0) {
+            throw new Exception("Downloaded media is empty");
         }
     }
 
@@ -5648,4 +5777,4 @@ private void blockCurrentUser() {
 
 }
     
-    }
+}
