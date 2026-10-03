@@ -29,8 +29,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.FrameLayout;
-import android.widget.VideoView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -83,8 +81,8 @@ public class ChatActivity extends Activity {
     private static final String SUPABASE_PUBLISHABLE_KEY =
             "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
 
-    private static final String CHAT_BUCKET = "chat_media";
-    private static final String VOICE_BUCKET = "voice_messages";
+    private static final String CHAT_BUCKET = "chat_media_private";
+    private static final String VOICE_BUCKET = "voice_messages_private";
 
     private FirebaseAuth auth;
     private FirebaseFirestore db;
@@ -150,10 +148,6 @@ public class ChatActivity extends Activity {
     private String pendingSaveName = "tajrobehha.jpg";
 
     private String appliedLanguage;
-
-    private EditText userSearchBox;
-    private final List<DocumentSnapshot> visibleUsersCache =
-            new ArrayList<>();
 
     private interface SupabaseUploadCallback {
         void onSuccess(String publicUrl);
@@ -260,11 +254,6 @@ public class ChatActivity extends Activity {
                 case "این کاربر شما را مسدود کرده است": return "This user has blocked you";
                 case "این نوع فایل پشتیبانی نمی‌شود": return "This file type is not supported";
                 case "در حال ارسال فایل...": return "Sending file...";
-                case "این پیام قابل نمایش نیست": return "This message cannot be displayed.";
-                case "ارسال پیام ناموفق بود": return "Message could not be sent";
-                case "ارسال فایل ناموفق بود": return "File could not be sent";
-                case "در حال ارسال پیام صوتی...": return "Sending voice message...";
-                case "ارسال پیام صوتی ناموفق بود": return "Voice message could not be sent";
                 case "خطای ارسال:\n": return "Send error:\n";
                 case "این کاربر بلاک شده است؛ فایل ارسال نشد": return "This user is blocked; file was not sent";
                 case "خطا در ذخیره پیام فایل": return "Error saving file message";
@@ -274,12 +263,10 @@ public class ChatActivity extends Activity {
                 case "این کاربر بلاک شده است؛ پیام صوتی ارسال نشد": return "This user is blocked; voice message was not sent";
                 case "فایل صوتی پیدا نشد": return "Audio file not found";
                 case "فایل صوتی خالی است": return "Audio file is empty";
+                case "در حال ارسال پیام صوتی...": return "Sending voice message...";
                 case "خطای ارسال پیام صوتی:\n": return "Error sending voice message:\n";
                 case "خطا در ذخیره پیام صوتی": return "Error saving voice message";
                 case "پخش صدا ناموفق بود": return "Failed to play audio";
-                case "پخش ویدیو ناموفق بود": return "Failed to play video";
-                case "جستجوی نام، شماره یا ایمیل": return "Search name, phone or email";
-                case "کاربری با این مشخصات پیدا نشد.": return "No user found with these details.";
                 case "خطا در پخش صدا": return "Error playing audio";
                 case "در حال ارسال عکس پروفایل...": return "Uploading profile photo...";
                 case "عکس پروفایل ذخیره شد": return "Profile photo saved";
@@ -878,59 +865,31 @@ public class ChatActivity extends Activity {
                 themeColor
         );
 
-        ImageView profile =
-                avatarView(48);
+        ImageButton profile =
+                new ImageButton(this);
+
+        profile.setImageResource(
+                android.R.drawable.ic_menu_myplaces
+        );
+
+        profile.setBackgroundColor(
+                Color.TRANSPARENT
+        );
 
         profile.setOnClickListener(
                 v -> showMyProfile()
         );
 
-        FirebaseUser currentUser = auth.getCurrentUser();
-        if (currentUser != null) {
-            db.collection("users")
-                    .document(myId)
-                    .get()
-                    .addOnSuccessListener(d -> {
-                        String photoUrl = d.getString("photoUrl");
-                        if (photoUrl != null && !photoUrl.isEmpty()) {
-                            loadImage(photoUrl, profile);
-                        }
-                    });
-        }
+    header.addView(
+        profile,
+        new LinearLayout.LayoutParams(
+                dp(48),
+                dp(48)
+        )
+);
 
-        header.addView(
-                profile,
-                new LinearLayout.LayoutParams(
-                        dp(48),
-                        dp(48)
-                )
-        );
-
-        ImageButton searchButton =
-                new ImageButton(this);
-
-        searchButton.setImageResource(
-                android.R.drawable.ic_menu_search
-        );
-
-        searchButton.setBackgroundColor(
-                Color.TRANSPARENT
-        );
-
-        searchButton.setColorFilter(Color.WHITE);
-
-        searchButton.setOnClickListener(v -> toggleUserSearch());
-
-        header.addView(
-                searchButton,
-                new LinearLayout.LayoutParams(
-                        dp(48),
-                        dp(48)
-                )
-        );
-
-        TextView myProfileMenu =
-                text("⋮", 26);
+TextView myProfileMenu =
+        text("⋮", 26);
 
 myProfileMenu.setTextColor(
         Color.WHITE
@@ -1000,24 +959,6 @@ titleText =
         );
 
         root.addView(header);
-
-        userSearchBox = new EditText(this);
-        userSearchBox.setSingleLine(true);
-        userSearchBox.setHint(tr("جستجوی نام، شماره یا ایمیل"));
-        userSearchBox.setTextSize(15);
-        userSearchBox.setVisibility(View.GONE);
-        userSearchBox.setPadding(dp(14), dp(8), dp(14), dp(8));
-        userSearchBox.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                filterVisibleUsers(s == null ? "" : s.toString());
-            }
-            @Override public void afterTextChanged(Editable s) {}
-        });
-        root.addView(
-                userSearchBox,
-                new LinearLayout.LayoutParams(-1, dp(52))
-        );
 
         TextView info =
                 text(
@@ -1226,11 +1167,13 @@ titleText =
                                 return;
                             }
 
-                            visibleUsersCache.clear();
-                            visibleUsersCache.addAll(users);
-                            filterVisibleUsers(
-                                    userSearchBox == null ? "" : userSearchBox.getText().toString()
-                            );
+                            for (
+                                    DocumentSnapshot d :
+                                    users
+                            ) {
+
+                                addUserItem(d);
+                            }
                         }
                 )
                 .addOnFailureListener(
@@ -1241,54 +1184,6 @@ titleText =
                                         Toast.LENGTH_SHORT
                                 ).show()
                 );
-    }
-
-    private void toggleUserSearch() {
-        if (userSearchBox == null) return;
-        if (userSearchBox.getVisibility() == View.VISIBLE) {
-            userSearchBox.setText("");
-            userSearchBox.setVisibility(View.GONE);
-            filterVisibleUsers("");
-        } else {
-            userSearchBox.setVisibility(View.VISIBLE);
-            userSearchBox.requestFocus();
-            android.view.inputmethod.InputMethodManager imm =
-                    (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                imm.showSoftInput(userSearchBox, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
-            }
-        }
-    }
-
-    private void filterVisibleUsers(String query) {
-        if (usersContainer == null) return;
-        String q = query == null ? "" : query.trim().toLowerCase();
-        usersContainer.removeAllViews();
-
-        int shown = 0;
-        for (DocumentSnapshot d : visibleUsersCache) {
-            String name = d.getString("name");
-            String email = d.getString("email");
-            String phone = d.getString("phoneNumber");
-
-            String haystack = ((name == null ? "" : name) + " "
-                    + (email == null ? "" : email) + " "
-                    + (phone == null ? "" : phone)).toLowerCase();
-
-            if (q.isEmpty() || haystack.contains(q)) {
-                addUserItem(d);
-                shown++;
-            }
-        }
-
-        if (shown == 0) {
-            TextView empty = text(
-                    tr("کاربری با این مشخصات پیدا نشد."),
-                    16
-            );
-            empty.setGravity(Gravity.CENTER);
-            usersContainer.addView(empty);
-        }
     }
 
     private void addUserItem(
@@ -2452,34 +2347,6 @@ header.addView(chatMenu,
         }
 
         renderMessages();
-        markIncomingMessagesAsRead();
-    }
-
-    private void markIncomingMessagesAsRead() {
-        if (!insideChat || currentChatId == null || myId == null) return;
-
-        db.collection("users").document(myId).get()
-                .addOnSuccessListener(userDoc -> {
-                    Boolean receipts = userDoc.getBoolean("readReceipts");
-                    if (Boolean.FALSE.equals(receipts)) return;
-
-                    db.collection("messages")
-                            .whereEqualTo("chatId", currentChatId)
-                            .get()
-                            .addOnSuccessListener(snapshot -> {
-                                com.google.firebase.firestore.WriteBatch batch = db.batch();
-                                int count = 0;
-                                for (DocumentSnapshot doc : snapshot.getDocuments()) {
-                                    String receiver = doc.getString("receiverId");
-                                    Boolean read = doc.getBoolean("read");
-                                    if (myId.equals(receiver) && !Boolean.TRUE.equals(read)) {
-                                        batch.update(doc.getReference(), "read", true);
-                                        count++;
-                                    }
-                                }
-                                if (count > 0) batch.commit();
-                            });
-                });
     }
 
     private void renderMessages() {
@@ -2631,8 +2498,7 @@ header.addView(chatMenu,
                             d.getString("iv"),
                             wrapped,
                             sender,
-                            d.getId(),
-                            d.getString("originalMime")
+                            d.getId()
                     );
                 } else {
                     addMediaMessage(url, "video".equals(type), sender, d.getId());
@@ -2654,8 +2520,7 @@ header.addView(chatMenu,
                             d.getString("iv"),
                             wrapped,
                             sender,
-                            d.getId(),
-                            "audio/3gpp"
+                            d.getId()
                     );
                 } else {
                     addAudioMessage(url, sender, d.getId());
@@ -2678,7 +2543,7 @@ header.addView(chatMenu,
                 : wrappedForReceiver;
 
         if (cipherText == null || iv == null || wrapped == null) {
-            addTextMessage(tr("این پیام قابل نمایش نیست"), sender, d.getId());
+            addTextMessage(tr("پیام رمزگذاری‌شده قابل خواندن نیست"), sender, d.getId());
             return;
         }
 
@@ -2698,7 +2563,7 @@ header.addView(chatMenu,
                 ));
             } catch (Exception e) {
                 runOnUiThread(() -> addTextMessage(
-                        tr("این پیام قابل نمایش نیست"),
+                        tr("پیام رمزگذاری‌شده قابل خواندن نیست"),
                         sender,
                         d.getId()
                 ));
@@ -2739,11 +2604,6 @@ header.addView(chatMenu,
                         ? Color.WHITE
                         : Color.DKGRAY
         );
-
-        if (mine && messageId != null) {
-            bubble.setText(message + "  ✓");
-            updateReadReceiptForBubble(bubble, messageId);
-        }
 
         bubble.setBackground(
                 bg(
@@ -2799,102 +2659,37 @@ header.addView(chatMenu,
         }
     }
 
-    private void updateReadReceiptForBubble(
-            TextView bubble,
-            String messageId
-    ) {
-        if (receiverId == null || messageId == null) return;
-
-        db.collection("users").document(receiverId).get()
-                .addOnSuccessListener(receiverDoc -> {
-                    Boolean receipts = receiverDoc.getBoolean("readReceipts");
-                    if (Boolean.FALSE.equals(receipts)) return;
-
-                    db.collection("messages").document(messageId).get()
-                            .addOnSuccessListener(messageDoc -> {
-                                if (messageDoc.exists() &&
-                                        Boolean.TRUE.equals(messageDoc.getBoolean("read"))) {
-                                    if (bubble != null) {
-                                        String text = bubble.getText().toString();
-                                        int pos = text.lastIndexOf("  ✓");
-                                        if (pos >= 0) {
-                                            bubble.setText(text.substring(0, pos) + "  ✓✓");
-                                        }
-                                    }
-                                }
-                            });
-                });
-    }
-
     private void addEncryptedMediaMessage(
             String url,
             boolean video,
             String iv,
             String wrappedKey,
             String sender,
-            String messageId,
-            String originalMime
+            String messageId
     ) {
+        ImageView image = new ImageView(this);
+        image.setLayoutParams(new LinearLayout.LayoutParams(dp(300), dp(300)));
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setBackground(bg(Color.WHITE, 14));
+        image.setPadding(dp(2), dp(2), dp(2), dp(2));
+
+        loadEncryptedImage(url, iv, wrappedKey, image, video);
+
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(300), dp(300));
+        p.gravity = myId.equals(sender) ? Gravity.END : Gravity.START;
+        p.setMargins(dp(6), dp(5), dp(6), dp(5));
+        messagesContainer.addView(image, p);
+
         if (!video) {
-            ImageView image = new ImageView(this);
-            image.setLayoutParams(new LinearLayout.LayoutParams(dp(300), dp(300)));
-            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            image.setBackground(bg(Color.WHITE, 14));
-            image.setPadding(dp(2), dp(2), dp(2), dp(2));
-            loadEncryptedImage(url, iv, wrappedKey, image, false);
-
-            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(300), dp(300));
-            p.gravity = myId.equals(sender) ? Gravity.END : Gravity.START;
-            p.setMargins(dp(6), dp(5), dp(6), dp(5));
-            messagesContainer.addView(image, p);
-
             image.setOnClickListener(v -> showEncryptedImageViewer(url, iv, wrappedKey));
-            if (messageId != null) {
-                image.setOnLongClickListener(v -> {
-                    showDeleteMenu(messageId);
-                    return true;
-                });
-            }
-            return;
         }
 
-        FrameLayout videoBox = new FrameLayout(this);
-        LinearLayout.LayoutParams boxParams =
-                new LinearLayout.LayoutParams(dp(300), dp(300));
-        boxParams.gravity = myId.equals(sender) ? Gravity.END : Gravity.START;
-        boxParams.setMargins(dp(6), dp(5), dp(6), dp(5));
-        videoBox.setLayoutParams(boxParams);
-        videoBox.setBackground(bg(Color.WHITE, 14));
-
-        ImageView preview = new ImageView(this);
-        preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        preview.setBackground(bg(Color.WHITE, 14));
-        videoBox.addView(preview, new FrameLayout.LayoutParams(-1, -1));
-        loadEncryptedImage(url, iv, wrappedKey, preview, true);
-
-        TextView play = text("▶", 34);
-        play.setTextColor(Color.WHITE);
-        play.setGravity(Gravity.CENTER);
-        play.setBackground(bg(0x88000000, 60));
-        FrameLayout.LayoutParams playParams = new FrameLayout.LayoutParams(
-                dp(72), dp(72), Gravity.CENTER
-        );
-        videoBox.addView(play, playParams);
-
-        View.OnClickListener playListener = v ->
-                showEncryptedVideoPlayer(url, iv, wrappedKey, originalMime);
-        videoBox.setOnClickListener(playListener);
-        preview.setOnClickListener(playListener);
-        play.setOnClickListener(playListener);
-
         if (messageId != null) {
-            videoBox.setOnLongClickListener(v -> {
+            image.setOnLongClickListener(v -> {
                 showDeleteMenu(messageId);
                 return true;
             });
         }
-
-        messagesContainer.addView(videoBox);
     }
 
     private void addEncryptedAudioMessage(
@@ -2902,13 +2697,12 @@ header.addView(chatMenu,
             String iv,
             String wrappedKey,
             String sender,
-            String messageId,
-            String originalMime
+            String messageId
     ) {
         Button play = new Button(this);
         play.setText(tr("▶️ پخش پیام صوتی"));
         play.setTextSize(14);
-        play.setOnClickListener(v -> playEncryptedAudio(url, iv, wrappedKey, originalMime));
+        play.setOnClickListener(v -> playEncryptedAudio(url, iv, wrappedKey));
 
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -2924,61 +2718,6 @@ header.addView(chatMenu,
                 return true;
             });
         }
-    }
-
-    private void showEncryptedVideoPlayer(
-            String url,
-            String iv,
-            String wrappedKey,
-            String originalMime
-    ) {
-        AlertDialog dialog = new AlertDialog.Builder(this).create();
-        VideoView videoView = new VideoView(this);
-        videoView.setBackgroundColor(Color.BLACK);
-        dialog.setView(videoView, dp(8), dp(8), dp(8), dp(8));
-        dialog.show();
-
-        new Thread(() -> {
-            File encrypted = null;
-            File decrypted = null;
-            try {
-                encrypted = new File(getCacheDir(), "enc_video_" + System.currentTimeMillis());
-                downloadToFile(url, encrypted);
-                decrypted = ChatCrypto.decryptFile(this, encrypted, iv, wrappedKey, myId);
-                decrypted = ensureMediaExtension(decrypted, originalMime, "video");
-                File finalDecrypted = decrypted;
-                runOnUiThread(() -> {
-                    try {
-                        videoView.setVideoPath(finalDecrypted.getAbsolutePath());
-                        videoView.setOnPreparedListener(mp -> {
-                            mp.setLooping(false);
-                            videoView.start();
-                        });
-                        videoView.setOnCompletionListener(mp -> {
-                            try { finalDecrypted.delete(); } catch (Exception ignored) {}
-                            dialog.dismiss();
-                        });
-                        videoView.setOnErrorListener((mp, what, extra) -> {
-                            try { finalDecrypted.delete(); } catch (Exception ignored) {}
-                            dialog.dismiss();
-                            Toast.makeText(this, tr("پخش ویدیو ناموفق بود"), Toast.LENGTH_SHORT).show();
-                            return true;
-                        });
-                    } catch (Exception e) {
-                        try { finalDecrypted.delete(); } catch (Exception ignored) {}
-                        dialog.dismiss();
-                        Toast.makeText(this, tr("پخش ویدیو ناموفق بود"), Toast.LENGTH_SHORT).show();
-                    }
-                });
-            } catch (Exception e) {
-                if (encrypted != null) try { encrypted.delete(); } catch (Exception ignored) {}
-                if (decrypted != null) try { decrypted.delete(); } catch (Exception ignored) {}
-                runOnUiThread(() -> {
-                    dialog.dismiss();
-                    Toast.makeText(this, tr("پخش ویدیو ناموفق بود"), Toast.LENGTH_SHORT).show();
-                });
-            }
-        }).start();
     }
 
     private void loadEncryptedImage(
@@ -3021,8 +2760,7 @@ header.addView(chatMenu,
     private void playEncryptedAudio(
             String url,
             String iv,
-            String wrappedKey,
-            String originalMime
+            String wrappedKey
     ) {
         new Thread(() -> {
             File encrypted = null;
@@ -3031,7 +2769,6 @@ header.addView(chatMenu,
                 encrypted = new File(getCacheDir(), "enc_audio_" + System.currentTimeMillis());
                 downloadToFile(url, encrypted);
                 decrypted = ChatCrypto.decryptFile(this, encrypted, iv, wrappedKey, myId);
-                decrypted = ensureMediaExtension(decrypted, originalMime, "audio");
                 File finalDecrypted = decrypted;
 
                 runOnUiThread(() -> {
@@ -3072,105 +2809,42 @@ header.addView(chatMenu,
         }).start();
     }
 
-    private File ensureMediaExtension(
-            File file,
-            String mime,
-            String kind
-    ) {
-        if (file == null) return null;
-        String extension = "";
-        String m = mime == null ? "" : mime.toLowerCase();
-        if ("audio".equals(kind)) {
-            if (m.contains("mpeg") || m.contains("mp3")) extension = ".mp3";
-            else if (m.contains("wav")) extension = ".wav";
-            else extension = ".3gp";
-        } else if ("video".equals(kind)) {
-            if (m.contains("webm")) extension = ".webm";
-            else if (m.contains("3gpp") || m.contains("3gp")) extension = ".3gp";
-            else if (m.contains("mkv")) extension = ".mkv";
-            else extension = ".mp4";
-        } else if (m.contains("png")) {
-            extension = ".png";
-        } else if (m.contains("webp")) {
-            extension = ".webp";
-        } else {
-            extension = ".jpg";
-        }
-        File target = new File(file.getParentFile(), file.getName() + extension);
-        if (file.renameTo(target)) return target;
-        return file;
-    }
-
     private void downloadToFile(String urlString, File destination) throws Exception {
-        Exception firstError = null;
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) throw new IllegalStateException("Not authenticated");
 
-        try {
-            downloadToFileOnce(urlString, destination);
-            return;
-        } catch (Exception e) {
-            firstError = e;
-        }
+        com.google.android.gms.tasks.Task<com.google.firebase.auth.GetTokenResult> tokenTask =
+                user.getIdToken(false);
+        com.google.firebase.auth.GetTokenResult tokenResult =
+                com.google.android.gms.tasks.Tasks.await(tokenTask);
+        String token = tokenResult.getToken();
+        if (token == null || token.isEmpty()) throw new IllegalStateException("No Firebase token");
 
-        String fallback = urlString.replace(
-                "/storage/v1/object/authenticated/",
-                "/storage/v1/object/public/"
-        );
-
-        if (!fallback.equals(urlString)) {
-            try {
-                downloadToFileOnce(fallback, destination);
-                return;
-            } catch (Exception secondError) {
-                throw new Exception(
-                        firstError.getMessage() + " | " + secondError.getMessage(),
-                        secondError
-                );
-            }
-        }
-
-        throw firstError;
-    }
-
-    private void downloadToFileOnce(
-            String urlString,
-            File destination
-    ) throws Exception {
-        HttpURLConnection connection =
-                (HttpURLConnection) new URL(urlString).openConnection();
-
+        HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
         connection.setConnectTimeout(20000);
         connection.setReadTimeout(60000);
         connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+        connection.setRequestProperty("Authorization", "Bearer " + token);
 
         int code = connection.getResponseCode();
-
         if (code < 200 || code >= 300) {
             String error = readErrorResponse(connection);
             connection.disconnect();
-            throw new Exception(
-                    "HTTP " + code +
-                            (error.isEmpty() ? "" : "\n" + error)
-            );
+            throw new Exception("HTTP " + code + (error.isEmpty() ? "" : "\n" + error));
         }
 
         InputStream input = connection.getInputStream();
         OutputStream output = new FileOutputStream(destination);
         byte[] buffer = new byte[8192];
         int count;
-
         try {
             while ((count = input.read(buffer)) != -1) {
                 output.write(buffer, 0, count);
             }
-            output.flush();
         } finally {
             try { input.close(); } catch (Exception ignored) {}
             try { output.close(); } catch (Exception ignored) {}
             connection.disconnect();
-        }
-
-        if (!destination.exists() || destination.length() <= 0) {
-            throw new Exception("Downloaded media is empty");
         }
     }
 
@@ -3511,7 +3185,7 @@ header.addView(chatMenu,
                         } catch (Exception e) {
                             runOnUiThread(() -> Toast.makeText(
                                     ChatActivity.this,
-                                    tr("ارسال پیام ناموفق بود"),
+                                    tr("رمزگذاری پیام ناموفق بود"),
                                     Toast.LENGTH_LONG
                             ).show());
                         }
@@ -3970,7 +3644,7 @@ header.addView(chatMenu,
         final boolean finalImage = image;
         final String originalName = getDisplayName(uri);
 
-        Toast.makeText(this, tr("در حال ارسال فایل..."), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, tr("در حال رمزگذاری و ارسال فایل..."), Toast.LENGTH_SHORT).show();
 
         db.collection("users")
                 .document(receiverId)
@@ -4040,7 +3714,7 @@ header.addView(chatMenu,
                                             try { finalEncryptedFile.delete(); } catch (Exception ignored) {}
                                             Toast.makeText(
                                                     ChatActivity.this,
-                                                    tr("خطای ارسال:\n"),
+                                                    tr("خطای ارسال فایل:\n") + error,
                                                     Toast.LENGTH_LONG
                                             ).show();
                                         }
@@ -4053,7 +3727,7 @@ header.addView(chatMenu,
                             }
                             runOnUiThread(() -> Toast.makeText(
                                     ChatActivity.this,
-                                    tr("ارسال فایل ناموفق بود"),
+                                    tr("رمزگذاری فایل ناموفق بود"),
                                     Toast.LENGTH_LONG
                             ).show());
                         }
@@ -4318,7 +3992,7 @@ header.addView(chatMenu,
             return;
         }
 
-        Toast.makeText(this, tr("در حال ارسال پیام صوتی..."), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, tr("در حال رمزگذاری و ارسال پیام صوتی..."), Toast.LENGTH_SHORT).show();
 
         db.collection("users")
                 .document(receiverId)
@@ -4385,7 +4059,7 @@ header.addView(chatMenu,
                                             try { finalEncryptedFile.delete(); } catch (Exception ignored) {}
                                             Toast.makeText(
                                                     ChatActivity.this,
-                                                    tr("خطای ارسال پیام صوتی:\n"),
+                                                    tr("خطای ارسال پیام صوتی:\n") + error,
                                                     Toast.LENGTH_LONG
                                             ).show();
                                         }
@@ -4398,7 +4072,7 @@ header.addView(chatMenu,
                             }
                             runOnUiThread(() -> Toast.makeText(
                                     ChatActivity.this,
-                                    tr("ارسال پیام صوتی ناموفق بود"),
+                                    tr("رمزگذاری پیام صوتی ناموفق بود"),
                                     Toast.LENGTH_LONG
                             ).show());
                         }
@@ -4596,7 +4270,8 @@ header.addView(chatMenu,
 
                         Toast.makeText(
                                 ChatActivity.this,
-                                tr("خطای ذخیره عکس:\n"),
+                                tr("خطای عکس پروفایل:\n") +
+                                        error,
                                 Toast.LENGTH_LONG
                         ).show();
                     }
@@ -4621,6 +4296,16 @@ header.addView(chatMenu,
                 FirebaseUser user = auth.getCurrentUser();
                 if (user == null) throw new Exception(tr("لطفاً اول وارد حساب شوید"));
 
+                com.google.firebase.auth.GetTokenResult tokenResult =
+                        com.google.android.gms.tasks.Tasks.await(
+                                user.getIdToken(false)
+                        );
+
+                String firebaseToken = tokenResult.getToken();
+                if (firebaseToken == null || firebaseToken.isEmpty()) {
+                    throw new Exception(tr("توکن امنیتی دریافت نشد"));
+                }
+
                 String endpoint =
                         SUPABASE_URL +
                                 "/storage/v1/object/" +
@@ -4637,6 +4322,7 @@ header.addView(chatMenu,
                 connection.setReadTimeout(60000);
 
                 connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+                connection.setRequestProperty("Authorization", "Bearer " + firebaseToken);
                 connection.setRequestProperty("Accept", "application/json");
                 connection.setRequestProperty("Content-Type", contentType);
 
@@ -4671,7 +4357,7 @@ header.addView(chatMenu,
                 int code = connection.getResponseCode();
 
                 if (code >= 200 && code < 300) {
-                    String authenticatedUrl = getSupabasePublicUrl(bucket, objectPath);
+                    String authenticatedUrl = getSupabaseAuthenticatedUrl(bucket, objectPath);
                     runOnUiThread(() -> callback.onSuccess(authenticatedUrl));
                 } else {
                     String body = readErrorResponse(connection);
@@ -4833,7 +4519,19 @@ header.addView(chatMenu,
             String bucket,
             String path
     ) {
-        return getSupabasePublicUrl(bucket, path);
+        try {
+            return SUPABASE_URL +
+                    "/storage/v1/object/authenticated/" +
+                    bucket +
+                    "/" +
+                    encodePath(path);
+        } catch (Exception e) {
+            return SUPABASE_URL +
+                    "/storage/v1/object/authenticated/" +
+                    bucket +
+                    "/" +
+                    path;
+        }
     }
 
     private String getSupabasePublicUrl(
@@ -5748,7 +5446,8 @@ private void blockCurrentUser() {
 
                         Toast.makeText(
                                 ChatActivity.this,
-                                tr("مسدود کردن ناموفق بود:\n"),
+                                tr("مسدود کردن ناموفق بود:\n") +
+                                        error,
                                 Toast.LENGTH_LONG
                         ).show();
                     }
