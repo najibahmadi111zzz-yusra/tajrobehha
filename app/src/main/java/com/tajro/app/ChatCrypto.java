@@ -20,6 +20,9 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import java.security.spec.MGF1ParameterSpec;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -129,92 +132,26 @@ public final class ChatCrypto {
         );
     }
 
-    public interface KeyPublishCallback {
-        void onSuccess();
-        void onError(Exception error);
-    }
-
     public static void ensureAndPublishKey(
             Context context,
             String uid,
             FirebaseFirestore db
-    ) {
-        ensureAndPublishKey(context, uid, db, null);
-    }
-
-    public static void ensureAndPublishKey(
-            Context context,
-            String uid,
-            FirebaseFirestore db,
-            KeyPublishCallback callback
     ) {
         new Thread(() -> {
             try {
                 ensureKeyPair(context, uid);
                 String publicKey = getPublicKeyBase64(uid);
 
-                // اول بررسی می‌کنیم کلید محلی واقعاً قابل استفاده است.
-                verifyLocalKeyPair(uid);
+                Map<String, Object> data = new HashMap<>();
+                data.put("chatPublicKey", publicKey);
+                data.put("chatE2EEVersion", 1L);
 
                 db.collection("users")
                         .document(uid)
-                        .get()
-                        .addOnSuccessListener(doc -> {
-                            try {
-                                String serverKey = doc.getString("chatPublicKey");
-
-                                if (serverKey != null && !serverKey.isEmpty()
-                                        && !serverKey.equals(publicKey)) {
-                                    throw new SecurityException(
-                                            "Local E2EE key does not match server key"
-                                    );
-                                }
-
-                                Map<String, Object> data = new HashMap<>();
-                                data.put("chatPublicKey", publicKey);
-                                data.put("chatE2EEVersion", 1L);
-
-                                db.collection("users")
-                                        .document(uid)
-                                        .set(data, SetOptions.merge())
-                                        .addOnSuccessListener(v -> {
-                                            if (callback != null) callback.onSuccess();
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            if (callback != null) callback.onError(e);
-                                        });
-                            } catch (Exception e) {
-                                if (callback != null) callback.onError(e);
-                            }
-                        })
-                        .addOnFailureListener(e -> {
-                            if (callback != null) callback.onError(e);
-                        });
-            } catch (Exception e) {
-                if (callback != null) callback.onError(e);
+                        .set(data, SetOptions.merge());
+            } catch (Exception ignored) {
             }
         }).start();
-    }
-
-    private static void verifyLocalKeyPair(String uid) throws Exception {
-        // یک کلید AES آزمایشی را با public key محلی می‌پیچیم
-        // و با private key همان گوشی باز می‌کنیم.
-        SecretKey testKey = randomAesKey();
-        byte[] wrapped = rsaWrap(testKey, getPublicKey(uid));
-        SecretKey unwrapped = rsaUnwrapBytes(wrapped, uid);
-        if (!java.util.Arrays.equals(
-                testKey.getEncoded(),
-                unwrapped.getEncoded())) {
-            throw new IllegalStateException("Local E2EE key pair is not usable");
-        }
-    }
-
-    private static PublicKey getPublicKey(String uid) throws Exception {
-        KeyStore ks = KeyStore.getInstance(STORE);
-        ks.load(null);
-        java.security.cert.Certificate cert = ks.getCertificate(alias(uid));
-        if (cert == null) throw new IllegalStateException("E2EE public key not found");
-        return cert.getPublicKey();
     }
 
     public static PublicKey publicKeyFromBase64(String value) throws Exception {
@@ -246,23 +183,27 @@ public final class ChatCrypto {
     }
 
     private static byte[] rsaWrap(SecretKey key, PublicKey publicKey) throws Exception {
-        Cipher cipher = Cipher.getInstance(
-                "RSA/ECB/OAEPWithSHA-256AndMGF1Padding"
+        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPPadding");
+        OAEPParameterSpec spec = new OAEPParameterSpec(
+                "SHA-256",
+                "MGF1",
+                MGF1ParameterSpec.SHA1,
+                PSource.PSpecified.DEFAULT
         );
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey, spec);
         return cipher.doFinal(key.getEncoded());
     }
 
     private static SecretKey rsaUnwrap(String wrappedKey, String uid) throws Exception {
         byte[] wrapped = Base64.decode(wrappedKey, Base64.DEFAULT);
-        return rsaUnwrapBytes(wrapped, uid);
-    }
-
-    private static SecretKey rsaUnwrapBytes(byte[] wrapped, String uid) throws Exception {
-        Cipher cipher = Cipher.getInstance(
-                "RSA/ECB/OAEPWithSHA-256AndMGF1Padding"
+        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPPadding");
+        OAEPParameterSpec spec = new OAEPParameterSpec(
+                "SHA-256",
+                "MGF1",
+                MGF1ParameterSpec.SHA1,
+                PSource.PSpecified.DEFAULT
         );
-        cipher.init(Cipher.DECRYPT_MODE, getPrivateKey(uid));
+        cipher.init(Cipher.DECRYPT_MODE, getPrivateKey(uid), spec);
         byte[] raw = cipher.doFinal(wrapped);
         return new SecretKeySpec(raw, "AES");
     }
