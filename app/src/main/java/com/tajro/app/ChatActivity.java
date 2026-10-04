@@ -194,7 +194,7 @@ public class ChatActivity extends Activity {
 
         myId = user.getUid();
 
-        ChatCrypto.ensureAndPublishKey(this, myId, db);
+        publishChatKeyWithFeedback();
 
         ensureUserProfile();
         createUsersScreen();
@@ -1915,11 +1915,47 @@ receiverPhotoUrl = photoUrl;
 
         createChatScreen(photoUrl);
 
-        ChatCrypto.ensureAndPublishKey(this, myId, db);
+        publishChatKeyWithFeedback();
 
         listenReceiver();
         listenTyping();
         listenBlock();
+    }
+
+    private void publishChatKeyWithFeedback() {
+        ChatCrypto.ensureAndPublishKey(
+                this,
+                myId,
+                db,
+                new ChatCrypto.KeyPublishCallback() {
+                    @Override
+                    public void onSuccess() {
+                        // کلید محلی و کلید ثبت‌شده در Firestore با هم سازگارند.
+                    }
+
+                    @Override
+                    public void onError(Exception error) {
+                        String message = error.getMessage();
+
+                        if (error instanceof SecurityException
+                                && message != null
+                                && message.contains("does not match server key")) {
+                            Toast.makeText(
+                                    ChatActivity.this,
+                                    tr("کلید امنیتی این گوشی با کلید ثبت‌شده حساب یکسان نیست. چت رمزگذاری‌شده قابل استفاده نیست."),
+                                    Toast.LENGTH_LONG
+                            ).show();
+                            return;
+                        }
+
+                        Toast.makeText(
+                                ChatActivity.this,
+                                tr("فعال‌سازی امنیت چت ناموفق بود"),
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                }
+        );
     }
 
     private String makeChatId(
