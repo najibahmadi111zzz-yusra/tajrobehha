@@ -2287,22 +2287,121 @@ header.addView(chatMenu,
     }
 
     private void showMediaDiagnostic(String stage, Throwable error) {
-        String detail = error == null ? "نامشخص" : error.getClass().getSimpleName() + ": " + String.valueOf(error.getMessage());
-        android.util.Log.e("TAJRO_MEDIA_DIAG", stage + " -> " + detail, error);
-        runOnUiThread(() -> Toast.makeText(
-                ChatActivity.this,
-                "تشخیص خطا [" + stage + "]\n" + detail,
-                Toast.LENGTH_LONG
-        ).show());
+
+        final String report = buildFullDiagnosticReport(stage, error);
+
+        android.util.Log.e(
+                "TAJRO_MEDIA_DIAG",
+                report,
+                error
+        );
+
+        runOnUiThread(() -> showFullDiagnosticDialog(report));
     }
 
     private void showMediaDiagnostic(String stage, String detail) {
-        android.util.Log.e("TAJRO_MEDIA_DIAG", stage + " -> " + detail);
-        runOnUiThread(() -> Toast.makeText(
-                ChatActivity.this,
-                "تشخیص خطا [" + stage + "]\n" + detail,
-                Toast.LENGTH_LONG
-        ).show());
+
+        final String report =
+                "تشخیص خطا\n" +
+                "مرحله: " + stage + "\n\n" +
+                "اصل پیام خطا:\n" +
+                String.valueOf(detail);
+
+        android.util.Log.e(
+                "TAJRO_MEDIA_DIAG",
+                report
+        );
+
+        runOnUiThread(() -> showFullDiagnosticDialog(report));
+    }
+
+    private String buildFullDiagnosticReport(String stage, Throwable error) {
+
+        StringBuilder out = new StringBuilder();
+
+        out.append("تشخیص کامل خطا\n");
+        out.append("====================\n");
+        out.append("مرحله: ").append(stage).append("\n\n");
+
+        if (error == null) {
+            out.append("اصل خطا: نامشخص\n");
+            return out.toString();
+        }
+
+        out.append("نوع خطای اصلی: ")
+                .append(error.getClass().getName())
+                .append("\n");
+
+        out.append("پیام اصلی خطا: ")
+                .append(String.valueOf(error.getMessage()))
+                .append("\n\n");
+
+        Throwable root = error;
+        int causeNumber = 1;
+
+        while (root.getCause() != null && root.getCause() != root && causeNumber <= 10) {
+            root = root.getCause();
+            out.append("علت داخلی ")
+                    .append(causeNumber++)
+                    .append(": ")
+                    .append(root.getClass().getName())
+                    .append("\n");
+            out.append("پیام علت: ")
+                    .append(String.valueOf(root.getMessage()))
+                    .append("\n\n");
+        }
+
+        out.append("اصل خطای نهایی (Root Cause): ")
+                .append(root.getClass().getName())
+                .append("\n");
+        out.append("پیام Root Cause: ")
+                .append(String.valueOf(root.getMessage()))
+                .append("\n\n");
+
+        out.append("Stack Trace:\n");
+        for (StackTraceElement element : error.getStackTrace()) {
+            out.append("    at ")
+                    .append(element.toString())
+                    .append("\n");
+        }
+
+        return out.toString();
+    }
+
+    private void showFullDiagnosticDialog(String report) {
+
+        TextView textView = new TextView(this);
+        textView.setText(report);
+        textView.setTextSize(14);
+        textView.setTextIsSelectable(true);
+        textView.setPadding(24, 20, 24, 20);
+
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.addView(textView);
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("اصل خطا")
+                .setView(scrollView)
+                .setNegativeButton("کپی خطا", (dialog, which) -> {
+                    android.content.ClipboardManager clipboard =
+                            (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    if (clipboard != null) {
+                        clipboard.setPrimaryClip(
+                                android.content.ClipData.newPlainText(
+                                        "TAJRO_MEDIA_DIAG",
+                                        report
+                                )
+                        );
+                        Toast.makeText(
+                                ChatActivity.this,
+                                "خطای کامل کپی شد",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                })
+                .setPositiveButton("بستن", null)
+                .setCancelable(false)
+                .show();
     }
 
     private void listenMessages() {
@@ -5465,4 +5564,4 @@ private void blockCurrentUser() {
 
 }
     
-    }
+            }
