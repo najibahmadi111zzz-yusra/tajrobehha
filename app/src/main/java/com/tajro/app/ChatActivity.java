@@ -26,6 +26,7 @@ import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.view.Gravity;
 import android.view.View;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
