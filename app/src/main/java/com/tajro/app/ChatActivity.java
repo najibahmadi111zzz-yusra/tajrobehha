@@ -2286,6 +2286,25 @@ header.addView(chatMenu,
         setContentView(root);
     }
 
+    private void showMediaDiagnostic(String stage, Throwable error) {
+        String detail = error == null ? "نامشخص" : error.getClass().getSimpleName() + ": " + String.valueOf(error.getMessage());
+        android.util.Log.e("TAJRO_MEDIA_DIAG", stage + " -> " + detail, error);
+        runOnUiThread(() -> Toast.makeText(
+                ChatActivity.this,
+                "تشخیص خطا [" + stage + "]\n" + detail,
+                Toast.LENGTH_LONG
+        ).show());
+    }
+
+    private void showMediaDiagnostic(String stage, String detail) {
+        android.util.Log.e("TAJRO_MEDIA_DIAG", stage + " -> " + detail);
+        runOnUiThread(() -> Toast.makeText(
+                ChatActivity.this,
+                "تشخیص خطا [" + stage + "]\n" + detail,
+                Toast.LENGTH_LONG
+        ).show());
+    }
+
     private void listenMessages() {
 
         removeMessageListeners();
@@ -2301,10 +2320,17 @@ header.addView(chatMenu,
                                 myId
                         )
                         .addSnapshotListener(
-                                (snapshot, error) ->
-                                        handleMessages(
-                                                snapshot
-                                        )
+                                (snapshot, error) -> {
+                                    if (error != null) {
+                                        showMediaDiagnostic("دریافت پیام‌ها / Firestore", error);
+                                        return;
+                                    }
+                                    try {
+                                        handleMessages(snapshot);
+                                    } catch (Throwable e) {
+                                        showMediaDiagnostic("پردازش پیام‌ها", e);
+                                    }
+                                }
                         );
 
         receivedMessageListener =
@@ -2318,10 +2344,17 @@ header.addView(chatMenu,
                                 myId
                         )
                         .addSnapshotListener(
-                                (snapshot, error) ->
-                                        handleMessages(
-                                                snapshot
-                                        )
+                                (snapshot, error) -> {
+                                    if (error != null) {
+                                        showMediaDiagnostic("دریافت پیام‌های دریافتی / Firestore", error);
+                                        return;
+                                    }
+                                    try {
+                                        handleMessages(snapshot);
+                                    } catch (Throwable e) {
+                                        showMediaDiagnostic("پردازش پیام‌های دریافتی", e);
+                                    }
+                                }
                         );
     }
 
@@ -2749,7 +2782,8 @@ header.addView(chatMenu,
                     Bitmap finalBitmap = bitmap;
                     runOnUiThread(() -> imageView.setImageBitmap(finalBitmap));
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                showMediaDiagnostic("دریافت/رمزگشایی عکس یا ویدیو", e);
             } finally {
                 if (encrypted != null) try { encrypted.delete(); } catch (Exception ignored) {}
                 if (decrypted != null) try { decrypted.delete(); } catch (Exception ignored) {}
@@ -2794,17 +2828,13 @@ header.addView(chatMenu,
                         player.prepareAsync();
                     } catch (Exception e) {
                         try { finalDecrypted.delete(); } catch (Exception ignored) {}
-                        Toast.makeText(this, tr("خطا در پخش صدا"), Toast.LENGTH_SHORT).show();
+                        showMediaDiagnostic("آماده‌سازی/پخش پیام صوتی", e);
                     }
                 });
             } catch (Exception e) {
                 if (encrypted != null) try { encrypted.delete(); } catch (Exception ignored) {}
                 if (decrypted != null) try { decrypted.delete(); } catch (Exception ignored) {}
-                runOnUiThread(() -> Toast.makeText(
-                        this,
-                        tr("دریافت پیام صوتی ناموفق بود"),
-                        Toast.LENGTH_SHORT
-                ).show());
+                showMediaDiagnostic("دریافت/رمزگشایی پیام صوتی", e);
             }
         }).start();
     }
@@ -3191,11 +3221,7 @@ header.addView(chatMenu,
                         }
                     }).start();
                 })
-                .addOnFailureListener(e -> Toast.makeText(
-                        this,
-                        tr("کلید امنیتی گیرنده دریافت نشد"),
-                        Toast.LENGTH_SHORT
-                ).show());
+                .addOnFailureListener(e -> showMediaDiagnostic("دریافت کلید امنیتی گیرنده برای صوت", e));
     }
 
     private void updateTyping(
@@ -3725,11 +3751,7 @@ header.addView(chatMenu,
                             if (encryptedFile != null) {
                                 try { encryptedFile.delete(); } catch (Exception ignored) {}
                             }
-                            runOnUiThread(() -> Toast.makeText(
-                                    ChatActivity.this,
-                                    tr("رمزگذاری فایل ناموفق بود"),
-                                    Toast.LENGTH_LONG
-                            ).show());
+                            showMediaDiagnostic("رمزگذاری عکس/ویدیو", e);
                         }
                     }).start();
                 })
@@ -3798,11 +3820,7 @@ header.addView(chatMenu,
         db.collection("messages")
                 .add(data)
                 .addOnFailureListener(e ->
-                        Toast.makeText(
-                                this,
-                                tr("خطا در ذخیره پیام فایل"),
-                                Toast.LENGTH_SHORT
-                        ).show()
+                        showMediaDiagnostic("ذخیره پیام عکس/ویدیو در Firestore", e)
                 );
     }
 
@@ -4070,11 +4088,7 @@ header.addView(chatMenu,
                             if (encryptedFile != null) {
                                 try { encryptedFile.delete(); } catch (Exception ignored) {}
                             }
-                            runOnUiThread(() -> Toast.makeText(
-                                    ChatActivity.this,
-                                    tr("رمزگذاری پیام صوتی ناموفق بود"),
-                                    Toast.LENGTH_LONG
-                            ).show());
+                            showMediaDiagnostic("رمزگذاری پیام صوتی", e);
                         }
                     }).start();
                 })
@@ -4115,11 +4129,7 @@ header.addView(chatMenu,
         db.collection("messages")
                 .add(data)
                 .addOnFailureListener(e ->
-                        Toast.makeText(
-                                this,
-                                tr("خطا در ذخیره پیام صوتی"),
-                                Toast.LENGTH_SHORT
-                        ).show()
+                        showMediaDiagnostic("ذخیره پیام صوتی در Firestore", e)
                 );
     }
 
@@ -5455,4 +5465,4 @@ private void blockCurrentUser() {
 
 }
     
-            }
+    }
