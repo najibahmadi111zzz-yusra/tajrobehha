@@ -1913,13 +1913,24 @@ receiverPhotoUrl = photoUrl;
         insideChat = true;
         blocked = false;
 
-        createChatScreen(photoUrl);
+        try {
+            createChatScreen(photoUrl);
 
-        publishChatKeyWithFeedback();
+            // کلید E2EE قبلاً در onCreate بررسی/ثبت می‌شود.
+            // اجرای دوباره آن هنگام باز کردن هر چت باعث کرش نسخه جدید شده بود.
 
-        listenReceiver();
-        listenTyping();
-        listenBlock();
+            listenReceiver();
+            listenTyping();
+            listenBlock();
+        } catch (Exception e) {
+            insideChat = false;
+            String detail = describeChatOpenError(e);
+            Toast.makeText(
+                    ChatActivity.this,
+                    "CHAT OPEN ERROR: " + detail,
+                    Toast.LENGTH_LONG
+            ).show();
+        }
     }
 
     private void publishChatKeyWithFeedback() {
@@ -1950,12 +1961,46 @@ receiverPhotoUrl = photoUrl;
 
                         Toast.makeText(
                                 ChatActivity.this,
-                                tr("فعال‌سازی امنیت چت ناموفق بود"),
+                                "E2EE ERROR: " + describeCryptoError(error),
                                 Toast.LENGTH_LONG
                         ).show();
                     }
                 }
         );
+    }
+
+    private String describeCryptoError(Exception error) {
+        if (error == null) return "Unknown E2EE error";
+        String m = error.getMessage();
+        if (m == null || m.trim().isEmpty()) m = error.getClass().getSimpleName();
+
+        if (m.contains("does not match server key"))
+            return "KEY_MISMATCH: کلید این گوشی با chatPublicKey فایربیس یکی نیست";
+        if (m.contains("PERMISSION_DENIED") || m.contains("PERMISSION_DENIED"))
+            return "FIRESTORE_PERMISSION: دسترسی Firestore رد شد";
+        if (m.contains("E2EE private key not found") || m.contains("E2EE public key not found"))
+            return "LOCAL_KEY_MISSING: کلید E2EE داخل AndroidKeyStore پیدا نشد";
+        if (m.contains("OAEP") || m.contains("BadPadding") || m.contains("KeyStore"))
+            return "RSA_KEY_ERROR: خطا در کلید RSA/AndroidKeyStore";
+        if (m.contains("AEADBadTag") || m.contains("Tag mismatch"))
+            return "GCM_AUTH_ERROR: داده رمز‌شده یا کلید/IV با هم سازگار نیستند";
+        if (m.contains("Cannot read file"))
+            return "FILE_READ_ERROR: فایل اصلی قابل خواندن نیست";
+        if (m.contains("UnknownHost") || m.contains("timeout") || m.contains("Socket"))
+            return "NETWORK_ERROR: خطای ارتباط شبکه";
+        return error.getClass().getSimpleName() + ": " + m;
+    }
+
+    private String describeChatOpenError(Exception error) {
+        if (error == null) return "Unknown error";
+        String m = error.getMessage();
+        if (m == null || m.trim().isEmpty()) {
+            m = error.getClass().getSimpleName();
+        }
+        if (m.contains("NullPointerException")) return "NULL_POINTER: یک مقدار لازم خالی است | " + m;
+        if (m.contains("setContentView")) return "UI_SETUP: خطا در ساخت صفحه چت | " + m;
+        if (m.contains("KeyStore") || m.contains("OAEP")) return "RSA_KEY_ERROR: خطای کلید E2EE | " + m;
+        return error.getClass().getSimpleName() + ": " + m;
     }
 
     private String makeChatId(
@@ -2579,7 +2624,10 @@ header.addView(chatMenu,
                 : wrappedForReceiver;
 
         if (cipherText == null || iv == null || wrapped == null) {
-            addTextMessage(tr("پیام رمزگذاری‌شده قابل خواندن نیست"), sender, d.getId());
+            String missing = cipherText == null ? "cipherText" : (iv == null ? "iv" : "wrappedKey");
+            String diagnostic = "E2EE ERROR: MESSAGE_FIELD_MISSING: " + missing;
+            addTextMessage(diagnostic, sender, d.getId());
+            runOnUiThread(() -> Toast.makeText(this, diagnostic, Toast.LENGTH_LONG).show());
             return;
         }
 
@@ -2598,11 +2646,11 @@ header.addView(chatMenu,
                         d.getId()
                 ));
             } catch (Exception e) {
-                runOnUiThread(() -> addTextMessage(
-                        tr("پیام رمزگذاری‌شده قابل خواندن نیست"),
-                        sender,
-                        d.getId()
-                ));
+                String diagnostic = "E2EE ERROR: DECRYPT_TEXT: " + describeCryptoError(e);
+                runOnUiThread(() -> {
+                    addTextMessage(diagnostic, sender, d.getId());
+                    Toast.makeText(this, diagnostic, Toast.LENGTH_LONG).show();
+                });
             }
         }).start();
     }
@@ -2785,7 +2833,9 @@ header.addView(chatMenu,
                     Bitmap finalBitmap = bitmap;
                     runOnUiThread(() -> imageView.setImageBitmap(finalBitmap));
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                String diagnostic = "E2EE ERROR: DECRYPT_MEDIA: " + describeCryptoError(e);
+                runOnUiThread(() -> Toast.makeText(this, diagnostic, Toast.LENGTH_LONG).show());
             } finally {
                 if (encrypted != null) try { encrypted.delete(); } catch (Exception ignored) {}
                 if (decrypted != null) try { decrypted.delete(); } catch (Exception ignored) {}
@@ -2830,16 +2880,18 @@ header.addView(chatMenu,
                         player.prepareAsync();
                     } catch (Exception e) {
                         try { finalDecrypted.delete(); } catch (Exception ignored) {}
-                        Toast.makeText(this, tr("خطا در پخش صدا"), Toast.LENGTH_SHORT).show();
+                        String diagnostic = "E2EE ERROR: AUDIO_PLAY: " + describeCryptoError(e);
+                        Toast.makeText(this, diagnostic, Toast.LENGTH_LONG).show();
                     }
                 });
             } catch (Exception e) {
                 if (encrypted != null) try { encrypted.delete(); } catch (Exception ignored) {}
                 if (decrypted != null) try { decrypted.delete(); } catch (Exception ignored) {}
+                String diagnostic = "E2EE ERROR: AUDIO_DECRYPT: " + describeCryptoError(e);
                 runOnUiThread(() -> Toast.makeText(
                         this,
-                        tr("دریافت پیام صوتی ناموفق بود"),
-                        Toast.LENGTH_SHORT
+                        diagnostic,
+                        Toast.LENGTH_LONG
                 ).show());
             }
         }).start();
@@ -3219,9 +3271,10 @@ header.addView(chatMenu,
                                     );
 
                         } catch (Exception e) {
+                            String diagnostic = "E2EE ERROR: SEND_TEXT: " + describeCryptoError(e);
                             runOnUiThread(() -> Toast.makeText(
                                     ChatActivity.this,
-                                    tr("رمزگذاری پیام ناموفق بود"),
+                                    diagnostic,
                                     Toast.LENGTH_LONG
                             ).show());
                         }
@@ -4658,11 +4711,8 @@ header.addView(chatMenu,
 
                 save.setOnClickListener(v -> saveDecryptedImageToGallery(finalDecrypted));
             } catch (Exception e) {
-                runOnUiThread(() -> Toast.makeText(
-                        this,
-                        tr("باز کردن تصویر ناموفق بود"),
-                        Toast.LENGTH_SHORT
-                ).show());
+                String diagnostic = "E2EE ERROR: VIEW_IMAGE: " + describeCryptoError(e);
+                runOnUiThread(() -> Toast.makeText(this, diagnostic, Toast.LENGTH_LONG).show());
             } finally {
                 if (encrypted != null) try { encrypted.delete(); } catch (Exception ignored) {}
             }
@@ -5491,4 +5541,4 @@ private void blockCurrentUser() {
 
 }
     
-    }
+            }
