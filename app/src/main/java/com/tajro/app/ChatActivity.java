@@ -26,7 +26,6 @@ import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.view.Gravity;
 import android.view.View;
-import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
@@ -2287,124 +2286,6 @@ header.addView(chatMenu,
         setContentView(root);
     }
 
-    private void showMediaDiagnostic(String stage, Throwable error) {
-
-        final String report = buildFullDiagnosticReport(stage, error);
-
-        android.util.Log.e(
-                "TAJRO_MEDIA_DIAG",
-                report,
-                error
-        );
-
-        runOnUiThread(() -> showFullDiagnosticDialog(report));
-    }
-
-    private void showMediaDiagnostic(String stage, String detail) {
-
-        final String report =
-                "تشخیص خطا\n" +
-                "مرحله: " + stage + "\n\n" +
-                "اصل پیام خطا:\n" +
-                String.valueOf(detail);
-
-        android.util.Log.e(
-                "TAJRO_MEDIA_DIAG",
-                report
-        );
-
-        runOnUiThread(() -> showFullDiagnosticDialog(report));
-    }
-
-    private String buildFullDiagnosticReport(String stage, Throwable error) {
-
-        StringBuilder out = new StringBuilder();
-
-        out.append("تشخیص کامل خطا\n");
-        out.append("====================\n");
-        out.append("مرحله: ").append(stage).append("\n\n");
-
-        if (error == null) {
-            out.append("اصل خطا: نامشخص\n");
-            return out.toString();
-        }
-
-        out.append("نوع خطای اصلی: ")
-                .append(error.getClass().getName())
-                .append("\n");
-
-        out.append("پیام اصلی خطا: ")
-                .append(String.valueOf(error.getMessage()))
-                .append("\n\n");
-
-        Throwable root = error;
-        int causeNumber = 1;
-
-        while (root.getCause() != null && root.getCause() != root && causeNumber <= 10) {
-            root = root.getCause();
-            out.append("علت داخلی ")
-                    .append(causeNumber++)
-                    .append(": ")
-                    .append(root.getClass().getName())
-                    .append("\n");
-            out.append("پیام علت: ")
-                    .append(String.valueOf(root.getMessage()))
-                    .append("\n\n");
-        }
-
-        out.append("اصل خطای نهایی (Root Cause): ")
-                .append(root.getClass().getName())
-                .append("\n");
-        out.append("پیام Root Cause: ")
-                .append(String.valueOf(root.getMessage()))
-                .append("\n\n");
-
-        out.append("Stack Trace:\n");
-        for (StackTraceElement element : error.getStackTrace()) {
-            out.append("    at ")
-                    .append(element.toString())
-                    .append("\n");
-        }
-
-        return out.toString();
-    }
-
-    private void showFullDiagnosticDialog(String report) {
-
-        TextView textView = new TextView(this);
-        textView.setText(report);
-        textView.setTextSize(14);
-        textView.setTextIsSelectable(true);
-        textView.setPadding(24, 20, 24, 20);
-
-        ScrollView scrollView = new ScrollView(this);
-        scrollView.addView(textView);
-
-        new android.app.AlertDialog.Builder(this)
-                .setTitle("اصل خطا")
-                .setView(scrollView)
-                .setNegativeButton("کپی خطا", (dialog, which) -> {
-                    android.content.ClipboardManager clipboard =
-                            (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                    if (clipboard != null) {
-                        clipboard.setPrimaryClip(
-                                android.content.ClipData.newPlainText(
-                                        "TAJRO_MEDIA_DIAG",
-                                        report
-                                )
-                        );
-                        Toast.makeText(
-                                ChatActivity.this,
-                                "خطای کامل کپی شد",
-                                Toast.LENGTH_SHORT
-                        ).show();
-                    }
-                })
-                .setPositiveButton("بستن", null)
-                .setCancelable(false)
-                .show();
-    }
-
     private void listenMessages() {
 
         removeMessageListeners();
@@ -2420,17 +2301,10 @@ header.addView(chatMenu,
                                 myId
                         )
                         .addSnapshotListener(
-                                (snapshot, error) -> {
-                                    if (error != null) {
-                                        showMediaDiagnostic("دریافت پیام‌ها / Firestore", error);
-                                        return;
-                                    }
-                                    try {
-                                        handleMessages(snapshot);
-                                    } catch (Throwable e) {
-                                        showMediaDiagnostic("پردازش پیام‌ها", e);
-                                    }
-                                }
+                                (snapshot, error) ->
+                                        handleMessages(
+                                                snapshot
+                                        )
                         );
 
         receivedMessageListener =
@@ -2444,17 +2318,10 @@ header.addView(chatMenu,
                                 myId
                         )
                         .addSnapshotListener(
-                                (snapshot, error) -> {
-                                    if (error != null) {
-                                        showMediaDiagnostic("دریافت پیام‌های دریافتی / Firestore", error);
-                                        return;
-                                    }
-                                    try {
-                                        handleMessages(snapshot);
-                                    } catch (Throwable e) {
-                                        showMediaDiagnostic("پردازش پیام‌های دریافتی", e);
-                                    }
-                                }
+                                (snapshot, error) ->
+                                        handleMessages(
+                                                snapshot
+                                        )
                         );
     }
 
@@ -2868,13 +2735,12 @@ header.addView(chatMenu,
                 downloadToFile(url, encrypted);
                 decrypted = ChatCrypto.decryptFile(this, encrypted, iv, wrappedKey, myId);
 
-                Bitmap bitmap = null;
+                Bitmap bitmap;
                 if (video) {
-                    // اصلاح مدیریت ساختار لود فریم ویدیو بدون نشت حافظه رم
-                    try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
-                        retriever.setDataSource(decrypted.getAbsolutePath());
-                        bitmap = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-                    } catch (Exception ignored) {}
+                    MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                    retriever.setDataSource(decrypted.getAbsolutePath());
+                    bitmap = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                    retriever.release();
                 } else {
                     bitmap = BitmapFactory.decodeFile(decrypted.getAbsolutePath());
                 }
@@ -2882,14 +2748,8 @@ header.addView(chatMenu,
                 if (bitmap != null) {
                     Bitmap finalBitmap = bitmap;
                     runOnUiThread(() -> imageView.setImageBitmap(finalBitmap));
-                } else {
-                    // نمایش یک تصویر پیش‌فرض در صورت خالی بودن بیت‌مپ
-                    runOnUiThread(() -> imageView.setImageResource(android.R.drawable.ic_menu_gallery));
                 }
-            } catch (Exception e) {
-                showMediaDiagnostic("دریافت/رمزگشایی عکس یا ویدیو", e);
-                // تغییر وضعیت UI به حالت خطا در صورت بروز مشکل سخت‌افزاری
-                runOnUiThread(() -> imageView.setImageResource(android.R.drawable.stat_notify_error));
+            } catch (Exception ignored) {
             } finally {
                 if (encrypted != null) try { encrypted.delete(); } catch (Exception ignored) {}
                 if (decrypted != null) try { decrypted.delete(); } catch (Exception ignored) {}
@@ -2903,55 +2763,52 @@ header.addView(chatMenu,
             String wrappedKey
     ) {
         new Thread(() -> {
-            // برای جلوگیری از باگ پاک شدن فایل قبل از پخش، تعریف متغیرها تغییر یافت
-            final File encryptedFile;
-            final File decryptedFile;
+            File encrypted = null;
+            File decrypted = null;
             try {
-                encryptedFile = new File(getCacheDir(), "enc_audio_" + System.currentTimeMillis());
-                downloadToFile(url, encryptedFile);
-                decryptedFile = ChatCrypto.decryptFile(this, encryptedFile, iv, wrappedKey, myId);
+                encrypted = new File(getCacheDir(), "enc_audio_" + System.currentTimeMillis());
+                downloadToFile(url, encrypted);
+                decrypted = ChatCrypto.decryptFile(this, encrypted, iv, wrappedKey, myId);
+                File finalDecrypted = decrypted;
 
                 runOnUiThread(() -> {
                     try {
                         if (player != null) {
-                            try { player.release(); } catch (Exception ignored) {}
+                            player.release();
                             player = null;
                         }
 
                         player = new MediaPlayer();
-                        player.setDataSource(decryptedFile.getAbsolutePath());
+                        player.setDataSource(finalDecrypted.getAbsolutePath());
                         player.setOnPreparedListener(MediaPlayer::start);
-                        
-                        // حذف فایل‌ها فقط زمانی که پخش تمام شد یا به خطا خورد انجام می‌شود
                         player.setOnCompletionListener(mp -> {
                             mp.release();
                             player = null;
-                            try { encryptedFile.delete(); } catch (Exception ignored) {}
-                            try { decryptedFile.delete(); } catch (Exception ignored) {}
+                            try { finalDecrypted.delete(); } catch (Exception ignored) {}
                         });
-                        
                         player.setOnErrorListener((mp, what, extra) -> {
-                            mp.release();
-                            player = null;
-                            try { encryptedFile.delete(); } catch (Exception ignored) {}
-                            try { decryptedFile.delete(); } catch (Exception ignored) {}
+                            try { finalDecrypted.delete(); } catch (Exception ignored) {}
                             Toast.makeText(this, tr("پخش صدا ناموفق بود"), Toast.LENGTH_SHORT).show();
                             return true;
                         });
                         player.prepareAsync();
                     } catch (Exception e) {
-                        try { encryptedFile.delete(); } catch (Exception ignored) {}
-                        try { decryptedFile.delete(); } catch (Exception ignored) {}
-                        showMediaDiagnostic("آماده‌سازی/پخش پیام صوتی", e);
+                        try { finalDecrypted.delete(); } catch (Exception ignored) {}
+                        Toast.makeText(this, tr("خطا در پخش صدا"), Toast.LENGTH_SHORT).show();
                     }
                 });
             } catch (Exception e) {
-                showMediaDiagnostic("دریافت/رمزگشایی پیام صوتی", e);
+                if (encrypted != null) try { encrypted.delete(); } catch (Exception ignored) {}
+                if (decrypted != null) try { decrypted.delete(); } catch (Exception ignored) {}
+                runOnUiThread(() -> Toast.makeText(
+                        this,
+                        tr("دریافت پیام صوتی ناموفق بود"),
+                        Toast.LENGTH_SHORT
+                ).show());
             }
-            // بخش finally قبلی که فایل را زودتر از موعد پاک می‌کرد برداشته شد تا مدیاپلیر کرش نکند
         }).start();
     }
-    
+
     private void downloadToFile(String urlString, File destination) throws Exception {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) throw new IllegalStateException("Not authenticated");
@@ -2961,8 +2818,6 @@ header.addView(chatMenu,
         com.google.firebase.auth.GetTokenResult tokenResult =
                 com.google.android.gms.tasks.Tasks.await(tokenTask);
         String token = tokenResult.getToken();
-        Object firebaseRole = tokenResult.getClaims().get("role");
-throw new Exception("FIREBASE_ROLE = " + firebaseRole);
         if (token == null || token.isEmpty()) throw new IllegalStateException("No Firebase token");
 
         HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
@@ -3336,7 +3191,11 @@ throw new Exception("FIREBASE_ROLE = " + firebaseRole);
                         }
                     }).start();
                 })
-                .addOnFailureListener(e -> showMediaDiagnostic("دریافت کلید امنیتی گیرنده برای صوت", e));
+                .addOnFailureListener(e -> Toast.makeText(
+                        this,
+                        tr("کلید امنیتی گیرنده دریافت نشد"),
+                        Toast.LENGTH_SHORT
+                ).show());
     }
 
     private void updateTyping(
@@ -3866,7 +3725,11 @@ throw new Exception("FIREBASE_ROLE = " + firebaseRole);
                             if (encryptedFile != null) {
                                 try { encryptedFile.delete(); } catch (Exception ignored) {}
                             }
-                            showMediaDiagnostic("رمزگذاری عکس/ویدیو", e);
+                            runOnUiThread(() -> Toast.makeText(
+                                    ChatActivity.this,
+                                    tr("رمزگذاری فایل ناموفق بود"),
+                                    Toast.LENGTH_LONG
+                            ).show());
                         }
                     }).start();
                 })
@@ -3935,7 +3798,11 @@ throw new Exception("FIREBASE_ROLE = " + firebaseRole);
         db.collection("messages")
                 .add(data)
                 .addOnFailureListener(e ->
-                        showMediaDiagnostic("ذخیره پیام عکس/ویدیو در Firestore", e)
+                        Toast.makeText(
+                                this,
+                                tr("خطا در ذخیره پیام فایل"),
+                                Toast.LENGTH_SHORT
+                        ).show()
                 );
     }
 
@@ -4203,7 +4070,11 @@ throw new Exception("FIREBASE_ROLE = " + firebaseRole);
                             if (encryptedFile != null) {
                                 try { encryptedFile.delete(); } catch (Exception ignored) {}
                             }
-                            showMediaDiagnostic("رمزگذاری پیام صوتی", e);
+                            runOnUiThread(() -> Toast.makeText(
+                                    ChatActivity.this,
+                                    tr("رمزگذاری پیام صوتی ناموفق بود"),
+                                    Toast.LENGTH_LONG
+                            ).show());
                         }
                     }).start();
                 })
@@ -4244,7 +4115,11 @@ throw new Exception("FIREBASE_ROLE = " + firebaseRole);
         db.collection("messages")
                 .add(data)
                 .addOnFailureListener(e ->
-                        showMediaDiagnostic("ذخیره پیام صوتی در Firestore", e)
+                        Toast.makeText(
+                                this,
+                                tr("خطا در ذخیره پیام صوتی"),
+                                Toast.LENGTH_SHORT
+                        ).show()
                 );
     }
 
@@ -5580,4 +5455,4 @@ private void blockCurrentUser() {
 
 }
     
-            }
+    }
