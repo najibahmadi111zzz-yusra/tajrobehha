@@ -155,7 +155,7 @@ public final class ChatCrypto {
     }
 
     public static PublicKey publicKeyFromBase64(String value) throws Exception {
-        byte[] encoded = Base64.decode(value, Base64.DEFAULT);
+        byte[] encoded = Base64.decode(value, Base64.NO_WRAP);
         KeyFactory factory = KeyFactory.getInstance("RSA");
         return factory.generatePublic(new X509EncodedKeySpec(encoded));
     }
@@ -195,7 +195,14 @@ public final class ChatCrypto {
     }
 
     private static SecretKey rsaUnwrap(String wrappedKey, String uid) throws Exception {
-        byte[] wrapped = Base64.decode(wrappedKey, Base64.DEFAULT);
+        if (wrappedKey == null || wrappedKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("Wrapped key is empty");
+        }
+        
+        // پاکسازی تمام کاراکترهای فضای خالی و خط جدید احتمالی و تبدیل امن با ساختار NO_WRAP
+        String cleanWrappedKey = wrappedKey.trim().replaceAll("\\s", "");
+        byte[] wrapped = Base64.decode(cleanWrappedKey, Base64.NO_WRAP);
+        
         Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPPadding");
         OAEPParameterSpec spec = new OAEPParameterSpec(
                 "SHA-256",
@@ -203,6 +210,7 @@ public final class ChatCrypto {
                 MGF1ParameterSpec.SHA1,
                 PSource.PSpecified.DEFAULT
         );
+        
         cipher.init(Cipher.DECRYPT_MODE, getPrivateKey(uid), spec);
         byte[] raw = cipher.doFinal(wrapped);
         return new SecretKeySpec(raw, "AES");
@@ -242,8 +250,8 @@ public final class ChatCrypto {
             String uid
     ) throws Exception {
         SecretKey aes = rsaUnwrap(wrappedKey, uid);
-        byte[] iv = Base64.decode(ivBase64, Base64.DEFAULT);
-        byte[] encrypted = Base64.decode(cipherText, Base64.DEFAULT);
+        byte[] iv = Base64.decode(ivBase64, Base64.NO_WRAP);
+        byte[] encrypted = Base64.decode(cipherText, Base64.NO_WRAP);
 
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(
@@ -274,70 +282,65 @@ public final class ChatCrypto {
 
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(
-                Cipher.ENCRYPT_MODE,
-                aes,
-                new GCMParameterSpec(GCM_TAG_BITS, iv)
-        );
-
-        OutputStream fileOut = new FileOutputStream(out);
-        CipherOutputStream encryptedOut = new CipherOutputStream(fileOut, cipher);
-
-        byte[] buffer = new byte[8192];
-        int count;
-        try {
-            while ((count = input.read(buffer)) != -1) {
-                encryptedOut.write(buffer, 0, count);
-            }
-        } finally {
-            try { input.close(); } catch (Exception ignored) {}
-            try { encryptedOut.close(); } catch (Exception ignored) {}
-        }
-
-        return new EncryptedFile(
-                out,
-                Base64.encodeToString(iv, Base64.NO_WRAP),
-                Base64.encodeToString(rsaWrap(aes, receiverPublicKey), Base64.NO_WRAP),
-                Base64.encodeToString(rsaWrap(aes, senderPublicKey), Base64.NO_WRAP)
-        );
-    }
-
-    public static File decryptFile(
-            Context context,
-            File encryptedFile,
-            String ivBase64,
-            String wrappedKey,
-            String uid
-    ) throws Exception {
-        SecretKey aes = rsaUnwrap(wrappedKey, uid);
-        byte[] iv = Base64.decode(ivBase64, Base64.DEFAULT);
-
-        File out = new File(
-                context.getCacheDir(),
-                "decrypted_" + System.currentTimeMillis()
-        );
-
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(
-                Cipher.DECRYPT_MODE,
-                aes,
-                new GCMParameterSpec(GCM_TAG_BITS, iv)
-        );
-
-        InputStream input = new FileInputStream(encryptedFile);
-        CipherInputStream decryptedIn = new CipherInputStream(input, cipher);
-        OutputStream output = new FileOutputStream(out);
-
-        byte[] buffer = new byte[8192];
-        int count;
-        try {
-            while ((count = decryptedIn.read(buffer)) != -1) {
-                output.write(buffer, 0, count);
-            }
-        } finally {
-            try { decryptedIn.close(); } catch (Exception ignored) {}
-            try { output.close(); } catch (Exception ignored) {}
-        }
-
-        return out;
-    }
+            
+Cipher.ENCRYPT_MODE,
+aes,
+new GCMParameterSpec(GCM_TAG_BITS, iv)
+);
+OutputStream fileOut = new FileOutputStream(out);
+CipherOutputStream encryptedOut = new CipherOutputStream(fileOut, cipher);
+byte[] buffer = new byte[8192];
+int count;
+try {
+while ((count = input.read(buffer)) != -1) {
+encryptedOut.write(buffer, 0, count);
+}
+} finally {
+try { encryptedOut.flush(); } catch (Exception ignored) {}
+try { input.close(); } catch (Exception ignored) {}
+try { encryptedOut.close(); } catch (Exception ignored) {}
+}
+return new EncryptedFile(
+out,
+Base64.encodeToString(iv, Base64.NO_WRAP),
+Base64.encodeToString(rsaWrap(aes, receiverPublicKey), Base64.NO_WRAP),
+Base64.encodeToString(rsaWrap(aes, senderPublicKey), Base64.NO_WRAP)
+);
+}
+public static File decryptFile(
+Context context,
+File encryptedFile,
+String ivBase64,
+String wrappedKey,
+String uid
+) throws Exception {
+SecretKey aes = rsaUnwrap(wrappedKey, uid);
+byte[] iv = Base64.decode(ivBase64, Base64.NO_WRAP);
+File out = new File(
+context.getCacheDir(),
+"decrypted_" + System.currentTimeMillis()
+);
+Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+cipher.init(
+Cipher.DECRYPT_MODE,
+aes,
+new GCMParameterSpec(GCM_TAG_BITS, iv)
+);
+InputStream input = new FileInputStream(encryptedFile);
+CipherInputStream decryptedIn = new CipherInputStream(input, cipher);
+OutputStream output = new FileOutputStream(out);
+byte[] buffer = new byte[8192];
+int count;
+try {
+while ((count = decryptedIn.read(buffer)) != -1) {
+output.write(buffer, 0, count);
+}
+} finally {
+try { output.flush(); } catch (Exception ignored) {}
+try { decryptedIn.close(); } catch (Exception ignored) {}
+try { output.close(); } catch (Exception ignored) {}
+}
+return out
+}
+    
 }
