@@ -66,6 +66,11 @@ public class AccountActivity extends Activity {
     private String verificationId;
     private PhoneAuthProvider.ForceResendingToken resendToken;
 
+    // 0 = بدون درخواست
+    // 1 = ثبت نام با شماره
+    // 2 = ورود با شماره
+    private int phoneVerificationMode = 0;
+
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(
@@ -585,6 +590,8 @@ public class AccountActivity extends Activity {
             accountMode = 0;
 
             verificationId = null;
+            resendToken = null;
+            phoneVerificationMode = 0;
 
             verificationCodeInput.setText("");
 
@@ -600,6 +607,8 @@ public class AccountActivity extends Activity {
             accountMode = 1;
 
             verificationId = null;
+            resendToken = null;
+            phoneVerificationMode = 0;
 
             verificationCodeInput.setText("");
 
@@ -615,6 +624,8 @@ public class AccountActivity extends Activity {
             phoneMode = false;
 
             verificationId = null;
+            resendToken = null;
+            phoneVerificationMode = 0;
 
             verificationCodeInput.setText("");
 
@@ -630,6 +641,8 @@ public class AccountActivity extends Activity {
             phoneMode = true;
 
             verificationId = null;
+            resendToken = null;
+            phoneVerificationMode = 0;
 
             verificationCodeInput.setText("");
 
@@ -1190,6 +1203,12 @@ public class AccountActivity extends Activity {
             int mode
     ) {
 
+        // حالت درخواست فعلی را قبل از ارسال SMS ذخیره می‌کنیم
+        phoneVerificationMode = mode;
+
+        verificationId = null;
+        resendToken = null;
+
         PhoneAuthOptions options =
                 PhoneAuthOptions.newBuilder(auth)
                         .setPhoneNumber(phone)
@@ -1206,9 +1225,16 @@ public class AccountActivity extends Activity {
                                             PhoneAuthCredential credential
                                     ) {
 
+                                        // اگر درخواست دیگر معتبر نیست
+                                        // آن را اجرا نمی‌کنیم.
+                                        if (phoneVerificationMode != 1
+                                                && phoneVerificationMode != 2) {
+                                            return;
+                                        }
+
                                         completePhoneLogin(
                                                 credential,
-                                                mode
+                                                phoneVerificationMode
                                         );
                                     }
 
@@ -1217,17 +1243,33 @@ public class AccountActivity extends Activity {
                                             FirebaseException e
                                     ) {
 
+                                        String errorMessage =
+                                                e.getMessage();
+
+                                        if (errorMessage == null
+                                                || errorMessage.trim().isEmpty()) {
+
+                                            errorMessage =
+                                                    e.toString();
+                                        }
+
                                         Toast.makeText(
                                                 AccountActivity.this,
                                                 text(
-                                                        "تأیید شماره ناموفق: ",
-                                                        "Phone verification failed: ",
-                                                        "د تلیفون تایید ناکام شو: ",
-                                                        "فون کی تصدیق ناکام: ",
-                                                        "फोन सत्यापन विफल: "
-                                                ) + e.getMessage(),
+                                                        "تأیید شماره ناموفق شد:\n",
+                                                        "Phone verification failed:\n",
+                                                        "د تلیفون تایید ناکام شو:\n",
+                                                        "فون کی تصدیق ناکام ہوئی:\n",
+                                                        "फोन सत्यापन विफल हुआ:\n"
+                                                )
+                                                + errorMessage,
                                                 Toast.LENGTH_LONG
                                         ).show();
+
+                                        verificationId = null;
+                                        resendToken = null;
+
+                                        updateScreen();
                                     }
 
                                     @Override
@@ -1235,6 +1277,11 @@ public class AccountActivity extends Activity {
                                             String id,
                                             PhoneAuthProvider.ForceResendingToken token
                                     ) {
+
+                                        if (phoneVerificationMode != 1
+                                                && phoneVerificationMode != 2) {
+                                            return;
+                                        }
 
                                         verificationId = id;
                                         resendToken = token;
@@ -1317,7 +1364,26 @@ public class AccountActivity extends Activity {
                         code
                 );
 
-        int mode = accountMode;
+        // از accountMode استفاده نمی‌کنیم.
+        // همان حالت واقعی درخواست SMS استفاده می‌شود.
+        int mode = phoneVerificationMode;
+
+        if (mode != 1 && mode != 2) {
+
+            Toast.makeText(
+                    this,
+                    text(
+                            "درخواست تأیید شماره معتبر نیست. دوباره شماره را وارد کنید.",
+                            "Phone verification request is no longer valid. Please request a new code.",
+                            "د تلیفون د تایید غوښتنه نوره معتبره نه ده. بیا کوډ وغواړئ.",
+                            "فون کی تصدیق کی درخواست اب معتبر نہیں۔ دوبارہ کوڈ حاصل کریں۔",
+                            "फोन सत्यापन अनुरोध अब मान्य नहीं है। नया कोड प्राप्त करें।"
+                    ),
+                    Toast.LENGTH_LONG
+            ).show();
+
+            return;
+        }
 
         completePhoneLogin(
                 credential,
@@ -1383,17 +1449,12 @@ public class AccountActivity extends Activity {
                                         "फोन अकाउंट बनाया गया 🎉"
                                 ),
                                 Toast.LENGTH_LONG
-                        );
+                        ).show();
 
                     } else {
 
                         // --------------------------------------
                         // ورود با شماره
-                        // اگر شماره قبلاً حساب داشته باشد،
-                        // همان UID و همان اطلاعات باز می‌شود.
-                        //
-                        // اگر شماره جدید باشد،
-                        // Firebase حساب جدید می‌سازد.
                         // --------------------------------------
 
                         loadUserProfile(user);
@@ -1412,11 +1473,12 @@ public class AccountActivity extends Activity {
                                         "फोन से लॉग इन सफल हुआ ✅"
                                 ),
                                 Toast.LENGTH_LONG
-                        );
+                        ).show();
                     }
 
                     verificationId = null;
                     resendToken = null;
+                    phoneVerificationMode = 0;
 
                     clearLoginFields();
 
@@ -1502,6 +1564,8 @@ public class AccountActivity extends Activity {
         verificationId = null;
 
         resendToken = null;
+
+        phoneVerificationMode = 0;
     }
 
     // ==========================================
@@ -1963,4 +2027,4 @@ public class AccountActivity extends Activity {
                 blue
         );
     }
-            }
+}
