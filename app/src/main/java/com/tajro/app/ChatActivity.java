@@ -2962,7 +2962,7 @@ header.addView(chatMenu,
                 com.google.android.gms.tasks.Tasks.await(tokenTask);
         String token = tokenResult.getToken();
         Object firebaseRole = tokenResult.getClaims().get("role");
-Log.d("SupabaseAuth", "Firebase JWT role = " + firebaseRole);
+throw new Exception("FIREBASE_ROLE = " + firebaseRole);
         if (token == null || token.isEmpty()) throw new IllegalStateException("No Firebase token");
 
         HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
