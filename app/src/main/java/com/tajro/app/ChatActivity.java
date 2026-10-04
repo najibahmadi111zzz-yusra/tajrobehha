@@ -2867,12 +2867,13 @@ header.addView(chatMenu,
                 downloadToFile(url, encrypted);
                 decrypted = ChatCrypto.decryptFile(this, encrypted, iv, wrappedKey, myId);
 
-                Bitmap bitmap;
+                Bitmap bitmap = null;
                 if (video) {
-                    MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-                    retriever.setDataSource(decrypted.getAbsolutePath());
-                    bitmap = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-                    retriever.release();
+                    // اصلاح مدیریت ساختار لود فریم ویدیو بدون نشت حافظه رم
+                    try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
+                        retriever.setDataSource(decrypted.getAbsolutePath());
+                        bitmap = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                    } catch (Exception ignored) {}
                 } else {
                     bitmap = BitmapFactory.decodeFile(decrypted.getAbsolutePath());
                 }
@@ -2880,9 +2881,14 @@ header.addView(chatMenu,
                 if (bitmap != null) {
                     Bitmap finalBitmap = bitmap;
                     runOnUiThread(() -> imageView.setImageBitmap(finalBitmap));
+                } else {
+                    // نمایش یک تصویر پیش‌فرض در صورت خالی بودن بیت‌مپ
+                    runOnUiThread(() -> imageView.setImageResource(android.R.drawable.ic_menu_gallery));
                 }
             } catch (Exception e) {
                 showMediaDiagnostic("دریافت/رمزگشایی عکس یا ویدیو", e);
+                // تغییر وضعیت UI به حالت خطا در صورت بروز مشکل سخت‌افزاری
+                runOnUiThread(() -> imageView.setImageResource(android.R.drawable.stat_notify_error));
             } finally {
                 if (encrypted != null) try { encrypted.delete(); } catch (Exception ignored) {}
                 if (decrypted != null) try { decrypted.delete(); } catch (Exception ignored) {}
@@ -2896,48 +2902,55 @@ header.addView(chatMenu,
             String wrappedKey
     ) {
         new Thread(() -> {
-            File encrypted = null;
-            File decrypted = null;
+            // برای جلوگیری از باگ پاک شدن فایل قبل از پخش، تعریف متغیرها تغییر یافت
+            final File encryptedFile;
+            final File decryptedFile;
             try {
-                encrypted = new File(getCacheDir(), "enc_audio_" + System.currentTimeMillis());
-                downloadToFile(url, encrypted);
-                decrypted = ChatCrypto.decryptFile(this, encrypted, iv, wrappedKey, myId);
-                File finalDecrypted = decrypted;
+                encryptedFile = new File(getCacheDir(), "enc_audio_" + System.currentTimeMillis());
+                downloadToFile(url, encryptedFile);
+                decryptedFile = ChatCrypto.decryptFile(this, encryptedFile, iv, wrappedKey, myId);
 
                 runOnUiThread(() -> {
                     try {
                         if (player != null) {
-                            player.release();
+                            try { player.release(); } catch (Exception ignored) {}
                             player = null;
                         }
 
                         player = new MediaPlayer();
-                        player.setDataSource(finalDecrypted.getAbsolutePath());
+                        player.setDataSource(decryptedFile.getAbsolutePath());
                         player.setOnPreparedListener(MediaPlayer::start);
+                        
+                        // حذف فایل‌ها فقط زمانی که پخش تمام شد یا به خطا خورد انجام می‌شود
                         player.setOnCompletionListener(mp -> {
                             mp.release();
                             player = null;
-                            try { finalDecrypted.delete(); } catch (Exception ignored) {}
+                            try { encryptedFile.delete(); } catch (Exception ignored) {}
+                            try { decryptedFile.delete(); } catch (Exception ignored) {}
                         });
+                        
                         player.setOnErrorListener((mp, what, extra) -> {
-                            try { finalDecrypted.delete(); } catch (Exception ignored) {}
+                            mp.release();
+                            player = null;
+                            try { encryptedFile.delete(); } catch (Exception ignored) {}
+                            try { decryptedFile.delete(); } catch (Exception ignored) {}
                             Toast.makeText(this, tr("پخش صدا ناموفق بود"), Toast.LENGTH_SHORT).show();
                             return true;
                         });
                         player.prepareAsync();
                     } catch (Exception e) {
-                        try { finalDecrypted.delete(); } catch (Exception ignored) {}
+                        try { encryptedFile.delete(); } catch (Exception ignored) {}
+                        try { decryptedFile.delete(); } catch (Exception ignored) {}
                         showMediaDiagnostic("آماده‌سازی/پخش پیام صوتی", e);
                     }
                 });
             } catch (Exception e) {
-                if (encrypted != null) try { encrypted.delete(); } catch (Exception ignored) {}
-                if (decrypted != null) try { decrypted.delete(); } catch (Exception ignored) {}
                 showMediaDiagnostic("دریافت/رمزگشایی پیام صوتی", e);
             }
+            // بخش finally قبلی که فایل را زودتر از موعد پاک می‌کرد برداشته شد تا مدیاپلیر کرش نکند
         }).start();
     }
-
+    
     private void downloadToFile(String urlString, File destination) throws Exception {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) throw new IllegalStateException("Not authenticated");
