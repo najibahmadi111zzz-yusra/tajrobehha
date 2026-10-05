@@ -1254,7 +1254,7 @@ titleText =
                                                 final String finalUid = uid;
 
                                                 LinearLayout row =
-                                                        new LinearLayout(this);
+                                              new LinearLayout(ChatActivity.this);
 
                                                 row.setGravity(
                                                         Gravity.CENTER_VERTICAL
@@ -1278,7 +1278,7 @@ titleText =
                                                 row.addView(avatar);
 
                                                 LinearLayout info =
-                                                        new LinearLayout(this);
+                                                   new LinearLayout(this);
 
                                                 info.setOrientation(
                                                         LinearLayout.VERTICAL
