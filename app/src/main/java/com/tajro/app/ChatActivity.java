@@ -16,6 +16,8 @@ import android.text.TextWatcher;
 import android.graphics.Typeface;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.media.ToneGenerator;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -122,7 +124,11 @@ public class ChatActivity extends Activity {
 
     private MediaRecorder recorder;
     private MediaPlayer player;
+    private ToneGenerator messageTone;
     private String audioPath;
+
+    private boolean incomingInitialSnapshotReady = false;
+    private final Set<String> soundedIncomingMessageIds = new HashSet<>();
 
     private final android.os.Handler typingHandler =
             new android.os.Handler();
@@ -2348,6 +2354,8 @@ receiverPhotoUrl = photoUrl;
         headerAvatar =
                 avatarView(62);
 
+        headerAvatar.setClipToOutline(true);
+
         if (photoUrl != null &&
                 !photoUrl.isEmpty()) {
 
@@ -2645,6 +2653,9 @@ header.addView(chatMenu,
 
         removeMessageListeners();
 
+        incomingInitialSnapshotReady = false;
+        soundedIncomingMessageIds.clear();
+
         sentMessageListener =
                 db.collection("messages")
                         .whereEqualTo(
@@ -2658,7 +2669,8 @@ header.addView(chatMenu,
                         .addSnapshotListener(
                                 (snapshot, error) ->
                                         handleMessages(
-                                                snapshot
+                                                snapshot,
+                                                false
                                         )
                         );
 
@@ -2675,13 +2687,15 @@ header.addView(chatMenu,
                         .addSnapshotListener(
                                 (snapshot, error) ->
                                         handleMessages(
-                                                snapshot
+                                                snapshot,
+                                                true
                                         )
                         );
     }
 
     private void handleMessages(
-            QuerySnapshot snapshot
+            QuerySnapshot snapshot,
+            boolean incoming
     ) {
 
         if (snapshot == null ||
@@ -2695,13 +2709,69 @@ header.addView(chatMenu,
                 snapshot.getDocumentChanges()
         ) {
 
+            DocumentSnapshot document =
+                    change.getDocument();
+
+            String id =
+                    document.getId();
+
             messageCache.put(
-                    change.getDocument().getId(),
-                    change.getDocument()
+                    id,
+                    document
             );
+
+            if (incoming) {
+
+                Boolean read =
+                        document.getBoolean("read");
+
+                if (read == null || !read) {
+
+                    db.collection("messages")
+                            .document(id)
+                            .update("read", true);
+                }
+
+                if (incomingInitialSnapshotReady &&
+                        change.getType() ==
+                                DocumentChange.Type.ADDED) {
+
+                    if (soundedIncomingMessageIds.add(id)) {
+                        playIncomingMessageSound();
+                    }
+                }
+            }
+        }
+
+        if (incoming) {
+            incomingInitialSnapshotReady = true;
         }
 
         renderMessages();
+    }
+
+    private void playIncomingMessageSound() {
+
+        try {
+
+            if (messageTone != null) {
+                messageTone.release();
+                messageTone = null;
+            }
+
+            messageTone =
+                    new ToneGenerator(
+                            AudioManager.STREAM_NOTIFICATION,
+                            80
+                    );
+
+            messageTone.startTone(
+                    ToneGenerator.TONE_PROP_BEEP,
+                    180
+            );
+
+        } catch (Exception ignored) {
+        }
     }
 
     private void renderMessages() {
@@ -2833,7 +2903,10 @@ header.addView(chatMenu,
             addTextMessage(
                     message,
                     sender,
-                    d.getId()
+                    d.getId(),
+                    Boolean.TRUE.equals(
+                            d.getBoolean("read")
+                    )
             );
 
         } else if ("image".equals(type)) {
@@ -2847,7 +2920,10 @@ header.addView(chatMenu,
                         url,
                         false,
                         sender,
-                        d.getId()
+                        d.getId(),
+                        Boolean.TRUE.equals(
+                                d.getBoolean("read")
+                        )
                 );
             }
 
@@ -2862,7 +2938,10 @@ header.addView(chatMenu,
                         url,
                         true,
                         sender,
-                        d.getId()
+                        d.getId(),
+                        Boolean.TRUE.equals(
+                                d.getBoolean("read")
+                        )
                 );
             }
 
@@ -2876,7 +2955,10 @@ header.addView(chatMenu,
                 addAudioMessage(
                         url,
                         sender,
-                        d.getId()
+                        d.getId(),
+                        Boolean.TRUE.equals(
+                                d.getBoolean("read")
+                        )
                 );
             }
         }
@@ -2891,14 +2973,16 @@ header.addView(chatMenu,
         addTextMessage(
                 message,
                 sender,
-                messageId
+                messageId,
+                false
         );
     }
 
     private void addTextMessage(
             String message,
             String sender,
-            String messageId
+            String messageId,
+            boolean read
     ) {
 
         TextView bubble =
@@ -2909,6 +2993,13 @@ header.addView(chatMenu,
 
         boolean mine =
                 myId.equals(sender);
+
+        if (mine) {
+            bubble.setText(
+                    message +
+                            (read ? "  ✓✓" : "  ✓")
+            );
+        }
 
         bubble.setTextColor(
                 mine
@@ -2974,7 +3065,8 @@ header.addView(chatMenu,
             String url,
             boolean video,
             String sender,
-            String messageId
+            String messageId,
+            boolean read
     ) {
 
         ImageView image =
@@ -3033,6 +3125,10 @@ header.addView(chatMenu,
                 p
         );
 
+        if (mine) {
+            addReceiptView(read, p.gravity);
+        }
+
         if (!video) {
 
             image.setOnClickListener(
@@ -3059,7 +3155,8 @@ header.addView(chatMenu,
     private void addAudioMessage(
             String url,
             String sender,
-            String messageId
+            String messageId,
+            boolean read
     ) {
 
         Button play =
@@ -3101,6 +3198,10 @@ header.addView(chatMenu,
                 p
         );
 
+        if (mine) {
+            addReceiptView(read, p.gravity);
+        }
+
         if (messageId != null) {
 
             play.setOnLongClickListener(
@@ -3114,6 +3215,42 @@ header.addView(chatMenu,
                     }
             );
         }
+    }
+
+    private void addReceiptView(
+            boolean read,
+            int gravity
+    ) {
+
+        TextView receipt =
+                text(
+                        read ? "✓✓" : "✓",
+                        12
+                );
+
+        receipt.setTextColor(
+                Color.GRAY
+        );
+
+        LinearLayout.LayoutParams p =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+        p.gravity = gravity;
+
+        p.setMargins(
+                dp(6),
+                0,
+                dp(6),
+                dp(1)
+        );
+
+        messagesContainer.addView(
+                receipt,
+                p
+        );
     }
 
     private void showDeleteMenu(
@@ -5347,6 +5484,17 @@ protected void onResume() {
 
         player = null;
 
+        try {
+
+            if (messageTone != null) {
+                messageTone.release();
+            }
+
+        } catch (Exception ignored) {
+        }
+
+        messageTone = null;
+
         super.onDestroy();
     }
 
@@ -5780,4 +5928,4 @@ private void blockCurrentUser() {
 
 }
     
-            }
+}
