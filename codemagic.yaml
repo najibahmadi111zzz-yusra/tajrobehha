@@ -5,10 +5,10 @@ workflows:
     instance_type: mac_mini_m2
 
     environment:
-  android_signing:
-    - tajroba_release
-  groups:
-    - OPENROUTER
+      android_signing:
+        - tajroba_release
+      groups:
+        - OPENROUTER
 
     scripts:
       - name: Prepare Gradle
