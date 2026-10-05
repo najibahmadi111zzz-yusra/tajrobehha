@@ -84,6 +84,9 @@ public class ChatActivity extends Activity {
 
     private LinearLayout root;
     private LinearLayout usersContainer;
+    private EditText userSearchInput;
+    private final List<DocumentSnapshot> visibleUsersCache =
+            new ArrayList<>();
     private LinearLayout messagesContainer;
     private ScrollView messagesScroll;
 
@@ -108,6 +111,11 @@ public class ChatActivity extends Activity {
     private boolean recording = false;
     private boolean typing = false;
     private boolean blocked = false;
+
+    // فقط برای تشخیص پیام جدید؛ منطق اصلی چت تغییر نمی‌کند.
+    private boolean sentInitialMessagesLoaded = false;
+    private boolean receivedInitialMessagesLoaded = false;
+    private boolean messageSoundReady = false;
 
     private ListenerRegistration sentMessageListener;
     private ListenerRegistration receivedMessageListener;
@@ -205,6 +213,8 @@ public class ChatActivity extends Activity {
                 case "💬 کاربران": return "💬 Users";
                 case "یک کاربر را انتخاب کنید تا چت خصوصی باز شود.": return "Select a user to open a private chat.";
                 case "هنوز کاربر دیگری پیدا نشد.": return "No other users found yet.";
+                case "جستجوی کاربر": return "Search users";
+                case "کاربری با این جستجو پیدا نشد.": return "No user found for this search.";
                 case "خطا در دریافت کاربران": return "Error loading users";
                 case "کاربر": return "User";
                 case " 🚫 مسدود": return " 🚫 Blocked";
@@ -965,6 +975,58 @@ titleText =
 
         root.addView(info);
 
+        userSearchInput =
+                new EditText(this);
+
+        userSearchInput.setSingleLine(true);
+        userSearchInput.setHint(tr("جستجوی کاربر"));
+        userSearchInput.setTextSize(15);
+        userSearchInput.setPadding(
+                dp(14),
+                dp(8),
+                dp(14),
+                dp(8)
+        );
+
+        LinearLayout.LayoutParams searchParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+        searchParams.setMargins(
+                dp(10),
+                dp(4),
+                dp(10),
+                dp(6)
+        );
+
+        root.addView(
+                userSearchInput,
+                searchParams
+        );
+
+        userSearchInput.addTextChangedListener(
+                new TextWatcher() {
+                    @Override
+                    public void beforeTextChanged(
+                            CharSequence s, int start, int count, int after) {
+                    }
+
+                    @Override
+                    public void onTextChanged(
+                            CharSequence s, int start, int before, int count) {
+                        renderFilteredUsers(
+                                s == null ? "" : s.toString()
+                        );
+                    }
+
+                    @Override
+                    public void afterTextChanged(Editable s) {
+                    }
+                }
+        );
+
         ScrollView scroll =
                 new ScrollView(this);
 
@@ -1084,8 +1146,7 @@ titleText =
                 .addOnSuccessListener(
                         snapshot -> {
 
-                            usersContainer
-                                    .removeAllViews();
+                            visibleUsersCache.clear();
 
                             List<DocumentSnapshot> users =
                                     new ArrayList<>();
@@ -1098,8 +1159,6 @@ titleText =
                                     snapshot.getDocuments()
                             ) {
 
-                                // شناسه واقعی حساب را از userId می‌گیریم، نه فقط Document ID.
-                                // اگر یک حساب دو سند داشته باشد، فقط یک‌بار نمایش داده می‌شود.
                                 String id =
                                         d.getString("userId");
 
@@ -1128,12 +1187,8 @@ titleText =
                                     users,
                                     Comparator.comparing(
                                             d -> {
-
                                                 String n =
-                                                        d.getString(
-                                                                "name"
-                                                        );
-
+                                                        d.getString("name");
                                                 return n == null
                                                         ? ""
                                                         : n;
@@ -1142,31 +1197,14 @@ titleText =
                                     )
                             );
 
-                            if (users.isEmpty()) {
+                            visibleUsersCache.addAll(users);
 
-                                TextView empty =
-                                        text(
-                                                tr("هنوز کاربر دیگری پیدا نشد."),
-                                                16
-                                        );
+                            String query =
+                                    userSearchInput == null
+                                            ? ""
+                                            : userSearchInput.getText().toString();
 
-                                empty.setGravity(
-                                        Gravity.CENTER
-                                );
-
-                                usersContainer
-                                        .addView(empty);
-
-                                return;
-                            }
-
-                            for (
-                                    DocumentSnapshot d :
-                                    users
-                            ) {
-
-                                addUserItem(d);
-                            }
+                            renderFilteredUsers(query);
                         }
                 )
                 .addOnFailureListener(
@@ -1177,6 +1215,53 @@ titleText =
                                         Toast.LENGTH_SHORT
                                 ).show()
                 );
+    }
+
+    private void renderFilteredUsers(String query) {
+
+        if (usersContainer == null) return;
+
+        usersContainer.removeAllViews();
+
+        String q =
+                query == null
+                        ? ""
+                        : query.trim().toLowerCase(java.util.Locale.ROOT);
+
+        int shown = 0;
+
+        for (DocumentSnapshot d : visibleUsersCache) {
+
+            String name = d.getString("name");
+            String email = d.getString("email");
+
+            String nameValue =
+                    name == null ? "" : name.toLowerCase(java.util.Locale.ROOT);
+            String emailValue =
+                    email == null ? "" : email.toLowerCase(java.util.Locale.ROOT);
+
+            if (!q.isEmpty() &&
+                    !nameValue.contains(q) &&
+                    !emailValue.contains(q)) {
+                continue;
+            }
+
+            addUserItem(d);
+            shown++;
+        }
+
+        if (shown == 0) {
+            TextView empty =
+                    text(
+                            q.isEmpty()
+                                    ? tr("هنوز کاربر دیگری پیدا نشد.")
+                                    : tr("کاربری با این جستجو پیدا نشد."),
+                            16
+                    );
+
+            empty.setGravity(Gravity.CENTER);
+            usersContainer.addView(empty);
+        }
     }
 
     private void addUserItem(
@@ -2281,6 +2366,10 @@ header.addView(chatMenu,
 
         removeMessageListeners();
 
+        sentInitialMessagesLoaded = false;
+        receivedInitialMessagesLoaded = false;
+        messageSoundReady = false;
+
         sentMessageListener =
                 db.collection("messages")
                         .whereEqualTo(
@@ -2294,7 +2383,8 @@ header.addView(chatMenu,
                         .addSnapshotListener(
                                 (snapshot, error) ->
                                         handleMessages(
-                                                snapshot
+                                                snapshot,
+                                                false
                                         )
                         );
 
@@ -2311,13 +2401,15 @@ header.addView(chatMenu,
                         .addSnapshotListener(
                                 (snapshot, error) ->
                                         handleMessages(
-                                                snapshot
+                                                snapshot,
+                                                true
                                         )
                         );
     }
 
     private void handleMessages(
-            QuerySnapshot snapshot
+            QuerySnapshot snapshot,
+            boolean incoming
     ) {
 
         if (snapshot == null ||
@@ -2331,13 +2423,86 @@ header.addView(chatMenu,
                 snapshot.getDocumentChanges()
         ) {
 
+            DocumentSnapshot document =
+                    change.getDocument();
+
             messageCache.put(
-                    change.getDocument().getId(),
-                    change.getDocument()
+                    document.getId(),
+                    document
             );
+
+            if (incoming &&
+                    messageSoundReady &&
+                    change.getType() == DocumentChange.Type.ADDED &&
+                    !myId.equals(document.getString("senderId"))) {
+                playIncomingMessageSound();
+            }
+        }
+
+        if (incoming) {
+            if (!receivedInitialMessagesLoaded) {
+                receivedInitialMessagesLoaded = true;
+            }
+        } else {
+            if (!sentInitialMessagesLoaded) {
+                sentInitialMessagesLoaded = true;
+            }
+        }
+
+        if (sentInitialMessagesLoaded &&
+                receivedInitialMessagesLoaded) {
+            messageSoundReady = true;
         }
 
         renderMessages();
+
+        if (incoming) {
+            markIncomingMessagesRead();
+        }
+    }
+
+    private void playIncomingMessageSound() {
+
+        try {
+            final MediaPlayer notificationPlayer =
+                    MediaPlayer.create(
+                            this,
+                            android.provider.Settings.System.DEFAULT_NOTIFICATION_URI
+                    );
+
+            if (notificationPlayer == null) return;
+
+            notificationPlayer.setOnCompletionListener(
+                    MediaPlayer::release
+            );
+
+            notificationPlayer.start();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void markIncomingMessagesRead() {
+
+        if (!insideChat ||
+                receiverId == null ||
+                currentChatId == null) {
+            return;
+        }
+
+        db.collection("messages")
+                .whereEqualTo("chatId", currentChatId)
+                .whereEqualTo("receiverId", myId)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    for (DocumentSnapshot d : snapshot.getDocuments()) {
+                        Boolean read = d.getBoolean("read");
+                        if (read == null || !read) {
+                            db.collection("messages")
+                                    .document(d.getId())
+                                    .update("read", true);
+                        }
+                    }
+                });
     }
 
     private void renderMessages() {
@@ -2469,7 +2634,8 @@ header.addView(chatMenu,
             addTextMessage(
                     message,
                     sender,
-                    d.getId()
+                    d.getId(),
+                    Boolean.TRUE.equals(d.getBoolean("read"))
             );
 
         } else if ("image".equals(type)) {
@@ -2483,7 +2649,8 @@ header.addView(chatMenu,
                         url,
                         false,
                         sender,
-                        d.getId()
+                        d.getId(),
+                        Boolean.TRUE.equals(d.getBoolean("read"))
                 );
             }
 
@@ -2498,7 +2665,8 @@ header.addView(chatMenu,
                         url,
                         true,
                         sender,
-                        d.getId()
+                        d.getId(),
+                        Boolean.TRUE.equals(d.getBoolean("read"))
                 );
             }
 
@@ -2512,7 +2680,8 @@ header.addView(chatMenu,
                 addAudioMessage(
                         url,
                         sender,
-                        d.getId()
+                        d.getId(),
+                        Boolean.TRUE.equals(d.getBoolean("read"))
                 );
             }
         }
@@ -2527,14 +2696,16 @@ header.addView(chatMenu,
         addTextMessage(
                 message,
                 sender,
-                messageId
+                messageId,
+                false
         );
     }
 
     private void addTextMessage(
             String message,
             String sender,
-            String messageId
+            String messageId,
+            boolean read
     ) {
 
         TextView bubble =
@@ -2586,10 +2757,33 @@ header.addView(chatMenu,
                         ? Gravity.END
                         : Gravity.START;
 
-        messagesContainer.addView(
-                bubble,
-                p
+        LinearLayout messageRow =
+                new LinearLayout(this);
+
+        messageRow.setGravity(
+                mine ? Gravity.END : Gravity.START
         );
+
+        messageRow.addView(bubble, p);
+
+        if (mine) {
+            TextView tick = createMessageTick(read);
+            messageRow.addView(
+                    tick,
+                    new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+            );
+        }
+
+        LinearLayout.LayoutParams rowParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+        rowParams.setMargins(dp(2), dp(1), dp(2), dp(1));
+        messagesContainer.addView(messageRow, rowParams);
 
         if (messageId != null) {
 
@@ -2610,7 +2804,8 @@ header.addView(chatMenu,
             String url,
             boolean video,
             String sender,
-            String messageId
+            String messageId,
+            boolean read
     ) {
 
         ImageView image =
@@ -2664,10 +2859,31 @@ header.addView(chatMenu,
                 dp(5)
         );
 
-        messagesContainer.addView(
-                image,
-                p
+        LinearLayout messageRow =
+                new LinearLayout(this);
+
+        messageRow.setGravity(
+                mine ? Gravity.END : Gravity.START
         );
+
+        messageRow.addView(image, p);
+
+        if (mine) {
+            messageRow.addView(
+                    createMessageTick(read),
+                    new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+            );
+        }
+
+        LinearLayout.LayoutParams rowParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+        messagesContainer.addView(messageRow, rowParams);
 
         if (!video) {
 
@@ -2695,7 +2911,8 @@ header.addView(chatMenu,
     private void addAudioMessage(
             String url,
             String sender,
-            String messageId
+            String messageId,
+            boolean read
     ) {
 
         Button play =
@@ -2732,10 +2949,31 @@ header.addView(chatMenu,
                 dp(4)
         );
 
-        messagesContainer.addView(
-                play,
-                p
+        LinearLayout messageRow =
+                new LinearLayout(this);
+
+        messageRow.setGravity(
+                mine ? Gravity.END : Gravity.START
         );
+
+        messageRow.addView(play, p);
+
+        if (mine) {
+            messageRow.addView(
+                    createMessageTick(read),
+                    new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+            );
+        }
+
+        LinearLayout.LayoutParams rowParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+        messagesContainer.addView(messageRow, rowParams);
 
         if (messageId != null) {
 
@@ -2750,6 +2988,23 @@ header.addView(chatMenu,
                     }
             );
         }
+    }
+
+    private TextView createMessageTick(boolean read) {
+
+        TextView tick =
+                text(
+                        read ? "✓✓" : "✓",
+                        12
+                );
+
+        tick.setTextColor(
+                read ? Color.rgb(80, 190, 255) : Color.WHITE
+        );
+
+        tick.setGravity(Gravity.CENTER);
+        tick.setPadding(dp(3), dp(2), dp(4), dp(2));
+        return tick;
     }
 
     private void showDeleteMenu(
