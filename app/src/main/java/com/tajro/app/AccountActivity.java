@@ -1240,51 +1240,35 @@ public class AccountActivity extends Activity {
                                     }
 
                                     @Override
-                                    public void onVerificationFailed(
-                                            FirebaseException e
-                                    ) {
+public void onVerificationFailed(FirebaseException e) {
 
-                                        String errorMessage =
-                                                e.getMessage();
+    String errorMessage = e.getMessage();
+    if (errorMessage == null || errorMessage.trim().isEmpty()) {
+        errorMessage = e.toString();
+    }
 
-                                        if (errorMessage == null
-                                                || errorMessage.trim().isEmpty()) {
+    String errorClass = e.getClass().getName();
 
-                                            errorMessage =
-                                                    e.toString();
-                                        }
+    Toast.makeText(
+        AccountActivity.this,
+        text(
+            "تأیید شماره ناموفق شد:\n",
+            "Phone verification failed:\n",
+            "د تلیفون تایید ناکام شو:\n",
+            "فون کی تصدیق ناکام ہوئی:\n",
+            "फोन सत्यापन विफल हुआ:\n"
+        )
+        + "CLASS: "
+        + errorClass
+        + "\nMESSAGE: "
+        + errorMessage,
+        Toast.LENGTH_LONG
+    ).show();
 
-                                        String errorCode =
-                                                "unknown";
-
-                                        if (e instanceof FirebaseAuthException) {
-
-                                            errorCode =
-                                                    ((FirebaseAuthException) e)
-                                                            .getErrorCode();
-                                        }
-
-                                        Toast.makeText(
-                                                AccountActivity.this,
-                                                text(
-                                                        "تأیید شماره ناموفق شد:\n",
-                                                        "Phone verification failed:\n",
-                                                        "د تلیفون تایید ناکام شو:\n",
-                                                        "فون کی تصدیق ناکام ہوئی:\n",
-                                                        "फोन सत्यापन विफल हुआ:\n"
-                                                )
-                                                + "CODE: "
-                                                + errorCode
-                                                + "\n"
-                                                + errorMessage,
-                                                Toast.LENGTH_LONG
-                                        ).show();
-
-                                        verificationId = null;
-                                        resendToken = null;
-
-                                        updateScreen();
-                                    }
+    verificationId = null;
+    resendToken = null;
+    updateScreen();
+}
 
                                     @Override
                                     public void onCodeSent(
