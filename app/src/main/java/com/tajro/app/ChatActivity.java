@@ -1278,7 +1278,7 @@ titleText =
                                                 row.addView(avatar);
 
                                                 LinearLayout info =
-                                                   new LinearLayout(this);
+                                                   new LinearLayout(ChatActivity.this);
 
                                                 info.setOrientation(
                                                         LinearLayout.VERTICAL
