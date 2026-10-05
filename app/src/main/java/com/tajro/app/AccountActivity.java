@@ -1,6 +1,7 @@
 package com.tajro.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.content.Context;
 import android.graphics.Color;
@@ -1238,37 +1239,52 @@ public class AccountActivity extends Activity {
                                                 phoneVerificationMode
                                         );
                                     }
-
+                                    
                                     @Override
 public void onVerificationFailed(FirebaseException e) {
 
     String errorMessage = e.getMessage();
+
     if (errorMessage == null || errorMessage.trim().isEmpty()) {
         errorMessage = e.toString();
     }
 
     String errorClass = e.getClass().getName();
 
-    Toast.makeText(
-        AccountActivity.this,
-        text(
-            "تأیید شماره ناموفق شد:\n",
-            "Phone verification failed:\n",
-            "د تلیفون تایید ناکام شو:\n",
-            "فون کی تصدیق ناکام ہوئی:\n",
-            "फोन सत्यापन विफल हुआ:\n"
-        )
-        + "CLASS: "
-        + errorClass
-        + "\nMESSAGE: "
-        + errorMessage,
-        Toast.LENGTH_LONG
-    ).show();
+    String fullError =
+            "CLASS:\n"
+            + errorClass
+            + "\n\nMESSAGE:\n"
+            + errorMessage;
+
+    new AlertDialog.Builder(AccountActivity.this)
+            .setTitle(
+                    text(
+                            "خطای ورود با شماره",
+                            "Phone Login Error",
+                            "د تلیفون د ننوتلو تېروتنه",
+                            "فون لاگ اِن کی خرابی",
+                            "फ़ोन लॉगिन त्रुटि"
+                    )
+            )
+            .setMessage(fullError)
+            .setPositiveButton(
+                    text(
+                            "باشه",
+                            "OK",
+                            "سمه ده",
+                            "ٹھیک ہے",
+                            "ठीक है"
+                    ),
+                    null
+            )
+            .show();
 
     verificationId = null;
     resendToken = null;
     updateScreen();
 }
+                
 
                                     @Override
                                     public void onCodeSent(
