@@ -18,6 +18,7 @@ import android.widget.Toast;
 
 import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthOptions;
@@ -1253,6 +1254,16 @@ public class AccountActivity extends Activity {
                                                     e.toString();
                                         }
 
+                                        String errorCode =
+                                                "unknown";
+
+                                        if (e instanceof FirebaseAuthException) {
+
+                                            errorCode =
+                                                    ((FirebaseAuthException) e)
+                                                            .getErrorCode();
+                                        }
+
                                         Toast.makeText(
                                                 AccountActivity.this,
                                                 text(
@@ -1262,6 +1273,9 @@ public class AccountActivity extends Activity {
                                                         "فون کی تصدیق ناکام ہوئی:\n",
                                                         "फोन सत्यापन विफल हुआ:\n"
                                                 )
+                                                + "CODE: "
+                                                + errorCode
+                                                + "\n"
                                                 + errorMessage,
                                                 Toast.LENGTH_LONG
                                         ).show();
@@ -1661,8 +1675,8 @@ public class AccountActivity extends Activity {
                                     "نام شما ذخیره شد ✅",
                                     "Your name was saved ✅",
                                     "ستاسو نوم خوندي شو ✅",
-                                    "آپ کا نام محفوظ ہو گیا ✅",
-                                    "आपका नाम सेव हो गया ✅"
+                                    "آپ کا نام محفوظ ہو گیا ہے ✅",
+                                    "आपका नाम सेव हो गया है ✅"
                             ),
                             Toast.LENGTH_SHORT
                     );
@@ -2027,4 +2041,4 @@ public class AccountActivity extends Activity {
                 blue
         );
     }
-}
+            }
