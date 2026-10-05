@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -20,6 +21,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,49 +81,44 @@ public class ColorSortActivity extends Activity {
                         MODE_PRIVATE
                 );
 
-        // =========================
-        // AUDIO
-        // =========================
+        /* =========================================================
+           AUDIO
+           ========================================================= */
 
-        private AudioTrack activeAudioTrack;
+        private volatile AudioTrack activeAudioTrack;
         private Thread soundThread;
+
         private boolean soundEnabled = true;
 
-        // =========================
-        // VISUAL ANIMATION
-        // =========================
+        /* =========================================================
+           ANIMATION
+           ========================================================= */
 
         private float liquidWave = 0f;
         private float bottleGlow = 0f;
 
         private long victoryStart = 0L;
 
-        private long celebrationStart = 0L;
-        private boolean celebrationPlaying = false;
+        private final Random sparkleRandom = new Random(7319);
 
-        private final Random sparkleRandom =
-                new Random(7319);
+        private float[] particleX = new float[42];
+        private float[] particleY = new float[42];
+        private float[] particleSpeed = new float[42];
+        private float[] particleSize = new float[42];
+        private float[] particlePhase = new float[42];
 
-        // Stable celebration particles
-        private final float[] particleX = new float[36];
-        private final float[] particleY = new float[36];
-        private final float[] particleSpeed = new float[36];
-        private final float[] particleSize = new float[36];
+        /* =========================================================
+           GAME DATA
+           ========================================================= */
 
-        // =========================
-        // GAME DATA
-        // =========================
-
-        private final List<List<Integer>> tubes =
-                new ArrayList<>();
-
-        private final List<Move> history =
-                new ArrayList<>();
+        private final List<List<Integer>> tubes = new ArrayList<>();
+        private final List<Move> history = new ArrayList<>();
 
         private int selectedTube = -1;
 
         private int level = 1;
         private int moves = 0;
+
         private int coins = 0;
         private int totalStars = 0;
         private int lastEarnedCoins = 0;
@@ -130,20 +127,6 @@ public class ColorSortActivity extends Activity {
         private boolean levelFailed = false;
 
         private boolean running = true;
-
-        // =========================
-        // MISTAKES
-        // =========================
-
-        private int mistakeCount = 0;
-
-        private long mistakeShakeUntil = 0L;
-
-        private float mistakeShakeStrength = 0f;
-
-        // =========================
-        // MOVE ANIMATION
-        // =========================
 
         private long animStart = 0L;
 
@@ -154,26 +137,38 @@ public class ColorSortActivity extends Activity {
 
         private float animProgress = 1f;
 
-        // =========================
-        // HINT
-        // =========================
+        /* =========================================================
+           HINT
+           ========================================================= */
 
         private boolean showingHint = false;
-
         private int hintFrom = -1;
         private int hintTo = -1;
-
         private long hintUntil = 0L;
 
-        // =========================
-        // CONSTANTS
-        // =========================
+        /* =========================================================
+           ERROR / FAILURE SYSTEM
+           ========================================================= */
+
+        private int mistakes = 0;
+        private final int MAX_MISTAKES = 3;
+
+        private int errorFrom = -1;
+        private int errorTo = -1;
+
+        private long errorStart = 0L;
+        private int errorStrength = 0;
+
+        private long failureStart = 0L;
+
+        /* =========================================================
+           CONSTANTS
+           ========================================================= */
 
         private final int MAX_LEVEL = 30;
         private final int CAPACITY = 4;
 
         private final int[] colors = {
-
                 Color.rgb(255, 53, 69),
                 Color.rgb(38, 111, 255),
                 Color.rgb(41, 220, 78),
@@ -185,9 +180,9 @@ public class ColorSortActivity extends Activity {
                 Color.rgb(126, 73, 245)
         };
 
-        // =========================
-        // FRAME LOOP
-        // =========================
+        /* =========================================================
+           FRAME LOOP
+           ========================================================= */
 
         private final Runnable frame = new Runnable() {
 
@@ -207,9 +202,9 @@ public class ColorSortActivity extends Activity {
             }
         };
 
-        // =========================
-        // CONSTRUCTOR
-        // =========================
+        /* =========================================================
+           CONSTRUCTOR
+           ========================================================= */
 
         SortGameView() {
 
@@ -223,8 +218,7 @@ public class ColorSortActivity extends Activity {
 
             setFocusable(true);
 
-            soundEnabled =
-                    progressPrefs.getBoolean("sound", true);
+            soundEnabled = progressPrefs.getBoolean("sound", true);
 
             level = Math.max(
                     1,
@@ -244,14 +238,14 @@ public class ColorSortActivity extends Activity {
                     progressPrefs.getInt("stars", 0)
             );
 
-            createCelebrationParticles();
+            prepareVictoryParticles();
 
             resetLevel();
         }
 
-        // =========================
-        // ANIMATION CONTROL
-        // =========================
+        /* =========================================================
+           ANIMATION CONTROL
+           ========================================================= */
 
         void startAnimation() {
 
@@ -272,9 +266,9 @@ public class ColorSortActivity extends Activity {
             saveProgress();
         }
 
-        // =========================
-        // AUDIO ENGINE
-        // =========================
+        /* =========================================================
+           AUDIO SYSTEM
+           ========================================================= */
 
         private void playGameSound(final int kind) {
 
@@ -289,38 +283,33 @@ public class ColorSortActivity extends Activity {
                 @Override
                 public void run() {
 
-                    final int sr = 44100;
+                    final int sampleRate = 44100;
 
-                    /*
-                     * 1 = click
-                     * 2 = pouring
-                     * 3 = celebration
-                     * 4 = error
-                     */
+                    int durationMs;
 
-                    final int ms;
-
-                    if (kind == 3) {
-                        ms = 3200;
+                    if (kind == 1) {
+                        durationMs = 120;
                     } else if (kind == 2) {
-                        ms = 560;
+                        durationMs = 620;
+                    } else if (kind == 3) {
+                        durationMs = 3400;
                     } else if (kind == 4) {
-                        ms = 260;
+                        durationMs = 720;
                     } else {
-                        ms = 110;
+                        durationMs = 150;
                     }
 
-                    final int total =
-                            sr * ms / 1000;
+                    final int totalSamples =
+                            sampleRate * durationMs / 1000;
 
-                    int min = AudioTrack.getMinBufferSize(
-                            sr,
+                    int minBuffer = AudioTrack.getMinBufferSize(
+                            sampleRate,
                             AudioFormat.CHANNEL_OUT_MONO,
                             AudioFormat.ENCODING_PCM_16BIT
                     );
 
-                    if (min < 2048) {
-                        min = 2048;
+                    if (minBuffer <= 0) {
+                        minBuffer = 4096;
                     }
 
                     AudioTrack track = null;
@@ -329,10 +318,10 @@ public class ColorSortActivity extends Activity {
 
                         track = new AudioTrack(
                                 AudioManager.STREAM_MUSIC,
-                                sr,
+                                sampleRate,
                                 AudioFormat.CHANNEL_OUT_MONO,
                                 AudioFormat.ENCODING_PCM_16BIT,
-                                Math.max(min, 8192),
+                                Math.max(minBuffer, 8192),
                                 AudioTrack.MODE_STREAM
                         );
 
@@ -340,244 +329,303 @@ public class ColorSortActivity extends Activity {
 
                         track.play();
 
-                        byte[] buffer = new byte[4096];
+                        byte[] buffer = new byte[8192];
 
-                        double phase1 = 0;
-                        double phase2 = 0;
-                        double phase3 = 0;
+                        int position = 0;
 
-                        int pos = 0;
+                        float phase1 = 0f;
+                        float phase2 = 0f;
+                        float phase3 = 0f;
+                        float phase4 = 0f;
+
+                        float filteredNoise = 0f;
 
                         while (
-                                pos < total &&
-                                soundEnabled &&
-                                activeAudioTrack == track
+                                position < totalSamples
+                                        && soundEnabled
+                                        && activeAudioTrack == track
                         ) {
 
-                            int frames =
-                                    Math.min(
-                                            buffer.length / 2,
-                                            total - pos
-                                    );
+                            int frames = Math.min(
+                                    buffer.length / 2,
+                                    totalSamples - position
+                            );
 
                             for (int i = 0; i < frames; i++) {
 
+                                int sampleIndex = position + i;
+
                                 float q =
-                                        (pos + i) /
-                                        (float) Math.max(
-                                                1,
-                                                total - 1
-                                        );
+                                        sampleIndex /
+                                                (float) Math.max(
+                                                        1,
+                                                        totalSamples - 1
+                                                );
 
                                 float value = 0f;
 
-                                // -------------------------
-                                // CELEBRATION
-                                // -------------------------
+                                /* ---------------------------------
+                                   SIMPLE CLICK
+                                   --------------------------------- */
 
-                                if (kind == 3) {
+                                if (kind == 1) {
 
-                                    double[] notes = {
+                                    float freq = 690f;
 
-                                            523.25,
-                                            659.25,
-                                            783.99,
-                                            1046.50,
-
-                                            783.99,
-                                            659.25,
-                                            880.00,
-                                            1046.50,
-
-                                            1318.51,
-                                            1567.98
-                                    };
-
-                                    int noteIndex =
-                                            Math.min(
-                                                    notes.length - 1,
-                                                    (int)
-                                                            (q * notes.length)
+                                    phase1 +=
+                                            (float) (
+                                                    2.0 *
+                                                            Math.PI *
+                                                            freq /
+                                                            sampleRate
                                             );
 
-                                    double frequency =
+                                    float envelope =
+                                            (float) Math.exp(
+                                                    -q * 7.0
+                                            );
+
+                                    value =
+                                            (float) Math.sin(phase1)
+                                                    * envelope
+                                                    * 0.22f;
+
+                                }
+
+                                /* ---------------------------------
+                                   POUR SOUND
+                                   --------------------------------- */
+
+                                else if (kind == 2) {
+
+                                    float raw =
+                                            random.nextFloat() * 2f - 1f;
+
+                                    filteredNoise +=
+                                            (raw - filteredNoise)
+                                                    * 0.075f;
+
+                                    phase1 +=
+                                            (float) (
+                                                    2.0 *
+                                                            Math.PI *
+                                                            175 /
+                                                            sampleRate
+                                            );
+
+                                    phase2 +=
+                                            (float) (
+                                                    2.0 *
+                                                            Math.PI *
+                                                            365 /
+                                                            sampleRate
+                                            );
+
+                                    float envelope =
+                                            (float) Math.sin(
+                                                    Math.PI * q
+                                            );
+
+                                    value =
+                                            (
+                                                    filteredNoise * 0.70f
+                                                            +
+                                                            (float) Math.sin(phase1)
+                                                                    * 0.13f
+                                                            +
+                                                            (float) Math.sin(phase2)
+                                                                    * 0.07f
+                                            )
+                                                    * envelope
+                                                    * 0.82f;
+                                }
+
+                                /* ---------------------------------
+                                   LONG VICTORY MELODY
+                                   --------------------------------- */
+
+                                else if (kind == 3) {
+
+                                    float[] notes = {
+                                            523.25f,
+                                            659.25f,
+                                            783.99f,
+                                            1046.50f,
+                                            783.99f,
+                                            987.77f,
+                                            1174.66f,
+                                            1046.50f,
+                                            1318.51f,
+                                            1567.98f
+                                    };
+
+                                    float noteLength =
+                                            0.32f;
+
+                                    int noteIndex =
+                                            (int) (q * notes.length /
+                                                    noteLength);
+
+                                    noteIndex =
+                                            noteIndex % notes.length;
+
+                                    float notePos =
+                                            (q * 3.125f)
+                                                    % 1f;
+
+                                    float melodyFreq =
                                             notes[noteIndex];
 
                                     phase1 +=
-                                            2.0 *
-                                            Math.PI *
-                                            frequency /
-                                            sr;
+                                            (float) (
+                                                    2.0 *
+                                                            Math.PI *
+                                                            melodyFreq /
+                                                            sampleRate
+                                            );
 
                                     phase2 +=
-                                            2.0 *
-                                            Math.PI *
-                                            frequency *
-                                            2.0 /
-                                            sr;
+                                            (float) (
+                                                    2.0 *
+                                                            Math.PI *
+                                                            melodyFreq *
+                                                            0.5 /
+                                                            sampleRate
+                                            );
 
                                     phase3 +=
-                                            2.0 *
-                                            Math.PI *
-                                            frequency *
-                                            0.5 /
-                                            sr;
+                                            (float) (
+                                                    2.0 *
+                                                            Math.PI *
+                                                            104.66 /
+                                                            sampleRate
+                                            );
+
+                                    phase4 +=
+                                            (float) (
+                                                    2.0 *
+                                                            Math.PI *
+                                                            156.80 /
+                                                            sampleRate
+                                            );
 
                                     float attack =
                                             Math.min(
                                                     1f,
-                                                    q * 18f
+                                                    notePos / 0.10f
                                             );
 
-                                    float fade =
+                                    float release =
                                             Math.min(
                                                     1f,
-                                                    (1f - q) * 9f
+                                                    (1f - notePos) / 0.18f
                                             );
 
-                                    float envelope =
-                                            attack * fade;
+                                    float noteEnvelope =
+                                            Math.min(
+                                                    attack,
+                                                    release
+                                            );
+
+                                    float overall;
+
+                                    if (q < 0.08f) {
+                                        overall = q / 0.08f;
+                                    } else if (q > 0.90f) {
+                                        overall =
+                                                (1f - q) / 0.10f;
+                                    } else {
+                                        overall = 1f;
+                                    }
+
+                                    float sparkle =
+                                            (float) Math.sin(
+                                                    phase1
+                                            ) * 0.24f;
+
+                                    float harmony =
+                                            (float) Math.sin(
+                                                    phase2
+                                            ) * 0.09f;
+
+                                    float bass =
+                                            (float) Math.sin(
+                                                    phase3
+                                            ) * 0.07f;
+
+                                    float high =
+                                            (float) Math.sin(
+                                                    phase4
+                                            ) * 0.035f;
 
                                     value =
                                             (
-                                                    (float)
-                                                            Math.sin(
-                                                                    phase1
-                                                            ) * 0.48f
-                                                    +
-                                                    (float)
-                                                            Math.sin(
-                                                                    phase2
-                                                            ) * 0.17f
-                                                    +
-                                                    (float)
-                                                            Math.sin(
-                                                                    phase3
-                                                            ) * 0.10f
-                                            ) * envelope;
+                                                    sparkle
+                                                            + harmony
+                                                            + bass
+                                                            + high
+                                            )
+                                                    * noteEnvelope
+                                                    * overall;
 
-                                    if (q > 0.55f) {
+                                    /*
+                                     * Final sparkle section.
+                                     */
+                                    if (q > 0.76f) {
 
-                                        float sparkle =
-                                                (float)
-                                                        Math.sin(
-                                                                phase1 * 2.0
-                                                        );
+                                        float sparkleEnv =
+                                                (float) Math.sin(
+                                                        (q - 0.76f)
+                                                                * Math.PI
+                                                                * 12f
+                                                );
 
                                         value +=
-                                                sparkle *
-                                                (q - 0.55f) *
-                                                0.16f;
+                                                sparkleEnv
+                                                        * 0.035f;
                                     }
-
                                 }
 
-                                // -------------------------
-                                // POURING
-                                // -------------------------
-
-                                else if (kind == 2) {
-
-                                    float fade =
-                                            (float)
-                                                    Math.sin(
-                                                            Math.PI * q
-                                                    );
-
-                                    phase1 +=
-                                            2.0 *
-                                            Math.PI *
-                                            185 /
-                                            sr;
-
-                                    phase2 +=
-                                            2.0 *
-                                            Math.PI *
-                                            370 /
-                                            sr;
-
-                                    float water =
-                                            (float)
-                                                    Math.sin(
-                                                            phase1
-                                                    ) * 0.20f
-                                            +
-                                            (float)
-                                                    Math.sin(
-                                                            phase2
-                                                    ) * 0.07f;
-
-                                    value =
-                                            water *
-                                            fade *
-                                            0.72f;
-                                }
-
-                                // -------------------------
-                                // ERROR
-                                // -------------------------
+                                /* ---------------------------------
+                                   ERROR SOUND
+                                   --------------------------------- */
 
                                 else if (kind == 4) {
 
+                                    float envelope =
+                                            (float) Math.exp(
+                                                    -q * 4.5f
+                                            );
+
+                                    float freq =
+                                            410f - q * 180f;
+
                                     phase1 +=
-                                            2.0 *
-                                            Math.PI *
-                                            170 /
-                                            sr;
+                                            (float) (
+                                                    2.0 *
+                                                            Math.PI *
+                                                            freq /
+                                                            sampleRate
+                                            );
 
                                     phase2 +=
-                                            2.0 *
-                                            Math.PI *
-                                            105 /
-                                            sr;
-
-                                    float fade =
-                                            (float)
-                                                    Math.sin(
-                                                            Math.PI * q
-                                                    );
+                                            (float) (
+                                                    2.0 *
+                                                            Math.PI *
+                                                            freq *
+                                                            1.7 /
+                                                            sampleRate
+                                            );
 
                                     value =
                                             (
-                                                    (float)
-                                                            Math.sin(
-                                                                    phase1
-                                                            ) * 0.32f
-                                                    +
-                                                    (float)
-                                                            Math.sin(
-                                                                    phase2
-                                                            ) * 0.20f
-                                            ) * fade;
-                                }
-
-                                // -------------------------
-                                // CLICK
-                                // -------------------------
-
-                                else {
-
-                                    phase1 +=
-                                            2.0 *
-                                            Math.PI *
-                                            720 /
-                                            sr;
-
-                                    float fade =
-                                            (float)
-                                                    Math.sin(
-                                                            Math.PI * q
-                                                    );
-
-                                    value =
-                                            (float)
-                                                    Math.sin(
-                                                            phase1
-                                                    )
-                                                    *
-                                                    fade
-                                                    *
-                                                    0.20f;
+                                                    (float) Math.sin(phase1)
+                                                            * 0.19f
+                                                            +
+                                                            (float) Math.sin(phase2)
+                                                                    * 0.07f
+                                            )
+                                                    * envelope;
                                 }
 
                                 int pcm =
@@ -587,19 +635,17 @@ public class ColorSortActivity extends Activity {
                                                         32767,
                                                         (int)
                                                                 (
-                                                                        value *
-                                                                        14500f
+                                                                        value
+                                                                                * 15000f
                                                                 )
                                                 )
                                         );
 
                                 buffer[i * 2] =
-                                        (byte)
-                                                (pcm & 255);
+                                        (byte) (pcm & 255);
 
                                 buffer[i * 2 + 1] =
-                                        (byte)
-                                                ((pcm >> 8) & 255);
+                                        (byte) ((pcm >> 8) & 255);
                             }
 
                             track.write(
@@ -608,7 +654,7 @@ public class ColorSortActivity extends Activity {
                                     frames * 2
                             );
 
-                            pos += frames;
+                            position += frames;
                         }
 
                         try {
@@ -640,25 +686,24 @@ public class ColorSortActivity extends Activity {
 
         private void stopActiveSound() {
 
-            AudioTrack t =
-                    activeAudioTrack;
+            AudioTrack track = activeAudioTrack;
 
             activeAudioTrack = null;
 
-            if (t != null) {
+            if (track != null) {
 
                 try {
-                    t.pause();
+                    track.pause();
                 } catch (Exception ignored) {
                 }
 
                 try {
-                    t.flush();
+                    track.flush();
                 } catch (Exception ignored) {
                 }
 
                 try {
-                    t.release();
+                    track.release();
                 } catch (Exception ignored) {
                 }
             }
@@ -668,9 +713,9 @@ public class ColorSortActivity extends Activity {
             stopActiveSound();
         }
 
-        // =========================
-        // SAVE
-        // =========================
+        /* =========================================================
+           SAVE
+           ========================================================= */
 
         private void saveProgress() {
 
@@ -682,9 +727,9 @@ public class ColorSortActivity extends Activity {
                     .apply();
         }
 
-        // =========================
-        // LEVEL
-        // =========================
+        /* =========================================================
+           LEVEL RESET
+           ========================================================= */
 
         void resetLevel() {
 
@@ -692,25 +737,30 @@ public class ColorSortActivity extends Activity {
 
             moves = 0;
 
+            mistakes = 0;
+
             levelFinished = false;
+
             levelFailed = false;
 
-            mistakeCount = 0;
-            mistakeShakeUntil = 0L;
-            mistakeShakeStrength = 0f;
-
             showingHint = false;
+
+            hintFrom = -1;
+            hintTo = -1;
 
             animFrom = -1;
             animTo = -1;
             animColor = -1;
             animAmount = 0;
+
             animProgress = 1f;
 
             victoryStart = 0L;
+            failureStart = 0L;
 
-            celebrationStart = 0L;
-            celebrationPlaying = false;
+            errorFrom = -1;
+            errorTo = -1;
+            errorStart = 0L;
 
             tubes.clear();
             history.clear();
@@ -719,14 +769,14 @@ public class ColorSortActivity extends Activity {
 
             for (int c = 0; c < count; c++) {
 
-                List<Integer> t =
+                List<Integer> tube =
                         new ArrayList<>();
 
                 for (int i = 0; i < CAPACITY; i++) {
-                    t.add(c);
+                    tube.add(c);
                 }
 
-                tubes.add(t);
+                tubes.add(tube);
             }
 
             int empty =
@@ -735,9 +785,7 @@ public class ColorSortActivity extends Activity {
                             : (level < 20 ? 2 : 3);
 
             for (int i = 0; i < empty; i++) {
-                tubes.add(
-                        new ArrayList<Integer>()
-                );
+                tubes.add(new ArrayList<Integer>());
             }
 
             shufflePuzzle(getShuffleCount());
@@ -774,6 +822,10 @@ public class ColorSortActivity extends Activity {
             return 90 + level * 5;
         }
 
+        /* =========================================================
+           PUZZLE SHUFFLE
+           ========================================================= */
+
         private void shufflePuzzle(int count) {
 
             int previousFrom = -1;
@@ -807,6 +859,10 @@ public class ColorSortActivity extends Activity {
                     List<Integer> source =
                             tubes.get(from);
 
+                    if (source.isEmpty()) {
+                        continue;
+                    }
+
                     int sourceColor =
                             source.get(
                                     source.size() - 1
@@ -818,16 +874,12 @@ public class ColorSortActivity extends Activity {
                     List<Integer> targets =
                             new ArrayList<>();
 
-                    for (
-                            int to = 0;
-                            to < tubes.size();
-                            to++
-                    ) {
+                    for (int to = 0;
+                         to < tubes.size();
+                         to++) {
 
-                        if (
-                                to == from ||
-                                to == previousFrom
-                        ) {
+                        if (to == from ||
+                                to == previousFrom) {
                             continue;
                         }
 
@@ -838,12 +890,11 @@ public class ColorSortActivity extends Activity {
                             continue;
                         }
 
-                        if (
-                                target.isEmpty() ||
+                        if (target.isEmpty() ||
                                 target.get(
                                         target.size() - 1
-                                ) != sourceColor
-                        ) {
+                                ) != sourceColor) {
+
                             targets.add(to);
                         }
                     }
@@ -865,7 +916,7 @@ public class ColorSortActivity extends Activity {
 
                     int free =
                             CAPACITY -
-                            target.size();
+                                    target.size();
 
                     int amount =
                             Math.min(
@@ -876,7 +927,9 @@ public class ColorSortActivity extends Activity {
                                     )
                             );
 
-                    for (int n = 0; n < amount; n++) {
+                    for (int n = 0;
+                         n < amount;
+                         n++) {
 
                         target.add(
                                 source.remove(
@@ -898,10 +951,9 @@ public class ColorSortActivity extends Activity {
                 }
             }
 
-            if (
-                    isLevelComplete() &&
-                    count < 120
-            ) {
+            if (isLevelComplete() &&
+                    count < 120) {
+
                 shufflePuzzle(count + 15);
             }
         }
@@ -914,32 +966,30 @@ public class ColorSortActivity extends Activity {
                 return 0;
             }
 
-            int c =
+            int color =
                     tube.get(
                             tube.size() - 1
                     );
 
-            int n = 0;
+            int count = 0;
 
-            for (
-                    int i = tube.size() - 1;
-                    i >= 0;
-                    i--
-            ) {
+            for (int i = tube.size() - 1;
+                 i >= 0;
+                 i--) {
 
-                if (tube.get(i) == c) {
-                    n++;
+                if (tube.get(i) == color) {
+                    count++;
                 } else {
                     break;
                 }
             }
 
-            return n;
+            return count;
         }
 
-        // =========================
-        // DRAW
-        // =========================
+        /* =========================================================
+           DRAW
+           ========================================================= */
 
         @Override
         protected void onDraw(Canvas canvas) {
@@ -949,9 +999,16 @@ public class ColorSortActivity extends Activity {
             float w = getWidth();
             float h = getHeight();
 
-            drawBackground(canvas, w, h);
+            drawBackground(
+                    canvas,
+                    w,
+                    h
+            );
 
-            drawHeader(canvas, w);
+            drawHeader(
+                    canvas,
+                    w
+            );
 
             drawShelvesAndTubes(
                     canvas,
@@ -971,23 +1028,45 @@ public class ColorSortActivity extends Activity {
                     h
             );
 
-            if (
-                    showingHint &&
+            if (showingHint &&
                     System.currentTimeMillis()
-                            < hintUntil
-            ) {
+                            < hintUntil) {
+
                 drawHint(canvas);
+
             } else {
+
                 showingHint = false;
+            }
+
+            if (errorStart > 0 &&
+                    SystemClock.uptimeMillis()
+                            - errorStart
+                            < 650) {
+
+                drawErrorMark(
+                        canvas,
+                        w,
+                        h
+                );
             }
 
             if (levelFinished) {
 
-                if (levelFailed) {
-                    drawFailure(canvas, w, h);
-                } else {
-                    drawVictory(canvas, w, h);
-                }
+                drawVictory(
+                        canvas,
+                        w,
+                        h
+                );
+            }
+
+            if (levelFailed) {
+
+                drawFailure(
+                        canvas,
+                        w,
+                        h
+                );
             }
 
             if (animProgress < 1f) {
@@ -1010,9 +1089,9 @@ public class ColorSortActivity extends Activity {
             }
         }
 
-        // =========================
-        // BACKGROUND
-        // =========================
+        /* =========================================================
+           BACKGROUND
+           ========================================================= */
 
         private void drawBackground(
                 Canvas c,
@@ -1020,26 +1099,18 @@ public class ColorSortActivity extends Activity {
                 float h
         ) {
 
-            LinearGradient g =
+            LinearGradient gradient =
                     new LinearGradient(
                             0,
                             0,
                             0,
                             h,
-                            Color.rgb(
-                                    12,
-                                    31,
-                                    150
-                            ),
-                            Color.rgb(
-                                    19,
-                                    7,
-                                    88
-                            ),
+                            Color.rgb(12, 31, 150),
+                            Color.rgb(19, 7, 88),
                             Shader.TileMode.CLAMP
                     );
 
-            p.setShader(g);
+            p.setShader(gradient);
 
             c.drawRect(
                     0,
@@ -1098,14 +1169,13 @@ public class ColorSortActivity extends Activity {
 
                 float y =
                         95 +
-                        (
-                                (i * 131)
-                                        %
-                                Math.max(
-                                        1,
-                                        (int) h
-                                )
-                        );
+                                (
+                                        (i * 131)
+                                                % Math.max(
+                                                1,
+                                                (int) h
+                                        )
+                                );
 
                 c.drawCircle(
                         x,
@@ -1116,9 +1186,9 @@ public class ColorSortActivity extends Activity {
             }
         }
 
-        // =========================
-        // HEADER
-        // =========================
+        /* =========================================================
+           HEADER
+           ========================================================= */
 
         private void drawHeader(
                 Canvas c,
@@ -1127,22 +1197,18 @@ public class ColorSortActivity extends Activity {
 
             float y = 12;
 
+            float margin = 12;
+
+            float homeRight = 78;
+
             drawRoundPanel(
                     c,
-                    16,
+                    margin,
                     y,
-                    120,
+                    homeRight,
                     78,
-                    Color.rgb(
-                            0,
-                            166,
-                            255
-                    ),
-                    Color.rgb(
-                            48,
-                            78,
-                            255
-                    )
+                    Color.rgb(0, 166, 255),
+                    Color.rgb(48, 78, 255)
             );
 
             text.setTypeface(
@@ -1153,174 +1219,164 @@ public class ColorSortActivity extends Activity {
                     Paint.Align.CENTER
             );
 
-            text.setTextSize(38);
+            text.setTextSize(36);
 
             text.setColor(Color.WHITE);
 
             c.drawText(
                     "⌂",
-                    68,
-                    60,
-                    text
-            );
-
-            drawRoundPanel(
-                    c,
-                    132,
-                    y,
-                    Math.min(
-                            315,
-                            w * .43f
-                    ),
-                    78,
-                    Color.rgb(
-                            111,
-                            26,
-                            238
-                    ),
-                    Color.rgb(
-                            190,
-                            37,
-                            255
-                    )
-            );
-
-            text.setTextSize(18);
-
-            c.drawText(
-                    "★  مرحله " + level,
-                    Math.min(
-                            224,
-                            w * .30f
-                    ),
+                    (margin + homeRight) / 2f,
                     59,
                     text
             );
 
-            float starLeft =
-                    Math.min(
-                            w * .48f,
-                            327
+            float coinWidth = 105;
+
+            float coinLeft =
+                    Math.max(
+                            homeRight + 8,
+                            w - coinWidth - margin
                     );
 
-            float starRight =
-                    Math.max(
-                            starLeft + 120,
-                            w - 145
+            float stageLeft =
+                    homeRight + 8;
+
+            float stageRight =
+                    Math.min(
+                            coinLeft - 8,
+                            stageLeft + 175
                     );
+
+            if (stageRight <= stageLeft) {
+                stageRight = stageLeft + 130;
+            }
 
             drawRoundPanel(
                     c,
-                    starLeft,
+                    stageLeft,
                     y,
-                    starRight,
+                    stageRight,
                     78,
-                    Color.rgb(
-                            30,
-                            20,
-                            130
-                    ),
-                    Color.rgb(
-                            117,
-                            39,
-                            250
-                    )
+                    Color.rgb(111, 26, 238),
+                    Color.rgb(190, 37, 255)
             );
 
-            float sx =
-                    starLeft + 32;
+            text.setTextSize(16);
+            text.setColor(Color.WHITE);
 
-            for (int i = 0; i < 3; i++) {
+            c.drawText(
+                    "★  مرحله " + level,
+                    (stageLeft + stageRight) / 2f,
+                    59,
+                    text
+            );
+
+            float starsLeft =
+                    stageRight + 8;
+
+            float starsRight =
+                    coinLeft - 8;
+
+            if (starsRight > starsLeft + 40) {
+
+                drawRoundPanel(
+                        c,
+                        starsLeft,
+                        y,
+                        starsRight,
+                        78,
+                        Color.rgb(30, 20, 130),
+                        Color.rgb(117, 39, 250)
+                );
+
+                float center =
+                        (starsLeft + starsRight) / 2f;
 
                 drawStar(
                         c,
-                        sx + i * 50,
-                        43,
-                        20,
+                        center - 28,
+                        39,
+                        14,
+                        Color.rgb(255, 208, 25)
+                );
+
+                drawStar(
+                        c,
+                        center,
+                        39,
+                        14,
+                        Color.rgb(255, 208, 25)
+                );
+
+                drawStar(
+                        c,
+                        center + 28,
+                        39,
+                        14,
+                        Color.rgb(255, 208, 25)
+                );
+
+                p.setColor(
                         Color.rgb(
                                 255,
-                                208,
+                                207,
                                 25
                         )
                 );
+
+                c.drawRoundRect(
+                        new RectF(
+                                starsLeft + 15,
+                                61,
+                                starsRight - 15,
+                                67
+                        ),
+                        4,
+                        4,
+                        p
+                );
             }
-
-            p.setColor(
-                    Color.rgb(
-                            255,
-                            207,
-                            25
-                    )
-            );
-
-            c.drawRoundRect(
-                    new RectF(
-                            starLeft + 22,
-                            61,
-                            Math.min(
-                                    starRight - 12,
-                                    starLeft + 148
-                            ),
-                            68
-                    ),
-                    5,
-                    5,
-                    p
-            );
-
-            float coinLeft =
-                    w - 132;
 
             drawRoundPanel(
                     c,
                     coinLeft,
                     y,
-                    w - 12,
+                    w - margin,
                     78,
-                    Color.rgb(
-                            9,
-                            84,
-                            235
-                    ),
-                    Color.rgb(
-                            35,
-                            205,
-                            255
-                    )
+                    Color.rgb(9, 84, 235),
+                    Color.rgb(35, 205, 255)
             );
 
             drawCoin(
                     c,
-                    coinLeft + 27,
+                    coinLeft + 25,
                     45
             );
 
-            text.setTextSize(17);
-
-            text.setTextAlign(
-                    Paint.Align.LEFT
-            );
+            text.setTextSize(15);
+            text.setColor(Color.WHITE);
+            text.setTextAlign(Paint.Align.LEFT);
 
             c.drawText(
                     String.valueOf(coins),
-                    coinLeft + 49,
+                    coinLeft + 47,
                     52,
                     text
             );
 
-            text.setTextSize(27);
+            text.setTextSize(24);
 
             c.drawText(
                     "+",
-                    w - 28,
+                    w - 27,
                     55,
                     text
             );
         }
 
-        // =========================
-        // TUBES
-        // =========================
+        /* =========================================================
+           SHELVES / TUBES
+           ========================================================= */
 
         private void drawShelvesAndTubes(
                 Canvas c,
@@ -1335,12 +1391,10 @@ public class ColorSortActivity extends Activity {
                     count <= 6 ? 3 : 5;
 
             int rows =
-                    (int)
-                            Math.ceil(
-                                    count /
-                                            (float)
-                                                    columns
-                            );
+                    (int) Math.ceil(
+                            count /
+                                    (float) columns
+                    );
 
             float top = 116;
 
@@ -1349,9 +1403,7 @@ public class ColorSortActivity extends Activity {
             float areaH =
                     Math.max(
                             300,
-                            h -
-                                    top -
-                                    bottomControls
+                            h - top - bottomControls
                     );
 
             float rowH =
@@ -1364,11 +1416,7 @@ public class ColorSortActivity extends Activity {
             float tubeW =
                     Math.min(
                             92,
-                            w /
-                                    (
-                                            columns +
-                                                    .9f
-                                    )
+                            w / (columns + .9f)
                     );
 
             float tubeH =
@@ -1377,16 +1425,14 @@ public class ColorSortActivity extends Activity {
                             rowH * .76f
                     );
 
-            for (
-                    int row = 0;
-                    row < rows;
-                    row++
-            ) {
+            for (int row = 0;
+                 row < rows;
+                 row++) {
 
                 float shelfY =
                         top +
-                        row * rowH +
-                        rowH * .83f;
+                                row * rowH +
+                                rowH * .83f;
 
                 drawShelf(
                         c,
@@ -1396,39 +1442,31 @@ public class ColorSortActivity extends Activity {
                         22
                 );
 
-                for (
-                        int col = 0;
-                        col < columns;
-                        col++
-                ) {
+                for (int col = 0;
+                     col < columns;
+                     col++) {
 
-                    int idx =
-                            row * columns +
-                                    col;
+                    int index =
+                            row * columns + col;
 
-                    if (idx >= count) {
+                    if (index >= count) {
                         break;
                     }
 
                     float cx =
                             w *
-                                    (
-                                            col +
-                                                    1f
-                                    ) /
-                                    (
-                                            columns +
-                                                    1f
-                                    );
+                                    (col + 1f)
+                                    /
+                                    (columns + 1f);
 
                     float cy =
                             top +
-                            row * rowH +
-                            rowH * .42f;
+                                    row * rowH +
+                                    rowH * .42f;
 
                     drawTube(
                             c,
-                            idx,
+                            index,
                             cx,
                             cy,
                             tubeW,
@@ -1446,9 +1484,7 @@ public class ColorSortActivity extends Activity {
                 float height
         ) {
 
-            p.setStyle(
-                    Paint.Style.FILL
-            );
+            p.setStyle(Paint.Style.FILL);
 
             p.setShadowLayer(
                     12,
@@ -1526,9 +1562,9 @@ public class ColorSortActivity extends Activity {
             );
         }
 
-        // =========================
-        // TUBE
-        // =========================
+        /* =========================================================
+           TUBE
+           ========================================================= */
 
         private void drawTube(
                 Canvas c,
@@ -1556,33 +1592,48 @@ public class ColorSortActivity extends Activity {
 
             boolean pouring =
                     animProgress < 1f &&
-                    index == animFrom;
+                            index == animFrom;
 
             boolean receiving =
                     animProgress < 1f &&
-                    index == animTo;
+                            index == animTo;
 
             List<Integer> tube =
                     tubes.get(index);
 
-            if (
-                    selected ||
+            boolean shaking =
+                    isTubeShaking(index);
+
+            float shakeX =
+                    shaking
+                            ? getShakeOffset()
+                            : 0f;
+
+            float shakeAngle =
+                    shaking
+                            ? getShakeAngle()
+                            : 0f;
+
+            cx += shakeX;
+            left += shakeX;
+            right += shakeX;
+
+            if (selected ||
                     pouring ||
-                    isTubeComplete(tube)
-            ) {
+                    isTubeComplete(tube)) {
 
                 int glowColor =
                         isTubeComplete(tube)
                                 ? Color.rgb(
-                                        255,
-                                        213,
-                                        70
-                                )
+                                255,
+                                213,
+                                70
+                        )
                                 : Color.rgb(
-                                        50,
-                                        225,
-                                        255
-                                );
+                                50,
+                                225,
+                                255
+                        );
 
                 p.setStyle(
                         Paint.Style.FILL
@@ -1590,25 +1641,15 @@ public class ColorSortActivity extends Activity {
 
                 p.setColor(
                         Color.argb(
-                                selected
-                                        ? 80
-                                        : 42,
-                                Color.red(
-                                        glowColor
-                                ),
-                                Color.green(
-                                        glowColor
-                                ),
-                                Color.blue(
-                                        glowColor
-                                )
+                                selected ? 80 : 42,
+                                Color.red(glowColor),
+                                Color.green(glowColor),
+                                Color.blue(glowColor)
                         )
                 );
 
                 p.setShadowLayer(
-                        selected
-                                ? 28
-                                : 18,
+                        selected ? 28 : 18,
                         0,
                         4,
                         glowColor
@@ -1633,19 +1674,19 @@ public class ColorSortActivity extends Activity {
 
             if (pouring) {
 
+                float[] target =
+                        getTubeGeometry(animTo);
+
                 float direction =
-                        getTubeGeometry(
-                                animTo
-                        )[0] >= cx
+                        target[0] >= cx
                                 ? 1f
                                 : -1f;
 
                 float wave =
-                        (float)
-                                Math.sin(
-                                        animProgress *
-                                                Math.PI
-                                );
+                        (float) Math.sin(
+                                animProgress *
+                                        Math.PI
+                        );
 
                 angle =
                         direction *
@@ -1653,24 +1694,7 @@ public class ColorSortActivity extends Activity {
                                 wave;
             }
 
-            // Shake after wrong move
-            if (
-                    mistakeShakeUntil >
-                            SystemClock.uptimeMillis()
-            ) {
-
-                float shake =
-                        (float)
-                                Math.sin(
-                                        SystemClock
-                                                .uptimeMillis()
-                                                * 0.08
-                                );
-
-                angle +=
-                        shake *
-                                mistakeShakeStrength;
-            }
+            angle += shakeAngle;
 
             c.save();
 
@@ -1731,7 +1755,7 @@ public class ColorSortActivity extends Activity {
             float neckR =
                     right - 11;
 
-            android.graphics.Path bottlePath =
+            Path bottlePath =
                     createBottlePath(
                             left,
                             right,
@@ -1743,7 +1767,7 @@ public class ColorSortActivity extends Activity {
                             neckBottom
                     );
 
-            android.graphics.Path innerBottlePath =
+            Path innerBottlePath =
                     createBottlePath(
                             left + 4,
                             right - 4,
@@ -1813,7 +1837,8 @@ public class ColorSortActivity extends Activity {
 
             p.setShader(null);
 
-            // Neck
+            /* Neck */
+
             p.setStyle(
                     Paint.Style.FILL
             );
@@ -1876,22 +1901,18 @@ public class ColorSortActivity extends Activity {
                     bottom - 8;
 
             float layerH =
-                    (
-                            bottom -
-                                    top -
-                                    30
-                    ) /
-                            CAPACITY;
+                    (bottom - top - 30)
+                            / CAPACITY;
 
             float visibleUnits =
                     pouring
                             ? Math.max(
-                                    0f,
-                                    tube.size()
-                                            -
-                                            animAmount *
-                                                    animProgress
-                            )
+                            0f,
+                            tube.size()
+                                    -
+                                    animAmount *
+                                            animProgress
+                    )
                             : tube.size();
 
             c.save();
@@ -1900,19 +1921,16 @@ public class ColorSortActivity extends Activity {
                     innerBottlePath
             );
 
-            for (
-                    int j = 0;
-                    j < tube.size();
-                    j++
-            ) {
+            for (int j = 0;
+                 j < tube.size();
+                 j++) {
 
                 float visible =
                         Math.max(
                                 0f,
                                 Math.min(
                                         1f,
-                                        visibleUnits -
-                                                j
+                                        visibleUnits - j
                                 )
                         );
 
@@ -1944,10 +1962,8 @@ public class ColorSortActivity extends Activity {
                 );
             }
 
-            if (
-                    receiving &&
-                    animColor >= 0
-            ) {
+            if (receiving &&
+                    animColor >= 0) {
 
                 float incoming =
                         animAmount *
@@ -1992,7 +2008,8 @@ public class ColorSortActivity extends Activity {
                 );
             }
 
-            // Glass reflection
+            /* Reflection */
+
             p.setShader(
                     new LinearGradient(
                             left + 7,
@@ -2050,30 +2067,27 @@ public class ColorSortActivity extends Activity {
                     p
             );
 
-            // Outline
             stroke.setStyle(
                     Paint.Style.STROKE
             );
 
             stroke.setStrokeWidth(
-                    selected
-                            ? 4.2f
-                            : 2.7f
+                    selected ? 4.2f : 2.7f
             );
 
             stroke.setColor(
                     selected
                             ? Color.rgb(
-                                    83,
-                                    244,
-                                    255
-                            )
+                            83,
+                            244,
+                            255
+                    )
                             : Color.argb(
-                                    238,
-                                    225,
-                                    250,
-                                    255
-                            )
+                            238,
+                            225,
+                            250,
+                            255
+                    )
             );
 
             c.drawPath(
@@ -2149,16 +2163,100 @@ public class ColorSortActivity extends Activity {
                     c,
                     cx,
                     bottom + 11,
-                    String.valueOf(
-                            index + 1
-                    ),
+                    String.valueOf(index + 1),
                     selected
             );
         }
 
-        // =========================
-        // POUR STREAM
-        // =========================
+        /* =========================================================
+           SHAKE
+           ========================================================= */
+
+        private boolean isTubeShaking(int index) {
+
+            if (errorStart <= 0) {
+                return false;
+            }
+
+            long elapsed =
+                    SystemClock.uptimeMillis()
+                            - errorStart;
+
+            if (elapsed > 650) {
+                return false;
+            }
+
+            return index == errorFrom ||
+                    index == errorTo;
+        }
+
+        private float getShakeOffset() {
+
+            long elapsed =
+                    SystemClock.uptimeMillis()
+                            - errorStart;
+
+            float progress =
+                    Math.min(
+                            1f,
+                            elapsed / 650f
+                    );
+
+            float strength =
+                    errorStrength >= 2
+                            ? 13f
+                            : 8f;
+
+            float envelope =
+                    1f - progress;
+
+            return (float)
+                    Math.sin(
+                            progress *
+                                    Math.PI *
+                                    9f
+                    )
+                            *
+                            strength
+                            *
+                            envelope;
+        }
+
+        private float getShakeAngle() {
+
+            long elapsed =
+                    SystemClock.uptimeMillis()
+                            - errorStart;
+
+            float progress =
+                    Math.min(
+                            1f,
+                            elapsed / 650f
+                    );
+
+            float strength =
+                    errorStrength >= 2
+                            ? 6f
+                            : 3.5f;
+
+            float envelope =
+                    1f - progress;
+
+            return (float)
+                    Math.sin(
+                            progress *
+                                    Math.PI *
+                                    8f
+                    )
+                            *
+                            strength
+                            *
+                            envelope;
+        }
+
+        /* =========================================================
+           POUR STREAM
+           ========================================================= */
 
         private void drawPourStream(
                 Canvas c,
@@ -2170,35 +2268,31 @@ public class ColorSortActivity extends Activity {
                 float angle
         ) {
 
-            if (
-                    targetIndex < 0 ||
+            if (targetIndex < 0 ||
                     colorIndex < 0 ||
-                    colorIndex >= colors.length
-            ) {
+                    colorIndex >= colors.length) {
+
                 return;
             }
 
-            float[] t =
+            float[] target =
                     getTubeGeometry(
                             targetIndex
                     );
 
-            float tx =
-                    t[0];
+            float tx = target[0];
 
             float ty =
-                    t[1] -
-                            t[3] / 2f +
+                    target[1]
+                            -
+                            target[3] / 2f
+                            +
                             36f;
 
             float eased =
                     progress *
                             progress *
-                            (
-                                    3f -
-                                            2f *
-                                                    progress
-                            );
+                            (3f - 2f * progress);
 
             float dir =
                     tx >= sx
@@ -2212,8 +2306,8 @@ public class ColorSortActivity extends Activity {
                                             Math.toRadians(
                                                     angle
                                             )
-                                    ) *
-                                    14f;
+                                    )
+                                    * 14f;
 
             float startY =
                     sy + 8f;
@@ -2228,18 +2322,12 @@ public class ColorSortActivity extends Activity {
                             );
 
             float bx =
-                    (
-                            startX +
-                                    endX
-                    ) / 2f
+                    (startX + endX) / 2f
                             +
                             dir * 10f;
 
             float by =
-                    (
-                            startY +
-                                    endY
-                    ) / 2f
+                    (startY + endY) / 2f
                             +
                             13f;
 
@@ -2258,8 +2346,8 @@ public class ColorSortActivity extends Activity {
                             .50f
                     );
 
-            android.graphics.Path path =
-                    new android.graphics.Path();
+            Path path =
+                    new Path();
 
             path.moveTo(
                     startX - 4.5f,
@@ -2343,49 +2431,33 @@ public class ColorSortActivity extends Activity {
             int drops =
                     3 +
                             (int)
-                                    (
-                                            progress *
-                                                    4f
-                                    );
+                                    (progress * 4f);
 
-            for (
-                    int i = 0;
-                    i < drops;
-                    i++
-            ) {
+            for (int i = 0;
+                 i < drops;
+                 i++) {
 
                 float q =
-                        (
-                                i + 1f
-                        ) /
-                                (
-                                        drops +
-                                                1f
-                                );
+                        (i + 1f)
+                                /
+                                (drops + 1f);
 
                 float dx =
                         startX +
-                                (
-                                        endX -
-                                                startX
-                                ) *
-                                        q;
+                                (endX - startX)
+                                        * q;
 
                 float dy =
                         startY +
-                                (
-                                        endY -
-                                                startY
-                                ) *
-                                        q
+                                (endY - startY)
+                                        * q
                                 +
                                 (float)
                                         Math.sin(
-                                                liquidWave *
-                                                        2 +
+                                                liquidWave * 2 +
                                                         i
-                                        ) *
-                                        2.2f;
+                                        )
+                                        * 2.2f;
 
                 p.setColor(
                         Color.argb(
@@ -2399,13 +2471,7 @@ public class ColorSortActivity extends Activity {
                 c.drawCircle(
                         dx,
                         dy,
-                        2f +
-                                .7f *
-                                        (float)
-                                                Math.sin(
-                                                        liquidWave +
-                                                                i
-                                                ),
+                        2f,
                         p
                 );
             }
@@ -2423,31 +2489,30 @@ public class ColorSortActivity extends Activity {
                         Paint.Style.STROKE
                 );
 
-                stroke.setStrokeWidth(1.8f);
+                stroke.setStrokeWidth(
+                        1.8f
+                );
 
                 stroke.setColor(
                         Color.argb(
                                 (int)
-                                        (
-                                                180 *
-                                                        splash
-                                        ),
+                                        (180 * splash),
                                 255,
                                 255,
                                 255
                         )
                 );
 
-                float r =
+                float radius =
                         7f +
                                 10f *
                                         splash;
 
                 c.drawOval(
                         new RectF(
-                                endX - r,
+                                endX - radius,
                                 endY - 3,
-                                endX + r,
+                                endX + radius,
                                 endY + 3
                         ),
                         stroke
@@ -2455,11 +2520,11 @@ public class ColorSortActivity extends Activity {
             }
         }
 
-        // =========================
-        // BOTTLE PATH
-        // =========================
+        /* =========================================================
+           BOTTLE PATH
+           ========================================================= */
 
-        private android.graphics.Path createBottlePath(
+        private Path createBottlePath(
                 float left,
                 float right,
                 float bodyTop,
@@ -2470,8 +2535,8 @@ public class ColorSortActivity extends Activity {
                 float neckBottom
         ) {
 
-            android.graphics.Path path =
-                    new android.graphics.Path();
+            Path path =
+                    new Path();
 
             float shoulder =
                     bodyTop + 24f;
@@ -2505,15 +2570,15 @@ public class ColorSortActivity extends Activity {
                     bottom - 9,
                     left + 13,
                     bottom,
-                    right - 13,
+                    (left + right) / 2f,
                     bottom
             );
 
             path.cubicTo(
+                    right - 13,
+                    bottom,
                     right - 2,
                     bottom - 9,
-                    right - 2,
-                    bottom - 28,
                     right - 2,
                     bottom - 28
             );
@@ -2542,13 +2607,19 @@ public class ColorSortActivity extends Activity {
             return path;
         }
 
-        // =========================
-        // GEOMETRY
-        // =========================
+        /* =========================================================
+           GEOMETRY
+           ========================================================= */
 
         private float[] getTubeGeometry(
-                int idx
+                int index
         ) {
+
+            if (index < 0 ||
+                    index >= tubes.size()) {
+
+                return null;
+            }
 
             int count =
                     tubes.size();
@@ -2572,8 +2643,7 @@ public class ColorSortActivity extends Activity {
 
             float top = 116;
 
-            float bottomControls =
-                    275;
+            float bottomControls = 275;
 
             float areaH =
                     Math.max(
@@ -2594,10 +2664,7 @@ public class ColorSortActivity extends Activity {
                     Math.min(
                             92,
                             w /
-                                    (
-                                            columns +
-                                                    .9f
-                                    )
+                                    (columns + .9f)
                     );
 
             float tubeH =
@@ -2607,21 +2674,16 @@ public class ColorSortActivity extends Activity {
                     );
 
             int row =
-                    idx / columns;
+                    index / columns;
 
             int col =
-                    idx % columns;
+                    index % columns;
 
             float cx =
                     w *
-                            (
-                                    col +
-                                            1f
-                            ) /
-                            (
-                                    columns +
-                                            1f
-                            );
+                            (col + 1f)
+                            /
+                            (columns + 1f);
 
             float cy =
                     top +
@@ -2636,9 +2698,9 @@ public class ColorSortActivity extends Activity {
             };
         }
 
-        // =========================
-        // LIQUID
-        // =========================
+        /* =========================================================
+           LIQUID
+           ========================================================= */
 
         private void drawLiquid(
                 Canvas c,
@@ -2650,11 +2712,10 @@ public class ColorSortActivity extends Activity {
                 boolean topLayer
         ) {
 
-            if (
-                    colorIndex < 0 ||
+            if (colorIndex < 0 ||
                     colorIndex >= colors.length ||
-                    bottom <= top
-            ) {
+                    bottom <= top) {
+
                 return;
             }
 
@@ -2673,15 +2734,13 @@ public class ColorSortActivity extends Activity {
                             .46f
                     );
 
-            float r =
+            float radius =
                     Math.min(
                             9f,
                             Math.max(
                                     3f,
-                                    (
-                                            bottom -
-                                                    top
-                                    ) * .22f
+                                    (bottom - top) *
+                                            .22f
                             )
                     );
 
@@ -2708,8 +2767,8 @@ public class ColorSortActivity extends Activity {
                             right,
                             bottom
                     ),
-                    r,
-                    r,
+                    radius,
+                    radius,
                     p
             );
 
@@ -2744,8 +2803,8 @@ public class ColorSortActivity extends Activity {
                             right - 2,
                             bottom - 2
                     ),
-                    r,
-                    r,
+                    radius,
+                    radius,
                     p
             );
 
@@ -2792,10 +2851,9 @@ public class ColorSortActivity extends Activity {
                 int colorIndex
         ) {
 
-            if (
-                    colorIndex < 0 ||
-                    colorIndex >= colors.length
-            ) {
+            if (colorIndex < 0 ||
+                    colorIndex >= colors.length) {
+
                 return;
             }
 
@@ -2811,31 +2869,29 @@ public class ColorSortActivity extends Activity {
             float wave =
                     (float)
                             Math.sin(
-                                    liquidWave *
-                                            1.35f
-                            ) *
-                            2f;
+                                    liquidWave * 1.35f
+                            )
+                            * 2f;
 
-            android.graphics.Path path =
-                    new android.graphics.Path();
+            Path path =
+                    new Path();
 
             path.moveTo(
                     left,
                     y + wave
             );
 
-            for (int i = 1; i <= 14; i++) {
+            for (int i = 1;
+                 i <= 14;
+                 i++) {
 
                 float q =
                         i / 14f;
 
                 float x =
                         left +
-                                (
-                                        right -
-                                                left
-                                ) *
-                                        q;
+                                (right - left)
+                                        * q;
 
                 float yy =
                         y +
@@ -2905,27 +2961,26 @@ public class ColorSortActivity extends Activity {
             );
         }
 
-        // =========================
-        // COMPLETE TUBE
-        // =========================
+        /* =========================================================
+           COMPLETE TUBE
+           ========================================================= */
 
         private boolean isTubeComplete(
-                List<Integer> t
+                List<Integer> tube
         ) {
 
-            if (t.size() != CAPACITY) {
+            if (tube.size() != CAPACITY) {
                 return false;
             }
 
-            int c = t.get(0);
+            int color =
+                    tube.get(0);
 
-            for (
-                    int i = 1;
-                    i < t.size();
-                    i++
-            ) {
+            for (int i = 1;
+                 i < tube.size();
+                 i++) {
 
-                if (t.get(i) != c) {
+                if (tube.get(i) != color) {
                     return false;
                 }
             }
@@ -2933,9 +2988,9 @@ public class ColorSortActivity extends Activity {
             return true;
         }
 
-        // =========================
-        // CAP
-        // =========================
+        /* =========================================================
+           CAP
+           ========================================================= */
 
         private void drawCap(
                 Canvas c,
@@ -3010,7 +3065,9 @@ public class ColorSortActivity extends Activity {
                     )
             );
 
-            for (int i = -3; i <= 3; i++) {
+            for (int i = -3;
+                 i <= 3;
+                 i++) {
 
                 float xx =
                         cx + i * 6;
@@ -3024,6 +3081,27 @@ public class ColorSortActivity extends Activity {
                         p
                 );
             }
+
+            p.setColor(
+                    Color.argb(
+                            100,
+                            255,
+                            244,
+                            190
+                    )
+            );
+
+            c.drawRoundRect(
+                    new RectF(
+                            cx - capW / 2 + 4,
+                            y + 3,
+                            cx + capW / 2 - 4,
+                            y + 8
+                    ),
+                    4,
+                    4,
+                    p
+            );
 
             stroke.setStyle(
                     Paint.Style.STROKE
@@ -3052,30 +3130,30 @@ public class ColorSortActivity extends Activity {
             );
         }
 
-        // =========================
-        // BADGE
-        // =========================
+        /* =========================================================
+           BADGE
+           ========================================================= */
 
         private void drawBadge(
                 Canvas c,
                 float cx,
                 float cy,
-                String s,
+                String value,
                 boolean selected
         ) {
 
             p.setColor(
                     selected
                             ? Color.rgb(
-                                    255,
-                                    197,
-                                    35
-                            )
+                            255,
+                            197,
+                            35
+                    )
                             : Color.rgb(
-                                    16,
-                                    57,
-                                    160
-                            )
+                            16,
+                            57,
+                            160
+                    )
             );
 
             c.drawRoundRect(
@@ -3103,16 +3181,16 @@ public class ColorSortActivity extends Activity {
             text.setColor(Color.WHITE);
 
             c.drawText(
-                    s,
+                    value,
                     cx,
                     cy + 5,
                     text
             );
         }
 
-        // =========================
-        // CONTROLS
-        // =========================
+        /* =========================================================
+           CONTROLS
+           ========================================================= */
 
         private void drawControls(
                 Canvas c,
@@ -3146,7 +3224,7 @@ public class ColorSortActivity extends Activity {
                             24,
                             244
                     ),
-                    "💡"
+                    "?"
             );
 
             drawRoundPanel(
@@ -3202,18 +3280,18 @@ public class ColorSortActivity extends Activity {
                     52,
                     soundEnabled
                             ? Color.rgb(
-                                    49,
-                                    228,
-                                    36
-                            )
+                            49,
+                            228,
+                            36
+                    )
                             : Color.rgb(
-                                    115,
-                                    115,
-                                    125
-                            ),
+                            115,
+                            115,
+                            125
+                    ),
                     soundEnabled
-                            ? "🔊"
-                            : "🔇"
+                            ? "♪"
+                            : "×"
             );
 
             text.setTextSize(14);
@@ -3245,7 +3323,13 @@ public class ColorSortActivity extends Activity {
                     c,
                     99,
                     y - 43,
-                    "3"
+                    String.valueOf(
+                            Math.max(
+                                    0,
+                                    MAX_MISTAKES -
+                                            mistakes
+                            )
+                    )
             );
 
             drawBadgeCircle(
@@ -3256,9 +3340,9 @@ public class ColorSortActivity extends Activity {
             );
         }
 
-        // =========================
-        // FOOTER
-        // =========================
+        /* =========================================================
+           FOOTER
+           ========================================================= */
 
         private void drawFooter(
                 Canvas c,
@@ -3349,8 +3433,10 @@ public class ColorSortActivity extends Activity {
             c.drawText(
                     "مرحله " +
                             level +
-                            " از 30   •   ستاره‌های کسب‌شده: " +
-                            totalStars +
+                            " از 30   •   خطا: " +
+                            mistakes +
+                            "/" +
+                            MAX_MISTAKES +
                             "   •   سکه: " +
                             coins,
                     w / 2f,
@@ -3359,13 +3445,11 @@ public class ColorSortActivity extends Activity {
             );
         }
 
-        // =========================
-        // HINT
-        // =========================
+        /* =========================================================
+           HINT
+           ========================================================= */
 
-        private void drawHint(
-                Canvas c
-        ) {
+        private void drawHint(Canvas c) {
 
             float[] a =
                     getTubeGeometry(
@@ -3377,7 +3461,9 @@ public class ColorSortActivity extends Activity {
                             hintTo
                     );
 
-            if (a == null || b == null) {
+            if (a == null ||
+                    b == null) {
+
                 return;
             }
 
@@ -3385,10 +3471,11 @@ public class ColorSortActivity extends Activity {
                     Paint.Style.STROKE
             );
 
-            stroke.setStrokeWidth(5);
+            stroke.setStrokeWidth(6);
 
             stroke.setColor(
-                    Color.rgb(
+                    Color.argb(
+                            230,
                             255,
                             215,
                             30
@@ -3402,163 +3489,138 @@ public class ColorSortActivity extends Activity {
                     b[1],
                     stroke
             );
+
+            p.setColor(
+                    Color.rgb(
+                            255,
+                            215,
+                            30
+                    )
+            );
+
+            c.drawCircle(
+                    b[0],
+                    b[1],
+                    9,
+                    p
+            );
         }
 
-        // =========================
-        // CELEBRATION PARTICLES
-        // =========================
+        /* =========================================================
+           ERROR MARK
+           ========================================================= */
 
-        private void createCelebrationParticles() {
-
-            for (int i = 0; i < particleX.length; i++) {
-
-                particleX[i] =
-                        sparkleRandom.nextFloat();
-
-                particleY[i] =
-                        sparkleRandom.nextFloat();
-
-                particleSpeed[i] =
-                        25f +
-                                sparkleRandom.nextFloat()
-                                        * 70f;
-
-                particleSize[i] =
-                        2f +
-                                sparkleRandom.nextFloat()
-                                        * 4f;
-            }
-        }
-
-        private void drawVictoryParticles(
+        private void drawErrorMark(
                 Canvas c,
                 float w,
                 float h
         ) {
 
-            long now =
-                    SystemClock.uptimeMillis();
+            float[] geometry = null;
 
-            float age =
-                    victoryStart <= 0
-                            ? 0f
-                            : (
-                                    now -
-                                            victoryStart
-                            ) / 1000f;
-
-            for (
-                    int i = 0;
-                    i < particleX.length;
-                    i++
-            ) {
-
-                float x =
-                        particleX[i] *
-                                w;
-
-                float y =
-                        h * .16f +
-                                (
-                                        particleY[i] *
-                                                h *
-                                                .60f
-                                );
-
-                y +=
-                        age *
-                                particleSpeed[i];
-
-                y =
-                        h * .12f +
-                                (
-                                        y -
-                                                h * .12f
-                                ) %
-                                        (
-                                                h *
-                                                        .78f
-                                        );
-
-                float twinkle =
-                        .5f +
-                                .5f *
-                                        (float)
-                                                Math.sin(
-                                                        age *
-                                                                7 +
-                                                                i
-                                                );
-
-                int alpha =
-                        (int)
-                                (
-                                        170 *
-                                                twinkle
-                                );
-
-                int particleColor;
-
-                if (i % 4 == 0) {
-
-                    particleColor =
-                            Color.rgb(
-                                    255,
-                                    220,
-                                    50
-                            );
-
-                } else if (i % 4 == 1) {
-
-                    particleColor =
-                            Color.rgb(
-                                    70,
-                                    230,
-                                    255
-                            );
-
-                } else if (i % 4 == 2) {
-
-                    particleColor =
-                            Color.rgb(
-                                    255,
-                                    100,
-                                    190
-                            );
-
-                } else {
-
-                    particleColor =
-                            Color.WHITE;
-                }
-
-                p.setColor(
-                        Color.argb(
-                                alpha,
-                                Color.red(
-                                        particleColor
-                                ),
-                                Color.green(
-                                        particleColor
-                                ),
-                                Color.blue(
-                                        particleColor
-                                )
-                        )
-                );
-
-                c.drawCircle(
-                        x,
-                        y,
-                        particleSize[i],
-                        p
-                );
+            if (errorTo >= 0) {
+                geometry =
+                        getTubeGeometry(
+                                errorTo
+                        );
+            } else if (errorFrom >= 0) {
+                geometry =
+                        getTubeGeometry(
+                                errorFrom
+                        );
             }
+
+            if (geometry == null) {
+                return;
+            }
+
+            float x = geometry[0];
+
+            float y =
+                    geometry[1]
+                            -
+                            geometry[3] / 2f
+                            -
+                            20;
+
+            long elapsed =
+                    SystemClock.uptimeMillis()
+                            - errorStart;
+
+            float progress =
+                    Math.min(
+                            1f,
+                            elapsed / 650f
+                    );
+
+            float alpha =
+                    1f - progress;
+
+            float radius =
+                    18f +
+                            progress * 7f;
+
+            p.setColor(
+                    Color.argb(
+                            (int)
+                                    (230 * alpha),
+                            220,
+                            25,
+                            45
+                    )
+            );
+
+            c.drawCircle(
+                    x,
+                    y,
+                    radius,
+                    p
+            );
+
+            stroke.setStyle(
+                    Paint.Style.STROKE
+            );
+
+            stroke.setStrokeWidth(4);
+
+            stroke.setStrokeCap(
+                    Paint.Cap.ROUND
+            );
+
+            stroke.setColor(
+                    Color.argb(
+                            (int)
+                                    (255 * alpha),
+                            255,
+                            255,
+                            255
+                    )
+            );
+
+            c.drawLine(
+                    x - 7,
+                    y - 7,
+                    x + 7,
+                    y + 7,
+                    stroke
+            );
+
+            c.drawLine(
+                    x + 7,
+                    y - 7,
+                    x - 7,
+                    y + 7,
+                    stroke
+            );
+
+            stroke.setStrokeCap(
+                    Paint.Cap.BUTT
+            );
         }
 
-        // =========================
-        // VICTORY
-        // =========================
+        /* =========================================================
+           VICTORY
+           ========================================================= */
 
         private void drawVictory(
                 Canvas c,
@@ -3568,7 +3630,7 @@ public class ColorSortActivity extends Activity {
 
             p.setColor(
                     Color.argb(
-                            215,
+                            210,
                             4,
                             8,
                             45
@@ -3585,7 +3647,7 @@ public class ColorSortActivity extends Activity {
 
             p.setColor(
                     Color.argb(
-                            80,
+                            85,
                             80,
                             20,
                             255
@@ -3601,10 +3663,10 @@ public class ColorSortActivity extends Activity {
 
             c.drawRoundRect(
                     new RectF(
-                            30,
+                            28,
                             h / 2f - 170,
-                            w - 30,
-                            h / 2f + 170
+                            w - 28,
+                            h / 2f + 175
                     ),
                     35,
                     35,
@@ -3629,12 +3691,12 @@ public class ColorSortActivity extends Activity {
 
             text.setColor(Color.WHITE);
 
-            text.setTextSize(34);
+            text.setTextSize(31);
 
             c.drawText(
-                    "🎉 عالی!",
+                    "عالی! مرحله کامل شد",
                     w / 2f,
-                    h / 2f - 105,
+                    h / 2f - 98,
                     text
             );
 
@@ -3664,11 +3726,11 @@ public class ColorSortActivity extends Activity {
             c.drawText(
                     starsText,
                     w / 2f,
-                    h / 2f - 45,
+                    h / 2f - 38,
                     text
             );
 
-            text.setTextSize(19);
+            text.setTextSize(18);
 
             text.setColor(Color.WHITE);
 
@@ -3677,11 +3739,11 @@ public class ColorSortActivity extends Activity {
                             level +
                             " کامل شد",
                     w / 2f,
-                    h / 2f + 5,
+                    h / 2f + 10,
                     text
             );
 
-            text.setTextSize(16);
+            text.setTextSize(15);
 
             text.setColor(
                     Color.rgb(
@@ -3696,7 +3758,7 @@ public class ColorSortActivity extends Activity {
                             lastEarnedCoins +
                             " سکه",
                     w / 2f,
-                    h / 2f + 43,
+                    h / 2f + 48,
                     text
             );
 
@@ -3713,32 +3775,21 @@ public class ColorSortActivity extends Activity {
                             coins +
                             " سکه",
                     w / 2f,
-                    h / 2f + 73,
+                    h / 2f + 78,
                     text
             );
 
-            text.setTextSize(12);
-
-            text.setColor(
-                    Color.argb(
-                            220,
-                            210,
-                            225,
-                            255
-                    )
-            );
-
-            c.drawText(
-                    "جشن موفقیت ادامه دارد...",
+            drawActionButton(
+                    c,
                     w / 2f,
-                    h / 2f + 108,
-                    text
+                    h / 2f + 122,
+                    "ادامه"
             );
         }
 
-        // =========================
-        // FAILURE
-        // =========================
+        /* =========================================================
+           FAILURE
+           ========================================================= */
 
         private void drawFailure(
                 Canvas c,
@@ -3749,9 +3800,9 @@ public class ColorSortActivity extends Activity {
             p.setColor(
                     Color.argb(
                             220,
-                            8,
-                            5,
-                            35
+                            20,
+                            4,
+                            20
                     )
             );
 
@@ -3765,10 +3816,10 @@ public class ColorSortActivity extends Activity {
 
             p.setColor(
                     Color.argb(
-                            75,
-                            255,
-                            30,
-                            65
+                            90,
+                            210,
+                            15,
+                            45
                     )
             );
 
@@ -3781,10 +3832,10 @@ public class ColorSortActivity extends Activity {
 
             c.drawRoundRect(
                     new RectF(
-                            30,
-                            h / 2f - 145,
-                            w - 30,
-                            h / 2f + 145
+                            28,
+                            h / 2f - 155,
+                            w - 28,
+                            h / 2f + 160
                     ),
                     35,
                     35,
@@ -3801,70 +3852,275 @@ public class ColorSortActivity extends Activity {
                     Typeface.DEFAULT_BOLD
             );
 
-            text.setColor(Color.WHITE);
-
-            text.setTextSize(34);
-
-            c.drawText(
-                    "💥 دوباره تلاش کن!",
-                    w / 2f,
-                    h / 2f - 75,
-                    text
-            );
-
-            text.setTextSize(20);
-
             text.setColor(
                     Color.rgb(
                             255,
-                            100,
-                            120
+                            75,
+                            90
                     )
             );
 
+            text.setTextSize(30);
+
             c.drawText(
-                    "سه حرکت اشتباه شد",
+                    "مرحله تمام نشد",
                     w / 2f,
-                    h / 2f - 25,
+                    h / 2f - 85,
                     text
             );
 
-            text.setTextSize(16);
+            text.setTextSize(18);
 
-            text.setColor(
-                    Color.WHITE
-            );
+            text.setColor(Color.WHITE);
 
             c.drawText(
-                    "مرحله " +
-                            level +
-                            " دوباره شروع می‌شود",
+                    "سه خطا انجام شد",
                     w / 2f,
-                    h / 2f + 20,
+                    h / 2f - 42,
                     text
             );
 
-            text.setTextSize(14);
+            text.setTextSize(15);
 
             text.setColor(
                     Color.rgb(
-                            210,
+                            215,
                             225,
                             255
                     )
             );
 
             c.drawText(
-                    "این بار با دقت بیشتر!",
+                    "نگران نباش؛ مرحله دوباره از اول شروع می‌شود.",
                     w / 2f,
-                    h / 2f + 62,
+                    h / 2f - 5,
+                    text
+            );
+
+            drawActionButton(
+                    c,
+                    w / 2f,
+                    h / 2f + 65,
+                    "دوباره تلاش کن"
+            );
+        }
+
+        private void drawActionButton(
+                Canvas c,
+                float x,
+                float y,
+                String label
+        ) {
+
+            float width = 170;
+            float height = 54;
+
+            p.setShader(
+                    new LinearGradient(
+                            x - width / 2,
+                            y - height / 2,
+                            x + width / 2,
+                            y + height / 2,
+                            Color.rgb(
+                                    0,
+                                    180,
+                                    255
+                            ),
+                            Color.rgb(
+                                    123,
+                                    34,
+                                    245
+                            ),
+                            Shader.TileMode.CLAMP
+                    )
+            );
+
+            p.setShadowLayer(
+                    12,
+                    0,
+                    5,
+                    Color.argb(
+                            170,
+                            0,
+                            0,
+                            0
+                    )
+            );
+
+            c.drawRoundRect(
+                    new RectF(
+                            x - width / 2,
+                            y - height / 2,
+                            x + width / 2,
+                            y + height / 2
+                    ),
+                    18,
+                    18,
+                    p
+            );
+
+            p.clearShadowLayer();
+
+            p.setShader(null);
+
+            stroke.setStyle(
+                    Paint.Style.STROKE
+            );
+
+            stroke.setStrokeWidth(2);
+
+            stroke.setColor(
+                    Color.argb(
+                            210,
+                            255,
+                            255,
+                            255
+                    )
+            );
+
+            c.drawRoundRect(
+                    new RectF(
+                            x - width / 2,
+                            y - height / 2,
+                            x + width / 2,
+                            y + height / 2
+                    ),
+                    18,
+                    18,
+                    stroke
+            );
+
+            text.setTextAlign(
+                    Paint.Align.CENTER
+            );
+
+            text.setTypeface(
+                    Typeface.DEFAULT_BOLD
+            );
+
+            text.setTextSize(17);
+
+            text.setColor(Color.WHITE);
+
+            c.drawText(
+                    label,
+                    x,
+                    y + 6,
                     text
             );
         }
 
-        // =========================
-        // STARS / REWARD
-        // =========================
+        /* =========================================================
+           VICTORY PARTICLES
+           ========================================================= */
+
+        private void prepareVictoryParticles() {
+
+            for (int i = 0;
+                 i < particleX.length;
+                 i++) {
+
+                particleX[i] =
+                        sparkleRandom.nextFloat();
+
+                particleY[i] =
+                        sparkleRandom.nextFloat();
+
+                particleSpeed[i] =
+                        18f +
+                                sparkleRandom.nextFloat()
+                                        * 55f;
+
+                particleSize[i] =
+                        2f +
+                                sparkleRandom.nextFloat()
+                                        * 4f;
+
+                particlePhase[i] =
+                        sparkleRandom.nextFloat()
+                                        * 6.28f;
+            }
+        }
+
+        private void drawVictoryParticles(
+                Canvas c,
+                float w,
+                float h
+        ) {
+
+            long now =
+                    SystemClock.uptimeMillis();
+
+            float age =
+                    victoryStart <= 0
+                            ? 0f
+                            : (
+                            now -
+                                    victoryStart
+                    ) / 1000f;
+
+            for (int i = 0;
+                 i < particleX.length;
+                 i++) {
+
+                float x =
+                        particleX[i] *
+                                w
+                                +
+                                (float)
+                                        Math.sin(
+                                                age * 1.4f +
+                                                        particlePhase[i]
+                                        )
+                                        * 14f;
+
+                float y =
+                        h * .18f
+                                +
+                                (
+                                        particleY[i]
+                                                *
+                                                h * .58f
+                                )
+                                +
+                                age *
+                                        particleSpeed[i];
+
+                y %= h * .72f;
+
+                y += h * .15f;
+
+                float alpha =
+                        190f *
+                                Math.max(
+                                        0f,
+                                        1f -
+                                                age / 3.8f
+                                );
+
+                p.setColor(
+                        Color.argb(
+                                (int) alpha,
+                                255,
+                                190 +
+                                        (i % 3) *
+                                                20,
+                                55
+                        )
+                );
+
+                c.drawCircle(
+                        x,
+                        y,
+                        particleSize[i],
+                        p
+                );
+            }
+        }
+
+        /* =========================================================
+           STARS / REWARD
+           ========================================================= */
 
         private int calculateStars() {
 
@@ -3897,19 +4153,24 @@ public class ColorSortActivity extends Activity {
             return 40;
         }
 
-        // =========================
-        // PANELS
-        // =========================
+        /* =========================================================
+           PANELS / BUTTONS
+           ========================================================= */
 
         private void drawRoundPanel(
                 Canvas c,
-                float l,
-                float t,
-                float r,
-                float b,
-                int c1,
-                int c2
+                float left,
+                float top,
+                float right,
+                float bottom,
+                int color1,
+                int color2
         ) {
+
+            if (right <= left ||
+                    bottom <= top) {
+                return;
+            }
 
             p.setStyle(
                     Paint.Style.FILL
@@ -3917,12 +4178,12 @@ public class ColorSortActivity extends Activity {
 
             p.setShader(
                     new LinearGradient(
-                            l,
-                            t,
-                            r,
-                            b,
-                            c1,
-                            c2,
+                            left,
+                            top,
+                            right,
+                            bottom,
+                            color1,
+                            color2,
                             Shader.TileMode.CLAMP
                     )
             );
@@ -3941,10 +4202,10 @@ public class ColorSortActivity extends Activity {
 
             c.drawRoundRect(
                     new RectF(
-                            l,
-                            t,
-                            r,
-                            b
+                            left,
+                            top,
+                            right,
+                            bottom
                     ),
                     20,
                     20,
@@ -3972,10 +4233,10 @@ public class ColorSortActivity extends Activity {
 
             c.drawRoundRect(
                     new RectF(
-                            l,
-                            t,
-                            r,
-                            b
+                            left,
+                            top,
+                            right,
+                            bottom
                     ),
                     20,
                     20,
@@ -3983,15 +4244,11 @@ public class ColorSortActivity extends Activity {
             );
         }
 
-        // =========================
-        // BUTTON
-        // =========================
-
         private void drawCircleButton(
                 Canvas c,
                 float x,
                 float y,
-                float r,
+                float radius,
                 int color,
                 String symbol
         ) {
@@ -4013,7 +4270,7 @@ public class ColorSortActivity extends Activity {
             c.drawCircle(
                     x,
                     y,
-                    r,
+                    radius,
                     p
             );
 
@@ -4037,7 +4294,7 @@ public class ColorSortActivity extends Activity {
             c.drawCircle(
                     x,
                     y,
-                    r - 2,
+                    radius - 2,
                     stroke
             );
 
@@ -4049,14 +4306,14 @@ public class ColorSortActivity extends Activity {
                     Typeface.DEFAULT_BOLD
             );
 
-            text.setTextSize(31);
+            text.setTextSize(29);
 
             text.setColor(Color.WHITE);
 
             c.drawText(
                     symbol,
                     x,
-                    y + 11,
+                    y + 10,
                     text
             );
         }
@@ -4065,7 +4322,7 @@ public class ColorSortActivity extends Activity {
                 Canvas c,
                 float x,
                 float y,
-                String s
+                String value
         ) {
 
             p.setColor(
@@ -4096,16 +4353,12 @@ public class ColorSortActivity extends Activity {
             text.setColor(Color.WHITE);
 
             c.drawText(
-                    s,
+                    value,
                     x,
                     y + 5,
                     text
             );
         }
-
-        // =========================
-        // COIN
-        // =========================
 
         private void drawCoin(
                 Canvas c,
@@ -4188,15 +4441,11 @@ public class ColorSortActivity extends Activity {
             );
         }
 
-        // =========================
-        // STAR
-        // =========================
-
         private void drawStar(
                 Canvas c,
                 float cx,
                 float cy,
-                float r,
+                float radius,
                 int color
         ) {
 
@@ -4213,33 +4462,36 @@ public class ColorSortActivity extends Activity {
                     )
             );
 
-            android.graphics.Path path =
-                    new android.graphics.Path();
+            Path path =
+                    new Path();
 
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0;
+                 i < 10;
+                 i++) {
 
-                double a =
-                        -Math.PI / 2 +
+                double angle =
+                        -Math.PI / 2
+                                +
                                 i *
                                         Math.PI /
-                                        5;
+                                                5;
 
-                float rr =
+                float r =
                         i % 2 == 0
-                                ? r
-                                : r * .42f;
+                                ? radius
+                                : radius * .42f;
 
                 float x =
                         cx +
                                 (float)
-                                        Math.cos(a) *
-                                        rr;
+                                        Math.cos(angle)
+                                        * r;
 
                 float y =
                         cy +
                                 (float)
-                                        Math.sin(a) *
-                                        rr;
+                                        Math.sin(angle)
+                                        * r;
 
                 if (i == 0) {
                     path.moveTo(
@@ -4264,9 +4516,9 @@ public class ColorSortActivity extends Activity {
             p.clearShadowLayer();
         }
 
-        // =========================
-        // COLOR HELPERS
-        // =========================
+        /* =========================================================
+           COLOR HELPERS
+           ========================================================= */
 
         private int lighten(
                 int color,
@@ -4274,31 +4526,28 @@ public class ColorSortActivity extends Activity {
         ) {
 
             return Color.rgb(
-
                     Math.min(
                             255,
                             (int)
                                     (
-                                            Color.red(color) *
-                                                    factor
+                                            Color.red(color)
+                                                    * factor
                                     )
                     ),
-
                     Math.min(
                             255,
                             (int)
                                     (
-                                            Color.green(color) *
-                                                    factor
+                                            Color.green(color)
+                                                    * factor
                                     )
                     ),
-
                     Math.min(
                             255,
                             (int)
                                     (
-                                            Color.blue(color) *
-                                                    factor
+                                            Color.blue(color)
+                                                    * factor
                                     )
                     )
             );
@@ -4310,57 +4559,53 @@ public class ColorSortActivity extends Activity {
         ) {
 
             return Color.rgb(
-
                     Math.max(
                             0,
                             (int)
                                     (
-                                            Color.red(color) *
-                                                    factor
+                                            Color.red(color)
+                                                    * factor
                                     )
                     ),
-
                     Math.max(
                             0,
                             (int)
                                     (
-                                            Color.green(color) *
-                                                    factor
+                                            Color.green(color)
+                                                    * factor
                                     )
                     ),
-
                     Math.max(
                             0,
                             (int)
                                     (
-                                            Color.blue(color) *
-                                                    factor
+                                            Color.blue(color)
+                                                    * factor
                                     )
                     )
             );
         }
 
-        // =========================
-        // TOUCH
-        // =========================
+        /* =========================================================
+           TOUCH
+           ========================================================= */
 
         @Override
         public boolean onTouchEvent(
-                MotionEvent e
+                MotionEvent event
         ) {
 
-            if (
-                    e.getAction() !=
-                            MotionEvent.ACTION_DOWN
-            ) {
+            if (event.getAction() !=
+                    MotionEvent.ACTION_DOWN) {
+
                 return true;
             }
 
             float x =
-                    e.getX();
+                    event.getX();
 
             float y =
-                    e.getY();
+                    event.getY();
 
             float h =
                     getHeight();
@@ -4368,15 +4613,69 @@ public class ColorSortActivity extends Activity {
             float w =
                     getWidth();
 
-            // During celebration/failure
-            if (levelFinished) {
+            /* ---------------------------------
+               FAILURE SCREEN
+               --------------------------------- */
+
+            if (levelFailed) {
+
+                float retryY =
+                        h / 2f + 65;
+
+                if (
+                        Math.abs(
+                                x - w / 2f
+                        ) < 100
+                                &&
+                                Math.abs(
+                                        y - retryY
+                                ) < 40
+                ) {
+
+                    playGameSound(1);
+
+                    resetLevel();
+
+                    return true;
+                }
+
                 return true;
             }
+
+            /* ---------------------------------
+               VICTORY SCREEN
+               --------------------------------- */
+
+            if (levelFinished) {
+
+                float continueY =
+                        h / 2f + 122;
+
+                if (
+                        Math.abs(
+                                x - w / 2f
+                        ) < 105
+                                &&
+                                Math.abs(
+                                        y - continueY
+                                ) < 42
+                ) {
+
+                    advanceAfterVictory();
+
+                    return true;
+                }
+
+                return true;
+            }
+
+            /* ---------------------------------
+               CONTROLS
+               --------------------------------- */
 
             float controlY =
                     h - 205;
 
-            // Undo
             if (
                     distance(
                             x,
@@ -4391,7 +4690,6 @@ public class ColorSortActivity extends Activity {
                 return true;
             }
 
-            // Hint
             if (
                     distance(
                             x,
@@ -4408,7 +4706,6 @@ public class ColorSortActivity extends Activity {
                 return true;
             }
 
-            // Sound
             if (
                     distance(
                             x,
@@ -4431,6 +4728,10 @@ public class ColorSortActivity extends Activity {
 
                 return true;
             }
+
+            /* ---------------------------------
+               TUBE
+               --------------------------------- */
 
             int tube =
                     findTube(
@@ -4473,40 +4774,46 @@ public class ColorSortActivity extends Activity {
                 float y
         ) {
 
-            for (
-                    int i = 0;
-                    i < tubes.size();
-                    i++
-            ) {
+            for (int i = 0;
+                 i < tubes.size();
+                 i++) {
 
-                float[] g =
+                float[] geometry =
                         getTubeGeometry(i);
 
-                float l =
-                        g[0] -
-                                g[2] / 2 -
+                float left =
+                        geometry[0]
+                                -
+                                geometry[2] / 2
+                                -
                                 18;
 
-                float r =
-                        g[0] +
-                                g[2] / 2 +
+                float right =
+                        geometry[0]
+                                +
+                                geometry[2] / 2
+                                +
                                 18;
 
-                float t =
-                        g[1] -
-                                g[3] / 2 -
+                float top =
+                        geometry[1]
+                                -
+                                geometry[3] / 2
+                                -
                                 20;
 
-                float b =
-                        g[1] +
-                                g[3] / 2 +
+                float bottom =
+                        geometry[1]
+                                +
+                                geometry[3] / 2
+                                +
                                 30;
 
                 if (
-                        x >= l &&
-                        x <= r &&
-                        y >= t &&
-                        y <= b
+                        x >= left &&
+                                x <= right &&
+                                y >= top &&
+                                y <= bottom
                 ) {
 
                     return i;
@@ -4516,36 +4823,45 @@ public class ColorSortActivity extends Activity {
             return -1;
         }
 
-        // =========================
-        // TUBE CLICK
-        // =========================
+        /* =========================================================
+           TUBE CLICK
+           ========================================================= */
 
         private void handleTubeClick(
-                int idx
+                int index
         ) {
 
             if (animProgress < 1f) {
                 return;
             }
 
+            if (levelFinished ||
+                    levelFailed) {
+
+                return;
+            }
+
             if (selectedTube == -1) {
 
-                if (tubes.get(idx).isEmpty()) {
+                if (
+                        tubes
+                                .get(index)
+                                .isEmpty()
+                ) {
 
                     playGameSound(4);
 
-                    mistakeShakeUntil =
-                            SystemClock.uptimeMillis()
-                                    + 250;
-
-                    mistakeShakeStrength = 6f;
-
-                    invalidate();
+                    showError(
+                            index,
+                            -1,
+                            false
+                    );
 
                     return;
                 }
 
-                selectedTube = idx;
+                selectedTube =
+                        index;
 
                 playGameSound(1);
 
@@ -4554,7 +4870,7 @@ public class ColorSortActivity extends Activity {
                 return;
             }
 
-            if (selectedTube == idx) {
+            if (selectedTube == index) {
 
                 selectedTube = -1;
 
@@ -4566,18 +4882,21 @@ public class ColorSortActivity extends Activity {
             if (
                     canMove(
                             selectedTube,
-                            idx
+                            index
                     )
             ) {
 
+                int from =
+                        selectedTube;
+
                 saveMove(
-                        selectedTube,
-                        idx
+                        from,
+                        index
                 );
 
                 beginAnimatedMove(
-                        selectedTube,
-                        idx
+                        from,
+                        index
                 );
 
                 moves++;
@@ -4586,39 +4905,82 @@ public class ColorSortActivity extends Activity {
 
             } else {
 
-                // =========================
-                // WRONG MOVE
-                // =========================
-
-                mistakeCount++;
-
-                mistakeShakeUntil =
-                        SystemClock.uptimeMillis()
-                                + 420;
-
-                mistakeShakeStrength =
-                        mistakeCount >= 3
-                                ? 18f
-                                : 10f;
+                showError(
+                        selectedTube,
+                        index,
+                        true
+                );
 
                 selectedTube = -1;
+            }
+        }
+
+        /* =========================================================
+           ERROR
+           ========================================================= */
+
+        private void showError(
+                int from,
+                int to,
+                boolean countMistake
+        ) {
+
+            errorFrom = from;
+            errorTo = to;
+
+            if (countMistake) {
+
+                mistakes++;
+
+                errorStrength =
+                        mistakes >= 2
+                                ? 2
+                                : 1;
 
                 playGameSound(4);
 
-                if (mistakeCount >= 3) {
+                errorStart =
+                        SystemClock.uptimeMillis();
 
-                    showFailure();
+                invalidate();
 
-                    return;
+                if (mistakes >= MAX_MISTAKES) {
+
+                    handler.postDelayed(
+                            new Runnable() {
+
+                                @Override
+                                public void run() {
+
+                                    if (
+                                            mistakes >=
+                                                    MAX_MISTAKES
+                                                    &&
+                                                    !levelFinished
+                                    ) {
+
+                                        failLevel();
+                                    }
+                                }
+                            },
+                            700
+                    );
                 }
+
+            } else {
+
+                errorStrength = 1;
+
+                errorStart =
+                        SystemClock.uptimeMillis();
 
                 invalidate();
             }
         }
 
-        // =========================
-        // VALID MOVE
-        // =========================
+        /* =========================================================
+           MOVE VALIDATION
+           ========================================================= */
 
         private boolean canMove(
                 int from,
@@ -4627,10 +4989,11 @@ public class ColorSortActivity extends Activity {
 
             if (
                     from < 0 ||
-                    to < 0 ||
-                    from >= tubes.size() ||
-                    to >= tubes.size()
+                            to < 0 ||
+                            from >= tubes.size() ||
+                            to >= tubes.size()
             ) {
+
                 return false;
             }
 
@@ -4642,8 +5005,9 @@ public class ColorSortActivity extends Activity {
 
             if (
                     source.isEmpty() ||
-                    target.size() >= CAPACITY
+                            target.size() >= CAPACITY
             ) {
+
                 return false;
             }
 
@@ -4652,15 +5016,16 @@ public class ColorSortActivity extends Activity {
                             source.size() - 1
                     );
 
-            return target.isEmpty() ||
+            return target.isEmpty()
+                    ||
                     target.get(
                             target.size() - 1
                     ) == color;
         }
 
-        // =========================
-        // MOVE ANIMATION
-        // =========================
+        /* =========================================================
+           ANIMATED MOVE
+           ========================================================= */
 
         private void beginAnimatedMove(
                 int from,
@@ -4680,9 +5045,13 @@ public class ColorSortActivity extends Activity {
 
             animAmount =
                     Math.min(
-                            getTopSameCount(source),
+                            getTopSameCount(
+                                    source
+                            ),
                             CAPACITY -
-                                    tubes.get(to).size()
+                                    tubes
+                                            .get(to)
+                                            .size()
                     );
 
             animProgress = 0f;
@@ -4699,8 +5068,9 @@ public class ColorSortActivity extends Activity {
 
             if (
                     animFrom < 0 ||
-                    animTo < 0
+                            animTo < 0
             ) {
+
                 return;
             }
 
@@ -4750,11 +5120,13 @@ public class ColorSortActivity extends Activity {
                     );
 
             while (
-                    !source.isEmpty() &&
-                    target.size() < CAPACITY &&
-                    source.get(
-                            source.size() - 1
-                    ) == color
+                    !source.isEmpty()
+                            &&
+                            target.size() < CAPACITY
+                            &&
+                            source.get(
+                                    source.size() - 1
+                            ) == color
             ) {
 
                 target.add(
@@ -4765,78 +5137,46 @@ public class ColorSortActivity extends Activity {
             }
         }
 
-        // =========================
-        // HISTORY
-        // =========================
-
-        private void saveMove(
-                int from,
-                int to
-        ) {
-
-            List<Integer> source =
-                    tubes.get(from);
-
-            int color =
-                    source.get(
-                            source.size() - 1
-                    );
-
-            int amount =
-                    Math.min(
-                            getTopSameCount(source),
-                            CAPACITY -
-                                    tubes.get(to).size()
-                    );
-
-            history.add(
-                    new Move(
-                            from,
-                            to,
-                            color,
-                            amount
-                    )
-            );
-
-            if (history.size() > 100) {
-                history.remove(0);
-            }
-        }
-
-        // =========================
-        // UNDO
-        // =========================
+        /* =========================================================
+           UNDO
+           ========================================================= */
 
         void undoMove() {
 
             if (
                     levelFinished ||
-                    animProgress < 1f
+                            levelFailed ||
+                            animProgress < 1f
             ) {
+
                 return;
             }
 
             if (history.isEmpty()) {
 
-                playGameSound(4);
+                Toast.makeText(
+                        ColorSortActivity.this,
+                        "حرکتی برای برگشت وجود ندارد",
+                        Toast.LENGTH_SHORT
+                ).show();
 
                 return;
             }
 
-            Move m =
+            Move move =
                     history.remove(
                             history.size() - 1
                     );
 
             List<Integer> source =
-                    tubes.get(m.to);
+                    tubes.get(move.to);
 
             List<Integer> target =
-                    tubes.get(m.from);
+                    tubes.get(move.from);
 
             for (
                     int i = 0;
-                    i < m.amount;
+                    i < move.amount;
                     i++
             ) {
 
@@ -4861,16 +5201,64 @@ public class ColorSortActivity extends Activity {
             invalidate();
         }
 
-        // =========================
-        // HINT
-        // =========================
+        /* =========================================================
+           SAVE MOVE
+           ========================================================= */
+
+        private void saveMove(
+                int from,
+                int to
+        ) {
+
+            List<Integer> source =
+                    tubes.get(from);
+
+            if (source.isEmpty()) {
+                return;
+            }
+
+            int color =
+                    source.get(
+                            source.size() - 1
+                    );
+
+            int amount =
+                    Math.min(
+                            getTopSameCount(
+                                    source
+                            ),
+                            CAPACITY -
+                                    tubes
+                                            .get(to)
+                                            .size()
+                    );
+
+            history.add(
+                    new Move(
+                            from,
+                            to,
+                            color,
+                            amount
+                    )
+            );
+
+            if (history.size() > 100) {
+                history.remove(0);
+            }
+        }
+
+        /* =========================================================
+           HINT
+           ========================================================= */
 
         void showHint() {
 
             if (
                     levelFinished ||
-                    animProgress < 1f
+                            levelFailed ||
+                            animProgress < 1f
             ) {
+
                 return;
             }
 
@@ -4883,6 +5271,7 @@ public class ColorSortActivity extends Activity {
                 if (
                         tubes.get(from).isEmpty()
                 ) {
+
                     continue;
                 }
 
@@ -4894,10 +5283,10 @@ public class ColorSortActivity extends Activity {
 
                     if (
                             from != to &&
-                            canMove(
-                                    from,
-                                    to
-                            )
+                                    canMove(
+                                            from,
+                                            to
+                                    )
                     ) {
 
                         hintFrom = from;
@@ -4915,11 +5304,17 @@ public class ColorSortActivity extends Activity {
                     }
                 }
             }
+
+            Toast.makeText(
+                    ColorSortActivity.this,
+                    "فعلاً حرکت مناسبی پیدا نشد",
+                    Toast.LENGTH_SHORT
+            ).show();
         }
 
-        // =========================
-        // LEVEL COMPLETE
-        // =========================
+        /* =========================================================
+           COMPLETE LEVEL
+           ========================================================= */
 
         private boolean isLevelComplete() {
 
@@ -4932,9 +5327,7 @@ public class ColorSortActivity extends Activity {
                     continue;
                 }
 
-                if (
-                        tube.size() != CAPACITY
-                ) {
+                if (tube.size() != CAPACITY) {
                     return false;
                 }
 
@@ -4950,6 +5343,7 @@ public class ColorSortActivity extends Activity {
                     if (
                             tube.get(i) != first
                     ) {
+
                         return false;
                     }
                 }
@@ -4958,39 +5352,37 @@ public class ColorSortActivity extends Activity {
             return true;
         }
 
-        // =========================
-        // CELEBRATION
-        // =========================
-
         private void completeLevel() {
 
+            if (levelFinished ||
+                    levelFailed) {
+
+                return;
+            }
+
             levelFinished = true;
-            levelFailed = false;
+
+            selectedTube = -1;
 
             int stars =
                     calculateStars();
 
             lastEarnedCoins =
-                    calculateReward(
-                            stars
-                    );
+                    calculateReward(stars);
 
             coins +=
                     lastEarnedCoins;
 
-            totalStars += stars;
+            totalStars +=
+                    stars;
 
             victoryStart =
                     SystemClock.uptimeMillis();
 
-            celebrationStart =
-                    SystemClock.uptimeMillis();
-
-            celebrationPlaying = true;
-
-            // مهم:
-            // فقط جشن ۳.۲ ثانیه‌ای پخش می‌شود
-            // و دیگر با صدای دیگری قطع نمی‌شود.
+            /*
+             * فقط یک بار صدای جشن را اجرا می‌کنیم.
+             * این صدا حدود ۳.۴ ثانیه طول دارد.
+             */
             playGameSound(3);
 
             saveProgress();
@@ -5003,76 +5395,80 @@ public class ColorSortActivity extends Activity {
                         @Override
                         public void run() {
 
-                            celebrationPlaying = false;
-
                             if (!levelFinished) {
                                 return;
                             }
 
-                            if (
-                                    level <
-                                            MAX_LEVEL
-                            ) {
-
-                                level++;
-
-                                resetLevel();
-
-                            } else {
-
-                                level = 1;
-
-                                resetLevel();
-                            }
+                            advanceAfterVictory();
                         }
                     },
-                    3400
+                    3600
             );
         }
 
-        // =========================
-        // FAILURE
-        // =========================
+        private void advanceAfterVictory() {
 
-        private void showFailure() {
+            if (!levelFinished) {
+                return;
+            }
 
-            levelFinished = true;
+            levelFinished = false;
+
+            if (level < MAX_LEVEL) {
+
+                level++;
+
+                saveProgress();
+
+                resetLevel();
+
+            } else {
+
+                Toast.makeText(
+                        ColorSortActivity.this,
+                        "🏆 هر ۳۰ مرحله را کامل کردی!",
+                        Toast.LENGTH_LONG
+                ).show();
+
+                level = 1;
+
+                saveProgress();
+
+                resetLevel();
+            }
+        }
+
+        /* =========================================================
+           FAILURE
+           ========================================================= */
+
+        private void failLevel() {
+
+            if (
+                    levelFinished ||
+                            levelFailed
+            ) {
+
+                return;
+            }
+
             levelFailed = true;
 
-            celebrationPlaying = false;
+            selectedTube = -1;
+
+            failureStart =
+                    SystemClock.uptimeMillis();
 
             stopActiveSound();
 
+            playGameSound(4);
+
             invalidate();
-
-            handler.postDelayed(
-                    new Runnable() {
-
-                        @Override
-                        public void run() {
-
-                            if (
-                                    !levelFinished
-                            ) {
-                                return;
-                            }
-
-                            resetLevel();
-
-                            mistakeCount = 0;
-
-                            mistakeShakeStrength = 0f;
-
-                            invalidate();
-                        }
-                    },
-                    1500
-            );
         }
 
-        // =========================
-        // MOVE CLASS
-        // =========================
+        /* =========================================================
+           MOVE OBJECT
+           ========================================================= */
 
         class Move {
 
@@ -5095,4 +5491,4 @@ public class ColorSortActivity extends Activity {
             }
         }
     }
-                                }
+                                     }
