@@ -35,6 +35,20 @@ workflows:
 
           ./gradlew signingReport
 
+      - name: Find AR dependency
+        script: |
+          echo "=========================================="
+          echo "       SEARCHING AR DEPENDENCIES"
+          echo "=========================================="
+
+          ./gradlew app:dependencies \
+            --configuration releaseRuntimeClasspath \
+            | grep -i -E "arcore|com.google.ar|sceneform|filament|augmented" || true
+
+          echo "=========================================="
+          echo "       AR DEPENDENCY SEARCH FINISHED"
+          echo "=========================================="
+
       - name: Build Android AAB
         script: |
           ./gradlew bundleRelease
