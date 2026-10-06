@@ -1235,14 +1235,6 @@ public class AccountActivity extends Activity {
                                     @Override
 public void onVerificationFailed(FirebaseException e) {
 
-    String errorMessage = e.getMessage();
-
-    if (errorMessage == null || errorMessage.trim().isEmpty()) {
-        errorMessage = e.toString();
-    }
-
-    String errorClass = e.getClass().getName();
-
     Toast.makeText(
         AccountActivity.this,
         text(
