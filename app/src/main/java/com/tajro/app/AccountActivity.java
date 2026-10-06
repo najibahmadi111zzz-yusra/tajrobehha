@@ -310,18 +310,10 @@ public class AccountActivity extends Activity {
         );
 
         styleButton(phoneModeButton);
+        phoneModeButton.setVisibility(View.GONE);
 
         methodLayout.addView(
                 emailModeButton,
-                new LinearLayout.LayoutParams(
-                        0,
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        1
-                )
-        );
-
-        methodLayout.addView(
-                phoneModeButton,
                 new LinearLayout.LayoutParams(
                         0,
                         LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -1251,34 +1243,17 @@ public void onVerificationFailed(FirebaseException e) {
 
     String errorClass = e.getClass().getName();
 
-    String fullError =
-            "CLASS:\n"
-            + errorClass
-            + "\n\nMESSAGE:\n"
-            + errorMessage;
-
-    new AlertDialog.Builder(AccountActivity.this)
-            .setTitle(
-                    text(
-                            "خطای ورود با شماره",
-                            "Phone Login Error",
-                            "د تلیفون د ننوتلو تېروتنه",
-                            "فون لاگ اِن کی خرابی",
-                            "फ़ोन लॉगिन त्रुटि"
-                    )
-            )
-            .setMessage(fullError)
-            .setPositiveButton(
-                    text(
-                            "باشه",
-                            "OK",
-                            "سمه ده",
-                            "ٹھیک ہے",
-                            "ठीक है"
-                    ),
-                    null
-            )
-            .show();
+    Toast.makeText(
+        AccountActivity.this,
+        text(
+                "این روش ورود فعلاً در دسترس نیست.",
+                "This sign-in method is currently unavailable.",
+                "دا د ننوتلو طریقه اوس شتون نه لري.",
+                "یہ سائن اِن طریقہ فی الحال دستیاب نہیں ہے۔",
+                "यह साइन-इन तरीका अभी उपलब्ध नहीं है।"
+        ),
+        Toast.LENGTH_LONG
+).show();
 
     verificationId = null;
     resendToken = null;
