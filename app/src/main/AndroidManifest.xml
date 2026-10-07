@@ -1,112 +1,97 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>  <manifest xmlns:android="http://schemas.android.com/apk/res/android">  <uses-permission android:name="android.permission.INTERNET" />  
+<uses-permission android:name="android.permission.RECORD_AUDIO" />  
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<!-- اجازه نمایش اعلان در Android 13 و بالاتر -->  
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />  
 
-    <!-- حذف هر اعلامیه ARCore که ممکن است از dependencyها وارد Manifest شده باشد -->
-    <uses-feature
-        android:name="android.hardware.camera.ar"
-        tools:node="remove" />
+<application  
+    android:name=".TajroApplication"  
+    android:theme="@style/AppTheme"  
+    android:label="تجربه‌ها"  
+    android:allowBackup="true"  
+    android:icon="@drawable/ic_launcher"  
+    android:roundIcon="@drawable/ic_launcher">  
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- قفل امنیتی برنامه -->  
+    <activity  
+        android:name=".AppLockActivity"  
+        android:exported="false" />  
 
-    <!-- اجازه نمایش اعلان در Android 13 و بالاتر -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <activity  
+        android:name=".AIActivity"  
+        android:exported="false" />  
 
-    <application
-        android:name=".TajroApplication"
-        android:theme="@style/AppTheme"
-        android:label="تجربه‌ها"
-        android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
-        android:roundIcon="@drawable/ic_launcher">
+    <activity  
+        android:name=".ChatActivity"  
+        android:exported="false" />  
 
-        <!-- حذف meta-data مربوط به ARCore در صورت ورود از dependency -->
-        <meta-data
-            android:name="com.google.ar.core"
-            tools:node="remove" />
+    <activity  
+        android:name=".AccountActivity"  
+        android:exported="false" />  
 
-        <!-- قفل امنیتی برنامه -->
-        <activity
-            android:name=".AppLockActivity"
-            android:exported="false" />
+    <activity  
+        android:name=".EditExperienceActivity"  
+        android:exported="false" />  
 
-        <activity
-            android:name=".AIActivity"
-            android:exported="false" />
+    <activity  
+        android:name=".ExperienceListActivity"  
+        android:exported="false" />  
 
-        <activity
-            android:name=".ChatActivity"
-            android:exported="false" />
+    <activity  
+        android:name=".AddExperienceActivity"  
+        android:exported="false" />  
 
-        <activity
-            android:name=".AccountActivity"
-            android:exported="false" />
+    <activity  
+        android:name=".VoiceActivity"  
+        android:exported="false" />  
+      
+            <activity  
+        android:name=".GamesActivity"  
+        android:exported="false" />  
 
-        <activity
-            android:name=".EditExperienceActivity"
-            android:exported="false" />
+    <activity  
+        android:name=".ColorSortActivity"  
+        android:exported="false" />
 
-        <activity
-            android:name=".ExperienceListActivity"
-            android:exported="false" />
+<activity  
+android:name=".BallGameActivity"  
+android:exported="false" />
 
-        <activity
-            android:name=".AddExperienceActivity"
-            android:exported="false" />
+<activity  
+        android:name=".ExchangeActivity"  
+        android:exported="false" />  
 
-        <activity
-            android:name=".VoiceActivity"
-            android:exported="false" />
+    <activity  
+        android:name=".VaultActivity"  
+        android:exported="false" />  
 
-        <activity
-            android:name=".GamesActivity"
-            android:exported="false" />
+    <!-- تنظیمات -->  
+    <activity  
+        android:name=".SettingsActivity"  
+        android:exported="false" />  
 
-        <activity
-            android:name=".ColorSortActivity"
-            android:exported="false" />
+    <!-- دریافت اعلان‌های Firebase -->  
+    <service  
+        android:name=".TajroFirebaseMessagingService"  
+        android:exported="false">  
 
-        <activity
-            android:name=".BallGameActivity"
-            android:exported="false" />
+        <intent-filter>  
+            <action android:name="com.google.firebase.MESSAGING_EVENT" />  
+        </intent-filter>  
 
-        <activity
-            android:name=".ExchangeActivity"
-            android:exported="false" />
+    </service>  
 
-        <activity
-            android:name=".VaultActivity"
-            android:exported="false" />
+    <activity  
+        android:name=".MainActivity"  
+        android:exported="true">  
 
-        <!-- تنظیمات -->
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false" />
+        <intent-filter>  
+            <action android:name="android.intent.action.MAIN" />  
+            <category android:name="android.intent.category.LAUNCHER" />  
+        </intent-filter>  
 
-        <!-- دریافت اعلان‌های Firebase -->
-        <service
-            android:name=".TajroFirebaseMessagingService"
-            android:exported="false">
+    </activity>  
 
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-
-        </service>
-
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
-        </activity>
-
-    </application>
+</application>
 
 </manifest>
