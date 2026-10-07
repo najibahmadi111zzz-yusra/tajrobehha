@@ -8,17 +8,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.appcheck.FirebaseAppCheck;
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
 
-import com.unity3d.ads.InitializationConfiguration;
-import com.unity3d.ads.InitializationListener;
-import com.unity3d.ads.UnityAds;
-import com.unity3d.ads.UnityAdsError;
-
 public class TajroApplication extends Application {
-
-    private static final String UNITY_GAME_ID = "800372948";
-
-    // در مرحله تست حتماً true باشد
-    private static final boolean TEST_MODE = true;
 
     @Override
     public void onCreate() {
@@ -55,69 +45,17 @@ public class TajroApplication extends Application {
         // =========================
         // Unity Ads
         // =========================
-
-        InitializationConfiguration config =
-                new InitializationConfiguration.Builder(
-                        UNITY_GAME_ID
-                )
-                        .withTestMode(TEST_MODE)
-                        .build();
-
-        InitializationListener listener =
-                error -> {
-
-                    if (error == null) {
-
-                        Log.d(
-                                "UnityAds",
-                                "Unity Ads initialized successfully"
-                        );
-
-                        Toast.makeText(
-                                this,
-                                text(
-                                        "✅ Unity Ads آماده شد.",
-                                        "✅ Unity Ads is ready.",
-                                        "✅ Unity Ads چمتو شو.",
-                                        "✅ Unity Ads تیار ہے۔",
-                                        "✅ Unity Ads तैयार है।"
-                                ),
-                                Toast.LENGTH_SHORT
-                        ).show();
-
-                    } else {
-
-                        String message =
-                                error.getMessage();
-
-                        Log.e(
-                                "UnityAds",
-                                "Unity Ads initialization failed: "
-                                        + message
-                        );
-
-                        Toast.makeText(
-                                this,
-                                text(
-                                        "❌ خطای Unity Ads: ",
-                                        "❌ Unity Ads error: ",
-                                        "❌ د Unity Ads تېروتنه: ",
-                                        "❌ Unity Ads کی خرابی: ",
-                                        "❌ Unity Ads त्रुटि: "
-                                ) + message,
-                                Toast.LENGTH_LONG
-                        ).show();
-                    }
-                };
+        // موقتاً برای آزمایش کاملاً غیرفعال شده است.
+        //
+        // هیچ Unity Ads initialize نمی‌شود.
+        // این فقط یک Build تشخیصی است.
+        //
+        // بعد از مشخص شدن نتیجه، این قسمت را
+        // به حالت اصلی برمی‌گردانیم.
 
         Log.d(
                 "UnityAds",
-                "Starting Unity Ads initialization..."
-        );
-
-        UnityAds.initialize(
-                config,
-                listener
+                "Unity Ads TEMPORARILY DISABLED FOR TEST"
         );
     }
 
