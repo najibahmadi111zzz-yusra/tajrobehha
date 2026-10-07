@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- حذف هر اعلامیه ARCore که ممکن است از dependencyها وارد Manifest شده باشد -->
+    <uses-feature
+        android:name="android.hardware.camera.ar"
+        tools:node="remove" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -15,6 +21,11 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:roundIcon="@drawable/ic_launcher">
+
+        <!-- حذف meta-data مربوط به ARCore در صورت ورود از dependency -->
+        <meta-data
+            android:name="com.google.ar.core"
+            tools:node="remove" />
 
         <!-- قفل امنیتی برنامه -->
         <activity
@@ -48,18 +59,19 @@
         <activity
             android:name=".VoiceActivity"
             android:exported="false" />
-        
-                <activity
+
+        <activity
             android:name=".GamesActivity"
             android:exported="false" />
 
         <activity
             android:name=".ColorSortActivity"
             android:exported="false" />
-<activity
-    android:name=".BallGameActivity"
-    android:exported="false" />
-        
+
+        <activity
+            android:name=".BallGameActivity"
+            android:exported="false" />
+
         <activity
             android:name=".ExchangeActivity"
             android:exported="false" />
