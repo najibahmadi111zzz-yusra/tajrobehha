@@ -4974,78 +4974,111 @@ header.addView(chatMenu,
         }
     }
 
-    private void loadImage(
-            String url,
-            ImageView imageView
-    ) {
+private void loadImage(
+        String url,
+        ImageView imageView
+) {
 
-        new Thread(
-                () -> {
+    new Thread(
+            () -> {
 
-                    HttpURLConnection connection =
-                            null;
+                HttpURLConnection connection = null;
+                InputStream input = null;
 
-                    try {
+                try {
 
-                        connection =
-                                (HttpURLConnection)
-                                        new URL(url)
-                                                .openConnection();
+                    URL imageUrl = new URL(url);
 
-                        connection.setConnectTimeout(
-                                15000
+                    connection =
+                            (HttpURLConnection)
+                                    imageUrl.openConnection();
+
+                    connection.setRequestMethod("GET");
+
+                    connection.setConnectTimeout(
+                            15000
+                    );
+
+                    connection.setReadTimeout(
+                            30000
+                    );
+
+                    connection.setUseCaches(false);
+
+                    /*
+                     * عکس پروفایل در باکت Public است.
+                     * بنابراین برای دریافت عکس،
+                     * Authorization لازم نیست.
+                     */
+
+                    connection.setRequestProperty(
+                            "Accept",
+                            "image/*"
+                    );
+
+                    connection.connect();
+
+                    int responseCode =
+                            connection.getResponseCode();
+
+                    if (responseCode < 200 ||
+                            responseCode >= 300) {
+
+                        throw new Exception(
+                                "Image HTTP " +
+                                responseCode
                         );
+                    }
 
-                        connection.setReadTimeout(
-                                30000
-                        );
+                    input =
+                            connection.getInputStream();
 
-                        connection.setRequestProperty(
-                                "apikey",
-                                SUPABASE_PUBLISHABLE_KEY
-                        );
-
-                        connection.setRequestProperty(
-                                "Authorization",
-                                "Bearer " +
-                                        SUPABASE_PUBLISHABLE_KEY
-                        );
-
-                        InputStream input =
-                                connection
-                                        .getInputStream();
-
-                        Bitmap bitmap =
-                                BitmapFactory
-                                        .decodeStream(
-                                                input
-                                        );
-
-                        input.close();
-
-                        if (bitmap != null) {
-
-                            runOnUiThread(
-                                    () ->
-                                            imageView
-                                                    .setImageBitmap(
-                                                            bitmap
-                                                    )
+                    Bitmap bitmap =
+                            BitmapFactory.decodeStream(
+                                    input
                             );
-                        }
 
-                    } catch (Exception ignored) {
+                    if (bitmap == null) {
 
-                    } finally {
+                        throw new Exception(
+                                "Image decode failed"
+                        );
+                    }
 
-                        if (connection != null) {
-                            connection.disconnect();
+                    runOnUiThread(
+                            () ->
+                                    imageView.setImageBitmap(
+                                            bitmap
+                                    )
+                    );
+
+                } catch (Exception e) {
+
+                    Log.e(
+                            "PROFILE_IMAGE",
+                            "Failed to load image: " +
+                                    url,
+                            e
+                    );
+
+                } finally {
+
+                    if (input != null) {
+
+                        try {
+                            input.close();
+                        } catch (Exception ignored) {
                         }
                     }
 
+                    if (connection != null) {
+                        connection.disconnect();
+                    }
                 }
-        ).start();
-    }
+
+            }
+    ).start();
+}
 
     private void showImageViewer(
             String url
