@@ -42,7 +42,7 @@ public class ExperienceListActivity extends Activity {
     private LinearLayout layout;
 
     /*
-     * برای جلوگیری از نمایش یک تجربه تکراری
+     * جلوگیری از نمایش یک تجربه تکراری
      */
     private Set<String> displayedExperienceKeys =
             new HashSet<>();
@@ -302,6 +302,8 @@ public class ExperienceListActivity extends Activity {
         ScrollView scrollView =
                 new ScrollView(this);
 
+        scrollView.setFillViewport(true);
+
         layout =
                 new LinearLayout(this);
 
@@ -310,14 +312,14 @@ public class ExperienceListActivity extends Activity {
         );
 
         layout.setPadding(
-                dp(16),
-                dp(24),
-                dp(16),
+                dp(14),
+                dp(18),
+                dp(14),
                 dp(30)
         );
 
         layout.setBackgroundColor(
-                Color.rgb(235, 248, 250)
+                Color.rgb(238, 248, 250)
         );
 
         scrollView.addView(
@@ -327,6 +329,10 @@ public class ExperienceListActivity extends Activity {
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 )
         );
+
+        // ================================
+        // عنوان صفحه
+        // ================================
 
         TextView title =
                 new TextView(this);
@@ -353,10 +359,10 @@ public class ExperienceListActivity extends Activity {
         );
 
         title.setPadding(
-                0,
-                0,
-                0,
-                dp(22)
+                dp(4),
+                dp(4),
+                dp(4),
+                dp(20)
         );
 
         layout.addView(title);
@@ -560,6 +566,10 @@ public class ExperienceListActivity extends Activity {
         layout.addView(empty);
     }
 
+    // =========================================================
+    // کارت حرفه‌ای تجربه
+    // =========================================================
+
     private void createExperienceCard(
             DocumentSnapshot document,
             String currentUserId
@@ -570,9 +580,6 @@ public class ExperienceListActivity extends Activity {
 
         String experienceText =
                 document.getString("text");
-
-        String authorEmail =
-                document.getString("authorEmail");
 
         String userId =
                 document.getString("userId");
@@ -588,15 +595,12 @@ public class ExperienceListActivity extends Activity {
             experienceText = "";
         }
 
-        if (authorEmail == null ||
-                authorEmail.trim().isEmpty()) {
-
-            authorEmail =
-                    text("کاربر");
-        }
-
         String documentId =
                 document.getId();
+
+        // =====================================================
+        // کارت اصلی
+        // =====================================================
 
         LinearLayout card =
                 new LinearLayout(this);
@@ -606,10 +610,10 @@ public class ExperienceListActivity extends Activity {
         );
 
         card.setPadding(
-                dp(17),
                 dp(16),
-                dp(17),
-                dp(11)
+                dp(15),
+                dp(16),
+                dp(10)
         );
 
         GradientDrawable cardBackground =
@@ -620,11 +624,20 @@ public class ExperienceListActivity extends Activity {
         );
 
         cardBackground.setCornerRadius(
-                dp(18)
+                dp(20)
+        );
+
+        cardBackground.setStroke(
+                dp(1),
+                Color.rgb(220, 235, 239)
         );
 
         card.setBackground(
                 cardBackground
+        );
+
+        card.setElevation(
+                dp(3)
         );
 
         LinearLayout.LayoutParams cardParams =
@@ -634,13 +647,17 @@ public class ExperienceListActivity extends Activity {
                 );
 
         cardParams.setMargins(
-                0,
-                0,
-                0,
+                dp(1),
+                dp(3),
+                dp(1),
                 dp(15)
         );
 
         card.setLayoutParams(cardParams);
+
+        // =====================================================
+        // ردیف پروفایل
+        // =====================================================
 
         LinearLayout authorRow =
                 new LinearLayout(this);
@@ -653,6 +670,17 @@ public class ExperienceListActivity extends Activity {
                 Gravity.CENTER_VERTICAL
         );
 
+        authorRow.setPadding(
+                dp(2),
+                dp(1),
+                dp(2),
+                dp(8)
+        );
+
+        // =====================================================
+        // عکس پروفایل دایره‌ای
+        // =====================================================
+
         ImageView profileImage =
                 new ImageView(this);
 
@@ -664,22 +692,34 @@ public class ExperienceListActivity extends Activity {
                 new GradientDrawable();
 
         imageBackground.setColor(
-                Color.rgb(225, 240, 245)
+                Color.rgb(224, 241, 246)
         );
 
         imageBackground.setShape(
                 GradientDrawable.OVAL
         );
 
+        imageBackground.setStroke(
+                dp(2),
+                Color.rgb(205, 228, 234)
+        );
+
         profileImage.setBackground(
                 imageBackground
         );
+
+        // باعث می‌شود خود تصویر نیز داخل دایره بریده شود
+        profileImage.setClipToOutline(true);
+
+        // =====================================================
+        // نام کاربر
+        // =====================================================
 
         TextView authorName =
                 new TextView(this);
 
         authorName.setText(
-                "👤 " + authorEmail
+                text("کاربر")
         );
 
         authorName.setTextSize(16);
@@ -691,7 +731,7 @@ public class ExperienceListActivity extends Activity {
         authorName.setTypeface(
                 Typeface.create(
                         "sans-serif-medium",
-                        Typeface.NORMAL
+                        Typeface.BOLD
                 )
         );
 
@@ -699,18 +739,24 @@ public class ExperienceListActivity extends Activity {
                 Gravity.CENTER_VERTICAL
         );
 
+        authorName.setSingleLine(true);
+
+        authorName.setEllipsize(
+                android.text.TextUtils.TruncateAt.END
+        );
+
         authorName.setPadding(
-                dp(10),
+                dp(11),
                 0,
-                0,
+                dp(4),
                 0
         );
 
         authorRow.addView(
                 profileImage,
                 new LinearLayout.LayoutParams(
-                        dp(54),
-                        dp(54)
+                        dp(52),
+                        dp(52)
                 )
         );
 
@@ -718,23 +764,50 @@ public class ExperienceListActivity extends Activity {
                 authorName,
                 new LinearLayout.LayoutParams(
                         0,
-                        dp(54),
+                        dp(52),
                         1
                 )
         );
 
         card.addView(authorRow);
 
+        // =====================================================
+        // گرفتن نام و عکس واقعی پروفایل
+        // =====================================================
+
         if (userId != null &&
-                !userId.isEmpty()) {
+                !userId.trim().isEmpty()) {
 
             loadUserProfile(
                     userId,
                     authorName,
                     profileImage,
-                    authorEmail
+                    text("کاربر")
             );
         }
+
+        // =====================================================
+        // خط ظریف زیر مشخصات کاربر
+        // =====================================================
+
+        View separator =
+                new View(this);
+
+        separator.setBackgroundColor(
+                Color.rgb(235, 242, 244)
+        );
+
+        card.addView(
+                separator,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(1)
+                )
+        );
+
+        // =====================================================
+        // عنوان تجربه
+        // =====================================================
 
         TextView experienceTitleView =
                 new TextView(this);
@@ -746,13 +819,13 @@ public class ExperienceListActivity extends Activity {
         experienceTitleView.setTextSize(19);
 
         experienceTitleView.setTextColor(
-                Color.rgb(8, 65, 90)
+                Color.rgb(7, 60, 82)
         );
 
         experienceTitleView.setTypeface(
                 Typeface.create(
-                        "sans-serif-medium",
-                        Typeface.NORMAL
+                        "sans-serif",
+                        Typeface.BOLD
                 )
         );
 
@@ -760,16 +833,25 @@ public class ExperienceListActivity extends Activity {
                 Gravity.RIGHT
         );
 
+        experienceTitleView.setLineSpacing(
+                dp(2),
+                1.05f
+        );
+
         experienceTitleView.setPadding(
                 dp(5),
-                dp(17),
+                dp(15),
                 dp(5),
-                dp(3)
+                dp(4)
         );
 
         card.addView(
                 experienceTitleView
         );
+
+        // =====================================================
+        // متن تجربه
+        // =====================================================
 
         TextView experience =
                 new TextView(this);
@@ -796,8 +878,8 @@ public class ExperienceListActivity extends Activity {
         );
 
         experience.setLineSpacing(
-                dp(3),
-                1.05f
+                dp(4),
+                1.08f
         );
 
         experience.setPadding(
@@ -807,7 +889,13 @@ public class ExperienceListActivity extends Activity {
                 dp(12)
         );
 
-        card.addView(experience);
+        card.addView(
+                experience
+        );
+
+        // =====================================================
+        // ردیف لایک + تاریخ
+        // =====================================================
 
         LinearLayout likeRow =
                 new LinearLayout(this);
@@ -821,20 +909,25 @@ public class ExperienceListActivity extends Activity {
         );
 
         likeRow.setPadding(
-                dp(3),
                 dp(2),
-                dp(3),
-                dp(5)
+                dp(2),
+                dp(2),
+                dp(3)
         );
+
+        // =====================================================
+        // دکمه لایک
+        // =====================================================
 
         TextView likeButton =
                 new TextView(this);
 
         likeButton.setText("♡");
-        likeButton.setTextSize(28);
+
+        likeButton.setTextSize(29);
 
         likeButton.setTextColor(
-                Color.rgb(210, 40, 60)
+                Color.rgb(211, 48, 72)
         );
 
         likeButton.setGravity(
@@ -850,21 +943,48 @@ public class ExperienceListActivity extends Activity {
 
         likeButton.setClickable(true);
 
+        GradientDrawable likeBackground =
+                new GradientDrawable();
+
+        likeBackground.setColor(
+                Color.rgb(255, 246, 247)
+        );
+
+        likeBackground.setCornerRadius(
+                dp(14)
+        );
+
+        likeButton.setBackground(
+                likeBackground
+        );
+
+        likeRow.addView(
+                likeButton,
+                new LinearLayout.LayoutParams(
+                        dp(44),
+                        dp(40)
+                )
+        );
+
+        // =====================================================
+        // تعداد لایک
+        // =====================================================
+
         TextView likeCount =
                 new TextView(this);
 
-        likeCount.setText("0");
+        likeCount.setText("۰");
 
         likeCount.setTextSize(13);
 
         likeCount.setTextColor(
-                Color.rgb(100, 100, 100)
+                Color.rgb(105, 105, 105)
         );
 
         likeCount.setTypeface(
                 Typeface.create(
                         "sans-serif-medium",
-                        Typeface.NORMAL
+                        Typeface.BOLD
                 )
         );
 
@@ -873,27 +993,23 @@ public class ExperienceListActivity extends Activity {
         );
 
         likeCount.setPadding(
-                dp(1),
+                dp(5),
                 0,
                 dp(10),
                 0
         );
 
         likeRow.addView(
-                likeButton,
+                likeCount,
                 new LinearLayout.LayoutParams(
-                        dp(40),
+                        dp(38),
                         dp(40)
                 )
         );
 
-        likeRow.addView(
-                likeCount,
-                new LinearLayout.LayoutParams(
-                        dp(35),
-                        dp(40)
-                )
-        );
+        // =====================================================
+        // تاریخ و ساعت
+        // =====================================================
 
         TextView dateTime =
                 new TextView(this);
@@ -907,7 +1023,7 @@ public class ExperienceListActivity extends Activity {
         dateTime.setTextSize(10);
 
         dateTime.setTextColor(
-                Color.rgb(135, 135, 135)
+                Color.rgb(135, 145, 148)
         );
 
         dateTime.setGravity(
@@ -916,6 +1032,10 @@ public class ExperienceListActivity extends Activity {
         );
 
         dateTime.setSingleLine(true);
+
+        dateTime.setEllipsize(
+                android.text.TextUtils.TruncateAt.END
+        );
 
         LinearLayout.LayoutParams dateParams =
                 new LinearLayout.LayoutParams(
@@ -930,6 +1050,10 @@ public class ExperienceListActivity extends Activity {
         );
 
         card.addView(likeRow);
+
+        // =====================================================
+        // وضعیت لایک
+        // =====================================================
 
         loadLikeStatus(
                 document,
@@ -963,12 +1087,20 @@ public class ExperienceListActivity extends Activity {
                 }
         );
 
+        // =====================================================
+        // بررسی تجربه خود کاربر
+        // =====================================================
+
         boolean isMyExperience =
                 currentUserId != null &&
                         userId != null &&
                         currentUserId.equals(userId);
 
         if (isMyExperience) {
+
+            // =================================================
+            // دکمه‌های ویرایش و حذف
+            // =================================================
 
             LinearLayout buttons =
                     new LinearLayout(this);
@@ -981,6 +1113,13 @@ public class ExperienceListActivity extends Activity {
                     Gravity.CENTER
             );
 
+            buttons.setPadding(
+                    0,
+                    dp(6),
+                    0,
+                    dp(1)
+            );
+
             Button editButton =
                     new Button(this);
 
@@ -988,12 +1127,16 @@ public class ExperienceListActivity extends Activity {
                     text("✏️ ویرایش")
             );
 
+            editButton.setTextSize(13);
+
             Button deleteButton =
                     new Button(this);
 
             deleteButton.setText(
                     text("🗑️ حذف")
             );
+
+            deleteButton.setTextSize(13);
 
             buttons.addView(
                     editButton,
@@ -1112,6 +1255,10 @@ public class ExperienceListActivity extends Activity {
 
         layout.addView(card);
     }
+
+    // =========================================================
+    // لایک
+    // =========================================================
 
     private void loadLikeStatus(
             DocumentSnapshot experience,
@@ -1439,6 +1586,10 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
+    // =========================================================
+    // تاریخ
+    // =========================================================
+
     private String getExperienceDateTime(
             DocumentSnapshot document
     ) {
@@ -1625,6 +1776,10 @@ public class ExperienceListActivity extends Activity {
                 .replace("9", "۹");
     }
 
+    // =========================================================
+    // اطلاعات پروفایل
+    // =========================================================
+
     private void loadUserProfile(
             String userId,
             TextView authorName,
@@ -1641,8 +1796,7 @@ public class ExperienceListActivity extends Activity {
                             if (!userDocument.exists()) {
 
                                 authorName.setText(
-                                        "👤 " +
-                                                fallbackName
+                                        fallbackName
                                 );
 
                                 return;
@@ -1678,8 +1832,10 @@ public class ExperienceListActivity extends Activity {
                                         fallbackName;
                             }
 
+                            // فقط نام نمایش داده می‌شود
+                            // ایمیل عمداً اینجا استفاده نمی‌شود
                             authorName.setText(
-                                    "👤 " + name
+                                    name
                             );
 
                             String photoUrl = null;
@@ -1746,6 +1902,10 @@ public class ExperienceListActivity extends Activity {
                 );
     }
 
+    // =========================================================
+    // بارگذاری عکس پروفایل
+    // =========================================================
+
     private void loadProfileImage(
             String photoUrl,
             ImageView imageView
@@ -1769,11 +1929,17 @@ public class ExperienceListActivity extends Activity {
                         if (bitmap != null) {
 
                             runOnUiThread(
-                                    () ->
-                                            imageView
-                                                    .setImageBitmap(
-                                                            bitmap
-                                                    )
+                                    () -> {
+
+                                        imageView.setImageBitmap(
+                                                bitmap
+                                        );
+
+                                        // اطمینان از دایره‌ای ماندن تصویر
+                                        imageView.setClipToOutline(
+                                                true
+                                        );
+                                    }
                             );
                         }
 
@@ -1782,4 +1948,4 @@ public class ExperienceListActivity extends Activity {
                 }
         ).start();
     }
-            }
+}
