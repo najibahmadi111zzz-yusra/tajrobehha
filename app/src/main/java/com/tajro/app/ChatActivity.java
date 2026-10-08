@@ -80,6 +80,7 @@ public class ChatActivity extends Activity {
 
     private static final String CHAT_BUCKET = "chat_media";
     private static final String VOICE_BUCKET = "voice_messages";
+    private static final String PROFILE_BUCKET = "profile_photos_public";
 
     private FirebaseAuth auth;
     private FirebaseFirestore db;
@@ -4496,7 +4497,7 @@ header.addView(chatMenu,
 
         uploadToSupabase(
                 uri,
-                CHAT_BUCKET,
+                PROFILE_BUCKET,
                 objectPath,
                 finalMime,
                 new SupabaseUploadCallback() {
