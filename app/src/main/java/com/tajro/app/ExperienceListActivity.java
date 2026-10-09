@@ -73,6 +73,8 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("📚 تجربه‌های کاربران"))
                 return "📚 Users' Experiences";
 
+            if (fa.equals("🔎 جزئیات تجربه")) return "🔎 Experience details";
+
             if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
                 return "No experiences have been published yet.\n\nShare your first experience! ✍️";
 
@@ -124,6 +126,8 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("📚 تجربه‌های کاربران"))
                 return "📚 د کاروونکو تجربې";
+
+            if (fa.equals("🔎 جزئیات تجربه")) return "🔎 د تجربې جزئیات";
 
             if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
                 return "تر اوسه هېڅ تجربه نه ده خپره شوې.\n\nخپله لومړۍ تجربه ثبت کړئ! ✍️";
@@ -177,6 +181,8 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("📚 تجربه‌های کاربران"))
                 return "📚 صارفین کے تجربات";
 
+            if (fa.equals("🔎 جزئیات تجربه")) return "🔎 تجربے کی تفصیلات";
+
             if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
                 return "ابھی تک کوئی تجربہ شائع نہیں ہوا۔\n\nاپنا پہلا تجربہ شیئر کریں! ✍️";
 
@@ -228,6 +234,8 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("📚 تجربه‌های کاربران"))
                 return "📚 उपयोगकर्ताओं के अनुभव";
+
+            if (fa.equals("🔎 جزئیات تجربه")) return "🔎 अनुभव का विवरण";
 
             if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
                 return "अभी तक कोई अनुभव प्रकाशित नहीं हुआ है।\n\nअपना पहला अनुभव साझा करें! ✍️";
@@ -595,6 +603,11 @@ public class ExperienceListActivity extends Activity {
             experienceText = "";
         }
 
+        String experienceImageUrl = document.getString("imageUrl");
+        if (experienceImageUrl == null || experienceImageUrl.trim().isEmpty()) {
+            experienceImageUrl = document.getString("photoUrl");
+        }
+
         String documentId =
                 document.getId();
 
@@ -893,6 +906,21 @@ public class ExperienceListActivity extends Activity {
                 experience
         );
 
+        // تصویر تجربه (در صورت وجود)
+        if (experienceImageUrl != null && !experienceImageUrl.trim().isEmpty()) {
+            ImageView experienceImage = new ImageView(this);
+            experienceImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            experienceImage.setAdjustViewBounds(true);
+            experienceImage.setBackgroundColor(Color.rgb(235, 242, 244));
+            LinearLayout.LayoutParams experienceImageParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(210));
+            experienceImageParams.setMargins(0, dp(3), 0, dp(10));
+            card.addView(experienceImage, experienceImageParams);
+            loadExperienceImage(experienceImageUrl, experienceImage);
+            final String imageToOpen = experienceImageUrl;
+            experienceImage.setOnClickListener(v -> showExperienceImage(imageToOpen));
+        }
+
         // =====================================================
         // ردیف لایک + تاریخ
         // =====================================================
@@ -1087,173 +1115,155 @@ public class ExperienceListActivity extends Activity {
                 }
         );
 
-        // =====================================================
-        // بررسی تجربه خود کاربر
-        // =====================================================
+        // جزئیات برای همه کاربران؛ ویرایش و حذف فقط داخل صفحه جزئیات و برای مالک
+        Button detailsButton = new Button(this);
+        detailsButton.setText(text("🔎 جزئیات تجربه"));
+        detailsButton.setTextSize(13);
+        LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        detailsParams.setMargins(0, dp(5), 0, 0);
+        card.addView(detailsButton, detailsParams);
 
-        boolean isMyExperience =
-                currentUserId != null &&
-                        userId != null &&
-                        currentUserId.equals(userId);
+        final String detailTitle = experienceTitle;
+        final String detailText = experienceText;
+        final String detailImageUrl = experienceImageUrl;
+        final boolean isMyExperience = currentUserId != null && userId != null
+                && currentUserId.equals(userId);
 
-        if (isMyExperience) {
-
-            // =================================================
-            // دکمه‌های ویرایش و حذف
-            // =================================================
-
-            LinearLayout buttons =
-                    new LinearLayout(this);
-
-            buttons.setOrientation(
-                    LinearLayout.HORIZONTAL
-            );
-
-            buttons.setGravity(
-                    Gravity.CENTER
-            );
-
-            buttons.setPadding(
-                    0,
-                    dp(6),
-                    0,
-                    dp(1)
-            );
-
-            Button editButton =
-                    new Button(this);
-
-            editButton.setText(
-                    text("✏️ ویرایش")
-            );
-
-            editButton.setTextSize(13);
-
-            Button deleteButton =
-                    new Button(this);
-
-            deleteButton.setText(
-                    text("🗑️ حذف")
-            );
-
-            deleteButton.setTextSize(13);
-
-            buttons.addView(
-                    editButton,
-                    new LinearLayout.LayoutParams(
-                            0,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                            1
-                    )
-            );
-
-            buttons.addView(
-                    deleteButton,
-                    new LinearLayout.LayoutParams(
-                            0,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                            1
-                    )
-            );
-
-            card.addView(buttons);
-
-            String finalTitle =
-                    experienceTitle;
-
-            String finalText =
-                    experienceText;
-
-            editButton.setOnClickListener(
-                    v -> {
-
-                        Intent intent =
-                                new Intent(
-                                        ExperienceListActivity.this,
-                                        EditExperienceActivity.class
-                                );
-
-                        intent.putExtra(
-                                "documentId",
-                                documentId
-                        );
-
-                        intent.putExtra(
-                                "title",
-                                finalTitle
-                        );
-
-                        intent.putExtra(
-                                "text",
-                                finalText
-                        );
-
-                        startActivity(intent);
-                    }
-            );
-
-            deleteButton.setOnClickListener(
-                    v -> {
-
-                        new AlertDialog.Builder(
-                                ExperienceListActivity.this
-                        )
-                                .setMessage(
-                                        text(
-                                                "مطمئن هستید این تجربه حذف شود؟"
-                                        )
-                                )
-                                .setNegativeButton(
-                                        text("لغو"),
-                                        null
-                                )
-                                .setPositiveButton(
-                                        text("حذف"),
-                                        (dialog, which) -> {
-
-                                            db.collection(
-                                                    "experiences"
-                                            )
-                                                    .document(
-                                                            documentId
-                                                    )
-                                                    .delete()
-                                                    .addOnSuccessListener(
-                                                            unused -> {
-
-                                                                Toast.makeText(
-                                                                        ExperienceListActivity.this,
-                                                                        text(
-                                                                                "تجربه حذف شد 🗑️"
-                                                                        ),
-                                                                        Toast.LENGTH_SHORT
-                                                                ).show();
-
-                                                                layout.removeView(
-                                                                        card
-                                                                );
-                                                            }
-                                                    )
-                                                    .addOnFailureListener(
-                                                            e -> {
-
-                                                                Toast.makeText(
-                                                                        ExperienceListActivity.this,
-                                                                        text(
-                                                                                "خطا در حذف تجربه"
-                                                                        ),
-                                                                        Toast.LENGTH_LONG
-                                                                ).show();
-                                                            }
-                                                    );
-                                        }
-                                )
-                                .show();
-                    }
-            );
-        }
+        detailsButton.setOnClickListener(v -> showExperienceDetails(
+                documentId, detailTitle, detailText, detailImageUrl,
+                getExperienceDateTime(document), isMyExperience, card));
 
         layout.addView(card);
+    }
+
+    // =========================================================
+    // جزئیات کامل تجربه + ویرایش/حذف فقط برای مالک
+    // =========================================================
+
+    private void showExperienceDetails(
+            String documentId,
+            String titleValue,
+            String bodyValue,
+            String imageUrl,
+            String dateValue,
+            boolean isOwner,
+            View cardToRemove) {
+
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(16), dp(10), dp(16), dp(10));
+        scroll.addView(box);
+
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            ImageView image = new ImageView(this);
+            image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            image.setAdjustViewBounds(true);
+            box.addView(image, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(250)));
+            loadExperienceImage(imageUrl, image);
+            image.setOnClickListener(v -> showExperienceImage(imageUrl));
+        }
+
+        TextView titleView = new TextView(this);
+        titleView.setText(titleValue == null ? text("بدون عنوان") : titleValue);
+        titleView.setTextSize(21);
+        titleView.setTextColor(Color.rgb(7, 60, 82));
+        titleView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        titleView.setGravity(Gravity.RIGHT);
+        titleView.setPadding(0, dp(12), 0, dp(8));
+        box.addView(titleView);
+
+        TextView bodyView = new TextView(this);
+        bodyView.setText(bodyValue == null ? "" : bodyValue);
+        bodyView.setTextSize(17);
+        bodyView.setTextColor(Color.rgb(45, 50, 53));
+        bodyView.setGravity(Gravity.RIGHT);
+        bodyView.setLineSpacing(dp(4), 1.08f);
+        box.addView(bodyView);
+
+        if (dateValue != null && !dateValue.isEmpty()) {
+            TextView dateView = new TextView(this);
+            dateView.setText(dateValue);
+            dateView.setTextSize(12);
+            dateView.setTextColor(Color.GRAY);
+            dateView.setPadding(0, dp(12), 0, dp(4));
+            box.addView(dateView);
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(text("🔎 جزئیات تجربه"))
+                .setView(scroll)
+                .setNegativeButton(text("بستن"), null)
+                .create();
+
+        if (isOwner) {
+            dialog.setButton(AlertDialog.BUTTON_NEUTRAL, text("✏️ ویرایش"),
+                    (d, which) -> {
+                        Intent intent = new Intent(ExperienceListActivity.this,
+                                EditExperienceActivity.class);
+                        intent.putExtra("documentId", documentId);
+                        intent.putExtra("title", titleValue == null ? "" : titleValue);
+                        intent.putExtra("text", bodyValue == null ? "" : bodyValue);
+                        startActivity(intent);
+                    });
+            dialog.setButton(AlertDialog.BUTTON_POSITIVE, text("🗑️ حذف"),
+                    (d, which) -> new AlertDialog.Builder(ExperienceListActivity.this)
+                            .setMessage(text("مطمئن هستید این تجربه حذف شود؟"))
+                            .setNegativeButton(text("لغو"), null)
+                            .setPositiveButton(text("حذف"), (confirm, choice) ->
+                                    db.collection("experiences").document(documentId).delete()
+                                            .addOnSuccessListener(unused -> {
+                                                Toast.makeText(ExperienceListActivity.this,
+                                                        text("تجربه حذف شد 🗑️"), Toast.LENGTH_SHORT).show();
+                                                if (cardToRemove.getParent() == layout) layout.removeView(cardToRemove);
+                                            })
+                                            .addOnFailureListener(e -> Toast.makeText(
+                                                    ExperienceListActivity.this,
+                                                    text("خطا در حذف تجربه"), Toast.LENGTH_LONG).show()))
+                            .show());
+        }
+        dialog.show();
+        if (isOwner) {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(Color.rgb(12, 91, 120));
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.rgb(190, 45, 55));
+        }
+    }
+
+    private void showExperienceImage(String imageUrl) {
+        ImageView image = new ImageView(this);
+        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        image.setAdjustViewBounds(true);
+        image.setBackgroundColor(Color.BLACK);
+        loadExperienceImage(imageUrl, image);
+        int maxHeight = (int)(getResources().getDisplayMetrics().heightPixels * 0.72f);
+        new AlertDialog.Builder(this)
+                .setTitle("تصویر تجربه")
+                .setView(image)
+                .setPositiveButton(text("بستن"), null)
+                .show();
+        image.getLayoutParams();
+    }
+
+    private void loadExperienceImage(String imageUrl, ImageView imageView) {
+        new Thread(() -> {
+            try {
+                java.net.HttpURLConnection connection =
+                        (java.net.HttpURLConnection) new URL(imageUrl).openConnection();
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(20000);
+                connection.setInstanceFollowRedirects(true);
+                Bitmap bitmap;
+                try (java.io.InputStream input = connection.getInputStream()) {
+                    bitmap = BitmapFactory.decodeStream(input);
+                } finally {
+                    connection.disconnect();
+                }
+                if (bitmap != null) runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+            } catch (Exception ignored) { }
+        }).start();
     }
 
     // =========================================================
