@@ -3,6 +3,8 @@ package com.tajro.app;
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -10,6 +12,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,6 +24,11 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 
 public class AddExperienceActivity extends Activity {
 
@@ -30,6 +38,18 @@ public class AddExperienceActivity extends Activity {
     private int themeColor;
 
     private boolean isPublishing = false;
+    private static final int REQUEST_PICK_EXPERIENCE_IMAGE = 7314;
+    private static final String SUPABASE_URL =
+            "https://gorbhuqmkjlkrklhasdh.supabase.co";
+    private static final String SUPABASE_PUBLISHABLE_KEY =
+            "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
+    // از همان باکت عمومی موجود در فایل چت استفاده می‌شود.
+    private static final String EXPERIENCE_IMAGE_BUCKET =
+            "profile_photos_public";
+
+    private Uri selectedImageUri;
+    private ImageView imagePreview;
+    private TextView imageStatus;
 
     // ================================
     // اعمال زبان
@@ -265,6 +285,47 @@ public class AddExperienceActivity extends Activity {
                 dp(25)
         );
 
+        Button chooseImageButton = new Button(this);
+        chooseImageButton.setText("🖼 انتخاب عکس (اختیاری)");
+        chooseImageButton.setTextSize(15);
+        styleButton(chooseImageButton);
+
+        imagePreview = new ImageView(this);
+        imagePreview.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        imagePreview.setVisibility(View.GONE);
+        LinearLayout.LayoutParams previewParams =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(180)
+                );
+        previewParams.setMargins(0, 0, 0, dp(10));
+        imagePreview.setLayoutParams(previewParams);
+
+        imageStatus = new TextView(this);
+        imageStatus.setText("عکس انتخاب نشده است");
+        imageStatus.setTextSize(13);
+        imageStatus.setTextColor(themeColor);
+        imageStatus.setGravity(Gravity.CENTER);
+        imageStatus.setPadding(0, 0, 0, dp(8));
+
+        chooseImageButton.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            try {
+                startActivityForResult(
+                        Intent.createChooser(intent, "انتخاب عکس تجربه"),
+                        REQUEST_PICK_EXPERIENCE_IMAGE
+                );
+            } catch (Exception e) {
+                Toast.makeText(
+                        AddExperienceActivity.this,
+                        "باز کردن گالری ممکن نشد",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+        });
+
         EditText experienceTitle = new EditText(this);
         experienceTitle.setHint(
                 text("عنوان تجربه را بنویسید")
@@ -454,7 +515,8 @@ public class AddExperienceActivity extends Activity {
                                         contentKey,
                                         publishButton,
                                         experienceTitle,
-                                        experienceText
+                                        experienceText,
+                                        selectedImageUri
                                 );
                             }
                     )
@@ -498,6 +560,9 @@ public class AddExperienceActivity extends Activity {
                 titleParams
         );
 
+        layout.addView(chooseImageButton);
+        layout.addView(imageStatus);
+        layout.addView(imagePreview);
         layout.addView(experienceTitle);
         layout.addView(experienceText);
         layout.addView(publishButton);
@@ -516,98 +581,201 @@ public class AddExperienceActivity extends Activity {
             String contentKey,
             Button publishButton,
             EditText titleField,
-            EditText textField
+            EditText textField,
+            Uri imageUri
     ) {
+        if (imageUri != null) {
+            publishButton.setText("⏳ در حال بارگذاری عکس...");
+            uploadExperienceImage(
+                    imageUri,
+                    new ImageUploadCallback() {
+                        @Override
+                        public void onSuccess(String imageUrl) {
+                            saveExperienceToFirestore(
+                                    user, titleText, experience, contentKey,
+                                    publishButton, titleField, textField, imageUrl
+                            );
+                        }
 
-        Map<String, Object> experienceData =
-                new HashMap<>();
+                        @Override
+                        public void onError(String error) {
+                            isPublishing = false;
+                            publishButton.setEnabled(true);
+                            publishButton.setAlpha(1.0f);
+                            publishButton.setText(text("🚀 انتشار تجربه"));
+                            Toast.makeText(
+                                    AddExperienceActivity.this,
+                                    "بارگذاری عکس ناموفق بود: " + error,
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
+                    }
+            );
+        } else {
+            saveExperienceToFirestore(
+                    user, titleText, experience, contentKey,
+                    publishButton, titleField, textField, null
+            );
+        }
+    }
 
-        experienceData.put(
-                "title",
-                titleText
-        );
+    private void saveExperienceToFirestore(
+            FirebaseUser user,
+            String titleText,
+            String experience,
+            String contentKey,
+            Button publishButton,
+            EditText titleField,
+            EditText textField,
+            String imageUrl
+    ) {
+        Map<String, Object> experienceData = new HashMap<>();
+        experienceData.put("title", titleText);
+        experienceData.put("text", experience);
+        experienceData.put("userId", user.getUid());
+        experienceData.put("authorEmail", user.getEmail());
+        experienceData.put("contentKey", contentKey);
+        experienceData.put("likesCount", 0L);
+        experienceData.put("timestamp", FieldValue.serverTimestamp());
 
-        experienceData.put(
-                "text",
-                experience
-        );
-
-        experienceData.put(
-                "userId",
-                user.getUid()
-        );
-
-        experienceData.put(
-                "authorEmail",
-                user.getEmail()
-        );
-
-        experienceData.put(
-                "contentKey",
-                contentKey
-        );
-
-        experienceData.put(
-                "likesCount",
-                0L
-        );
-
-        experienceData.put(
-                "timestamp",
-                FieldValue.serverTimestamp()
-        );
+        // برای سازگاری با تجربه‌های قدیمی، فیلد عکس فقط در صورت وجود عکس افزوده می‌شود.
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            experienceData.put("imageUrl", imageUrl);
+        }
 
         db.collection("experiences")
                 .add(experienceData)
-                .addOnSuccessListener(
-                        documentReference -> {
+                .addOnSuccessListener(documentReference -> {
+                    Toast.makeText(
+                            AddExperienceActivity.this,
+                            text("تجربه با موفقیت منتشر شد! 🎉"),
+                            Toast.LENGTH_LONG
+                    ).show();
 
-                            Toast.makeText(
-                                    AddExperienceActivity.this,
-                                    text(
-                                            "تجربه با موفقیت منتشر شد! 🎉"
-                                    ),
-                                    Toast.LENGTH_LONG
-                            ).show();
+                    titleField.setText("");
+                    textField.setText("");
+                    selectedImageUri = null;
+                    if (imagePreview != null) {
+                        imagePreview.setImageDrawable(null);
+                        imagePreview.setVisibility(View.GONE);
+                    }
+                    if (imageStatus != null) {
+                        imageStatus.setText("عکس انتخاب نشده است");
+                    }
 
-                            titleField.setText("");
-                            textField.setText("");
+                    isPublishing = false;
+                    publishButton.setEnabled(true);
+                    publishButton.setAlpha(1.0f);
+                    publishButton.setText(text("🚀 انتشار تجربه"));
+                })
+                .addOnFailureListener(e -> {
+                    isPublishing = false;
+                    publishButton.setEnabled(true);
+                    publishButton.setAlpha(1.0f);
+                    publishButton.setText(text("🚀 انتشار تجربه"));
 
-                            isPublishing = false;
+                    Toast.makeText(
+                            AddExperienceActivity.this,
+                            text("خطا در انتشار تجربه: ") + e.getMessage(),
+                            Toast.LENGTH_LONG
+                    ).show();
+                });
+    }
 
-                            publishButton.setEnabled(true);
-                            publishButton.setAlpha(1.0f);
+    private interface ImageUploadCallback {
+        void onSuccess(String publicUrl);
+        void onError(String error);
+    }
 
-                            publishButton.setText(
-                                    text(
-                                            "🚀 انتشار تجربه"
-                                    )
-                            );
-                        }
-                )
-                .addOnFailureListener(
-                        e -> {
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
 
-                            isPublishing = false;
+        if (requestCode == REQUEST_PICK_EXPERIENCE_IMAGE
+                && resultCode == RESULT_OK
+                && data != null
+                && data.getData() != null) {
+            selectedImageUri = data.getData();
+            try {
+                imagePreview.setImageURI(selectedImageUri);
+                imagePreview.setVisibility(View.VISIBLE);
+                imageStatus.setText("عکس انتخاب شد؛ هنگام انتشار بارگذاری می‌شود");
+            } catch (Exception e) {
+                selectedImageUri = null;
+                imagePreview.setVisibility(View.GONE);
+                imageStatus.setText("خواندن عکس ممکن نشد");
+                Toast.makeText(this, "خواندن عکس ممکن نشد", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
 
-                            publishButton.setEnabled(true);
-                            publishButton.setAlpha(1.0f);
+    private void uploadExperienceImage(Uri uri, ImageUploadCallback callback) {
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            InputStream input = null;
+            OutputStream output = null;
+            try {
+                String mime = getContentResolver().getType(uri);
+                if (mime == null || !mime.startsWith("image/")) {
+                    mime = "image/jpeg";
+                }
 
-                            publishButton.setText(
-                                    text(
-                                            "🚀 انتشار تجربه"
-                                    )
-                            );
+                String extension = "jpg";
+                if (mime.contains("png")) extension = "png";
+                else if (mime.contains("webp")) extension = "webp";
 
-                            Toast.makeText(
-                                    AddExperienceActivity.this,
-                                    text(
-                                            "خطا در انتشار تجربه: "
-                                    ) + e.getMessage(),
-                                    Toast.LENGTH_LONG
-                            ).show();
-                        }
+                String objectPath = "experiences/experience_"
+                        + System.currentTimeMillis() + "." + extension;
+
+                String encodedPath = objectPath.replace("%", "%25")
+                        .replace(" ", "%20")
+                        .replace("#", "%23")
+                        .replace("?", "%3F");
+
+                URL url = new URL(
+                        SUPABASE_URL + "/storage/v1/object/"
+                                + EXPERIENCE_IMAGE_BUCKET + "/" + encodedPath
                 );
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                connection.setConnectTimeout(30000);
+                connection.setReadTimeout(60000);
+                connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+                connection.setRequestProperty("Accept", "application/json");
+                connection.setRequestProperty("Content-Type", mime);
+                connection.setRequestProperty("x-upsert", "false");
+
+                input = getContentResolver().openInputStream(uri);
+                if (input == null) throw new Exception("فایل عکس قابل خواندن نیست");
+
+                output = connection.getOutputStream();
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, count);
+                }
+                output.flush();
+
+                int responseCode = connection.getResponseCode();
+                if (responseCode >= 200 && responseCode < 300) {
+                    String publicUrl = SUPABASE_URL
+                            + "/storage/v1/object/public/"
+                            + EXPERIENCE_IMAGE_BUCKET + "/" + encodedPath;
+                    runOnUiThread(() -> callback.onSuccess(publicUrl));
+                } else {
+                    String error = "HTTP " + responseCode;
+                    runOnUiThread(() -> callback.onError(error));
+                }
+            } catch (Exception e) {
+                String error = e.getMessage() == null ? "خطای ناشناخته" : e.getMessage();
+                runOnUiThread(() -> callback.onError(error));
+            } finally {
+                try { if (input != null) input.close(); } catch (Exception ignored) {}
+                try { if (output != null) output.close(); } catch (Exception ignored) {}
+                if (connection != null) connection.disconnect();
+            }
+        }).start();
     }
 
     // ================================
