@@ -101,6 +101,8 @@ public class ChatActivity extends Activity {
     private ImageView headerAvatar;
     private TextView headerOnlineDot;
     private TextView chatMenuButton;
+    private ImageButton myHeaderProfileButton;
+    private ImageView myProfileDialogImage;
 
     private String myId;
     private String receiverId;
@@ -778,6 +780,57 @@ public class ChatActivity extends Activity {
         return image;
     }
 
+    // خواندن عکس پروفایل از نام فیلدهای جدید و قدیمی
+    private String getProfilePhotoUrl(DocumentSnapshot document) {
+        if (document == null) {
+            return null;
+        }
+
+        String[] fields = {
+                "photoUrl",
+                "profilePhotoUrl",
+                "profilePhoto",
+                "photo"
+        };
+
+        for (String field : fields) {
+            String value = document.getString(field);
+            if (value != null && !value.trim().isEmpty()) {
+                return value.trim();
+            }
+        }
+
+        return null;
+    }
+
+    // تازه‌سازی عکس پروفایل خود کاربر پس از آپلود
+    private void refreshMyProfileAvatar() {
+        if (myId == null || myHeaderProfileButton == null) {
+            return;
+        }
+
+        db.collection("users")
+                .document(myId)
+                .get()
+                .addOnSuccessListener(document -> {
+                    String photo = getProfilePhotoUrl(document);
+                    if (photo != null && !photo.isEmpty()) {
+                        loadImage(photo, myHeaderProfileButton);
+                    } else {
+                        myHeaderProfileButton.setImageResource(
+                                android.R.drawable.ic_menu_myplaces
+                        );
+                    }
+                })
+                .addOnFailureListener(error ->
+                        Log.e(
+                                "PROFILE_IMAGE",
+                                "Could not refresh own profile photo",
+                                error
+                        )
+                );
+    }
+
     private void ensureUserProfile() {
 
         FirebaseUser user =
@@ -866,8 +919,10 @@ public class ChatActivity extends Activity {
                 themeColor
         );
 
-        ImageButton profile =
+        myHeaderProfileButton =
                 new ImageButton(this);
+
+        ImageButton profile = myHeaderProfileButton;
 
         profile.setBackground(
                 bg(Color.LTGRAY, 50)
@@ -892,7 +947,7 @@ public class ChatActivity extends Activity {
                         d -> {
 
                             String myPhoto =
-                                    d.getString("photoUrl");
+                                    getProfilePhotoUrl(d);
 
                             if (myPhoto != null &&
                                     !myPhoto.trim().isEmpty()) {
@@ -1245,7 +1300,7 @@ titleText =
                                                 String name = d.getString("name");
                                                 String email = d.getString("email");
                                                 String phone = d.getString("phoneNumber");
-                                                String photo = d.getString("photoUrl");
+                                                String photo = getProfilePhotoUrl(d);
                                                 boolean online = Boolean.TRUE.equals(
                                                         d.getBoolean("online")
                                                 );
@@ -1580,7 +1635,7 @@ titleText =
         }
 
         String photoUrl =
-                d.getString("photoUrl");
+                getProfilePhotoUrl(d);
 
         Boolean online =
                 d.getBoolean("online");
@@ -1961,7 +2016,7 @@ private void showUserMenu(
                                     d.getString("name");
 
                             String photo =
-                                    d.getString("photoUrl");
+                                    getProfilePhotoUrl(d);
 
                             if (name == null) {
                                 name = tr("کاربر");
@@ -2002,6 +2057,10 @@ private void showUserMenu(
 
         ImageView image =
                 avatarView(220);
+
+        if (uid != null && uid.equals(myId)) {
+            myProfileDialogImage = image;
+        }
 
         if (photoUrl != null &&
                 !photoUrl.isEmpty()) {
@@ -4532,6 +4591,14 @@ header.addView(chatMenu,
                                             ).show();
 
                                             loadUsers();
+                                            refreshMyProfileAvatar();
+
+                                            if (myProfileDialogImage != null) {
+                                                loadImage(
+                                                        url,
+                                                        myProfileDialogImage
+                                                );
+                                            }
                                         }
                                 );
                     }
@@ -5027,7 +5094,8 @@ private void loadImage(
 
                         throw new Exception(
                                 "Image HTTP " +
-                                responseCode
+                                responseCode +
+                                " (check the saved URL and make sure the Supabase profile_photos_public bucket is Public)"
                         );
                     }
 
