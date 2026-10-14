@@ -5258,199 +5258,159 @@ private void downloadImageToView(String url, ImageView imageView) {
                 .show();
     }
 
-    private void saveImageToGallery(
-            String url,
-            String fileName
-    ) {
+    private void saveImageToGallery(String url, String fileName) {
+        new Thread(() -> {
+            HttpURLConnection imageConnection = null;
+            Uri imageUri = null;
+            try {
+                if (url == null || url.trim().isEmpty()) {
+                    throw new Exception("آدرس عکس خالی است");
+                }
 
-        new Thread(
-                () -> {
+                String downloadUrl = url.trim();
 
-                    try {
-
-                        HttpURLConnection connection =
-                                (HttpURLConnection)
-                                        new URL(url)
-                                                .openConnection();
-
-                        connection.setConnectTimeout(
-                                20000
-                        );
-
-                        connection.setReadTimeout(
-                                30000
-                        );
-
-                        connection.setRequestProperty(
-                                "apikey",
-                                SUPABASE_PUBLISHABLE_KEY
-                        );
-
-                        connection.setRequestProperty(
-                                "Authorization",
-                                "Bearer " +
-                                        SUPABASE_PUBLISHABLE_KEY
-                        );
-
-                        InputStream input =
-                                connection
-                                        .getInputStream();
-
-                        if (Build.VERSION.SDK_INT >=
-                                Build.VERSION_CODES.Q) {
-
-                            ContentValues values =
-                                    new ContentValues();
-
-                            values.put(
-                                    MediaStore.Images.Media
-                                            .DISPLAY_NAME,
-                                    fileName
-                            );
-
-                            values.put(
-                                    MediaStore.Images.Media
-                                            .MIME_TYPE,
-                                    "image/jpeg"
-                            );
-
-                            values.put(
-                                    MediaStore.Images.Media
-                                            .RELATIVE_PATH,
-                                    Environment
-                                            .DIRECTORY_PICTURES +
-                                            "/تجربه‌ها"
-                            );
-
-                            values.put(
-                                    MediaStore.Images.Media
-                                            .IS_PENDING,
-                                    1
-                            );
-
-                            Uri imageUri =
-                                    getContentResolver()
-                                            .insert(
-                                                    MediaStore.Images.Media
-                                                            .getContentUri(
-                                                                    MediaStore
-                                                                            .VOLUME_EXTERNAL_PRIMARY
-                                                            ),
-                                                    values
-                                            );
-
-                            if (imageUri == null) {
-
-                                throw new Exception(
-                                        tr("گالری قابل دسترسی نیست")
-                                );
-                            }
-
-                            OutputStream output =
-                                    getContentResolver()
-                                            .openOutputStream(
-                                                    imageUri
-                                            );
-
-                            if (output == null) {
-
-                                throw new Exception(
-                                        tr("فضای ذخیره‌سازی باز نشد")
-                                );
-                            }
-
-                            byte[] buffer =
-                                    new byte[8192];
-
-                            int count;
-
-                            while (
-                                    (count =
-                                            input.read(
-                                                    buffer
-                                            )) != -1
-                            ) {
-
-                                output.write(
-                                        buffer,
-                                        0,
-                                        count
-                                );
-                            }
-
-                            output.flush();
-                            output.close();
-                            input.close();
-
-                            ContentValues done =
-                                    new ContentValues();
-
-                            done.put(
-                                    MediaStore.Images.Media
-                                            .IS_PENDING,
-                                    0
-                            );
-
-                            getContentResolver()
-                                    .update(
-                                            imageUri,
-                                            done,
-                                            null,
-                                            null
-                                    );
-
-                            runOnUiThread(
-                                    () ->
-                                            Toast.makeText(
-                                                    this,
-                                                    tr("✅ عکس در گالری ذخیره شد"),
-                                                    Toast.LENGTH_SHORT
-                                            ).show()
-                            );
-
-                        } else {
-
-                            input.close();
-
-                            runOnUiThread(
-                                    () ->
-                                            Toast.makeText(
-                                                    this,
-                                                    tr("ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمی‌شود"),
-                                                    Toast.LENGTH_LONG
-                                            ).show()
-                            );
-                        }
-
-                        connection.disconnect();
-
-                    } catch (Exception e) {
-
-                        String error =
-                                e.getMessage();
-
-                        if (error == null) {
-
-                            error =
-                                    tr("خطا در ذخیره عکس");
-                        }
-
-                        String finalError =
-                                error;
-
-                        runOnUiThread(
-                                () ->
-                                        Toast.makeText(
-                                                this,
-                                                tr("خطای ذخیره عکس:\n") +
-                                                        finalError,
-                                                Toast.LENGTH_LONG
-                                        ).show()
-                        );
+                // عکس پروفایل در باکت خصوصی است؛ برای آن لینک امضاشده بگیر.
+                if (downloadUrl.contains("/storage/v1/object/public/" + PROFILE_BUCKET + "/") ||
+                        downloadUrl.contains("/storage/v1/object/" + PROFILE_BUCKET + "/")) {
+                    String marker = "/" + PROFILE_BUCKET + "/";
+                    int markerIndex = downloadUrl.indexOf(marker);
+                    if (markerIndex < 0) {
+                        throw new Exception("مسیر عکس پروفایل در آدرس پیدا نشد");
                     }
 
+                    String objectPath = downloadUrl.substring(markerIndex + marker.length());
+                    int queryIndex = objectPath.indexOf('?');
+                    if (queryIndex >= 0) objectPath = objectPath.substring(0, queryIndex);
+                    objectPath = java.net.URLDecoder.decode(objectPath, "UTF-8");
+
+                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                    if (currentUser == null) {
+                        throw new Exception("برای دریافت عکس باید وارد حساب شوید");
+                    }
+
+                    String idToken = com.google.android.gms.tasks.Tasks.await(
+                            currentUser.getIdToken(false)).getToken();
+                    if (idToken == null || idToken.trim().isEmpty()) {
+                        throw new Exception("توکن ورود Firebase دریافت نشد");
+                    }
+
+                    HttpURLConnection functionConnection = null;
+                    try {
+                        URL functionUrl = new URL(SUPABASE_URL + "/functions/v1/profile-photo-url");
+                        functionConnection = (HttpURLConnection) functionUrl.openConnection();
+                        functionConnection.setRequestMethod("POST");
+                        functionConnection.setDoOutput(true);
+                        functionConnection.setConnectTimeout(20000);
+                        functionConnection.setReadTimeout(30000);
+                        functionConnection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                        functionConnection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+                        functionConnection.setRequestProperty("Authorization", "Bearer " + idToken);
+
+                        JSONObject body = new JSONObject();
+                        body.put("path", objectPath);
+                        try (OutputStream out = functionConnection.getOutputStream()) {
+                            out.write(body.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        }
+
+                        int functionCode = functionConnection.getResponseCode();
+                        InputStream responseStream = functionCode >= 200 && functionCode < 300
+                                ? functionConnection.getInputStream() : functionConnection.getErrorStream();
+                        String responseText = "";
+                        if (responseStream != null) {
+                            try (InputStream in = responseStream;
+                                 java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream()) {
+                                byte[] buffer = new byte[4096];
+                                int count;
+                                while ((count = in.read(buffer)) != -1) bytes.write(buffer, 0, count);
+                                responseText = bytes.toString("UTF-8");
+                            }
+                        }
+                        if (functionCode < 200 || functionCode >= 300) {
+                            throw new Exception("HTTP " + functionCode + " از تابع عکس: " + responseText);
+                        }
+
+                        JSONObject response = new JSONObject(responseText);
+                        downloadUrl = response.optString("url", "");
+                        if (downloadUrl.isEmpty()) {
+                            throw new Exception("تابع عکس لینک امضاشده برنگرداند: " + responseText);
+                        }
+                    } finally {
+                        if (functionConnection != null) functionConnection.disconnect();
+                    }
                 }
-        ).start();
+
+                URL imageUrl = new URL(downloadUrl);
+                imageConnection = (HttpURLConnection) imageUrl.openConnection();
+                imageConnection.setRequestMethod("GET");
+                imageConnection.setConnectTimeout(20000);
+                imageConnection.setReadTimeout(30000);
+                imageConnection.setInstanceFollowRedirects(true);
+                imageConnection.setRequestProperty("Accept", "image/*");
+                // لینک امضاشده خودش مجوز دارد؛ کلید عمومی را به‌عنوان Bearer نفرست.
+                imageConnection.connect();
+
+                int imageCode = imageConnection.getResponseCode();
+                if (imageCode < 200 || imageCode >= 300) {
+                    String serverMessage = "";
+                    InputStream errorStream = imageConnection.getErrorStream();
+                    if (errorStream != null) {
+                        try (InputStream in = errorStream;
+                             java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream()) {
+                            byte[] buffer = new byte[2048];
+                            int count;
+                            while ((count = in.read(buffer)) != -1) bytes.write(buffer, 0, count);
+                            serverMessage = bytes.toString("UTF-8");
+                        }
+                    }
+                    throw new Exception("HTTP " + imageCode + (serverMessage.isEmpty() ? "" : ": " + serverMessage));
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ContentValues values = new ContentValues();
+                    values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
+                    values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                    values.put(MediaStore.Images.Media.RELATIVE_PATH,
+                            Environment.DIRECTORY_PICTURES + "/تجربه‌ها");
+                    values.put(MediaStore.Images.Media.IS_PENDING, 1);
+
+                    imageUri = getContentResolver().insert(
+                            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values);
+                    if (imageUri == null) throw new Exception(tr("گالری قابل دسترسی نیست"));
+
+                    try (InputStream input = imageConnection.getInputStream();
+                         OutputStream output = getContentResolver().openOutputStream(imageUri)) {
+                        if (output == null) throw new Exception(tr("فضای ذخیره‌سازی باز نشد"));
+                        byte[] buffer = new byte[8192];
+                        int count;
+                        while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+                        output.flush();
+                    }
+
+                    ContentValues done = new ContentValues();
+                    done.put(MediaStore.Images.Media.IS_PENDING, 0);
+                    getContentResolver().update(imageUri, done, null, null);
+
+                    runOnUiThread(() -> Toast.makeText(this,
+                            tr("✅ عکس در گالری ذخیره شد"), Toast.LENGTH_SHORT).show());
+                } else {
+                    runOnUiThread(() -> Toast.makeText(this,
+                            tr("ذخیره مستقیم در گالری در این نسخه اندروید پشتیبانی نمی‌شود"),
+                            Toast.LENGTH_LONG).show());
+                }
+            } catch (Exception e) {
+                if (imageUri != null) {
+                    try { getContentResolver().delete(imageUri, null, null); } catch (Exception ignored) { }
+                }
+                String error = e.getMessage();
+                if (error == null || error.trim().isEmpty()) error = tr("خطا در ذخیره عکس");
+                final String finalError = error;
+                Log.e("ChatImage", "Save profile/chat image failed", e);
+                runOnUiThread(() -> Toast.makeText(this,
+                        tr("خطای ذخیره عکس:\n") + finalError, Toast.LENGTH_LONG).show());
+            } finally {
+                if (imageConnection != null) imageConnection.disconnect();
+            }
+        }).start();
     }
 
     private void removeMessageListeners() {
