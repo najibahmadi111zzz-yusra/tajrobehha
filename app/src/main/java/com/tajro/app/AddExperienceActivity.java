@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.util.Base64;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -26,9 +27,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import org.json.JSONObject;
 
 public class AddExperienceActivity extends Activity {
 
@@ -43,9 +48,9 @@ public class AddExperienceActivity extends Activity {
             "https://gorbhuqmkjlkrklhasdh.supabase.co";
     private static final String SUPABASE_PUBLISHABLE_KEY =
             "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
-    // از همان باکت عمومی موجود در فایل چت استفاده می‌شود.
-    private static final String EXPERIENCE_IMAGE_BUCKET =
-            "profile_photos_public";
+    // آپلود عکس تجربه‌ها از طریق تابع امن سمت سرور انجام می‌شود.
+    private static final String EXPERIENCE_UPLOAD_FUNCTION =
+            SUPABASE_URL + "/functions/v1/upload-experience-image";
 
     private Uri selectedImageUri;
     private ImageView imagePreview;
@@ -710,72 +715,139 @@ public class AddExperienceActivity extends Activity {
     }
 
     private void uploadExperienceImage(Uri uri, ImageUploadCallback callback) {
-        new Thread(() -> {
-            HttpURLConnection connection = null;
-            InputStream input = null;
-            OutputStream output = null;
-            try {
-                String mime = getContentResolver().getType(uri);
-                if (mime == null || !mime.startsWith("image/")) {
-                    mime = "image/jpeg";
-                }
+        FirebaseUser user = auth.getCurrentUser();
 
-                String extension = "jpg";
-                if (mime.contains("png")) extension = "png";
-                else if (mime.contains("webp")) extension = "webp";
+        if (user == null) {
+            callback.onError("لطفاً ابتدا وارد حساب خود شوید");
+            return;
+        }
 
-                String objectPath = "experiences/experience_"
-                        + System.currentTimeMillis() + "." + extension;
+        user.getIdToken(false)
+                .addOnSuccessListener(tokenResult -> {
+                    String idToken = tokenResult.getToken();
 
-                String encodedPath = objectPath.replace("%", "%25")
-                        .replace(" ", "%20")
-                        .replace("#", "%23")
-                        .replace("?", "%3F");
+                    if (idToken == null || idToken.isEmpty()) {
+                        callback.onError("توکن ورود دریافت نشد");
+                        return;
+                    }
 
-                URL url = new URL(
-                        SUPABASE_URL + "/storage/v1/object/"
-                                + EXPERIENCE_IMAGE_BUCKET + "/" + encodedPath
-                );
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("POST");
-                connection.setDoOutput(true);
-                connection.setConnectTimeout(30000);
-                connection.setReadTimeout(60000);
-                connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
-                connection.setRequestProperty("Accept", "application/json");
-                connection.setRequestProperty("Content-Type", mime);
-                connection.setRequestProperty("x-upsert", "false");
+                    new Thread(() -> {
+                        HttpURLConnection connection = null;
 
-                input = getContentResolver().openInputStream(uri);
-                if (input == null) throw new Exception("فایل عکس قابل خواندن نیست");
+                        try {
+                            String mime = getContentResolver().getType(uri);
+                            if (mime == null ||
+                                    !("image/jpeg".equals(mime)
+                                    || "image/png".equals(mime)
+                                    || "image/webp".equals(mime))) {
+                                mime = "image/jpeg";
+                            }
 
-                output = connection.getOutputStream();
-                byte[] buffer = new byte[8192];
-                int count;
-                while ((count = input.read(buffer)) != -1) {
-                    output.write(buffer, 0, count);
-                }
-                output.flush();
+                            byte[] imageBytes;
+                            try (InputStream input =
+                                         getContentResolver().openInputStream(uri);
+                                 ByteArrayOutputStream buffer =
+                                         new ByteArrayOutputStream()) {
+                                if (input == null) {
+                                    throw new Exception("فایل عکس قابل خواندن نیست");
+                                }
 
-                int responseCode = connection.getResponseCode();
-                if (responseCode >= 200 && responseCode < 300) {
-                    String publicUrl = SUPABASE_URL
-                            + "/storage/v1/object/public/"
-                            + EXPERIENCE_IMAGE_BUCKET + "/" + encodedPath;
-                    runOnUiThread(() -> callback.onSuccess(publicUrl));
-                } else {
-                    String error = "HTTP " + responseCode;
-                    runOnUiThread(() -> callback.onError(error));
-                }
-            } catch (Exception e) {
-                String error = e.getMessage() == null ? "خطای ناشناخته" : e.getMessage();
-                runOnUiThread(() -> callback.onError(error));
-            } finally {
-                try { if (input != null) input.close(); } catch (Exception ignored) {}
-                try { if (output != null) output.close(); } catch (Exception ignored) {}
-                if (connection != null) connection.disconnect();
-            }
-        }).start();
+                                byte[] chunk = new byte[8192];
+                                int count;
+                                int total = 0;
+                                final int maxBytes = 4 * 1024 * 1024;
+
+                                while ((count = input.read(chunk)) != -1) {
+                                    total += count;
+                                    if (total > maxBytes) {
+                                        throw new Exception(
+                                                "حجم عکس باید کمتر از ۴ مگابایت باشد");
+                                    }
+                                    buffer.write(chunk, 0, count);
+                                }
+                                imageBytes = buffer.toByteArray();
+                            }
+
+                            JSONObject requestBody = new JSONObject();
+                            requestBody.put(
+                                    "imageBase64",
+                                    Base64.encodeToString(
+                                            imageBytes,
+                                            Base64.NO_WRAP
+                                    )
+                            );
+                            requestBody.put("mimeType", mime);
+
+                            URL url = new URL(EXPERIENCE_UPLOAD_FUNCTION);
+                            connection = (HttpURLConnection) url.openConnection();
+                            connection.setRequestMethod("POST");
+                            connection.setDoOutput(true);
+                            connection.setConnectTimeout(30000);
+                            connection.setReadTimeout(60000);
+                            connection.setRequestProperty(
+                                    "apikey", SUPABASE_PUBLISHABLE_KEY);
+                            connection.setRequestProperty(
+                                    "Authorization", "Bearer " + idToken);
+                            connection.setRequestProperty(
+                                    "Content-Type", "application/json; charset=UTF-8");
+                            connection.setRequestProperty("Accept", "application/json");
+
+                            byte[] body = requestBody.toString().getBytes("UTF-8");
+                            try (OutputStream output = connection.getOutputStream()) {
+                                output.write(body);
+                                output.flush();
+                            }
+
+                            int responseCode = connection.getResponseCode();
+                            InputStream responseStream =
+                                    responseCode >= 200 && responseCode < 300
+                                            ? connection.getInputStream()
+                                            : connection.getErrorStream();
+
+                            StringBuilder responseText = new StringBuilder();
+                            if (responseStream != null) {
+                                try (BufferedReader reader = new BufferedReader(
+                                        new InputStreamReader(
+                                                responseStream, "UTF-8"))) {
+                                    String line;
+                                    while ((line = reader.readLine()) != null) {
+                                        responseText.append(line);
+                                    }
+                                }
+                            }
+
+                            JSONObject responseJson =
+                                    new JSONObject(responseText.toString());
+
+                            if (responseCode >= 200 && responseCode < 300
+                                    && responseJson.optBoolean("success", false)) {
+                                String imageUrl =
+                                        responseJson.optString("imageUrl", "");
+                                if (imageUrl.isEmpty()) {
+                                    throw new Exception(
+                                            "نشانی عکس از سرور دریافت نشد");
+                                }
+                                runOnUiThread(() -> callback.onSuccess(imageUrl));
+                            } else {
+                                String error = responseJson.optString(
+                                        "error", "HTTP " + responseCode);
+                                runOnUiThread(() -> callback.onError(error));
+                            }
+
+                        } catch (Exception e) {
+                            String error = e.getMessage() == null
+                                    ? "خطای ناشناخته در آپلود عکس"
+                                    : e.getMessage();
+                            runOnUiThread(() -> callback.onError(error));
+                        } finally {
+                            if (connection != null) {
+                                connection.disconnect();
+                            }
+                        }
+                    }).start();
+                })
+                .addOnFailureListener(e ->
+                        callback.onError("دریافت توکن Firebase ناموفق بود"));
     }
 
     // ================================
