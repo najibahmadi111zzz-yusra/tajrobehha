@@ -50,6 +50,8 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -5046,107 +5048,129 @@ private void loadImage(
         String url,
         ImageView imageView
 ) {
+    if (url == null || url.trim().isEmpty() || imageView == null) return;
 
-    new Thread(
-            () -> {
+    final String originalUrl = url.trim();
 
-                HttpURLConnection connection = null;
-                InputStream input = null;
+    // عکس‌های پروفایل در باکت خصوصی هستند؛ ابتدا از تابع لینک موقت می‌گیریم.
+    if (originalUrl.contains("/storage/v1/object/public/" + PROFILE_BUCKET + "/") ||
+            originalUrl.contains("/storage/v1/object/" + PROFILE_BUCKET + "/")) {
+        loadPrivateProfileImage(originalUrl, imageView);
+        return;
+    }
 
-                try {
+    downloadImageToView(originalUrl, imageView);
+}
 
-                    URL imageUrl = new URL(url);
-
-                    connection =
-                            (HttpURLConnection)
-                                    imageUrl.openConnection();
-
-                    connection.setRequestMethod("GET");
-
-                    connection.setConnectTimeout(
-                            15000
-                    );
-
-                    connection.setReadTimeout(
-                            30000
-                    );
-
-                    connection.setUseCaches(false);
-
-                    /*
-                     * عکس پروفایل در باکت Public است.
-                     * بنابراین برای دریافت عکس،
-                     * Authorization لازم نیست.
-                     */
-
-                    connection.setRequestProperty(
-                            "Accept",
-                            "image/*"
-                    );
-
-                    connection.connect();
-
-                    int responseCode =
-                            connection.getResponseCode();
-
-                    if (responseCode < 200 ||
-                            responseCode >= 300) {
-
-                        throw new Exception(
-                                "Image HTTP " +
-                                responseCode +
-                                " (check the saved URL and make sure the Supabase profile_photos_public bucket is Public)"
-                        );
-                    }
-
-                    input =
-                            connection.getInputStream();
-
-                    Bitmap bitmap =
-                            BitmapFactory.decodeStream(
-                                    input
-                            );
-
-                    if (bitmap == null) {
-
-                        throw new Exception(
-                                "Image decode failed"
-                        );
-                    }
-
-                    runOnUiThread(
-                            () ->
-                                    imageView.setImageBitmap(
-                                            bitmap
-                                    )
-                    );
-
-                } catch (Exception e) {
-
-                    Log.e(
-                            "PROFILE_IMAGE",
-                            "Failed to load image: " +
-                                    url,
-                            e
-                    );
-
-                } finally {
-
-                    if (input != null) {
-
-                        try {
-                            input.close();
-                        } catch (Exception ignored) {
-                        }
-                    }
-
-                    if (connection != null) {
-                        connection.disconnect();
-                    }
-                }
-
+private void loadPrivateProfileImage(String storedUrl, ImageView imageView) {
+    new Thread(() -> {
+        HttpURLConnection connection = null;
+        try {
+            String marker = "/" + PROFILE_BUCKET + "/";
+            int markerIndex = storedUrl.indexOf(marker);
+            if (markerIndex < 0) {
+                Log.e("ChatImage", "Profile object path not found in URL");
+                return;
             }
-    ).start();
+
+            String encodedPath = storedUrl.substring(markerIndex + marker.length());
+            int queryIndex = encodedPath.indexOf('?');
+            if (queryIndex >= 0) encodedPath = encodedPath.substring(0, queryIndex);
+            String objectPath = java.net.URLDecoder.decode(encodedPath, "UTF-8");
+
+            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (currentUser == null) {
+                Log.e("ChatImage", "No signed-in Firebase user for profile image");
+                return;
+            }
+
+            String idToken = currentUser.getIdToken(false).getResult().getToken();
+            URL functionUrl = new URL(SUPABASE_URL + "/functions/v1/profile-photo-url");
+            connection = (HttpURLConnection) functionUrl.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setConnectTimeout(20000);
+            connection.setReadTimeout(30000);
+            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+            connection.setRequestProperty("Authorization", "Bearer " + idToken);
+
+            JSONObject requestBody = new JSONObject();
+            requestBody.put("path", objectPath);
+            try (OutputStream output = connection.getOutputStream()) {
+                output.write(requestBody.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                output.flush();
+            }
+
+            int code = connection.getResponseCode();
+            InputStream responseStream = code >= 200 && code < 300
+                    ? connection.getInputStream() : connection.getErrorStream();
+            String responseText = "";
+            if (responseStream != null) {
+                java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+                byte[] buffer = new byte[4096];
+                int count;
+                while ((count = responseStream.read(buffer)) != -1) bytes.write(buffer, 0, count);
+                responseText = bytes.toString("UTF-8");
+                responseStream.close();
+            }
+
+            if (code < 200 || code >= 300) {
+                Log.e("ChatImage", "Profile URL function HTTP " + code + ": " + responseText);
+                return;
+            }
+
+            String signedUrl = new JSONObject(responseText).optString("url", "");
+            if (signedUrl.isEmpty()) {
+                Log.e("ChatImage", "Profile URL function returned no URL: " + responseText);
+                return;
+            }
+
+            downloadImageToView(signedUrl, imageView);
+        } catch (Exception e) {
+            Log.e("ChatImage", "Private profile image failed", e);
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }).start();
+}
+
+private void downloadImageToView(String url, ImageView imageView) {
+    new Thread(() -> {
+        HttpURLConnection connection = null;
+        try {
+            URL imageUrl = new URL(url);
+            connection = (HttpURLConnection) imageUrl.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(20000);
+            connection.setReadTimeout(30000);
+            connection.setInstanceFollowRedirects(true);
+            connection.setUseCaches(false);
+            connection.setRequestProperty("Accept", "image/*");
+            connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+            connection.connect();
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode < 200 || responseCode >= 300) {
+                Log.e("ChatImage", "Image HTTP " + responseCode + ": " + url);
+                return;
+            }
+
+            Bitmap bitmap;
+            try (InputStream input = connection.getInputStream()) {
+                bitmap = BitmapFactory.decodeStream(input);
+            }
+            if (bitmap == null) {
+                Log.e("ChatImage", "Image decode failed: " + url);
+                return;
+            }
+            runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+        } catch (Exception e) {
+            Log.e("ChatImage", "Image load failed: " + url, e);
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }).start();
 }
 
     private void showImageViewer(
@@ -6031,4 +6055,4 @@ private void blockCurrentUser() {
 
 }
     
-}
+    }
