@@ -19,6 +19,12 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.ImageView;
 import android.widget.Toast;
+import org.json.JSONObject;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -36,6 +42,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class ExperienceListActivity extends Activity {
+
+    private static final String SUPABASE_URL =
+            "https://gorbhuqmkjlkrklhasdh.supabase.co";
+    private static final String SUPABASE_PUBLISHABLE_KEY =
+            "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs";
+    private static final String PROFILE_BUCKET = "profile_photos_public";
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
@@ -73,7 +85,8 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("📚 تجربه‌های کاربران"))
                 return "📚 Users' Experiences";
 
-            if (fa.equals("🔎 جزئیات تجربه")) return "🔎 Experience details";
+            if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ Experience options";
+            if (fa.equals("شریک‌سازی تجربه")) return "Share experience";
 
             if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
                 return "No experiences have been published yet.\n\nShare your first experience! ✍️";
@@ -127,7 +140,8 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("📚 تجربه‌های کاربران"))
                 return "📚 د کاروونکو تجربې";
 
-            if (fa.equals("🔎 جزئیات تجربه")) return "🔎 د تجربې جزئیات";
+            if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ د تجربې اختیارونه";
+            if (fa.equals("شریک‌سازی تجربه")) return "تجربه شریکول";
 
             if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
                 return "تر اوسه هېڅ تجربه نه ده خپره شوې.\n\nخپله لومړۍ تجربه ثبت کړئ! ✍️";
@@ -181,7 +195,8 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("📚 تجربه‌های کاربران"))
                 return "📚 صارفین کے تجربات";
 
-            if (fa.equals("🔎 جزئیات تجربه")) return "🔎 تجربے کی تفصیلات";
+            if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ تجربے کے اختیارات";
+            if (fa.equals("شریک‌سازی تجربه")) return "تجربہ شیئر کریں";
 
             if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
                 return "ابھی تک کوئی تجربہ شائع نہیں ہوا۔\n\nاپنا پہلا تجربہ شیئر کریں! ✍️";
@@ -235,7 +250,8 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("📚 تجربه‌های کاربران"))
                 return "📚 उपयोगकर्ताओं के अनुभव";
 
-            if (fa.equals("🔎 جزئیات تجربه")) return "🔎 अनुभव का विवरण";
+            if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ अनुभव विकल्प";
+            if (fa.equals("شریک‌سازی تجربه")) return "अनुभव साझा करें";
 
             if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️"))
                 return "अभी तक कोई अनुभव प्रकाशित नहीं हुआ है।\n\nअपना पहला अनुभव साझा करें! ✍️";
@@ -909,11 +925,11 @@ public class ExperienceListActivity extends Activity {
         // تصویر تجربه (در صورت وجود)
         if (experienceImageUrl != null && !experienceImageUrl.trim().isEmpty()) {
             ImageView experienceImage = new ImageView(this);
-            experienceImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            experienceImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
             experienceImage.setAdjustViewBounds(true);
             experienceImage.setBackgroundColor(Color.rgb(235, 242, 244));
             LinearLayout.LayoutParams experienceImageParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(210));
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(300));
             experienceImageParams.setMargins(0, dp(3), 0, dp(10));
             card.addView(experienceImage, experienceImageParams);
             loadExperienceImage(experienceImageUrl, experienceImage);
@@ -950,9 +966,9 @@ public class ExperienceListActivity extends Activity {
         TextView likeButton =
                 new TextView(this);
 
-        likeButton.setText("♡");
+        likeButton.setText("👍  ♡");
 
-        likeButton.setTextSize(29);
+        likeButton.setTextSize(19);
 
         likeButton.setTextColor(
                 Color.rgb(211, 48, 72)
@@ -979,7 +995,7 @@ public class ExperienceListActivity extends Activity {
         );
 
         likeBackground.setCornerRadius(
-                dp(14)
+                dp(10)
         );
 
         likeButton.setBackground(
@@ -989,8 +1005,8 @@ public class ExperienceListActivity extends Activity {
         likeRow.addView(
                 likeButton,
                 new LinearLayout.LayoutParams(
-                        dp(44),
-                        dp(40)
+                        dp(64),
+                        dp(32)
                 )
         );
 
@@ -1117,7 +1133,7 @@ public class ExperienceListActivity extends Activity {
 
         // جزئیات برای همه کاربران؛ ویرایش و حذف فقط داخل صفحه جزئیات و برای مالک
         Button detailsButton = new Button(this);
-        detailsButton.setText(text("🔎 جزئیات تجربه"));
+        detailsButton.setText(text("⋮ گزینه‌های تجربه"));
         detailsButton.setTextSize(13);
         LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -1193,8 +1209,31 @@ public class ExperienceListActivity extends Activity {
             box.addView(dateView);
         }
 
+        Button shareButton = new Button(this);
+        shareButton.setText("↗ " + text("شریک‌سازی تجربه"));
+        shareButton.setTextSize(14);
+        shareButton.setTextColor(Color.rgb(12, 91, 120));
+        shareButton.setOnClickListener(v -> {
+            StringBuilder sharedText = new StringBuilder();
+            if (titleValue != null && !titleValue.trim().isEmpty()) {
+                sharedText.append(titleValue.trim()).append("\n\n");
+            }
+            if (bodyValue != null) sharedText.append(bodyValue.trim());
+            if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+                sharedText.append("\n\n").append(imageUrl.trim());
+            }
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, sharedText.toString());
+            startActivity(Intent.createChooser(shareIntent, text("شریک‌سازی تجربه")));
+        });
+        LinearLayout.LayoutParams shareParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        shareParams.setMargins(0, dp(12), 0, dp(4));
+        box.addView(shareButton, shareParams);
+
         AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(text("🔎 جزئیات تجربه"))
+                .setTitle(text("⋮ گزینه‌های تجربه"))
                 .setView(scroll)
                 .setNegativeButton(text("بستن"), null)
                 .create();
@@ -1295,8 +1334,8 @@ public class ExperienceListActivity extends Activity {
 
                             likeButton.setText(
                                     liked
-                                            ? "♥"
-                                            : "♡"
+                                            ? "👍  ♥"
+                                            : "👍  ♡"
                             );
 
                             loadLikeCount(
@@ -1377,7 +1416,7 @@ public class ExperienceListActivity extends Activity {
                                                 unused -> {
 
                                                     likeButton.setText(
-                                                            "♡"
+                                                            "👍  ♡"
                                                     );
 
                                                     decreaseLikeCount(
@@ -1423,7 +1462,7 @@ public class ExperienceListActivity extends Activity {
                                                 unused -> {
 
                                                     likeButton.setText(
-                                                            "♥"
+                                                            "👍  ♥"
                                                     );
 
                                                     increaseLikeCount(
@@ -1916,46 +1955,78 @@ public class ExperienceListActivity extends Activity {
     // بارگذاری عکس پروفایل
     // =========================================================
 
-    private void loadProfileImage(
-            String photoUrl,
-            ImageView imageView
-    ) {
+    private void loadProfileImage(String photoUrl, ImageView imageView) {
+        if (photoUrl == null || photoUrl.trim().isEmpty() || imageView == null) return;
+        final String storedUrl = photoUrl.trim();
+        if (storedUrl.contains("/storage/v1/object/public/" + PROFILE_BUCKET + "/") ||
+                storedUrl.contains("/storage/v1/object/" + PROFILE_BUCKET + "/")) {
+            loadPrivateProfileImage(storedUrl, imageView);
+            return;
+        }
+        new Thread(() -> downloadProfileImage(storedUrl, imageView)).start();
+    }
 
-        new Thread(
-                () -> {
+    private void loadPrivateProfileImage(String storedUrl, ImageView imageView) {
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            try {
+                String marker = "/" + PROFILE_BUCKET + "/";
+                int markerIndex = storedUrl.indexOf(marker);
+                if (markerIndex < 0) return;
+                String objectPath = storedUrl.substring(markerIndex + marker.length());
+                int queryIndex = objectPath.indexOf('?');
+                if (queryIndex >= 0) objectPath = objectPath.substring(0, queryIndex);
+                objectPath = URLDecoder.decode(objectPath, "UTF-8");
 
-                    try {
-
-                        URL url =
-                                new URL(photoUrl);
-
-                        Bitmap bitmap =
-                                BitmapFactory
-                                        .decodeStream(
-                                                url.openConnection()
-                                                        .getInputStream()
-                                        );
-
-                        if (bitmap != null) {
-
-                            runOnUiThread(
-                                    () -> {
-
-                                        imageView.setImageBitmap(
-                                                bitmap
-                                        );
-
-                                        // اطمینان از دایره‌ای ماندن تصویر
-                                        imageView.setClipToOutline(
-                                                true
-                                        );
-                                    }
-                            );
-                        }
-
-                    } catch (Exception ignored) {
-                    }
+                FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                if (currentUser == null) return;
+                String idToken = currentUser.getIdToken(false).getResult().getToken();
+                URL functionUrl = new URL(SUPABASE_URL + "/functions/v1/profile-photo-url");
+                connection = (HttpURLConnection) functionUrl.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                connection.setConnectTimeout(20000);
+                connection.setReadTimeout(30000);
+                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+                connection.setRequestProperty("Authorization", "Bearer " + idToken);
+                JSONObject body = new JSONObject();
+                body.put("path", objectPath);
+                try (OutputStream output = connection.getOutputStream()) {
+                    output.write(body.toString().getBytes(StandardCharsets.UTF_8));
                 }
-        ).start();
+                int code = connection.getResponseCode();
+                InputStream response = code >= 200 && code < 300
+                        ? connection.getInputStream() : connection.getErrorStream();
+                if (response == null || code < 200 || code >= 300) return;
+                java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+                byte[] buffer = new byte[4096];
+                int count;
+                while ((count = response.read(buffer)) != -1) bytes.write(buffer, 0, count);
+                response.close();
+                String signedUrl = new JSONObject(bytes.toString("UTF-8")).optString("url", "");
+                if (!signedUrl.isEmpty()) downloadProfileImage(signedUrl, imageView);
+            } catch (Exception ignored) {
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        }).start();
+    }
+
+    private void downloadProfileImage(String url, ImageView imageView) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(20000);
+            Bitmap bitmap;
+            try (InputStream input = connection.getInputStream()) {
+                bitmap = BitmapFactory.decodeStream(input);
+            }
+            if (bitmap != null) runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+        } catch (Exception ignored) {
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 }
