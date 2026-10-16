@@ -775,9 +775,12 @@ public class ChatActivity extends Activity {
                 android.R.drawable.ic_menu_gallery
         );
 
-        image.setBackground(
-                bg(Color.LTGRAY, 50)
-        );
+        GradientDrawable circleBackground =
+                new GradientDrawable();
+        circleBackground.setColor(Color.LTGRAY);
+        circleBackground.setShape(GradientDrawable.OVAL);
+        image.setBackground(circleBackground);
+        image.setClipToOutline(true);
 
         return image;
     }
@@ -926,9 +929,12 @@ public class ChatActivity extends Activity {
 
         ImageButton profile = myHeaderProfileButton;
 
-        profile.setBackground(
-                bg(Color.LTGRAY, 50)
-        );
+        GradientDrawable profileCircleBackground =
+                new GradientDrawable();
+        profileCircleBackground.setColor(Color.LTGRAY);
+        profileCircleBackground.setShape(GradientDrawable.OVAL);
+        profile.setBackground(profileCircleBackground);
+        profile.setClipToOutline(true);
 
         profile.setScaleType(
                 ImageView.ScaleType.CENTER_CROP
