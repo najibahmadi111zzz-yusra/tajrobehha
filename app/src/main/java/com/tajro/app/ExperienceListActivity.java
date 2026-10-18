@@ -1114,7 +1114,16 @@ public class ExperienceListActivity extends Activity {
         card.addView(socialRow);
         loadCommentCount(document.getReference(), commentsButton);
         commentsButton.setOnClickListener(v -> showComments(document.getReference(), commentsButton));
-        shareButtonCard.setOnClickListener(v -> shareExperience(detailSafe(experienceTitle), detailSafe(experienceText), experienceImageUrl));
+
+        // نسخه‌های ثابت برای استفاده داخل lambda اشتراک‌گذاری
+        final String shareTitle = experienceTitle;
+        final String shareText = experienceText;
+        final String shareImageUrl = experienceImageUrl;
+        shareButtonCard.setOnClickListener(v -> shareExperience(
+                detailSafe(shareTitle),
+                detailSafe(shareText),
+                shareImageUrl
+        ));
 
         // جزئیات برای همه کاربران؛ ویرایش و حذف فقط داخل صفحه جزئیات و برای مالک
         Button detailsButton = new Button(this);
