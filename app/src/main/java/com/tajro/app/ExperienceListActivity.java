@@ -965,52 +965,30 @@ public class ExperienceListActivity extends Activity {
                 dp(3)
         );
 
-        // =====================================================
-        // واکنش‌های جداگانه: لایک و قلب
-        // نگه‌داشتن انگشت روی هرکدام، انتخاب هر دو واکنش را نشان می‌دهد.
-        // =====================================================
-
+        // واکنش یکپارچه: لمس کوتاه لایک، نگه‌داشتن برای انتخاب لایک یا قلب
         TextView likeButton = new TextView(this);
-        likeButton.setText("👍 لایک");
+        likeButton.setText("👍 واکنش");
         likeButton.setTextSize(14);
         likeButton.setTextColor(Color.rgb(22, 105, 177));
         likeButton.setGravity(Gravity.CENTER);
         likeButton.setPadding(dp(8), 0, dp(8), 0);
         likeButton.setBackground(createReactionBackground(
                 Color.rgb(239, 247, 255), Color.rgb(193, 220, 246)));
-        likeRow.addView(likeButton, new LinearLayout.LayoutParams(
-                dp(82), dp(36)));
+        likeRow.addView(likeButton, new LinearLayout.LayoutParams(dp(92), dp(36)));
 
         TextView likeCount = new TextView(this);
-        likeCount.setText("۰");
-        likeCount.setTextSize(13);
+        likeCount.setText("۰"); likeCount.setTextSize(13);
         likeCount.setTextColor(Color.rgb(105, 105, 105));
         likeCount.setGravity(Gravity.CENTER_VERTICAL);
         likeCount.setPadding(dp(4), 0, dp(8), 0);
-        likeRow.addView(likeCount, new LinearLayout.LayoutParams(
-                dp(25), dp(36)));
-
-        TextView heartButton = new TextView(this);
-        heartButton.setText("♡ قلب");
-        heartButton.setTextSize(14);
-        heartButton.setTextColor(Color.rgb(211, 48, 72));
-        heartButton.setGravity(Gravity.CENTER);
-        heartButton.setPadding(dp(8), 0, dp(8), 0);
-        heartButton.setBackground(createReactionBackground(
-                Color.rgb(255, 244, 247), Color.rgb(246, 198, 210)));
-        LinearLayout.LayoutParams heartButtonParams =
-                new LinearLayout.LayoutParams(dp(76), dp(36));
-        heartButtonParams.setMargins(dp(3), 0, 0, 0);
-        likeRow.addView(heartButton, heartButtonParams);
+        likeRow.addView(likeCount, new LinearLayout.LayoutParams(dp(25), dp(36)));
 
         TextView heartCount = new TextView(this);
-        heartCount.setText("۰");
-        heartCount.setTextSize(13);
-        heartCount.setTextColor(Color.rgb(105, 105, 105));
+        heartCount.setText("۰"); heartCount.setTextSize(13);
+        heartCount.setTextColor(Color.rgb(211, 48, 72));
         heartCount.setGravity(Gravity.CENTER_VERTICAL);
-        heartCount.setPadding(dp(4), 0, dp(5), 0);
-        likeRow.addView(heartCount, new LinearLayout.LayoutParams(
-                dp(25), dp(36)));
+        heartCount.setPadding(dp(2), 0, dp(5), 0);
+        likeRow.addView(heartCount, new LinearLayout.LayoutParams(dp(25), dp(36)));
         likeCount.setOnClickListener(v -> showReactors(document.getReference(), "all"));
         heartCount.setOnClickListener(v -> showReactors(document.getReference(), "all"));
         likeButton.setOnClickListener(v -> {
@@ -1020,29 +998,20 @@ public class ExperienceListActivity extends Activity {
             }
             toggleLike(document, currentUserId, likeButton, likeCount);
         });
-        heartButton.setOnClickListener(v -> {
-            if (currentUserId == null) {
-                Toast.makeText(ExperienceListActivity.this, text("برای لایک کردن وارد حساب شوید"), Toast.LENGTH_SHORT).show();
-                return;
-            }
-            toggleHeart(document, currentUserId, heartButton, heartCount);
-        });
-
-        View.OnLongClickListener reactionPicker = v -> {
+        likeButton.setOnLongClickListener(v -> {
             new AlertDialog.Builder(ExperienceListActivity.this)
                     .setTitle("واکنش خود را انتخاب کنید")
-                    .setItems(new String[]{"👍 لایک", "❤️ قلب"}, (dialog, which) -> {
-                        if (which == 0) {
-                            likeButton.performClick();
+                    .setItems(new String[]{"👍 لایک", "❤️ قلب"}, (dlg, which) -> {
+                        if (currentUserId == null) {
+                            Toast.makeText(ExperienceListActivity.this, text("برای لایک کردن وارد حساب شوید"), Toast.LENGTH_SHORT).show();
+                        } else if (which == 0) {
+                            toggleLike(document, currentUserId, likeButton, likeCount);
                         } else {
-                            heartButton.performClick();
+                            toggleHeart(document, currentUserId, likeButton, heartCount);
                         }
-                    })
-                    .show();
+                    }).show();
             return true;
-        };
-        likeButton.setOnLongClickListener(reactionPicker);
-        heartButton.setOnLongClickListener(reactionPicker);
+        });
 
         // =====================================================
         // تاریخ و ساعت
@@ -1098,7 +1067,7 @@ public class ExperienceListActivity extends Activity {
         socialRow.setGravity(Gravity.CENTER_VERTICAL);
         socialRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         TextView commentsButton = new TextView(this);
-        commentsButton.setText("💬 کامنت (…)");
+        commentsButton.setText("💬 کامنت");
         commentsButton.setTextSize(14);
         commentsButton.setTextColor(Color.rgb(12, 91, 120));
         commentsButton.setGravity(Gravity.CENTER);
@@ -1314,7 +1283,7 @@ public class ExperienceListActivity extends Activity {
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle("کامنت‌ها")
                 .setView(content).setNegativeButton("بستن", null)
                 .setPositiveButton("ثبت کامنت", null).create();
-        experience.collection("comments").orderBy("timestamp", Query.Direction.ASCENDING).get()
+        experience.collection("comments").get()
                 .addOnSuccessListener(q -> {
                     list.removeAllViews();
                     if (q.isEmpty()) { TextView empty = new TextView(this); empty.setText("هنوز کامنتی ثبت نشده است."); empty.setGravity(Gravity.RIGHT); list.addView(empty); }
@@ -1400,7 +1369,7 @@ public class ExperienceListActivity extends Activity {
         if (currentUserId != null) {
             hearts.document(currentUserId).get()
                     .addOnSuccessListener(snapshot -> heartButton.setText(
-                            snapshot.exists() ? "❤️ قلب ✓" : "♡ قلب"));
+                            snapshot.exists() ? "❤️ واکنش" : "👍 واکنش"));
         }
         hearts.get().addOnSuccessListener(snapshot ->
                 heartCount.setText(formatCount(snapshot.size())));
@@ -1416,7 +1385,7 @@ public class ExperienceListActivity extends Activity {
         heart.get().addOnSuccessListener(snapshot -> {
             if (snapshot.exists()) {
                 heart.delete().addOnSuccessListener(unused -> {
-                    heartButton.setText("♡ قلب");
+                    heartButton.setText("👍 واکنش");
                     hearts.get().addOnSuccessListener(items ->
                             heartCount.setText(formatCount(items.size())));
                 }).addOnFailureListener(e -> Toast.makeText(this,
@@ -1426,7 +1395,7 @@ public class ExperienceListActivity extends Activity {
                 data.put("userId", currentUserId);
                 data.put("timestamp", FieldValue.serverTimestamp());
                 heart.set(data).addOnSuccessListener(unused -> {
-                    heartButton.setText("❤️ قلب ✓");
+                    heartButton.setText("❤️ واکنش");
                     hearts.get().addOnSuccessListener(items ->
                             heartCount.setText(formatCount(items.size())));
                 }).addOnFailureListener(e -> Toast.makeText(this,
@@ -1461,7 +1430,7 @@ public class ExperienceListActivity extends Activity {
 
                             likeButton.setText(
                                     liked
-                                            ? "👍 لایک ✓"
+                                            ? "👍 لایک"
                                             : "👍 لایک"
                             );
 
@@ -1589,7 +1558,7 @@ public class ExperienceListActivity extends Activity {
                                                 unused -> {
 
                                                     likeButton.setText(
-                                                            "👍 لایک ✓"
+                                                            "👍 لایک"
                                                     );
 
                                                     increaseLikeCount(
