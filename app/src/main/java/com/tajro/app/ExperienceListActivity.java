@@ -34,6 +34,7 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FieldValue;
 
 import java.net.URL;
@@ -1385,7 +1386,7 @@ public class ExperienceListActivity extends Activity {
                                  String currentUserId,
                                  TextView heartButton,
                                  TextView heartCount) {
-        DocumentReference hearts = experience.getReference()
+        CollectionReference hearts = experience.getReference()
                 .collection("hearts");
         if (currentUserId != null) {
             hearts.document(currentUserId).get()
@@ -1400,7 +1401,7 @@ public class ExperienceListActivity extends Activity {
                              String currentUserId,
                              TextView heartButton,
                              TextView heartCount) {
-        DocumentReference hearts = experience.getReference()
+        CollectionReference hearts = experience.getReference()
                 .collection("hearts");
         DocumentReference heart = hearts.document(currentUserId);
         heart.get().addOnSuccessListener(snapshot -> {
