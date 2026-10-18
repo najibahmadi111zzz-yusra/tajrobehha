@@ -1059,7 +1059,7 @@ public class ExperienceListActivity extends Activity {
 
         // وضعیت جداگانهٔ لایک و قلب
         loadLikeStatus(document, currentUserId, likeButton, likeCount);
-        loadHeartStatus(document, currentUserId, heartButton, heartCount);
+        loadHeartStatus(document, heartCount);
 
         // کامنت و اشتراک‌گذاری مستقیماً روی کارت اصلی
         LinearLayout socialRow = new LinearLayout(this);
@@ -1361,18 +1361,15 @@ public class ExperienceListActivity extends Activity {
     }
 
     private void loadHeartStatus(DocumentSnapshot experience,
-                                 String currentUserId,
-                                 TextView heartButton,
                                  TextView heartCount) {
         CollectionReference hearts = experience.getReference()
                 .collection("hearts");
-        if (currentUserId != null) {
-            hearts.document(currentUserId).get()
-                    .addOnSuccessListener(snapshot -> heartButton.setText(
-                            snapshot.exists() ? "❤️ واکنش" : "👍 واکنش"));
-        }
         hearts.get().addOnSuccessListener(snapshot ->
-                heartCount.setText(formatCount(snapshot.size())));
+                heartCount.setText(formatCount(snapshot.size())))
+                .addOnFailureListener(e ->
+                        Toast.makeText(ExperienceListActivity.this,
+                                "بارگذاری تعداد قلب‌ها ناموفق بود",
+                                Toast.LENGTH_SHORT).show());
     }
 
     private void toggleHeart(DocumentSnapshot experience,
