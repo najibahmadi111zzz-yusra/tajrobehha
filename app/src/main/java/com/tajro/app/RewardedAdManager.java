@@ -1,6 +1,8 @@
 package com.tajro.app;
 
 import android.app.Activity;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -29,6 +31,10 @@ public class RewardedAdManager {
     private final Activity activity;
 
     private RewardedAd rewardedAd;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private boolean isLoading = false;
+    private boolean showWhenLoaded = false;
+    private int initializationRetries = 0;
 
     public RewardedAdManager(Activity activity) {
         this.activity = activity;
@@ -73,90 +79,87 @@ public class RewardedAdManager {
     // ==============================
     public void loadRewardedAd() {
 
-        if (!UnityAds.isInitialized()) {
-
-            Log.e(
-                    TAG,
-                    "Unity Ads is not initialized"
-            );
-
-            developerToast(
-                    "❌ Unity Ads هنوز آماده نشده است.",
-                    Toast.LENGTH_SHORT
-            );
-
+        if (activity.isFinishing()) {
+            Log.w(TAG, "Activity is finishing; load cancelled");
             return;
         }
 
-        LoadConfiguration loadConfig =
-                new LoadConfiguration.Builder(AD_UNIT_ID)
-                        .build();
+        if (!UnityAds.isInitialized()) {
 
-        RewardedAd.load(
-                loadConfig,
-                (ad, error) -> {
+            Log.e(TAG, "Unity Ads is not initialized yet");
+            if (initializationRetries == 0) {
+                developerToast(
+                        "⏳ Unity هنوز آماده نیست؛ دوباره تلاش می‌شود.",
+                        Toast.LENGTH_SHORT
+                );
+            }
 
-                    if (ad != null) {
+            if (initializationRetries < 20) {
+                initializationRetries++;
+                handler.postDelayed(this::loadRewardedAd, 1500);
+            } else {
+                Log.e(TAG, "Unity initialization wait timed out");
+                developerToast(
+                        "❌ Unity آماده نشد؛ گزارش خطا را بررسی کنید.",
+                        Toast.LENGTH_LONG
+                );
+                initializationRetries = 0;
+            }
+            return;
+        }
 
-                        rewardedAd = ad;
+        initializationRetries = 0;
 
-                        Log.d(
-                                TAG,
-                                "Rewarded Ad Loaded Successfully"
-                        );
+        if (isLoading || rewardedAd != null) {
+            Log.d(TAG, "Load skipped: already loading or ad is ready");
+            return;
+        }
 
-                        developerToast(
-                                "✅ تبلیغ آماده شد.",
-                                Toast.LENGTH_SHORT
-                        );
+        isLoading = true;
+        Log.i(TAG, "Starting rewarded load; Ad Unit ID=" + AD_UNIT_ID);
 
-                        rewardedAd.setOnAdExpired(
-                                expiredAd -> {
+        try {
+            LoadConfiguration loadConfig =
+                    new LoadConfiguration.Builder(AD_UNIT_ID).build();
 
-                                    Log.d(
-                                            TAG,
-                                            "Rewarded Ad Expired"
-                                    );
+            RewardedAd.load(loadConfig, (ad, error) -> {
+                isLoading = false;
 
-                                    rewardedAd = null;
+                if (ad != null) {
+                    rewardedAd = ad;
+                    Log.i(TAG, "REWARDED_LOAD_SUCCESS: " + AD_UNIT_ID);
+                    developerToast("✅ تبلیغ جایزه آماده شد.", Toast.LENGTH_SHORT);
 
-                                    loadRewardedAd();
-                                }
-                        );
-
-                    } else {
-
-                        rewardedAd = null;
-
-                        String message;
-
-                        if (error != null) {
-
-                            message =
-                                    "کد "
-                                            + error.getCode()
-                                            + ": "
-                                            + error.getMessage();
-
-                        } else {
-
-                            message = "Unknown error";
+                    ad.setOnAdExpired(expiredAd -> {
+                        Log.w(TAG, "Rewarded Ad Expired");
+                        if (rewardedAd == expiredAd) {
+                            rewardedAd = null;
                         }
+                        loadRewardedAd();
+                    });
 
-                        Log.e(
-                                TAG,
-                                "Rewarded Ad Load Failed: "
-                                        + message
-                        );
-
-                        developerToast(
-                                "❌ خطای تبلیغ: "
-                                        + message,
-                                Toast.LENGTH_LONG
-                        );
+                    if (showWhenLoaded) {
+                        showWhenLoaded = false;
+                        handler.postDelayed(() -> showLoadedAd(null), 300);
                     }
+                } else {
+                    rewardedAd = null;
+                    String message = error == null
+                            ? "Unknown error (no ad and no error details)"
+                            : "کد " + error.getCode() + ": " + error.getMessage();
+
+                    Log.e(TAG, "REWARDED_LOAD_FAILED: " + message);
+                    developerToast("❌ بارگذاری تبلیغ جایزه: " + message,
+                            Toast.LENGTH_LONG);
+                    handler.postDelayed(this::loadRewardedAd, 8000);
                 }
-        );
+            });
+        } catch (Exception e) {
+            isLoading = false;
+            Log.e(TAG, "REWARDED_LOAD_EXCEPTION", e);
+            developerToast("❌ خطای بارگذاری: " + e.getClass().getSimpleName()
+                    + ": " + e.getMessage(), Toast.LENGTH_LONG);
+        }
     }
 
     // ==============================
@@ -167,35 +170,41 @@ public class RewardedAdManager {
 
         if (rewardedAd == null) {
 
+            Log.w(TAG, "Rewarded ad not ready when user tapped button");
             developerToast(
-                    "⏳ تبلیغ هنوز آماده نیست، چند لحظه صبر کنید.",
-                    Toast.LENGTH_SHORT
+                    "⏳ تبلیغ آماده نیست؛ بارگذاری می‌شود و پس از آماده‌شدن نمایش می‌یابد.",
+                    Toast.LENGTH_LONG
             );
 
-            Log.d(
-                    TAG,
-                    "Rewarded Ad is not ready"
-            );
-
+            showWhenLoaded = true;
             loadRewardedAd();
 
             if (rewardListener != null) {
-
                 rewardListener.onAdNotReady();
             }
+            return;
+        }
 
+        showLoadedAd(rewardListener);
+    }
+
+    private void showLoadedAd(final RewardListener rewardListener) {
+        if (activity.isFinishing()) return;
+        if (rewardedAd == null) {
+            Log.e(TAG, "Cannot show rewarded ad: ad is null");
+            developerToast("❌ تبلیغ هنوز آماده نیست؛ دوباره امتحان کنید.",
+                    Toast.LENGTH_SHORT);
             return;
         }
 
         RewardedAd adToShow = rewardedAd;
-
         rewardedAd = null;
 
         ShowConfiguration showConfig =
-                new ShowConfiguration.Builder()
-                        .build();
+                new ShowConfiguration.Builder().build();
 
-        adToShow.show(
+        try {
+            adToShow.show(
                 activity,
                 showConfig,
                 new RewardedShowListener() {
@@ -204,10 +213,7 @@ public class RewardedAdManager {
                     public void onStarted(
                             RewardedAd ad) {
 
-                        Log.d(
-                                TAG,
-                                "Rewarded Ad Started"
-                        );
+                        Log.i(TAG, "REWARDED_SHOW_STARTED");
                     }
 
                     @Override
@@ -240,11 +246,7 @@ public class RewardedAdManager {
                             RewardedAd ad,
                             ShowFinishState state) {
 
-                        Log.d(
-                                TAG,
-                                "Rewarded Ad Completed"
-                        );
-
+                        Log.i(TAG, "REWARDED_SHOW_COMPLETED: " + state);
                         loadRewardedAd();
                     }
 
@@ -275,8 +277,7 @@ public class RewardedAdManager {
                         );
 
                         developerToast(
-                                "❌ خطای نمایش تبلیغ: "
-                                        + message,
+                                "❌ خطای نمایش تبلیغ جایزه: " + message,
                                 Toast.LENGTH_LONG
                         );
 
@@ -288,7 +289,15 @@ public class RewardedAdManager {
                         loadRewardedAd();
                     }
                 }
-        );
+            );
+        } catch (Exception e) {
+            Log.e(TAG, "REWARDED_SHOW_EXCEPTION", e);
+            developerToast("❌ استثنای نمایش تبلیغ: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage(),
+                    Toast.LENGTH_LONG);
+            if (rewardListener != null) rewardListener.onAdFailed();
+            loadRewardedAd();
+        }
     }
 
     // ==============================
