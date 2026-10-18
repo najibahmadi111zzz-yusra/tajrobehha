@@ -1,6 +1,8 @@
 package com.tajro.app;
 
 import android.app.Application;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -11,146 +13,140 @@ import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
 import com.unity3d.ads.InitializationConfiguration;
 import com.unity3d.ads.InitializationListener;
 import com.unity3d.ads.UnityAds;
-import com.unity3d.ads.UnityAdsError;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class TajroApplication extends Application {
 
-private static final String UNITY_GAME_ID = "800372948";  
+    private static final String TAG = "UnityAdsDiagnostic";
 
-// در مرحله تست حتماً true باشد  
-private static final boolean TEST_MODE = false;  
+    private static final String UNITY_GAME_ID = "800372948";
+    private static final boolean TEST_MODE = false;
+    private static final String DEVELOPER_EMAIL =
+            "najibahmadi111zzz@gmail.com";
 
-@Override  
-public void onCreate() {  
-    super.onCreate();  
+    private final Handler handler =
+            new Handler(Looper.getMainLooper());
 
-    // =========================  
-    // Firebase  
-    // =========================  
-    try {  
+    @Override
+    public void onCreate() {
+        super.onCreate();
 
-        FirebaseApp.initializeApp(this);  
+        initializeFirebase();
+        initializeUnityAds();
+    }
 
-        FirebaseAppCheck firebaseAppCheck =  
-                FirebaseAppCheck.getInstance();  
+    private void initializeFirebase() {
+        try {
+            FirebaseApp.initializeApp(this);
 
-        firebaseAppCheck.installAppCheckProviderFactory(  
-                DebugAppCheckProviderFactory.getInstance()  
-        );  
+            FirebaseAppCheck appCheck =
+                    FirebaseAppCheck.getInstance();
 
-        Log.d(  
-                "Firebase",  
-                "Firebase initialized successfully"  
-        );  
+            appCheck.installAppCheckProviderFactory(
+                    DebugAppCheckProviderFactory.getInstance()
+            );
 
-    } catch (Exception e) {  
+            Log.i("Firebase", "FIREBASE_INIT_SUCCESS");
 
-        Log.e(  
-                "Firebase",  
-                "Firebase initialization error",  
-                e  
-        );  
-    }  
+        } catch (Exception e) {
+            Log.e("Firebase", "FIREBASE_INIT_FAILED", e);
+        }
+    }
 
-    // =========================  
-    // Unity Ads  
-    // =========================  
+    private void initializeUnityAds() {
+        Log.i(TAG, "========== UNITY DIAGNOSTIC START ==========");
+        Log.i(TAG, "Game ID: " + UNITY_GAME_ID);
+        Log.i(TAG, "Test mode: " + TEST_MODE);
 
-    InitializationConfiguration config =  
-            new InitializationConfiguration.Builder(  
-                    UNITY_GAME_ID  
-            )  
-                    .withTestMode(TEST_MODE)  
-                    .build();  
+        try {
+            Log.i(TAG, "SDK version: " + UnityAds.getVersion());
+            Log.i(TAG, "Device supported: " + UnityAds.isSupported());
+            Log.i(TAG, "Initialized before call: "
+                    + UnityAds.isInitialized());
 
-    InitializationListener listener =  
-            error -> {  
+            InitializationConfiguration config =
+                    new InitializationConfiguration.Builder(
+                            UNITY_GAME_ID
+                    )
+                            .withTestMode(TEST_MODE)
+                            .build();
 
-                if (error == null) {  
+            InitializationListener listener = error -> {
+                if (error == null) {
+                    Log.i(TAG, "UNITY_INIT_SUCCESS");
+                    Log.i(TAG, "Initialized after callback: "
+                            + UnityAds.isInitialized());
 
-                    Log.d(  
-                            "UnityAds",  
-                            "Unity Ads initialized successfully"  
-                    );  
+                    developerToast(
+                            "✅ Unity آماده شد. نسخه: "
+                                    + UnityAds.getVersion(),
+                            Toast.LENGTH_LONG
+                    );
+                } else {
+                    String details = error.getMessage();
 
-                    Toast.makeText(  
-                            this,  
-                            text(  
-                                    "✅ Unity Ads آماده شد.",  
-                                    "✅ Unity Ads is ready.",  
-                                    "✅ Unity Ads چمتو شو.",  
-                                    "✅ Unity Ads تیار ہے۔",  
-                                    "✅ Unity Ads तैयार है।"  
-                            ),  
-                            Toast.LENGTH_SHORT  
-                    ).show();  
+                    Log.e(TAG,
+                            "UNITY_INIT_FAILED: "
+                                    + String.valueOf(details));
 
-                } else {  
+                    developerToast(
+                            "❌ راه‌اندازی Unity ناموفق: "
+                                    + String.valueOf(details),
+                            Toast.LENGTH_LONG
+                    );
+                }
 
-                    String message =  
-                            error.getMessage();  
+                Log.i(TAG, "========== UNITY DIAGNOSTIC END ==========");
+            };
 
-                    Log.e(  
-                            "UnityAds",  
-                            "Unity Ads initialization failed: "  
-                                    + message  
-                    );  
+            Log.i(TAG, "UNITY_INIT_REQUEST");
 
-                    Toast.makeText(  
-                            this,  
-                            text(  
-                                    "❌ خطای Unity Ads: ",  
-                                    "❌ Unity Ads error: ",  
-                                    "❌ د Unity Ads تېروتنه: ",  
-                                    "❌ Unity Ads کی خرابی: ",  
-                                    "❌ Unity Ads त्रुटि: "  
-                            ) + message,  
-                            Toast.LENGTH_LONG  
-                    ).show();  
-                }  
-            };  
+            UnityAds.initialize(config, listener);
 
-    Log.d(  
-            "UnityAds",  
-            "Starting Unity Ads initialization..."  
-    );  
+        } catch (Exception e) {
+            Log.e(TAG, "UNITY_INIT_EXCEPTION", e);
 
-    UnityAds.initialize(  
-            config,  
-            listener  
-    );  
-}  
+            developerToast(
+                    "❌ استثنای Unity: "
+                            + e.getClass().getSimpleName()
+                            + " — " + String.valueOf(e.getMessage()),
+                    Toast.LENGTH_LONG
+            );
+        }
+    }
 
-// =========================  
-// ترجمه متن  
-// =========================  
-private String text(  
-        String fa,  
-        String en,  
-        String ps,  
-        String ur,  
-        String hi) {  
+    private boolean isDeveloper() {
+        try {
+            FirebaseUser user =
+                    FirebaseAuth.getInstance().getCurrentUser();
 
-    String language =  
-            LanguageManager.getLanguage(this);  
+            if (user == null || user.getEmail() == null) {
+                return false;
+            }
 
-    if ("en".equals(language)) {  
-        return en;  
-    }  
+            return DEVELOPER_EMAIL.equalsIgnoreCase(
+                    user.getEmail().trim()
+            );
 
-    if ("ps".equals(language)) {  
-        return ps;  
-    }  
+        } catch (Exception e) {
+            Log.w(TAG, "Could not verify developer account", e);
+            return false;
+        }
+    }
 
-    if ("ur".equals(language)) {  
-        return ur;  
-    }  
+    private void developerToast(String message, int duration) {
+        if (!isDeveloper()) {
+            return;
+        }
 
-    if ("hi".equals(language)) {  
-        return hi;  
-    }  
-
-    return fa;  
-}
-
+        handler.post(() ->
+                Toast.makeText(
+                        getApplicationContext(),
+                        message,
+                        duration
+                ).show()
+        );
+    }
 }
