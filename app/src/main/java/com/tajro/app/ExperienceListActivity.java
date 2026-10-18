@@ -19,6 +19,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.ImageView;
 import android.widget.Toast;
+import android.widget.EditText;
 import org.json.JSONObject;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -40,6 +41,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Map;
 
 public class ExperienceListActivity extends Activity {
 
@@ -960,96 +965,83 @@ public class ExperienceListActivity extends Activity {
         );
 
         // =====================================================
-        // دکمه لایک
+        // واکنش‌های جداگانه: لایک و قلب
+        // نگه‌داشتن انگشت روی هرکدام، انتخاب هر دو واکنش را نشان می‌دهد.
         // =====================================================
 
-        TextView likeButton =
-                new TextView(this);
+        TextView likeButton = new TextView(this);
+        likeButton.setText("👍 لایک");
+        likeButton.setTextSize(14);
+        likeButton.setTextColor(Color.rgb(22, 105, 177));
+        likeButton.setGravity(Gravity.CENTER);
+        likeButton.setPadding(dp(8), 0, dp(8), 0);
+        likeButton.setBackground(createReactionBackground(
+                Color.rgb(239, 247, 255), Color.rgb(193, 220, 246)));
+        likeRow.addView(likeButton, new LinearLayout.LayoutParams(
+                dp(82), dp(36)));
 
-        likeButton.setText("👍  ♡");
-
-        likeButton.setTextSize(19);
-
-        likeButton.setTextColor(
-                Color.rgb(211, 48, 72)
-        );
-
-        likeButton.setGravity(
-                Gravity.CENTER
-        );
-
-        likeButton.setPadding(
-                0,
-                0,
-                0,
-                0
-        );
-
-        likeButton.setClickable(true);
-
-        GradientDrawable likeBackground =
-                new GradientDrawable();
-
-        likeBackground.setColor(
-                Color.rgb(255, 246, 247)
-        );
-
-        likeBackground.setCornerRadius(
-                dp(10)
-        );
-
-        likeButton.setBackground(
-                likeBackground
-        );
-
-        likeRow.addView(
-                likeButton,
-                new LinearLayout.LayoutParams(
-                        dp(64),
-                        dp(32)
-                )
-        );
-
-        // =====================================================
-        // تعداد لایک
-        // =====================================================
-
-        TextView likeCount =
-                new TextView(this);
-
+        TextView likeCount = new TextView(this);
         likeCount.setText("۰");
-
         likeCount.setTextSize(13);
+        likeCount.setTextColor(Color.rgb(105, 105, 105));
+        likeCount.setGravity(Gravity.CENTER_VERTICAL);
+        likeCount.setPadding(dp(4), 0, dp(8), 0);
+        likeRow.addView(likeCount, new LinearLayout.LayoutParams(
+                dp(25), dp(36)));
 
-        likeCount.setTextColor(
-                Color.rgb(105, 105, 105)
-        );
+        TextView heartButton = new TextView(this);
+        heartButton.setText("♡ قلب");
+        heartButton.setTextSize(14);
+        heartButton.setTextColor(Color.rgb(211, 48, 72));
+        heartButton.setGravity(Gravity.CENTER);
+        heartButton.setPadding(dp(8), 0, dp(8), 0);
+        heartButton.setBackground(createReactionBackground(
+                Color.rgb(255, 244, 247), Color.rgb(246, 198, 210)));
+        LinearLayout.LayoutParams heartButtonParams =
+                new LinearLayout.LayoutParams(dp(76), dp(36));
+        heartButtonParams.setMargins(dp(3), 0, 0, 0);
+        likeRow.addView(heartButton, heartButtonParams);
 
-        likeCount.setTypeface(
-                Typeface.create(
-                        "sans-serif-medium",
-                        Typeface.BOLD
-                )
-        );
+        TextView heartCount = new TextView(this);
+        heartCount.setText("۰");
+        heartCount.setTextSize(13);
+        heartCount.setTextColor(Color.rgb(105, 105, 105));
+        heartCount.setGravity(Gravity.CENTER_VERTICAL);
+        heartCount.setPadding(dp(4), 0, dp(5), 0);
+        likeRow.addView(heartCount, new LinearLayout.LayoutParams(
+                dp(25), dp(36)));
+        likeCount.setOnClickListener(v -> showReactors(document.getReference(), "all"));
+        heartCount.setOnClickListener(v -> showReactors(document.getReference(), "all"));
+        likeButton.setOnClickListener(v -> {
+            if (currentUserId == null) {
+                Toast.makeText(ExperienceListActivity.this, text("برای لایک کردن وارد حساب شوید"), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            toggleLike(document, currentUserId, likeButton, likeCount);
+        });
+        heartButton.setOnClickListener(v -> {
+            if (currentUserId == null) {
+                Toast.makeText(ExperienceListActivity.this, text("برای لایک کردن وارد حساب شوید"), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            toggleHeart(document, currentUserId, heartButton, heartCount);
+        });
 
-        likeCount.setGravity(
-                Gravity.CENTER_VERTICAL
-        );
-
-        likeCount.setPadding(
-                dp(5),
-                0,
-                dp(10),
-                0
-        );
-
-        likeRow.addView(
-                likeCount,
-                new LinearLayout.LayoutParams(
-                        dp(38),
-                        dp(40)
-                )
-        );
+        View.OnLongClickListener reactionPicker = v -> {
+            new AlertDialog.Builder(ExperienceListActivity.this)
+                    .setTitle("واکنش خود را انتخاب کنید")
+                    .setItems(new String[]{"👍 لایک", "❤️ قلب"}, (dialog, which) -> {
+                        if (which == 0) {
+                            likeButton.performClick();
+                        } else {
+                            heartButton.performClick();
+                        }
+                    })
+                    .show();
+            return true;
+        };
+        likeButton.setOnLongClickListener(reactionPicker);
+        heartButton.setOnLongClickListener(reactionPicker);
 
         // =====================================================
         // تاریخ و ساعت
@@ -1095,41 +1087,33 @@ public class ExperienceListActivity extends Activity {
 
         card.addView(likeRow);
 
-        // =====================================================
-        // وضعیت لایک
-        // =====================================================
+        // وضعیت جداگانهٔ لایک و قلب
+        loadLikeStatus(document, currentUserId, likeButton, likeCount);
+        loadHeartStatus(document, currentUserId, heartButton, heartCount);
 
-        loadLikeStatus(
-                document,
-                currentUserId,
-                likeButton,
-                likeCount
-        );
-
-        likeButton.setOnClickListener(
-                v -> {
-
-                    if (currentUserId == null) {
-
-                        Toast.makeText(
-                                ExperienceListActivity.this,
-                                text(
-                                        "برای لایک کردن وارد حساب شوید"
-                                ),
-                                Toast.LENGTH_SHORT
-                        ).show();
-
-                        return;
-                    }
-
-                    toggleLike(
-                            document,
-                            currentUserId,
-                            likeButton,
-                            likeCount
-                    );
-                }
-        );
+        // کامنت و اشتراک‌گذاری مستقیماً روی کارت اصلی
+        LinearLayout socialRow = new LinearLayout(this);
+        socialRow.setOrientation(LinearLayout.HORIZONTAL);
+        socialRow.setGravity(Gravity.CENTER_VERTICAL);
+        socialRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        TextView commentsButton = new TextView(this);
+        commentsButton.setText("💬 کامنت (…)");
+        commentsButton.setTextSize(14);
+        commentsButton.setTextColor(Color.rgb(12, 91, 120));
+        commentsButton.setGravity(Gravity.CENTER);
+        commentsButton.setPadding(dp(10), dp(8), dp(10), dp(8));
+        TextView shareButtonCard = new TextView(this);
+        shareButtonCard.setText("↗ اشتراک‌گذاری");
+        shareButtonCard.setTextSize(14);
+        shareButtonCard.setTextColor(Color.rgb(12, 91, 120));
+        shareButtonCard.setGravity(Gravity.CENTER);
+        shareButtonCard.setPadding(dp(10), dp(8), dp(10), dp(8));
+        socialRow.addView(commentsButton, new LinearLayout.LayoutParams(0, dp(42), 1));
+        socialRow.addView(shareButtonCard, new LinearLayout.LayoutParams(0, dp(42), 1));
+        card.addView(socialRow);
+        loadCommentCount(document.getReference(), commentsButton);
+        commentsButton.setOnClickListener(v -> showComments(document.getReference(), commentsButton));
+        shareButtonCard.setOnClickListener(v -> shareExperience(detailSafe(experienceTitle), detailSafe(experienceText), experienceImageUrl));
 
         // جزئیات برای همه کاربران؛ ویرایش و حذف فقط داخل صفحه جزئیات و برای مالک
         Button detailsButton = new Button(this);
@@ -1209,29 +1193,6 @@ public class ExperienceListActivity extends Activity {
             box.addView(dateView);
         }
 
-        Button shareButton = new Button(this);
-        shareButton.setText("↗ " + text("شریک‌سازی تجربه"));
-        shareButton.setTextSize(14);
-        shareButton.setTextColor(Color.rgb(12, 91, 120));
-        shareButton.setOnClickListener(v -> {
-            StringBuilder sharedText = new StringBuilder();
-            if (titleValue != null && !titleValue.trim().isEmpty()) {
-                sharedText.append(titleValue.trim()).append("\n\n");
-            }
-            if (bodyValue != null) sharedText.append(bodyValue.trim());
-            if (imageUrl != null && !imageUrl.trim().isEmpty()) {
-                sharedText.append("\n\n").append(imageUrl.trim());
-            }
-            Intent shareIntent = new Intent(Intent.ACTION_SEND);
-            shareIntent.setType("text/plain");
-            shareIntent.putExtra(Intent.EXTRA_TEXT, sharedText.toString());
-            startActivity(Intent.createChooser(shareIntent, text("شریک‌سازی تجربه")));
-        });
-        LinearLayout.LayoutParams shareParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        shareParams.setMargins(0, dp(12), 0, dp(4));
-        box.addView(shareButton, shareParams);
-
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(text("⋮ گزینه‌های تجربه"))
                 .setView(scroll)
@@ -1309,6 +1270,162 @@ public class ExperienceListActivity extends Activity {
     // لایک
     // =========================================================
 
+    private String detailSafe(String value) { return value == null ? "" : value; }
+
+    private void shareExperience(String title, String body, String imageUrl) {
+        StringBuilder out = new StringBuilder();
+        if (!title.trim().isEmpty()) out.append(title.trim()).append("\n\n");
+        out.append(body == null ? "" : body.trim());
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) out.append("\n\n").append(imageUrl.trim());
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("text/plain");
+        intent.putExtra(Intent.EXTRA_TEXT, out.toString());
+        startActivity(Intent.createChooser(intent, "اشتراک‌گذاری تجربه"));
+    }
+
+    private void loadCommentCount(DocumentReference experience, TextView target) {
+        experience.collection("comments").get().addOnSuccessListener(q ->
+                target.setText("💬 کامنت (" + formatCount(q.size()) + ")"));
+    }
+
+    private void showComments(DocumentReference experience, TextView countView) {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(14), dp(10), dp(14), dp(8));
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(list);
+        content.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(260)));
+        EditText input = new EditText(this);
+        input.setHint("نظر خود را بنویسید...");
+        input.setGravity(Gravity.RIGHT | Gravity.TOP);
+        content.addView(input);
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("کامنت‌ها")
+                .setView(content).setNegativeButton("بستن", null)
+                .setPositiveButton("ثبت کامنت", null).create();
+        experience.collection("comments").orderBy("timestamp", Query.Direction.ASCENDING).get()
+                .addOnSuccessListener(q -> {
+                    list.removeAllViews();
+                    if (q.isEmpty()) { TextView empty = new TextView(this); empty.setText("هنوز کامنتی ثبت نشده است."); empty.setGravity(Gravity.RIGHT); list.addView(empty); }
+                    for (DocumentSnapshot d : q.getDocuments()) {
+                        String uid = d.getString("userId");
+                        String comment = d.getString("text");
+                        TextView row = new TextView(this);
+                        row.setText((comment == null ? "" : comment) + "\n");
+                        row.setTextSize(15); row.setTextColor(Color.rgb(45,50,53)); row.setGravity(Gravity.RIGHT);
+                        row.setPadding(0, dp(8), 0, dp(8));
+                        list.addView(row);
+                        if (uid != null) db.collection("users").document(uid).get().addOnSuccessListener(u -> {
+                            String name = u.getString("name"); if (name == null || name.trim().isEmpty()) name = u.getString("username");
+                            row.setText((name == null || name.trim().isEmpty() ? "کاربر" : name) + "\n" + (comment == null ? "" : comment));
+                        });
+                    }
+                }).addOnFailureListener(e -> Toast.makeText(this, "بارگذاری کامنت‌ها ناموفق بود", Toast.LENGTH_SHORT).show());
+        dialog.setOnShowListener(unused -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            FirebaseUser user = auth == null ? null : auth.getCurrentUser();
+            String value = input.getText().toString().trim();
+            if (user == null) { Toast.makeText(this, "برای ثبت کامنت وارد حساب شوید", Toast.LENGTH_SHORT).show(); return; }
+            if (value.isEmpty()) { input.setError("متن کامنت را بنویسید"); return; }
+            java.util.HashMap<String,Object> data = new java.util.HashMap<>();
+            data.put("userId", user.getUid()); data.put("text", value); data.put("timestamp", FieldValue.serverTimestamp());
+            experience.collection("comments").add(data).addOnSuccessListener(ref -> {
+                loadCommentCount(experience, countView); Toast.makeText(this, "کامنت ثبت شد", Toast.LENGTH_SHORT).show(); dialog.dismiss();
+            }).addOnFailureListener(e -> Toast.makeText(this, "ثبت کامنت ناموفق بود", Toast.LENGTH_SHORT).show());
+        }));
+        dialog.show();
+    }
+
+    private void showReactors(DocumentReference experience, String initialTab) {
+        LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(12), dp(8), dp(12), dp(8));
+        LinearLayout tabs = new LinearLayout(this); tabs.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout people = new LinearLayout(this); people.setOrientation(LinearLayout.VERTICAL);
+        ScrollView scroll = new ScrollView(this); scroll.addView(people);
+        root.addView(tabs); root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(320)));
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("واکنش‌دهندگان").setView(root).setPositiveButton("بستن", null).create();
+        final String[] selected = {"all"};
+        Runnable[] render = new Runnable[1];
+        render[0] = () -> {
+            people.removeAllViews();
+            ArrayList<String> collections = new ArrayList<>();
+            if ("all".equals(selected[0]) || "likes".equals(selected[0])) collections.add("likes");
+            if ("all".equals(selected[0]) || "hearts".equals(selected[0])) collections.add("hearts");
+            for (String col : collections) experience.collection(col).get().addOnSuccessListener(q -> {
+                for (DocumentSnapshot d : q.getDocuments()) {
+                    String uid = d.getString("userId"); if (uid == null) uid = d.getId();
+                    final String userId = uid;
+                    LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(0, dp(6), 0, dp(6));
+                    ImageView avatar = new ImageView(this); avatar.setImageResource(android.R.drawable.sym_def_app_icon);
+                    row.addView(avatar, new LinearLayout.LayoutParams(dp(42), dp(42)));
+                    TextView name = new TextView(this); name.setText("کاربر"); name.setTextSize(15); name.setPadding(dp(10),0,dp(10),0); name.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
+                    row.addView(name, new LinearLayout.LayoutParams(0, dp(46), 1)); people.addView(row);
+                    db.collection("users").document(userId).get().addOnSuccessListener(u -> {
+                        String n = u.getString("name"); if (n == null || n.trim().isEmpty()) n = u.getString("username"); if (n == null || n.trim().isEmpty()) n = u.getString("displayName");
+                        name.setText(("likes".equals(col) ? "👍 " : "❤️ ") + (n == null || n.trim().isEmpty() ? "کاربر" : n));
+                        String photo = u.getString("photoUrl"); if (photo == null) photo = u.getString("profilePhotoUrl"); if (photo == null) photo = u.getString("profilePhoto"); if (photo == null) photo = u.getString("photo");
+                        if (photo != null && !photo.trim().isEmpty()) loadProfileImage(photo, avatar);
+                    });
+                }
+            }).addOnFailureListener(e -> Toast.makeText(this, "بارگذاری واکنش‌ها ناموفق بود", Toast.LENGTH_SHORT).show());
+        };
+        String[] labels = {"همه", "👍 لایک", "❤️ قلب"}; String[] keys = {"all", "likes", "hearts"};
+        for (int i=0;i<labels.length;i++) { final String key=keys[i]; Button b=new Button(this); b.setText(labels[i]); tabs.addView(b,new LinearLayout.LayoutParams(0,dp(44),1)); b.setOnClickListener(v->{selected[0]=key;render[0].run();}); }
+        dialog.show(); render[0].run();
+    }
+
+    private GradientDrawable createReactionBackground(int fill, int stroke) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(fill);
+        drawable.setCornerRadius(dp(18));
+        drawable.setStroke(dp(1), stroke);
+        return drawable;
+    }
+
+    private void loadHeartStatus(DocumentSnapshot experience,
+                                 String currentUserId,
+                                 TextView heartButton,
+                                 TextView heartCount) {
+        DocumentReference hearts = experience.getReference()
+                .collection("hearts");
+        if (currentUserId != null) {
+            hearts.document(currentUserId).get()
+                    .addOnSuccessListener(snapshot -> heartButton.setText(
+                            snapshot.exists() ? "❤️ قلب ✓" : "♡ قلب"));
+        }
+        hearts.get().addOnSuccessListener(snapshot ->
+                heartCount.setText(formatCount(snapshot.size())));
+    }
+
+    private void toggleHeart(DocumentSnapshot experience,
+                             String currentUserId,
+                             TextView heartButton,
+                             TextView heartCount) {
+        DocumentReference hearts = experience.getReference()
+                .collection("hearts");
+        DocumentReference heart = hearts.document(currentUserId);
+        heart.get().addOnSuccessListener(snapshot -> {
+            if (snapshot.exists()) {
+                heart.delete().addOnSuccessListener(unused -> {
+                    heartButton.setText("♡ قلب");
+                    hearts.get().addOnSuccessListener(items ->
+                            heartCount.setText(formatCount(items.size())));
+                }).addOnFailureListener(e -> Toast.makeText(this,
+                        "خطا در برداشتن قلب", Toast.LENGTH_SHORT).show());
+            } else {
+                java.util.HashMap<String, Object> data = new java.util.HashMap<>();
+                data.put("userId", currentUserId);
+                data.put("timestamp", FieldValue.serverTimestamp());
+                heart.set(data).addOnSuccessListener(unused -> {
+                    heartButton.setText("❤️ قلب ✓");
+                    hearts.get().addOnSuccessListener(items ->
+                            heartCount.setText(formatCount(items.size())));
+                }).addOnFailureListener(e -> Toast.makeText(this,
+                        "خطا در ثبت قلب", Toast.LENGTH_SHORT).show());
+            }
+        }).addOnFailureListener(e -> Toast.makeText(this,
+                "خطا در بررسی قلب", Toast.LENGTH_SHORT).show());
+    }
+
     private void loadLikeStatus(
             DocumentSnapshot experience,
             String currentUserId,
@@ -1334,8 +1451,8 @@ public class ExperienceListActivity extends Activity {
 
                             likeButton.setText(
                                     liked
-                                            ? "👍  ♥"
-                                            : "👍  ♡"
+                                            ? "👍 لایک ✓"
+                                            : "👍 لایک"
                             );
 
                             loadLikeCount(
@@ -1416,7 +1533,7 @@ public class ExperienceListActivity extends Activity {
                                                 unused -> {
 
                                                     likeButton.setText(
-                                                            "👍  ♡"
+                                                            "👍 لایک"
                                                     );
 
                                                     decreaseLikeCount(
@@ -1462,7 +1579,7 @@ public class ExperienceListActivity extends Activity {
                                                 unused -> {
 
                                                     likeButton.setText(
-                                                            "👍  ♥"
+                                                            "👍 لایک ✓"
                                                     );
 
                                                     increaseLikeCount(
