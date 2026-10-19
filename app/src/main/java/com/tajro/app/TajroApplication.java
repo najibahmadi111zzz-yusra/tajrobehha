@@ -23,6 +23,7 @@ public class TajroApplication extends Application {
 
     private static final String UNITY_GAME_ID = "800372948";
     private static final boolean TEST_MODE = false;
+
     private static final String DEVELOPER_EMAIL =
             "najibahmadi111zzz@gmail.com";
 
@@ -52,6 +53,11 @@ public class TajroApplication extends Application {
 
         } catch (Exception e) {
             Log.e("Firebase", "FIREBASE_INIT_FAILED", e);
+
+            developerToast(
+                    "خطای Firebase: " + e.getMessage(),
+                    Toast.LENGTH_LONG
+            );
         }
     }
 
@@ -80,10 +86,11 @@ public class TajroApplication extends Application {
                             + UnityAds.isInitialized());
 
                     developerToast(
-                            "✅ Unity آماده شد. نسخه: "
+                            "Unity آماده شد. نسخه: "
                                     + UnityAds.getVersion(),
                             Toast.LENGTH_LONG
                     );
+
                 } else {
                     String details = error.getMessage();
 
@@ -92,7 +99,7 @@ public class TajroApplication extends Application {
                                     + String.valueOf(details));
 
                     developerToast(
-                            "❌ راه‌اندازی Unity ناموفق: "
+                            "خطای راه‌اندازی Unity: "
                                     + String.valueOf(details),
                             Toast.LENGTH_LONG
                     );
@@ -109,7 +116,7 @@ public class TajroApplication extends Application {
             Log.e(TAG, "UNITY_INIT_EXCEPTION", e);
 
             developerToast(
-                    "❌ استثنای Unity: "
+                    "استثنای Unity: "
                             + e.getClass().getSimpleName()
                             + " — " + String.valueOf(e.getMessage()),
                     Toast.LENGTH_LONG
