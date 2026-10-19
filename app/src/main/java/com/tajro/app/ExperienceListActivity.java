@@ -88,8 +88,8 @@ public class ExperienceListActivity extends Activity {
         // English
         if ("en".equals(lang)) {
 
-            if (fa.equals("📚 تجربه‌های کاربران"))
-                return "📚 Users' Experiences";
+            if (fa.equals("تجربه‌ها")) return "Experiences";
+            if (fa.equals("📚 تجربه‌های کاربران")) return "📚 Users' Experiences";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ Experience options";
             if (fa.equals("شریک‌سازی تجربه")) return "Share experience";
@@ -143,8 +143,8 @@ public class ExperienceListActivity extends Activity {
         // پښتو
         if ("ps".equals(lang)) {
 
-            if (fa.equals("📚 تجربه‌های کاربران"))
-                return "📚 د کاروونکو تجربې";
+            if (fa.equals("تجربه‌ها")) return "تجربې";
+            if (fa.equals("📚 تجربه‌های کاربران")) return "📚 د کاروونکو تجربې";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ د تجربې اختیارونه";
             if (fa.equals("شریک‌سازی تجربه")) return "تجربه شریکول";
@@ -198,8 +198,8 @@ public class ExperienceListActivity extends Activity {
         // اردو
         if ("ur".equals(lang)) {
 
-            if (fa.equals("📚 تجربه‌های کاربران"))
-                return "📚 صارفین کے تجربات";
+            if (fa.equals("تجربه‌ها")) return "تجربات";
+            if (fa.equals("📚 تجربه‌های کاربران")) return "📚 صارفین کے تجربات";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ تجربے کے اختیارات";
             if (fa.equals("شریک‌سازی تجربه")) return "تجربہ شیئر کریں";
@@ -253,8 +253,8 @@ public class ExperienceListActivity extends Activity {
         // हिन्दी
         if ("hi".equals(lang)) {
 
-            if (fa.equals("📚 تجربه‌های کاربران"))
-                return "📚 उपयोगकर्ताओं के अनुभव";
+            if (fa.equals("تجربه‌ها")) return "अनुभव";
+            if (fa.equals("📚 تجربه‌های کاربران")) return "📚 उपयोगकर्ताओं के अनुभव";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ अनुभव विकल्प";
             if (fa.equals("شریک‌سازی تجربه")) return "अनुभव साझा करें";
@@ -361,41 +361,67 @@ public class ExperienceListActivity extends Activity {
         );
 
         // ================================
-        // عنوان صفحه
+        // سربرگ اختصاصی صفحه «تجربه‌ها»
         // ================================
 
-        TextView title =
-                new TextView(this);
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setGravity(Gravity.CENTER);
+        header.setPadding(dp(18), dp(18), dp(18), dp(18));
 
-        title.setText(
-                text("📚 تجربه‌های کاربران")
-        );
+        GradientDrawable headerBackground = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{
+                        Color.rgb(10, 28, 72),
+                        Color.rgb(17, 52, 105),
+                        Color.rgb(12, 73, 101)
+                });
+        headerBackground.setCornerRadius(dp(24));
+        headerBackground.setStroke(dp(1), Color.rgb(190, 159, 82));
+        header.setBackground(headerBackground);
+        header.setElevation(dp(4));
 
-        title.setTextSize(27);
+        LinearLayout.LayoutParams headerParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        headerParams.setMargins(0, 0, 0, dp(18));
+        header.setLayoutParams(headerParams);
 
-        title.setTextColor(
-                Color.rgb(8, 65, 90)
-        );
+        TextView emblem = new TextView(this);
+        emblem.setText("📖  💡");
+        emblem.setTextSize(35);
+        emblem.setGravity(Gravity.CENTER);
+        emblem.setPadding(dp(8), 0, dp(8), dp(5));
+        header.addView(emblem);
 
-        title.setTypeface(
-                Typeface.create(
-                        "sans-serif",
-                        Typeface.BOLD
-                )
-        );
+        TextView title = new TextView(this);
+        title.setText(text("تجربه‌ها"));
+        title.setTextSize(29);
+        title.setTextColor(Color.WHITE);
+        title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        title.setGravity(Gravity.CENTER);
+        title.setLetterSpacing(0.02f);
+        title.setPadding(dp(4), dp(2), dp(4), dp(5));
+        header.addView(title);
 
-        title.setGravity(
-                Gravity.CENTER
-        );
+        View goldAccent = new View(this);
+        GradientDrawable accentBackground = new GradientDrawable();
+        accentBackground.setColor(Color.rgb(220, 184, 91));
+        accentBackground.setCornerRadius(dp(3));
+        goldAccent.setBackground(accentBackground);
+        LinearLayout.LayoutParams accentParams = new LinearLayout.LayoutParams(dp(58), dp(3));
+        accentParams.setMargins(0, dp(3), 0, dp(9));
+        header.addView(goldAccent, accentParams);
 
-        title.setPadding(
-                dp(4),
-                dp(4),
-                dp(4),
-                dp(20)
-        );
+        TextView subtitle = new TextView(this);
+        subtitle.setText("هر تجربه یک درس و هر داستان چراغیست");
+        subtitle.setTextSize(14);
+        subtitle.setTextColor(Color.rgb(221, 239, 247));
+        subtitle.setGravity(Gravity.CENTER);
+        subtitle.setPadding(dp(4), 0, dp(4), dp(2));
+        header.addView(subtitle);
 
-        layout.addView(title);
+        layout.addView(header);
 
         setContentView(scrollView);
 
@@ -972,6 +998,7 @@ public class ExperienceListActivity extends Activity {
         likeButton.setTextColor(Color.rgb(22, 105, 177));
         likeButton.setGravity(Gravity.CENTER);
         likeButton.setPadding(dp(8), 0, dp(8), 0);
+        likeButton.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         likeButton.setBackground(createReactionBackground(
                 Color.rgb(239, 247, 255), Color.rgb(193, 220, 246)));
         likeRow.addView(likeButton, new LinearLayout.LayoutParams(dp(92), dp(36)));
@@ -1069,17 +1096,29 @@ public class ExperienceListActivity extends Activity {
         TextView commentsButton = new TextView(this);
         commentsButton.setText("💬 کامنت");
         commentsButton.setTextSize(14);
+        commentsButton.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         commentsButton.setTextColor(Color.rgb(12, 91, 120));
         commentsButton.setGravity(Gravity.CENTER);
         commentsButton.setPadding(dp(10), dp(8), dp(10), dp(8));
+        commentsButton.setBackground(createReactionBackground(
+                Color.rgb(235, 248, 250), Color.rgb(167, 218, 224)));
+
         TextView shareButtonCard = new TextView(this);
         shareButtonCard.setText("↗ اشتراک‌گذاری");
         shareButtonCard.setTextSize(14);
-        shareButtonCard.setTextColor(Color.rgb(12, 91, 120));
+        shareButtonCard.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        shareButtonCard.setTextColor(Color.rgb(113, 83, 25));
         shareButtonCard.setGravity(Gravity.CENTER);
         shareButtonCard.setPadding(dp(10), dp(8), dp(10), dp(8));
-        socialRow.addView(commentsButton, new LinearLayout.LayoutParams(0, dp(42), 1));
-        socialRow.addView(shareButtonCard, new LinearLayout.LayoutParams(0, dp(42), 1));
+        shareButtonCard.setBackground(createReactionBackground(
+                Color.rgb(255, 249, 231), Color.rgb(230, 207, 145)));
+
+        LinearLayout.LayoutParams commentParams = new LinearLayout.LayoutParams(0, dp(44), 1);
+        commentParams.setMargins(dp(3), dp(5), dp(5), dp(2));
+        LinearLayout.LayoutParams shareParams = new LinearLayout.LayoutParams(0, dp(44), 1);
+        shareParams.setMargins(dp(5), dp(5), dp(3), dp(2));
+        socialRow.addView(commentsButton, commentParams);
+        socialRow.addView(shareButtonCard, shareParams);
         card.addView(socialRow);
         loadCommentCount(document.getReference(), commentsButton);
         commentsButton.setOnClickListener(v -> showComments(document.getReference(), commentsButton));
@@ -1773,28 +1812,26 @@ public class ExperienceListActivity extends Activity {
             int second =
                     calendar.get(Calendar.SECOND);
 
-            int[] jalali =
-                    gregorianToJalali(
-                            gy,
-                            gm,
-                            gd
-                    );
+            String lang = LanguageManager.getLanguage(this);
+            String dateText;
 
-            String dateText =
-                    String.format(
-                            java.util.Locale.US,
-                            "%04d/%02d/%02d - %02d:%02d:%02d",
-                            jalali[0],
-                            jalali[1],
-                            jalali[2],
-                            hour,
-                            minute,
-                            second
-                    );
+            // زبان انگلیسی: تاریخ میلادی؛ زبان‌های دری/فارسی و دیگر زبان‌های راست‌به‌چپ: هجری شمسی.
+            if ("en".equals(lang)) {
+                dateText = String.format(
+                        java.util.Locale.US,
+                        "%04d/%02d/%02d - %02d:%02d:%02d",
+                        gy, gm, gd, hour, minute, second
+                );
+                return dateText;
+            }
 
-            return toPersianDigits(
-                    dateText
+            int[] jalali = gregorianToJalali(gy, gm, gd);
+            dateText = String.format(
+                    java.util.Locale.US,
+                    "%04d/%02d/%02d - %02d:%02d:%02d",
+                    jalali[0], jalali[1], jalali[2], hour, minute, second
             );
+            return toPersianDigits(dateText);
 
         } catch (Exception e) {
 
@@ -1928,120 +1965,248 @@ public class ExperienceListActivity extends Activity {
             ImageView profileImage,
             String fallbackName
     ) {
+        db.collection("users").document(userId).get()
+                .addOnSuccessListener(userDocument -> {
+                    String name = fallbackName;
+                    String photoUrl = "";
+                    if (userDocument.exists()) {
+                        name = firstNonEmpty(
+                                userDocument.getString("name"),
+                                userDocument.getString("username"),
+                                userDocument.getString("displayName"),
+                                fallbackName
+                        );
+                        photoUrl = firstNonEmpty(
+                                userDocument.getString("photoUrl"),
+                                userDocument.getString("profilePhoto"),
+                                userDocument.getString("profilePhotoUrl"),
+                                userDocument.getString("photo"),
+                                ""
+                        );
+                    }
+                    authorName.setText(name);
+                    final String finalName = name;
+                    final String finalPhotoUrl = photoUrl;
+                    if (!photoUrl.isEmpty()) {
+                        loadProfileImage(photoUrl, profileImage);
+                    }
+                    View.OnClickListener openProfile = v ->
+                            showPublicProfile(userId, finalName, finalPhotoUrl);
+                    authorName.setOnClickListener(openProfile);
+                    profileImage.setOnClickListener(openProfile);
+                    authorRowClickable(profileImage, authorName, openProfile);
+                });
+    }
 
-        db.collection("users")
-                .document(userId)
-                .get()
-                .addOnSuccessListener(
-                        userDocument -> {
+    private void authorRowClickable(ImageView image, TextView name, View.OnClickListener listener) {
+        image.setClickable(true);
+        name.setClickable(true);
+        image.setOnClickListener(listener);
+        name.setOnClickListener(listener);
+    }
 
-                            if (!userDocument.exists()) {
+    private String firstNonEmpty(String... values) {
+        if (values != null) {
+            for (String value : values) {
+                if (value != null && !value.trim().isEmpty()) return value.trim();
+            }
+        }
+        return "";
+    }
 
-                                authorName.setText(
-                                        fallbackName
-                                );
+    // پروفایل عمومی؛ فقط اطلاعات قابل نمایش از سند users خوانده می‌شود.
+    private void showPublicProfile(String uid, String fallbackName, String photoUrl) {
+        if (uid == null || uid.trim().isEmpty()) return;
+        db.collection("users").document(uid).get().addOnSuccessListener(d -> {
+            String name = firstNonEmpty(d.getString("name"), d.getString("username"), d.getString("displayName"), fallbackName);
+            String photo = firstNonEmpty(d.getString("photoUrl"), d.getString("profilePhoto"), d.getString("profilePhotoUrl"), d.getString("photo"), photoUrl, "");
+            LinearLayout panel = new LinearLayout(this);
+            panel.setOrientation(LinearLayout.VERTICAL);
+            panel.setGravity(Gravity.CENTER_HORIZONTAL);
+            panel.setPadding(dp(18), dp(14), dp(18), dp(12));
+            ScrollView scroll = new ScrollView(this);
+            scroll.addView(panel);
 
-                                return;
-                            }
+            ImageView avatar = new ImageView(this);
+            avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            GradientDrawable avatarBg = new GradientDrawable();
+            avatarBg.setColor(Color.rgb(230, 241, 245));
+            avatarBg.setShape(GradientDrawable.OVAL);
+            avatarBg.setStroke(dp(2), Color.rgb(12, 91, 120));
+            avatar.setBackground(avatarBg);
+            avatar.setClipToOutline(true);
+            panel.addView(avatar, new LinearLayout.LayoutParams(dp(150), dp(150)));
+            if (!photo.isEmpty()) loadProfileImage(photo, avatar);
+            avatar.setOnClickListener(v -> showLargeProfilePhoto(photo, name));
 
-                            String name =
-                                    userDocument.getString(
-                                            "name"
-                                    );
+            TextView nameView = new TextView(this);
+            nameView.setText(name);
+            nameView.setTextSize(21);
+            nameView.setTypeface(null, Typeface.BOLD);
+            nameView.setTextColor(Color.rgb(8, 65, 90));
+            nameView.setGravity(Gravity.CENTER);
+            nameView.setPadding(0, dp(12), 0, dp(8));
+            panel.addView(nameView, new LinearLayout.LayoutParams(-1, -2));
 
-                            if (name == null ||
-                                    name.trim().isEmpty()) {
+            addProfileDetail(panel, "نام کاربری", firstNonEmpty(d.getString("username"), d.getString("userName")));
+            addProfileDetail(panel, "درباره من", firstNonEmpty(d.getString("bio"), d.getString("about"), d.getString("description")));
+            addProfileDetail(panel, "شهر", firstNonEmpty(d.getString("city"), d.getString("location")));
+            addProfileDetail(panel, "تخصص", firstNonEmpty(d.getString("profession"), d.getString("job"), d.getString("occupation")));
 
-                                name =
-                                        userDocument.getString(
-                                                "username"
-                                        );
-                            }
+            String myId = auth.getCurrentUser() == null ? "" : auth.getCurrentUser().getUid();
+            if (!uid.equals(myId) && !myId.isEmpty()) {
+                Button friendButton = new Button(this);
+                friendButton.setText("🤝 درخواست دوستی");
+                panel.addView(friendButton, new LinearLayout.LayoutParams(-1, -2));
+                setFriendButtonState(uid, friendButton);
+                friendButton.setOnClickListener(v -> sendFriendRequest(uid, friendButton));
+            } else if (uid.equals(myId)) {
+                Button incoming = new Button(this);
+                incoming.setText("📩 درخواست‌های دوستی");
+                panel.addView(incoming, new LinearLayout.LayoutParams(-1, -2));
+                incoming.setOnClickListener(v -> showIncomingFriendRequests());
+            }
 
-                            if (name == null ||
-                                    name.trim().isEmpty()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("پروفایل کاربر")
+                    .setView(scroll)
+                    .setPositiveButton("بستن", null)
+                    .show();
+        }).addOnFailureListener(e -> Toast.makeText(this, "پروفایل بارگذاری نشد؛ اتصال را بررسی کنید.", Toast.LENGTH_SHORT).show());
+    }
 
-                                name =
-                                        userDocument.getString(
-                                                "displayName"
-                                        );
-                            }
+    private void addProfileDetail(LinearLayout panel, String label, String value) {
+        if (value == null || value.trim().isEmpty()) return;
+        TextView detail = new TextView(this);
+        detail.setText(label + ": " + value);
+        detail.setTextSize(15);
+        detail.setTextColor(Color.rgb(55, 65, 70));
+        detail.setGravity(Gravity.RIGHT);
+        detail.setPadding(dp(4), dp(7), dp(4), dp(7));
+        panel.addView(detail, new LinearLayout.LayoutParams(-1, -2));
+    }
 
-                            if (name == null ||
-                                    name.trim().isEmpty()) {
+    private void showLargeProfilePhoto(String photo, String name) {
+        if (photo == null || photo.trim().isEmpty()) {
+            Toast.makeText(this, "این کاربر عکس پروفایل ندارد.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ImageView image = new ImageView(this);
+        image.setAdjustViewBounds(true);
+        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        loadProfileImage(photo, image);
+        new AlertDialog.Builder(this).setTitle(name).setView(image).setPositiveButton("بستن", null).show();
+    }
 
-                                name =
-                                        fallbackName;
-                            }
+    private void setFriendButtonState(String otherUid, Button button) {
+        String myId = auth.getCurrentUser() == null ? "" : auth.getCurrentUser().getUid();
+        if (myId.isEmpty()) return;
+        db.collection("friendRequests").whereEqualTo("senderId", myId).get()
+                .addOnSuccessListener(q -> {
+                    DocumentSnapshot match = null;
+                    for (DocumentSnapshot item : q.getDocuments()) {
+                        if (otherUid.equals(item.getString("receiverId"))) { match = item; break; }
+                    }
+                    if (match == null) button.setText("🤝 درخواست دوستی");
+                    else {
+                        String status = match.getString("status");
+                        button.setText("accepted".equals(status) ? "✅ دوست هستید" : "⏳ درخواست فرستاده شده");
+                        button.setEnabled(!"accepted".equals(status));
+                    }
+                }).addOnFailureListener(e -> button.setText("🤝 درخواست دوستی"));
+    }
 
-                            // فقط نام نمایش داده می‌شود
-                            // ایمیل عمداً اینجا استفاده نمی‌شود
-                            authorName.setText(
-                                    name
-                            );
-
-                            String photoUrl = null;
-
-                            String photo1 =
-                                    userDocument.getString(
-                                            "photoUrl"
-                                    );
-
-                            String photo2 =
-                                    userDocument.getString(
-                                            "profilePhoto"
-                                    );
-
-                            String photo3 =
-                                    userDocument.getString(
-                                            "profilePhotoUrl"
-                                    );
-
-                            String photo4 =
-                                    userDocument.getString(
-                                            "photo"
-                                    );
-
-                            if (photo1 != null &&
-                                    !photo1.trim().isEmpty()) {
-
-                                photoUrl =
-                                        photo1;
-
-                            } else if (
-                                    photo2 != null &&
-                                            !photo2.trim().isEmpty()
-                            ) {
-
-                                photoUrl =
-                                        photo2;
-
-                            } else if (
-                                    photo3 != null &&
-                                            !photo3.trim().isEmpty()
-                            ) {
-
-                                photoUrl =
-                                        photo3;
-
-                            } else if (
-                                    photo4 != null &&
-                                            !photo4.trim().isEmpty()
-                            ) {
-
-                                photoUrl =
-                                        photo4;
-                            }
-
-                            if (photoUrl != null) {
-
-                                loadProfileImage(
-                                        photoUrl,
-                                        profileImage
-                                );
-                            }
+    private void sendFriendRequest(String receiverId, Button button) {
+        FirebaseUser current = auth.getCurrentUser();
+        if (current == null) {
+            Toast.makeText(this, "برای درخواست دوستی اول وارد حساب شوید.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String senderId = current.getUid();
+        if (senderId.equals(receiverId)) return;
+        button.setEnabled(false);
+        db.collection("friendRequests").whereEqualTo("senderId", senderId).get()
+                .addOnSuccessListener(existing -> {
+                    for (DocumentSnapshot item : existing.getDocuments()) {
+                        if (receiverId.equals(item.getString("receiverId"))) {
+                            String status = item.getString("status");
+                            button.setText("accepted".equals(status) ? "✅ دوست هستید" : "⏳ درخواست فرستاده شده");
+                            button.setEnabled(!"accepted".equals(status));
+                            return;
                         }
-                );
+                    }
+                    Map<String, Object> request = new java.util.HashMap<>();
+                    request.put("senderId", senderId);
+                    request.put("receiverId", receiverId);
+                    request.put("status", "pending");
+                    request.put("createdAt", FieldValue.serverTimestamp());
+                    db.collection("friendRequests").add(request)
+                            .addOnSuccessListener(ref -> {
+                                button.setText("⏳ درخواست فرستاده شده");
+                                button.setEnabled(false);
+                                Toast.makeText(this, "درخواست دوستی فرستاده شد.", Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> {
+                                button.setEnabled(true);
+                                Toast.makeText(this, "ارسال درخواست ناموفق بود؛ قوانین فایربیس را بررسی کنید.", Toast.LENGTH_LONG).show();
+                            });
+                }).addOnFailureListener(e -> {
+                    button.setEnabled(true);
+                    Toast.makeText(this, "بررسی درخواست دوستی ناموفق بود.", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void showIncomingFriendRequests() {
+        FirebaseUser current = auth.getCurrentUser();
+        if (current == null) return;
+        String myId = current.getUid();
+        db.collection("friendRequests").whereEqualTo("receiverId", myId).get()
+                .addOnSuccessListener(snapshot -> {
+                    LinearLayout list = new LinearLayout(this);
+                    list.setOrientation(LinearLayout.VERTICAL);
+                    ScrollView scroller = new ScrollView(this);
+                    scroller.addView(list);
+                    boolean hasPending = false;
+                    for (DocumentSnapshot request : snapshot.getDocuments()) {
+                        if (!"pending".equals(request.getString("status"))) continue;
+                        hasPending = true;
+                        String senderId = request.getString("senderId");
+                        LinearLayout row = new LinearLayout(this);
+                        row.setOrientation(LinearLayout.VERTICAL);
+                        row.setPadding(dp(10), dp(8), dp(10), dp(8));
+                        TextView sender = new TextView(this);
+                        sender.setText("در حال دریافت نام کاربر…");
+                        row.addView(sender);
+                        if (senderId != null) db.collection("users").document(senderId).get().addOnSuccessListener(u ->
+                                sender.setText(firstNonEmpty(u.getString("name"), u.getString("username"), "کاربر")));
+                        LinearLayout actions = new LinearLayout(this);
+                        Button accept = new Button(this); accept.setText("قبول");
+                        Button reject = new Button(this); reject.setText("رد");
+                        actions.addView(accept, new LinearLayout.LayoutParams(0, -2, 1));
+                        actions.addView(reject, new LinearLayout.LayoutParams(0, -2, 1));
+                        row.addView(actions);
+                        list.addView(row);
+                        accept.setOnClickListener(v -> respondFriendRequest(request, "accepted", accept, reject));
+                        reject.setOnClickListener(v -> respondFriendRequest(request, "rejected", accept, reject));
+                    }
+                    if (!hasPending) {
+                        TextView empty = new TextView(this);
+                        empty.setText("درخواست دوستی جدیدی نداری.");
+                        empty.setPadding(dp(18), dp(18), dp(18), dp(18));
+                        list.addView(empty);
+                    }
+                    new AlertDialog.Builder(this).setTitle("درخواست‌های دوستی").setView(scroller).setPositiveButton("بستن", null).show();
+                }).addOnFailureListener(e -> Toast.makeText(this, "دریافت درخواست‌ها ناموفق بود؛ قوانین فایربیس را بررسی کنید.", Toast.LENGTH_LONG).show());
+    }
+
+    private void respondFriendRequest(DocumentSnapshot request, String status, Button accept, Button reject) {
+        request.getReference().update("status", status, "respondedAt", FieldValue.serverTimestamp())
+                .addOnSuccessListener(unused -> {
+                    accept.setEnabled(false); reject.setEnabled(false);
+                    accept.setText("accepted".equals(status) ? "✅ قبول شد" : "قبول");
+                    reject.setText("rejected".equals(status) ? "رد شد" : "رد");
+                    Toast.makeText(this, "پاسخ ثبت شد.", Toast.LENGTH_SHORT).show();
+                }).addOnFailureListener(e -> Toast.makeText(this, "ثبت پاسخ ناموفق بود؛ قوانین فایربیس را بررسی کنید.", Toast.LENGTH_LONG).show());
     }
 
     // =========================================================
@@ -2122,4 +2287,4 @@ public class ExperienceListActivity extends Activity {
             if (connection != null) connection.disconnect();
         }
     }
-}
+        }
