@@ -41,15 +41,11 @@ public class MainActivity extends Activity {
     private Button exchangeButton;
     private Button settingsButton;
     private Button rewardedButton;
-
     private Button gameButton;
 
     private ImageView backgroundImage;
 
-    // ==================================
     // اعمال زبان قبل از ساخت صفحه
-    // ==================================
-
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(
@@ -60,37 +56,35 @@ public class MainActivity extends Activity {
     private int dp(int value) {
         return (int) (
                 value *
-                        getResources()
-                                .getDisplayMetrics()
-                                .density
+                getResources()
+                        .getDisplayMetrics()
+                        .density
         );
     }
 
-    // ==================================
     // بررسی سازنده برنامه
-    // ==================================
-
     private boolean isDeveloper() {
+        try {
+            FirebaseUser user =
+                    FirebaseAuth.getInstance().getCurrentUser();
 
-        FirebaseUser user =
-                FirebaseAuth.getInstance().getCurrentUser();
+            if (user == null) {
+                return false;
+            }
 
-        if (user == null) {
+            String email = user.getEmail();
+
+            return email != null
+                    && DEVELOPER_EMAIL.equalsIgnoreCase(
+                    email.trim()
+            );
+
+        } catch (Exception e) {
             return false;
         }
-
-        String email = user.getEmail();
-
-        return email != null
-                && DEVELOPER_EMAIL.equalsIgnoreCase(
-                email.trim()
-        );
     }
 
-    // ==================================
     // متن بر اساس زبان
-    // ==================================
-
     private String text(
             String fa,
             String en,
@@ -98,7 +92,6 @@ public class MainActivity extends Activity {
             String ur,
             String hi
     ) {
-
         String language =
                 LanguageManager.getLanguage(this);
 
@@ -121,12 +114,8 @@ public class MainActivity extends Activity {
         return fa;
     }
 
-    // ==================================
     // ساخت دکمه
-    // ==================================
-
     private Button createButton(String text) {
-
         Button button = new Button(this);
 
         button.setText(text);
@@ -161,12 +150,8 @@ public class MainActivity extends Activity {
         return button;
     }
 
-    // ==================================
     // ظاهر دکمه‌ها
-    // ==================================
-
     private void styleButton(Button button) {
-
         GradientDrawable background =
                 new GradientDrawable();
 
@@ -174,22 +159,15 @@ public class MainActivity extends Activity {
                 ThemeManager.getThemeColor(this)
         );
 
-        background.setCornerRadius(
-                dp(18)
-        );
+        background.setCornerRadius(dp(18));
 
         button.setBackground(background);
         button.setTextColor(Color.WHITE);
     }
 
-    // ==================================
     // تصویر پس‌زمینه
-    // ==================================
-
     private ImageView createBackgroundImage() {
-
-        ImageView imageView =
-                new ImageView(this);
+        ImageView imageView = new ImageView(this);
 
         imageView.setImageResource(
                 R.drawable.tajrobehha_background
@@ -207,20 +185,15 @@ public class MainActivity extends Activity {
         return imageView;
     }
 
-    // ==================================
     // onCreate
-    // ==================================
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        appliedLanguage = LanguageManager.getLanguage(this);
 
-        // ==================================
+        appliedLanguage =
+                LanguageManager.getLanguage(this);
+
         // قفل امنیتی
-        // ==================================
-
         if (AppLockManager.hasPassword(this)
                 && AppLockManager.isLockEnabled(this)
                 && !AppLockManager.isSessionUnlocked(this)) {
@@ -237,28 +210,19 @@ public class MainActivity extends Activity {
             return;
         }
 
-        // ==================================
         // Unity Rewarded Ad
-        // ==================================
-
         rewardedAdManager =
                 new RewardedAdManager(this);
 
         rewardedAdManager.loadRewardedAd();
 
-        // ==================================
         // Unity Interstitial Ad
-        // ==================================
-
         interstitialAdManager =
                 new InterstitialAdManager(this);
 
         interstitialAdManager.loadInterstitialAd();
 
-        // ==================================
         // لایه اصلی
-        // ==================================
-
         FrameLayout rootLayout =
                 new FrameLayout(this);
 
@@ -273,10 +237,7 @@ public class MainActivity extends Activity {
                 Color.TRANSPARENT
         );
 
-        // ==================================
         // عکس پس‌زمینه
-        // ==================================
-
         backgroundImage =
                 createBackgroundImage();
 
@@ -294,20 +255,14 @@ public class MainActivity extends Activity {
                 backgroundParams
         );
 
-        // ==================================
         // ScrollView
-        // ==================================
-
         ScrollView scrollView =
                 new ScrollView(this);
 
         scrollView.setFillViewport(true);
         scrollView.setVerticalScrollBarEnabled(false);
 
-        // ==================================
         // صفحه اصلی
-        // ==================================
-
         mainLayout =
                 new LinearLayout(this);
 
@@ -334,10 +289,7 @@ public class MainActivity extends Activity {
                 )
         );
 
-        // ==================================
         // لوگو
-        // ==================================
-
         TextView logo =
                 new TextView(this);
 
@@ -345,10 +297,7 @@ public class MainActivity extends Activity {
         logo.setTextSize(52);
         logo.setGravity(Gravity.CENTER);
 
-        // ==================================
         // عنوان
-        // ==================================
-
         title =
                 new TextView(this);
 
@@ -380,10 +329,7 @@ public class MainActivity extends Activity {
                 dp(8)
         );
 
-        // ==================================
         // خوش‌آمدگویی
-        // ==================================
-
         welcome =
                 new TextView(this);
 
@@ -411,10 +357,7 @@ public class MainActivity extends Activity {
         mainLayout.addView(title);
         mainLayout.addView(welcome);
 
-        // ==================================
         // ردیف اول
-        // ==================================
-
         LinearLayout row1 =
                 new LinearLayout(this);
 
@@ -447,10 +390,7 @@ public class MainActivity extends Activity {
         row1.addView(addButton);
         row1.addView(listButton);
 
-        // ==================================
         // ردیف دوم
-        // ==================================
-
         LinearLayout row2 =
                 new LinearLayout(this);
 
@@ -483,10 +423,7 @@ public class MainActivity extends Activity {
         row2.addView(chatButton);
         row2.addView(aiButton);
 
-        // ==================================
         // ردیف سوم
-        // ==================================
-
         LinearLayout row3 =
                 new LinearLayout(this);
 
@@ -519,10 +456,7 @@ public class MainActivity extends Activity {
         row3.addView(exchangeButton);
         row3.addView(settingsButton);
 
-        // ==================================
         // بازی
-        // ==================================
-
         gameButton =
                 createButton(
                         text(
@@ -551,18 +485,15 @@ public class MainActivity extends Activity {
                 gameParams
         );
 
-        // ==================================
-        // تبلیغ جایزه‌ای
-        // ==================================
-
+        // دکمه حمایت از تجربه‌ها
         rewardedButton =
                 createButton(
                         text(
-                                "🎁 تماشای تبلیغ و دریافت جایزه",
-                                "🎁 Watch Ad & Get Reward",
-                                "🎁 اعلان وګورئ او جایزه ترلاسه کړئ",
-                                "🎁 اشتہار دیکھیں اور انعام حاصل کریں",
-                                "🎁 विज्ञापन देखें और पुरस्कार पाएं"
+                                "🎁 حمایت از تجربه‌ها",
+                                "🎁 Support Experiences",
+                                "🎁 د تجربو ملاتړ",
+                                "🎁 تجربات کی حمایت",
+                                "🎁 अनुभवों का समर्थन"
                         )
                 );
 
@@ -576,27 +507,46 @@ public class MainActivity extends Activity {
                 dp(6),
                 dp(6),
                 dp(6),
-                dp(6)
+                dp(2)
         );
 
         rewardedButton.setLayoutParams(
                 rewardedParams
         );
 
-        // ==================================
-        // اضافه کردن بخش‌ها
-        // ==================================
+        // توضیح حمایت به پنج زبان
+        TextView supportDescription =
+                new TextView(this);
 
+        supportDescription.setText(
+                text(
+                        "با تماشای یک تبلیغ کوتاه از توسعهٔ برنامه حمایت کنید",
+                        "Support the development of the app by watching a short ad.",
+                        "د لنډ اعلان په کتلو سره د اپلېکېشن له پرمختګ څخه ملاتړ وکړئ.",
+                        "ایک مختصر اشتہار دیکھ کر ایپ کی ترقی میں مدد کریں۔",
+                        "एक छोटा विज्ञापन देखकर ऐप के विकास में सहयोग करें।"
+                )
+        );
+
+        supportDescription.setTextSize(14);
+        supportDescription.setGravity(Gravity.CENTER);
+
+        supportDescription.setPadding(
+                dp(8),
+                dp(4),
+                dp(8),
+                dp(10)
+        );
+
+        // اضافه کردن بخش‌ها
         mainLayout.addView(row1);
         mainLayout.addView(row2);
         mainLayout.addView(row3);
         mainLayout.addView(gameButton);
         mainLayout.addView(rewardedButton);
+        mainLayout.addView(supportDescription);
 
-        // ==================================
         // پایین صفحه
-        // ==================================
-
         footer =
                 new TextView(this);
 
@@ -622,10 +572,7 @@ public class MainActivity extends Activity {
 
         mainLayout.addView(footer);
 
-        // ==================================
         // ثبت تجربه
-        // ==================================
-
         addButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -637,10 +584,7 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // ==================================
         // دیدن تجربه‌ها
-        // ==================================
-
         listButton.setOnClickListener(v -> {
 
             interstitialAdManager
@@ -655,10 +599,7 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // ==================================
         // چت
-        // ==================================
-
         chatButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -670,10 +611,7 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // ==================================
         // دستیار هوشمند
-        // ==================================
-
         aiButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -685,10 +623,7 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // ==================================
         // صرافی
-        // ==================================
-
         exchangeButton.setOnClickListener(v -> {
 
             interstitialAdManager
@@ -703,10 +638,7 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // ==================================
         // تنظیمات
-        // ==================================
-
         settingsButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -718,10 +650,7 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // ==================================
         // بازی
-        // ==================================
-
         gameButton.setOnClickListener(v -> {
 
             Intent intent =
@@ -733,10 +662,7 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // ==================================
-        // تبلیغ جایزه‌ای
-        // ==================================
-
+        // تبلیغ اختیاری برای حمایت از برنامه
         rewardedButton.setOnClickListener(v -> {
 
             rewardedAdManager.showRewardedAd(
@@ -744,21 +670,8 @@ public class MainActivity extends Activity {
 
                         @Override
                         public void onRewarded() {
-
-                            if (isDeveloper()) {
-
-                                Toast.makeText(
-                                        MainActivity.this,
-                                        text(
-                                                "🎉 جایزه شما فعال شد!",
-                                                "🎉 Your reward is active!",
-                                                "🎉 ستاسو جایزه فعاله شوه!",
-                                                "🎉 آپ کا انعام فعال ہوگیا!",
-                                                "🎉 आपका पुरस्कार सक्रिय हो गया!"
-                                        ),
-                                        Toast.LENGTH_LONG
-                                ).show();
-                            }
+                            // تبلیغ برای حمایت از برنامه است؛
+                            // هیچ جایزه‌ای به کاربر وعده داده نمی‌شود.
                         }
 
                         @Override
@@ -802,10 +715,7 @@ public class MainActivity extends Activity {
             );
         });
 
-        // ==================================
         // قرار دادن ScrollView
-        // ==================================
-
         FrameLayout.LayoutParams contentParams =
                 new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -820,49 +730,37 @@ public class MainActivity extends Activity {
                 contentParams
         );
 
-        // ==================================
         // نمایش صفحه
-        // ==================================
-
         setContentView(rootLayout);
 
-        // ==================================
         // اعمال رنگ و حالت شب
-        // ==================================
-
         applyTheme();
     }
 
-    // ==================================
     // برگشت از تنظیمات
-    // ==================================
-
     @Override
-protected void onResume() {
-    super.onResume();
+    protected void onResume() {
+        super.onResume();
 
-    if (mainLayout != null) {
+        if (mainLayout != null) {
 
-        String currentLanguage =
-                LanguageManager.getLanguage(this);
+            String currentLanguage =
+                    LanguageManager.getLanguage(this);
 
-        if (appliedLanguage != null
-                && !currentLanguage.equals(appliedLanguage)) {
+            if (appliedLanguage != null
+                    && !currentLanguage.equals(appliedLanguage)) {
 
-            appliedLanguage = currentLanguage;
+                appliedLanguage = currentLanguage;
 
-            recreate();
-            return;
+                recreate();
+                return;
+            }
+
+            applyTheme();
         }
-
-        applyTheme();
     }
-}
 
-    // ==================================
     // زبان فعلی صفحه
-    // ==================================
-
     private String getAppliedLanguage() {
 
         return getSharedPreferences(
@@ -874,10 +772,7 @@ protected void onResume() {
         );
     }
 
-    // ==================================
     // اعمال رنگ و حالت شب
-    // ==================================
-
     private void applyTheme() {
 
         boolean night =
@@ -892,30 +787,19 @@ protected void onResume() {
 
         if (backgroundImage != null) {
 
-            backgroundImage.setAlpha(
-                    0.35f
-            );
+            backgroundImage.setAlpha(0.35f);
 
-            backgroundImage.setScaleX(
-                    1.0f
-            );
-
-            backgroundImage.setScaleY(
-                    1.0f
-            );
+            backgroundImage.setScaleX(1.0f);
+            backgroundImage.setScaleY(1.0f);
         }
 
         if (night) {
 
-            title.setTextColor(
-                    Color.WHITE
-            );
+            title.setTextColor(Color.WHITE);
 
         } else {
 
-            title.setTextColor(
-                    themeColor
-            );
+            title.setTextColor(themeColor);
         }
 
         welcome.setTextColor(
@@ -924,15 +808,11 @@ protected void onResume() {
 
         if (night) {
 
-            footer.setTextColor(
-                    Color.LTGRAY
-            );
+            footer.setTextColor(Color.LTGRAY);
 
         } else {
 
-            footer.setTextColor(
-                    Color.GRAY
-            );
+            footer.setTextColor(Color.GRAY);
         }
 
         styleButton(addButton);
@@ -944,4 +824,4 @@ protected void onResume() {
         styleButton(gameButton);
         styleButton(rewardedButton);
     }
-            }
+                    }
