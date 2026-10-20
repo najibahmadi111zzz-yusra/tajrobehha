@@ -5644,55 +5644,37 @@ protected void onResume() {
     }
 
     @Override
-    protected void onDestroy() {
+protected void onDestroy() {
 
-        removeChatListeners();
+    removeChatListeners();
 
-        try {
-
-            if (recorder != null) {
-                recorder.release();
-            }
-
-        } catch (Exception ignored) {
+    try {
+        if (recorder != null) {
+            recorder.release();
         }
-
-        recorder = null;
-
-        try {
-
-            if (player != null) {
-                player.release();
-            }
-
-        } catch (Exception ignored) {
-        }
-
-        player = null;
-
-        try {
-
-            if (messageTone != null) {
-                messageTone.release();
-            }
-
-        } catch (Exception ignored) {
-        }
-
-        messageTone = null;
-
-        super.onDestroy();
+    } catch (Exception ignored) {
     }
 
-     @Override
+    recorder = null;
+
+    try {
+        if (player != null) {
+            player.release();
+        }
+    } catch (Exception ignored) {
+    }
+
+    player = null;
+
+    super.onDestroy();
+}
+
+@Override
 public void onBackPressed() {
 
     if (insideChat) {
-
         showUsers();
-
     } else {
-
         super.onBackPressed();
     }
 }
