@@ -1,7 +1,7 @@
-
 package com.tajro.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -17,6 +17,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -41,15 +42,18 @@ public class AIActivity extends Activity {
     private ScrollView scrollView;
     private Button sendButton;
 
-    private final ExecutorService executor =
-            Executors.newSingleThreadExecutor();
-
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private boolean isSending = false;
 
     private final int primary = Color.rgb(12, 91, 120);
     private final int darkBlue = Color.rgb(5, 43, 70);
     private final int background = Color.rgb(235, 248, 250);
     private final int textColor = Color.rgb(28, 48, 62);
+
+    private static final String WELCOME_MESSAGE =
+            "سلام! 🌟 من دستیار هوشمند تجربه‌ها هستم.\n" +
+            "دربارهٔ آموزش، تکنولوژی، زندگی روزمره و موضوعات " +
+            "گوناگون سؤال بپرس. تلاش می‌کنم پاسخ روشن و مفیدی بدهم.";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,23 +69,18 @@ public class AIActivity extends Activity {
         main.setOrientation(LinearLayout.VERTICAL);
         main.setBackgroundColor(background);
 
-        // سربرگ حرفه‌ای
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(Gravity.CENTER_VERTICAL);
         header.setPadding(dp(16), dp(13), dp(16), dp(13));
-        header.setBackground(createBackground(
-                new int[]{darkBlue, primary}, 0, 0
-        ));
+        header.setBackground(createBackground(new int[]{darkBlue, primary}, 0, 0));
 
         TextView backButton = new TextView(this);
         backButton.setText("‹");
         backButton.setTextSize(38);
         backButton.setTextColor(Color.WHITE);
         backButton.setGravity(Gravity.CENTER);
-        header.addView(backButton, new LinearLayout.LayoutParams(
-                dp(40), dp(48)
-        ));
+        header.addView(backButton, new LinearLayout.LayoutParams(dp(40), dp(48)));
         backButton.setOnClickListener(v -> finish());
 
         TextView robotIcon = new TextView(this);
@@ -90,81 +89,58 @@ public class AIActivity extends Activity {
         robotIcon.setTextColor(Color.WHITE);
         robotIcon.setGravity(Gravity.CENTER);
         robotIcon.setBackground(createBackground(
-                new int[]{Color.rgb(22, 151, 194),
-                        Color.rgb(22, 74, 151)},
-                Color.rgb(80, 220, 255), 50
-        ));
-
-        LinearLayout.LayoutParams iconParams =
-                new LinearLayout.LayoutParams(dp(52), dp(52));
+                new int[]{Color.rgb(22, 151, 194), Color.rgb(22, 74, 151)},
+                Color.rgb(80, 220, 255), 50));
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(52), dp(52));
         iconParams.setMargins(dp(8), 0, dp(12), 0);
         header.addView(robotIcon, iconParams);
 
         LinearLayout titleBox = new LinearLayout(this);
         titleBox.setOrientation(LinearLayout.VERTICAL);
-
         TextView title = new TextView(this);
         title.setText("دستیار هوشمند");
         title.setTextSize(21);
         title.setTextColor(Color.WHITE);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-
         TextView subtitle = new TextView(this);
         subtitle.setText("همراه دانای شما");
         subtitle.setTextSize(12);
         subtitle.setTextColor(Color.rgb(160, 238, 237));
-
         titleBox.addView(title);
         titleBox.addView(subtitle);
-
         header.addView(titleBox, new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1
-        ));
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
         TextView menuIcon = new TextView(this);
         menuIcon.setText("⋮");
         menuIcon.setTextSize(28);
         menuIcon.setTextColor(Color.WHITE);
         menuIcon.setGravity(Gravity.CENTER);
-        header.addView(menuIcon, new LinearLayout.LayoutParams(
-                dp(32), dp(48)
-        ));
-
+        menuIcon.setContentDescription("منوی دستیار");
+        header.addView(menuIcon, new LinearLayout.LayoutParams(dp(40), dp(48)));
+        menuIcon.setOnClickListener(v -> showAssistantMenu(menuIcon));
         main.addView(header);
 
-        // معرفی کوتاه
         TextView welcome = new TextView(this);
-        welcome.setText(
-                "✨  بپرس، یاد بگیر و تجربه کن\n" +
-                "سؤالت را بنویس؛ من برای پاسخ‌گویی آماده‌ام."
-        );
+        welcome.setText("✨  بپرس، یاد بگیر و تجربه کن\n" +
+                "سؤالت را بنویس؛ من برای پاسخ‌گویی آماده‌ام.");
         welcome.setTextSize(14);
         welcome.setTextColor(primary);
         welcome.setGravity(Gravity.CENTER);
         welcome.setPadding(dp(12), dp(12), dp(12), dp(12));
-
         main.addView(welcome);
 
-        // بخش گفت‌وگو
         scrollView = new ScrollView(this);
         scrollView.setFillViewport(true);
         scrollView.setClipToPadding(false);
-
         messagesLayout = new LinearLayout(this);
         messagesLayout.setOrientation(LinearLayout.VERTICAL);
         messagesLayout.setPadding(dp(12), dp(8), dp(12), dp(12));
-
-        scrollView.addView(messagesLayout,
-                new ScrollView.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                ));
-
+        scrollView.addView(messagesLayout, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         main.addView(scrollView, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1
-        ));
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
-        // نوار نوشتن پیام
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.HORIZONTAL);
         bottom.setGravity(Gravity.CENTER_VERTICAL);
@@ -182,14 +158,10 @@ public class AIActivity extends Activity {
         questionInput.setSingleLine(false);
         questionInput.setImeOptions(EditorInfo.IME_ACTION_SEND);
         questionInput.setBackground(createBackground(
-                new int[]{Color.rgb(248, 252, 255),
-                        Color.rgb(248, 252, 255)},
-                Color.rgb(205, 231, 239), 24
-        ));
-
+                new int[]{Color.rgb(248, 252, 255), Color.rgb(248, 252, 255)},
+                Color.rgb(205, 231, 239), 24));
         bottom.addView(questionInput, new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1
-        ));
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
         sendButton = new Button(this);
         sendButton.setText("➤");
@@ -199,27 +171,15 @@ public class AIActivity extends Activity {
         sendButton.setMinWidth(0);
         sendButton.setMinimumWidth(0);
         sendButton.setPadding(0, 0, 0, 0);
-        sendButton.setBackground(createBackground(
-                new int[]{primary, darkBlue}, 0, 50
-        ));
-
-        LinearLayout.LayoutParams sendParams =
-                new LinearLayout.LayoutParams(dp(54), dp(54));
+        sendButton.setBackground(createBackground(new int[]{primary, darkBlue}, 0, 50));
+        LinearLayout.LayoutParams sendParams = new LinearLayout.LayoutParams(dp(54), dp(54));
         sendParams.setMargins(dp(8), 0, 0, 0);
         bottom.addView(sendButton, sendParams);
-
         main.addView(bottom);
 
         setContentView(main);
-
-        addMessage(false,
-                "سلام! 🌟 من دستیار هوشمند تجربه‌ها هستم.\n" +
-                "دربارهٔ آموزش، تکنولوژی، زندگی روزمره و موضوعات " +
-                "گوناگون سؤال بپرس. تلاش می‌کنم پاسخ روشن و مفیدی بدهم.",
-                false);
-
+        addMessage(false, WELCOME_MESSAGE, false);
         sendButton.setOnClickListener(v -> sendQuestion());
-
         questionInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 sendQuestion();
@@ -229,19 +189,66 @@ public class AIActivity extends Activity {
         });
     }
 
-    private int dp(float value) {
-        return (int) (value * getResources()
-                .getDisplayMetrics().density + 0.5f);
+    private void showAssistantMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(AIActivity.this, anchor);
+        popup.getMenu().add(0, 1, 0, "گفتگوی جدید");
+        popup.getMenu().add(0, 2, 1, "پاک‌کردن گفتگو");
+        popup.getMenu().add(0, 3, 2, "درباره دستیار");
+
+        popup.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == 1) {
+                if (isSending) {
+                    Toast.makeText(this, "لطفاً صبر کنید تا پاسخ فعلی دریافت شود.",
+                            Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+                messagesLayout.removeAllViews();
+                addMessage(false, WELCOME_MESSAGE, false);
+                questionInput.setText("");
+                Toast.makeText(this, "گفتگوی جدید آغاز شد", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+            if (id == 2) {
+                new AlertDialog.Builder(AIActivity.this)
+                        .setTitle("پاک‌کردن گفتگو")
+                        .setMessage("آیا می‌خواهید پیام‌های این گفتگو پاک شوند؟")
+                        .setNegativeButton("انصراف", (dialog, which) -> dialog.dismiss())
+                        .setPositiveButton("پاک کن", (dialog, which) -> {
+                            if (isSending) {
+                                Toast.makeText(this,
+                                        "لطفاً پس از پایان پاسخ فعلی دوباره تلاش کنید.",
+                                        Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            messagesLayout.removeAllViews();
+                            addMessage(false, "گفتگو پاک شد. 🌟 هر سؤال تازه‌ای داری بپرس.", false);
+                            Toast.makeText(this, "گفتگو پاک شد", Toast.LENGTH_SHORT).show();
+                        }).show();
+                return true;
+            }
+            if (id == 3) {
+                new AlertDialog.Builder(AIActivity.this)
+                        .setTitle("درباره دستیار هوشمند")
+                        .setMessage("دستیار هوشمند تجربه‌ها\n\n" +
+                                "همراه شما برای پرسش، یادگیری و دریافت پاسخ درباره موضوعات گوناگون.")
+                        .setPositiveButton("بستن", null)
+                        .show();
+                return true;
+            }
+            return false;
+        });
+        popup.show();
     }
 
-    private GradientDrawable createBackground(
-            int[] colors, int strokeColor, int radius) {
+    private int dp(float value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
 
+    private GradientDrawable createBackground(int[] colors, int strokeColor, int radius) {
         GradientDrawable drawable = new GradientDrawable(
-                GradientDrawable.Orientation.TL_BR, colors
-        );
+                GradientDrawable.Orientation.TL_BR, colors);
         drawable.setCornerRadius(dp(radius));
-
         if (strokeColor != 0) {
             drawable.setStroke(dp(1), strokeColor);
         }
@@ -249,66 +256,43 @@ public class AIActivity extends Activity {
     }
 
     private void sendQuestion() {
-        if (isSending) {
-            return;
-        }
+        if (isSending) return;
 
-        String question = questionInput.getText()
-                .toString().trim();
-
+        String question = questionInput.getText().toString().trim();
         if (question.isEmpty()) {
-            Toast.makeText(this, "لطفاً سؤال خود را بنویسید",
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "لطفاً سؤال خود را بنویسید", Toast.LENGTH_SHORT).show();
             return;
         }
 
         isSending = true;
         sendButton.setEnabled(false);
         sendButton.setAlpha(0.6f);
-
         addMessage(true, question, false);
         questionInput.setText("");
-
-        ((InputMethodManager) getSystemService(
-                Context.INPUT_METHOD_SERVICE))
-                .hideSoftInputFromWindow(
-                        questionInput.getWindowToken(), 0);
-
-        final TextView loading = addMessage(
-                false, "در حال فکر کردن... ✨", false);
+        ((InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE))
+                .hideSoftInputFromWindow(questionInput.getWindowToken(), 0);
+        final TextView loading = addMessage(false, "در حال فکر کردن... ✨", false);
 
         executor.execute(() -> {
             HttpURLConnection connection = null;
-
             try {
                 String apiKey = BuildConfig.OPENROUTER_API_KEY;
-
                 if (apiKey == null || apiKey.trim().isEmpty()) {
-                    throw new Exception(
-                            "کلید OpenRouter در برنامه تنظیم نشده است."
-                    );
+                    throw new Exception("کلید OpenRouter در برنامه تنظیم نشده است.");
                 }
 
-                URL url = new URL(
-                        "https://openrouter.ai/api/v1/chat/completions"
-                );
-
+                URL url = new URL("https://openrouter.ai/api/v1/chat/completions");
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
                 connection.setConnectTimeout(30000);
                 connection.setReadTimeout(60000);
                 connection.setDoOutput(true);
-
-                connection.setRequestProperty(
-                        "Authorization", "Bearer " + apiKey);
-                connection.setRequestProperty(
-                        "Content-Type", "application/json; charset=UTF-8");
+                connection.setRequestProperty("Authorization", "Bearer " + apiKey);
+                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
                 JSONObject body = new JSONObject();
                 body.put("model", "openrouter/free");
-
                 JSONArray messages = new JSONArray();
-
                 JSONObject systemMessage = new JSONObject();
                 systemMessage.put("role", "system");
                 systemMessage.put("content",
@@ -322,93 +306,59 @@ public class AIActivity extends Activity {
                         "اطلاعات ساختگی را به عنوان حقیقت ارائه نکن. " +
                         "برای پرسش‌های پزشکی پاسخ عمومی و محتاطانه بده " +
                         "و در وضعیت‌های جدی مراجعه به پزشک را توصیه کن. " +
-                        "پاسخ‌ها را منظم و متناسب با سؤال بنویس."
-                );
+                        "پاسخ‌ها را منظم و متناسب با سؤال بنویس.");
                 messages.put(systemMessage);
-
                 JSONObject userMessage = new JSONObject();
                 userMessage.put("role", "user");
                 userMessage.put("content", question);
                 messages.put(userMessage);
-
                 body.put("messages", messages);
 
-                byte[] data = body.toString()
-                        .getBytes(StandardCharsets.UTF_8);
-
+                byte[] data = body.toString().getBytes(StandardCharsets.UTF_8);
                 try (OutputStream output = connection.getOutputStream()) {
                     output.write(data);
                     output.flush();
                 }
 
                 int responseCode = connection.getResponseCode();
-
-                InputStream inputStream = responseCode >= 200
-                        && responseCode < 300
-                        ? connection.getInputStream()
-                        : connection.getErrorStream();
-
+                InputStream inputStream = responseCode >= 200 && responseCode < 300
+                        ? connection.getInputStream() : connection.getErrorStream();
                 StringBuilder response = new StringBuilder();
-
                 if (inputStream != null) {
                     try (BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(
-                                    inputStream, StandardCharsets.UTF_8))) {
+                            new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
                         String line;
-                        while ((line = reader.readLine()) != null) {
-                            response.append(line);
-                        }
+                        while ((line = reader.readLine()) != null) response.append(line);
                     }
                 }
-
                 if (responseCode < 200 || responseCode >= 300) {
-                    throw new Exception("OpenRouter HTTP " +
-                            responseCode + "\n" + response);
+                    throw new Exception("OpenRouter HTTP " + responseCode + "\n" + response);
                 }
 
                 JSONObject json = new JSONObject(response.toString());
                 JSONArray choices = json.getJSONArray("choices");
-
-                if (choices.length() == 0) {
-                    throw new Exception("پاسخی از مدل دریافت نشد.");
-                }
-
-                JSONObject message = choices.getJSONObject(0)
-                        .getJSONObject("message");
-
+                if (choices.length() == 0) throw new Exception("پاسخی از مدل دریافت نشد.");
+                JSONObject message = choices.getJSONObject(0).getJSONObject("message");
                 String answer = message.optString("content", "").trim();
-
-                if (answer.isEmpty()) {
-                    throw new Exception("پاسخ مدل خالی بود.");
-                }
+                if (answer.isEmpty()) throw new Exception("پاسخ مدل خالی بود.");
 
                 String finalAnswer = answer;
-
                 runOnUiThread(() -> {
                     removeMessage(loading);
                     addMessage(false, finalAnswer, true);
                     finishSending();
                 });
-
             } catch (Exception e) {
                 String error = e.getMessage();
-                if (error == null || error.isEmpty()) {
-                    error = "خطای نامشخص: " + e;
-                }
-
+                if (error == null || error.isEmpty()) error = "خطای نامشخص: " + e;
                 String finalError = error;
-
                 runOnUiThread(() -> {
                     removeMessage(loading);
-                    addMessage(false,
-                            "متأسفم، پاسخ دریافت نشد.\n" + finalError,
-                            false);
+                    addMessage(false, "متأسفم، پاسخ دریافت نشد.\n" + finalError, false);
                     finishSending();
                 });
             } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
+                if (connection != null) connection.disconnect();
             }
         });
     }
@@ -419,17 +369,12 @@ public class AIActivity extends Activity {
         sendButton.setAlpha(1f);
     }
 
-    private TextView addMessage(
-            boolean isUser, String message, boolean allowCopy) {
-
+    private TextView addMessage(boolean isUser, String message, boolean allowCopy) {
         LinearLayout wrapper = new LinearLayout(this);
         wrapper.setOrientation(LinearLayout.VERTICAL);
         wrapper.setGravity(isUser ? Gravity.END : Gravity.START);
-
-        LinearLayout.LayoutParams wrapperParams =
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT);
+        LinearLayout.LayoutParams wrapperParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         wrapperParams.setMargins(0, dp(5), 0, dp(7));
         messagesLayout.addView(wrapper, wrapperParams);
 
@@ -438,25 +383,13 @@ public class AIActivity extends Activity {
         bubble.setPadding(dp(14), dp(12), dp(14), dp(10));
         bubble.setBackground(createBackground(
                 isUser
-                        ? new int[]{Color.rgb(202, 239, 250),
-                                    Color.rgb(220, 246, 251)}
+                        ? new int[]{Color.rgb(202, 239, 250), Color.rgb(220, 246, 251)}
                         : new int[]{Color.WHITE, Color.rgb(248, 253, 255)},
-                isUser ? Color.rgb(166, 225, 241)
-                        : Color.rgb(215, 234, 241),
-                20
-        ));
-
-        LinearLayout.LayoutParams bubbleParams =
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                isUser ? Color.rgb(166, 225, 241) : Color.rgb(215, 234, 241), 20));
+        LinearLayout.LayoutParams bubbleParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         bubbleParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
-        bubbleParams.setMargins(
-                isUser ? dp(24) : 0,
-                0,
-                isUser ? 0 : dp(24),
-                0);
-
+        bubbleParams.setMargins(isUser ? dp(24) : 0, 0, isUser ? 0 : dp(24), 0);
         wrapper.addView(bubble, bubbleParams);
 
         TextView sender = new TextView(this);
@@ -487,42 +420,25 @@ public class AIActivity extends Activity {
             copyButton.setMinimumHeight(0);
             copyButton.setPadding(dp(10), dp(2), dp(10), dp(2));
             copyButton.setBackground(createBackground(
-                    new int[]{Color.WHITE, Color.WHITE},
-                    Color.rgb(205, 231, 239), 18
-            ));
-
-            LinearLayout.LayoutParams copyParams =
-                    new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                            dp(38));
+                    new int[]{Color.WHITE, Color.WHITE}, Color.rgb(205, 231, 239), 18));
+            LinearLayout.LayoutParams copyParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, dp(38));
             copyParams.gravity = Gravity.START;
             copyParams.topMargin = dp(6);
             bubble.addView(copyButton, copyParams);
-
             copyButton.setOnClickListener(v -> {
-                ClipboardManager clipboard =
-                        (ClipboardManager) getSystemService(
-                                CLIPBOARD_SERVICE);
-
-                clipboard.setPrimaryClip(
-                        ClipData.newPlainText("پاسخ دستیار", message));
-
-                Toast.makeText(this, "پاسخ کپی شد",
-                        Toast.LENGTH_SHORT).show();
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                clipboard.setPrimaryClip(ClipData.newPlainText("پاسخ دستیار", message));
+                Toast.makeText(this, "پاسخ کپی شد", Toast.LENGTH_SHORT).show();
             });
         }
 
         scrollView.post(() -> scrollView.fullScroll(View.FOCUS_DOWN));
-
         return text;
     }
 
     private void removeMessage(TextView messageView) {
-        if (messageView == null) {
-            return;
-        }
-
-        ViewParentHelper.remove(messageView);
+        if (messageView != null) ViewParentHelper.remove(messageView);
     }
 
     private static class ViewParentHelper {
