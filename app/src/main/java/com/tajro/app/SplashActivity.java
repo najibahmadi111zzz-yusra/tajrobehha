@@ -220,7 +220,7 @@ book.setLayoutParams(bookParams);
 
         setContentView(root);
 
-        handler.postDelayed(openMain, 4000);
+        handler.postDelayed(openMain, 7000);
     }
 
     @Override
