@@ -5,6 +5,10 @@ import android.app.AlertDialog;
 import android.os.Bundle;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ContentValues;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -23,6 +27,7 @@ import android.widget.EditText;
 import org.json.JSONObject;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -1183,6 +1188,23 @@ public class ExperienceListActivity extends Activity {
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(250)));
             loadExperienceImage(imageUrl, image);
             image.setOnClickListener(v -> showExperienceImage(imageUrl));
+
+            // دکمهٔ ذخیرهٔ عکس در گالری، داخل جزئیات تجربه
+            Button saveImageButton = new Button(this);
+            saveImageButton.setText(text("⬇️ ذخیره عکس در گالری"));
+            saveImageButton.setTextSize(14);
+            saveImageButton.setAllCaps(false);
+            saveImageButton.setTextColor(Color.WHITE);
+            android.graphics.drawable.GradientDrawable saveBg =
+                    new android.graphics.drawable.GradientDrawable();
+            saveBg.setColor(Color.rgb(12, 125, 105));
+            saveBg.setCornerRadius(dp(14));
+            saveImageButton.setBackground(saveBg);
+            LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+            saveParams.setMargins(0, dp(8), 0, dp(8));
+            box.addView(saveImageButton, saveParams);
+            saveImageButton.setOnClickListener(v -> saveExperienceImage(imageUrl));
         }
 
         TextView titleView = new TextView(this);
@@ -1258,11 +1280,78 @@ public class ExperienceListActivity extends Activity {
         loadExperienceImage(imageUrl, image);
         int maxHeight = (int)(getResources().getDisplayMetrics().heightPixels * 0.72f);
         new AlertDialog.Builder(this)
-                .setTitle("تصویر تجربه")
+                .setTitle(text("تصویر تجربه"))
                 .setView(image)
-                .setPositiveButton(text("بستن"), null)
+                .setNegativeButton(text("بستن"), null)
+                .setPositiveButton(text("⬇️ ذخیره در گالری"),
+                        (dialog, which) -> saveExperienceImage(imageUrl))
                 .show();
-        image.getLayoutParams();
+    }
+
+    /**
+     * دانلود عکس تجربه و ذخیرهٔ آن در پوشهٔ Pictures/Tajrobehha؛
+     * در اندروید ۱۰ به بالا از MediaStore استفاده می‌شود و اجازهٔ ذخیره‌سازی
+     * جداگانه لازم نیست.
+     */
+    private void saveExperienceImage(String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            Toast.makeText(this, text("آدرس عکس موجود نیست"), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            Toast.makeText(this,
+                    text("برای ذخیره در گالری، نسخهٔ جدید برنامه را نصب کنید"),
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Toast.makeText(this, text("در حال ذخیره عکس..."), Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            Bitmap bitmap = null;
+            try {
+                HttpURLConnection connection =
+                        (HttpURLConnection) new URL(imageUrl).openConnection();
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(20000);
+                connection.setInstanceFollowRedirects(true);
+                try (InputStream input = connection.getInputStream()) {
+                    bitmap = BitmapFactory.decodeStream(input);
+                } finally {
+                    connection.disconnect();
+                }
+                if (bitmap == null) throw new IOException("تصویر قابل خواندن نیست");
+
+                String fileName = "Tajrobehha_" + System.currentTimeMillis() + ".jpg";
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
+                values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                values.put(MediaStore.Images.Media.RELATIVE_PATH,
+                        Environment.DIRECTORY_PICTURES + "/Tajrobehha");
+                values.put(MediaStore.Images.Media.IS_PENDING, 1);
+
+                android.net.Uri imageUri = getContentResolver().insert(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                if (imageUri == null) throw new IOException("ذخیره‌سازی شروع نشد");
+
+                try (OutputStream output = getContentResolver().openOutputStream(imageUri)) {
+                    if (output == null || !bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
+                        getContentResolver().delete(imageUri, null, null);
+                        throw new IOException("نوشتن تصویر انجام نشد");
+                    }
+                }
+                ContentValues finished = new ContentValues();
+                finished.put(MediaStore.Images.Media.IS_PENDING, 0);
+                getContentResolver().update(imageUri, finished, null, null);
+                runOnUiThread(() -> Toast.makeText(ExperienceListActivity.this,
+                        text("عکس با موفقیت در گالری ذخیره شد 📸"), Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(ExperienceListActivity.this,
+                        text("ذخیره عکس ناموفق بود؛ اتصال اینترنت را بررسی کنید"),
+                        Toast.LENGTH_LONG).show());
+            } finally {
+                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+            }
+        }).start();
     }
 
     private void loadExperienceImage(String imageUrl, ImageView imageView) {
@@ -2287,4 +2376,4 @@ public class ExperienceListActivity extends Activity {
             if (connection != null) connection.disconnect();
         }
     }
-        }
+}
