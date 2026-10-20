@@ -408,7 +408,7 @@ public class ExperienceListActivity extends Activity {
 
         TextView emblem = new TextView(this);
         emblem.setText("📖  💡");
-        emblem.setTextSize(26);
+        emblem.setTextSize(16);
         emblem.setGravity(Gravity.CENTER);
         emblem.setPadding(dp(8), 0, dp(8), dp(5));
         header.addView(emblem);
