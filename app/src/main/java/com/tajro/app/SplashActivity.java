@@ -9,6 +9,8 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.graphics.drawable.Drawable;
+import android.widget.ImageView;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
@@ -132,8 +134,20 @@ public class SplashActivity extends Activity {
 
         root.setBackground(background);
 
-        TextView book = makeText(
-                "📖", 68, Color.rgb(255, 220, 135), false);
+        ImageView book = new ImageView(this);
+book.setImageResource(R.drawable.welcome_book);
+book.setScaleType(ImageView.ScaleType.FIT_CENTER);
+
+LinearLayout.LayoutParams bookParams =
+        new LinearLayout.LayoutParams(
+                dp(220),
+                dp(180)
+        );
+
+bookParams.gravity = Gravity.CENTER;
+bookParams.bottomMargin = dp(12);
+
+book.setLayoutParams(bookParams);
 
         TextView welcome = makeText(
                 text(
