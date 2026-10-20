@@ -95,6 +95,7 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("تجربه‌ها")) return "Experiences";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 Users' Experiences";
+            if (fa.equals("هر تجربه یک درس و هر داستان چراغیست")) return "Every Experience Is a Lesson, Every Story a Light";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ Experience options";
             if (fa.equals("شریک‌سازی تجربه")) return "Share experience";
@@ -150,6 +151,7 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("تجربه‌ها")) return "تجربې";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 د کاروونکو تجربې";
+            if (fa.equals("هر تجربه یک درس و هر داستان چراغیست")) return "هره تجربه یو درس دی او هره کیسه یوه رڼا ده";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ د تجربې اختیارونه";
             if (fa.equals("شریک‌سازی تجربه")) return "تجربه شریکول";
@@ -205,6 +207,7 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("تجربه‌ها")) return "تجربات";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 صارفین کے تجربات";
+            if (fa.equals("هر تجربه یک درس و هر داستان چراغیست")) return "ہر تجربہ ایک سبق ہے اور ہر کہانی ایک چراغ ہے";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ تجربے کے اختیارات";
             if (fa.equals("شریک‌سازی تجربه")) return "تجربہ شیئر کریں";
@@ -260,6 +263,7 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("تجربه‌ها")) return "अनुभव";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 उपयोगकर्ताओं के अनुभव";
+            if (fa.equals("هر تجربه یک درس و هر داستان چراغیست")) return "हर अनुभव एक सबक है और हर कहानी एक रोशनी है";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ अनुभव विकल्प";
             if (fa.equals("شریک‌سازی تجربه")) return "अनुभव साझा करें";
@@ -331,8 +335,18 @@ public class ExperienceListActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
+
+        // صفحه تجربه‌ها فقط برای کاربران واردشده قابل دسترسی است.
+        if (auth.getCurrentUser() == null) {
+            Intent intent = new Intent(ExperienceListActivity.this, AccountActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
+        db = FirebaseFirestore.getInstance();
 
         ScrollView scrollView =
                 new ScrollView(this);
@@ -394,7 +408,7 @@ public class ExperienceListActivity extends Activity {
 
         TextView emblem = new TextView(this);
         emblem.setText("📖  💡");
-        emblem.setTextSize(35);
+        emblem.setTextSize(26);
         emblem.setGravity(Gravity.CENTER);
         emblem.setPadding(dp(8), 0, dp(8), dp(5));
         header.addView(emblem);
@@ -419,7 +433,7 @@ public class ExperienceListActivity extends Activity {
         header.addView(goldAccent, accentParams);
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("هر تجربه یک درس و هر داستان چراغیست");
+        subtitle.setText(text("هر تجربه یک درس و هر داستان چراغیست"));
         subtitle.setTextSize(14);
         subtitle.setTextColor(Color.rgb(221, 239, 247));
         subtitle.setGravity(Gravity.CENTER);
