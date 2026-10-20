@@ -16,8 +16,9 @@ import android.text.TextWatcher;
 import android.graphics.Typeface;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
-import android.media.ToneGenerator;
 import android.media.AudioManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -130,7 +131,6 @@ public class ChatActivity extends Activity {
 
     private MediaRecorder recorder;
     private MediaPlayer player;
-    private ToneGenerator messageTone;
     private String audioPath;
 
     private boolean incomingInitialSnapshotReady = false;
@@ -2819,27 +2819,120 @@ header.addView(chatMenu,
         renderMessages();
     }
 
+    private Ringtone incomingChatRingtone;
+
+    // صدای اعلان خوش‌آهنگ برای تمام پیام‌های ورودی:
+    // متن، عکس، ویدئو و پیام صوتی از همین مسیر اعلان می‌گیرند.
     private void playIncomingMessageSound() {
-
         try {
+            AudioManager audioManager =
+                    (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
-            if (messageTone != null) {
-                messageTone.release();
-                messageTone = null;
+            if (audioManager == null) {
+                return;
             }
 
-            messageTone =
-                    new ToneGenerator(
-                            AudioManager.STREAM_NOTIFICATION,
-                            80
+            int ringerMode = audioManager.getRingerMode();
+
+            if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
+                // در حالت بی‌صدا، صدای اعلان را پخش نکن.
+                return;
+            }
+
+            if (ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
+                // در حالت لرزه فقط لرزش انجام شود.
+                vibrateForIncomingMessage();
+                return;
+            }
+
+            Uri notificationUri =
+                    RingtoneManager.getDefaultUri(
+                            RingtoneManager.TYPE_NOTIFICATION
                     );
 
-            messageTone.startTone(
-                    ToneGenerator.TONE_PROP_BEEP,
-                    180
-            );
+            if (notificationUri == null) {
+                notificationUri =
+                        RingtoneManager.getDefaultUri(
+                                RingtoneManager.TYPE_RINGTONE
+                        );
+            }
 
-        } catch (Exception ignored) {
+            if (notificationUri != null) {
+                if (incomingChatRingtone != null &&
+                        incomingChatRingtone.isPlaying()) {
+                    incomingChatRingtone.stop();
+                }
+
+                incomingChatRingtone =
+                        RingtoneManager.getRingtone(
+                                getApplicationContext(),
+                                notificationUri
+                        );
+
+                if (incomingChatRingtone != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        incomingChatRingtone.setAudioAttributes(
+                                new android.media.AudioAttributes.Builder()
+                                        .setUsage(
+                                                android.media.AudioAttributes.USAGE_NOTIFICATION
+                                        )
+                                        .setContentType(
+                                                android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION
+                                        )
+                                        .build()
+                        );
+                    } else {
+                        incomingChatRingtone.setStreamType(
+                                AudioManager.STREAM_NOTIFICATION
+                        );
+                    }
+
+                    incomingChatRingtone.play();
+                }
+            }
+        } catch (Exception e) {
+            Log.e("CHAT_NOTIFICATION", "Could not play incoming message sound", e);
+        }
+    }
+
+    private void vibrateForIncomingMessage() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                android.os.VibratorManager manager =
+                        (android.os.VibratorManager) getSystemService(
+                                Context.VIBRATOR_MANAGER_SERVICE
+                        );
+                if (manager != null) {
+                    android.os.Vibrator vibrator = manager.getDefaultVibrator();
+                    if (vibrator != null && vibrator.hasVibrator()) {
+                        vibrator.vibrate(
+                                android.os.VibrationEffect.createWaveform(
+                                        new long[]{0, 180, 100, 180},
+                                        -1
+                                )
+                        );
+                    }
+                }
+            } else {
+                android.os.Vibrator vibrator =
+                        (android.os.Vibrator) getSystemService(
+                                Context.VIBRATOR_SERVICE
+                        );
+                if (vibrator != null && vibrator.hasVibrator()) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(
+                                android.os.VibrationEffect.createWaveform(
+                                        new long[]{0, 180, 100, 180},
+                                        -1
+                                )
+                        );
+                    } else {
+                        vibrator.vibrate(new long[]{0, 180, 100, 180}, -1);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e("CHAT_NOTIFICATION", "Could not vibrate for incoming message", e);
         }
     }
 
