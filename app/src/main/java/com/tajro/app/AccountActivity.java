@@ -53,6 +53,7 @@ public class AccountActivity extends Activity {
     private Button verifyCodeButton;
     private Button saveProfileButton;
     private Button logoutButton;
+    private Button deleteAccountButton;
 
     private int themeColor;
 
@@ -577,6 +578,20 @@ public class AccountActivity extends Activity {
         );
 
         // ==========================================
+        // حذف دائمی حساب
+        // ==========================================
+        deleteAccountButton = new Button(this);
+        deleteAccountButton.setText(text(
+                "🗑️ حذف دائمی حساب",
+                "🗑️ Delete Account Permanently",
+                "🗑️ حساب د تل لپاره ړنګول",
+                "🗑️ اکاؤنٹ مستقل حذف کریں",
+                "🗑️ खाता स्थायी रूप से हटाएँ"
+        ));
+        styleButton(deleteAccountButton);
+        layout.addView(deleteAccountButton);
+
+        // ==========================================
         // وضعیت
         // ==========================================
 
@@ -741,6 +756,32 @@ public class AccountActivity extends Activity {
                     ),
                     Toast.LENGTH_SHORT
             ).show();
+        });
+
+        // ==========================================
+        // حذف دائمی حساب با تأیید کاربر
+        // ==========================================
+        deleteAccountButton.setOnClickListener(v -> {
+            FirebaseUser user = auth.getCurrentUser();
+            if (user == null) {
+                Toast.makeText(this,
+                        text("اول وارد حساب شوید", "Please log in first", "لومړی ننوتل وکړئ", "پہلے لاگ اِن کریں", "पहले लॉग इन करें"),
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            new AlertDialog.Builder(AccountActivity.this)
+                    .setTitle(text("حذف دائمی حساب؟", "Delete account permanently?", "حساب د تل لپاره ړنګول؟", "اکاؤنٹ مستقل حذف کریں؟", "खाता स्थायी रूप से हटाएँ?"))
+                    .setMessage(text(
+                            "این کار حساب ورود شما را برای همیشه حذف می‌کند و قابل برگشت نیست. برای پاک‌سازی کامل پیام‌ها و فایل‌های ذخیره‌شده در سرور نیز باید سرویس حذف امن سمت سرور تنظیم باشد.",
+                            "This permanently deletes your sign-in account and cannot be undone. Full cleanup of server-stored messages and files also requires a secure server-side deletion service.",
+                            "دا کار ستاسو د ننوتلو حساب د تل لپاره ړنګوي. د سرور پیغامونو او فایلونو بشپړ پاکولو لپاره خوندي سروري خدمت هم اړین دی.",
+                            "یہ آپ کا لاگ اِن اکاؤنٹ مستقل حذف کرے گا۔ سرور کے پیغامات اور فائلیں مکمل مٹانے کے لیے محفوظ سرور سروس بھی ضروری ہے۔",
+                            "यह आपका लॉगिन खाता स्थायी रूप से हटाता है। सर्वर के संदेश और फ़ाइलें पूरी तरह मिटाने के लिए सुरक्षित सर्वर सेवा भी आवश्यक है।"
+                    ))
+                    .setNegativeButton(text("انصراف", "Cancel", "لغوه", "منسوخ", "रद्द करें"), (dialog, which) -> dialog.dismiss())
+                    .setPositiveButton(text("حذف کن", "Delete", "ړنګول", "حذف کریں", "हटाएँ"), (dialog, which) -> permanentlyDeleteAccount(user))
+                    .show();
         });
     }
 
@@ -1849,6 +1890,48 @@ public void onVerificationFailed(FirebaseException e) {
                             nameInput.setText(name);
                         }
                     }
+                });
+    }
+
+    // حذف دائمی حساب Firebase؛ در صورت نیاز به ورود مجدد، ابتدا دوباره وارد شوید.
+    private void permanentlyDeleteAccount(FirebaseUser user) {
+        deleteAccountButton.setEnabled(false);
+        user.delete()
+                .addOnSuccessListener(unused -> {
+                    String deletedUid = user.getUid();
+                    AppLockManager.lockSession(AccountActivity.this);
+                    clearLoginFields();
+                    // پاک‌سازی سند اصلی پروفایل؛ داده‌های دیگر باید از backend امن پاک شوند.
+                    db.collection("users").document(deletedUid).delete()
+                            .addOnCompleteListener(task -> {
+                                statusText.setText(text(
+                                        "حساب ورود شما حذف شد.",
+                                        "Your sign-in account was deleted.",
+                                        "ستاسو د ننوتلو حساب ړنګ شو.",
+                                        "آپ کا لاگ اِن اکاؤنٹ حذف ہو گیا۔",
+                                        "आपका लॉगिन खाता हटा दिया गया।"
+                                ));
+                                Toast.makeText(AccountActivity.this,
+                                        text("حساب حذف شد", "Account deleted", "حساب ړنګ شو", "اکاؤنٹ حذف ہو گیا", "खाता हटा दिया गया"),
+                                        Toast.LENGTH_LONG).show();
+                                finish();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    deleteAccountButton.setEnabled(true);
+                    String message = (e.getMessage() == null) ? "" : e.getMessage();
+                    if (message.toLowerCase().contains("recent login") || message.toLowerCase().contains("requires-recent-login")) {
+                        message = text(
+                                "برای امنیت، از حساب خارج شوید، دوباره وارد شوید و حذف را تکرار کنید.",
+                                "For security, log out, log in again, then retry deletion.",
+                                "د امنیت لپاره ووځئ، بیا ننوتل وکړئ او حذف بیا ترسره کړئ.",
+                                "سکیورٹی کے لیے لاگ آؤٹ کرکے دوبارہ لاگ اِن کریں، پھر حذف کریں۔",
+                                "सुरक्षा के लिए लॉग आउट करके दोबारा लॉग इन करें, फिर हटाएँ।"
+                        );
+                    }
+                    Toast.makeText(AccountActivity.this,
+                            text("حذف انجام نشد: ", "Deletion failed: ", "حذف ناکام شو: ", "حذف ناکام: ", "हटाना विफल: ") + message,
+                            Toast.LENGTH_LONG).show();
                 });
     }
 
