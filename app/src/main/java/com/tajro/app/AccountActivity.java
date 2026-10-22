@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -56,6 +57,9 @@ public class AccountActivity extends Activity {
     private int themeColor;
 
     private String appliedLanguage;
+
+    // مقصدی که پس از ورود موفق باید باز شود
+    private String destinationAfterLogin;
 
     // 0 = ورود
     // 1 = ثبت نام
@@ -118,12 +122,39 @@ public class AccountActivity extends Activity {
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
+        destinationAfterLogin = getIntent().getStringExtra("open_after_login");
+
         themeColor =
                 ThemeManager.getThemeColor(this);
 
         createAccountScreen();
 
         showCurrentUser();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        destinationAfterLogin = intent.getStringExtra("open_after_login");
+    }
+
+    // پس از ورود موفق، کاربر را به بخشی که انتخاب کرده بود برمی‌گرداند.
+    private void openRequestedDestination() {
+        String destination = destinationAfterLogin;
+        destinationAfterLogin = null;
+
+        if ("chat".equals(destination)) {
+            Intent intent = new Intent(this, ChatActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            finish();
+        } else if ("experiences".equals(destination)) {
+            Intent intent = new Intent(this, ExperienceListActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            finish();
+        }
     }
 
     // ==========================================
@@ -1132,6 +1163,7 @@ public class AccountActivity extends Activity {
                     ).show();
 
                     showCurrentUser();
+                    openRequestedDestination();
                 })
                 .addOnFailureListener(e -> {
 
@@ -1466,6 +1498,12 @@ public void onVerificationFailed(FirebaseException e) {
                     updateScreen();
 
                     showCurrentUser();
+
+                    // ورود با شماره نیز مقصد انتخاب‌شده را باز می‌کند؛
+                    // ثبت‌نام با شماره رفتار قبلی خود را حفظ می‌کند.
+                    if (mode == 2) {
+                        openRequestedDestination();
+                    }
                 })
                 .addOnFailureListener(e -> {
 
