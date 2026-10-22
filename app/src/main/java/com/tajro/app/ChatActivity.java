@@ -5671,17 +5671,6 @@ protected void onResume() {
 
         player = null;
 
-        try {
-
-            if (messageTone != null) {
-                messageTone.release();
-            }
-
-        } catch (Exception ignored) {
-        }
-
-        messageTone = null;
-
         super.onDestroy();
     }
 
