@@ -189,9 +189,10 @@ public class ChatActivity extends Activity {
             ).show();
 
             try {
-                startActivity(
-                        new Intent(this, AccountActivity.class)
-                );
+                Intent accountIntent =
+                        new Intent(this, AccountActivity.class);
+                accountIntent.putExtra("open_after_login", "chat");
+                startActivity(accountIntent);
             } catch (Exception ignored) {
             }
 
@@ -5644,37 +5645,55 @@ protected void onResume() {
     }
 
     @Override
-protected void onDestroy() {
+    protected void onDestroy() {
 
-    removeChatListeners();
+        removeChatListeners();
 
-    try {
-        if (recorder != null) {
-            recorder.release();
+        try {
+
+            if (recorder != null) {
+                recorder.release();
+            }
+
+        } catch (Exception ignored) {
         }
-    } catch (Exception ignored) {
+
+        recorder = null;
+
+        try {
+
+            if (player != null) {
+                player.release();
+            }
+
+        } catch (Exception ignored) {
+        }
+
+        player = null;
+
+        try {
+
+            if (messageTone != null) {
+                messageTone.release();
+            }
+
+        } catch (Exception ignored) {
+        }
+
+        messageTone = null;
+
+        super.onDestroy();
     }
 
-    recorder = null;
-
-    try {
-        if (player != null) {
-            player.release();
-        }
-    } catch (Exception ignored) {
-    }
-
-    player = null;
-
-    super.onDestroy();
-}
-
-@Override
+     @Override
 public void onBackPressed() {
 
     if (insideChat) {
+
         showUsers();
+
     } else {
+
         super.onBackPressed();
     }
 }
