@@ -223,6 +223,11 @@ public class BallGameActivity extends Activity {
                     50000f +
                     progress * 29000f;
 
+            // مرحله اول دقیقاً حدود ۵۰٪ کوتاه‌تر می‌شود.
+            if (level == 1) {
+                worldWidth = 25000f;
+            }
+
             if (level == 2) {
                 worldWidth = 65000f;
             }
@@ -894,19 +899,16 @@ public class BallGameActivity extends Activity {
                             platform.top -
                                     radius();
 
+                    // فرود عادی توپ را متوقف می‌کند؛ پرش فقط با فشار کاربر است.
                     if (jumpPressed) {
-
-                        ballVY =
-                                -jumpPower * 1.10f;
-
-                        jumpPressed = false;
-
+                        ballVY = -jumpPower * 1.10f;
                     } else {
-
-                        ballVY =
-                                -jumpPower * 0.72f;
+                        ballVY = 0f;
                     }
 
+                    // یک فشار فقط یک پرش ایجاد می‌کند؛ نگه‌داشتن دکمه
+                    // دیگر باعث پرش‌های خودکار پشت سرهم نمی‌شود.
+                    jumpPressed = false;
                     landed = true;
 
                     createJumpParticles();
@@ -967,14 +969,6 @@ public class BallGameActivity extends Activity {
 
                     ballVX *= -0.18f;
                 }
-            }
-
-            if (landed && jumpPressed) {
-
-                ballVY =
-                        -jumpPower * 1.12f;
-
-                jumpPressed = false;
             }
 
             /*
@@ -2505,6 +2499,51 @@ public class BallGameActivity extends Activity {
                     p
             );
 
+            // سایه‌ی کناره‌ها برای برجسته‌شدن دیوارها.
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0x66300805);
+            float edge = Math.max(2f, tile() * 0.09f);
+            canvas.drawRect(
+                    Math.max(r.left, r.right - edge),
+                    r.top + edge,
+                    r.right,
+                    r.bottom,
+                    p
+            );
+
+            // لبه‌ی روشن بالای دیوار مثل سنگ‌کاری سه‌بعدی.
+            p.setColor(0x88FFB06A);
+            canvas.drawRect(
+                    r.left,
+                    r.top,
+                    r.right,
+                    Math.min(r.bottom, r.top + edge * 0.55f),
+                    p
+            );
+
+            // نقش‌های ظریف و منظم روی دیوار، بدون تغییر برخورد بازی.
+            float motif = Math.max(5f, tile() * 0.16f);
+            float cx = r.centerX();
+            float cy = r.centerY();
+            if (r.width() > tile() * 0.85f &&
+                    r.height() > tile() * 1.2f) {
+                p.setColor(0x44FFD7A0);
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(Math.max(1.5f, tile() * 0.035f));
+                canvas.drawRoundRect(
+                        cx - motif,
+                        cy - motif * 1.35f,
+                        cx + motif,
+                        cy + motif * 1.35f,
+                        motif * 0.25f,
+                        motif * 0.25f,
+                        p
+                );
+                p.setStyle(Paint.Style.FILL);
+                p.setColor(0x55910F0B);
+                canvas.drawCircle(cx, cy, Math.max(1.5f, motif * 0.24f), p);
+            }
+
             p.setStyle(
                     Paint.Style.FILL
             );
@@ -3650,7 +3689,9 @@ public class BallGameActivity extends Activity {
                         rightPressed = true;
                     }
 
-                    if (x >= jumpX &&
+                    // پرش فقط با لمس تازه فعال می‌شود، نه با نگه‌داشتن انگشت.
+                    if (action == MotionEvent.ACTION_DOWN &&
+                            x >= jumpX &&
                             x <= jumpX + size) {
 
                         jumpPressed = true;
@@ -3822,4 +3863,4 @@ public class BallGameActivity extends Activity {
             }
         }
     }
-          }
+            }
