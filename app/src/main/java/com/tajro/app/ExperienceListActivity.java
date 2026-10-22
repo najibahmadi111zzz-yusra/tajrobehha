@@ -340,6 +340,8 @@ public class ExperienceListActivity extends Activity {
         // صفحه تجربه‌ها فقط برای کاربران واردشده قابل دسترسی است.
         if (auth.getCurrentUser() == null) {
             Intent intent = new Intent(ExperienceListActivity.this, AccountActivity.class);
+            // پس از ورود موفق، مستقیم به بخش تجربه‌ها برگردد.
+            intent.putExtra("open_after_login", "experiences");
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(intent);
             finish();
