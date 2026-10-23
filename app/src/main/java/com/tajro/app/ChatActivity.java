@@ -4611,115 +4611,201 @@ header.addView(chatMenu,
         }
     }
 
-    private void uploadProfilePhoto(
-            Uri uri
-    ) {
+    
+private void uploadProfilePhoto(Uri uri) {
+    String mime = getContentResolver().getType(uri);
 
-        String mime =
-                getContentResolver()
-                        .getType(uri);
+    if (mime == null || !mime.startsWith("image/")) {
+        mime = "image/jpeg";
+    }
 
-        if (mime == null ||
-                !mime.startsWith("image/")) {
+    String ext;
+    if (mime.contains("png")) {
+        ext = "png";
+    } else if (mime.contains("webp")) {
+        ext = "webp";
+    } else {
+        ext = "jpg";
+    }
 
-            mime = "image/jpeg";
-        }
+    final String finalMime = mime;
 
-        String ext;
+    // ابتدا آدرس عکس قبلی را می‌خوانیم.
+    db.collection("users").document(myId).get()
+        .addOnSuccessListener(userDoc -> {
+            String oldPhotoUrl = userDoc.getString("photoUrl");
 
-        if (mime.contains("png")) {
+            String objectPath = "profiles/profile_" + myId + "_"
+                    + System.currentTimeMillis() + "." + ext;
 
-            ext = "png";
+            Toast.makeText(this, tr("در حال ارسال عکس پروفایل..."),
+                    Toast.LENGTH_SHORT).show();
 
-        } else if (mime.contains("webp")) {
-
-            ext = "webp";
-
-        } else {
-
-            ext = "jpg";
-        }
-
-        String objectPath =
-                "profiles/profile_" +
-                        myId +
-                        "_" +
-                        System.currentTimeMillis() +
-                        "." +
-                        ext;
-
-        String finalMime =
-                mime;
-
-        Toast.makeText(
-                this,
-                tr("در حال ارسال عکس پروفایل..."),
-                Toast.LENGTH_SHORT
-        ).show();
-
-        uploadToSupabase(
-                uri,
-                PROFILE_BUCKET,
-                objectPath,
-                finalMime,
+            uploadToSupabase(uri, PROFILE_BUCKET, objectPath, finalMime,
                 new SupabaseUploadCallback() {
-
                     @Override
-                    public void onSuccess(
-                            String url
-                    ) {
+                    public void onSuccess(String url) {
+                        Map<String, Object> data = new HashMap<>();
+                        data.put("photoUrl", url);
 
-                        Map<String, Object> data =
-                                new HashMap<>();
+                        db.collection("users").document(myId)
+                            .set(data, SetOptions.merge())
+                            .addOnSuccessListener(x -> {
+                                Toast.makeText(ChatActivity.this,
+                                        tr("عکس پروفایل ذخیره شد"),
+                                        Toast.LENGTH_SHORT).show();
 
-                        data.put(
-                                "photoUrl",
-                                url
-                        );
+                                loadUsers();
+                                refreshMyProfileAvatar();
 
-                        db.collection("users")
-                                .document(myId)
-                                .set(
-                                        data,
-                                        SetOptions.merge()
-                                )
-                                .addOnSuccessListener(
-                                        x -> {
+                                if (myProfileDialogImage != null) {
+                                    loadImage(url, myProfileDialogImage);
+                                }
 
-                                            Toast.makeText(
-                                                    ChatActivity.this,
-                                                    tr("عکس پروفایل ذخیره شد"),
-                                                    Toast.LENGTH_SHORT
-                                            ).show();
-
-                                            loadUsers();
-                                            refreshMyProfileAvatar();
-
-                                            if (myProfileDialogImage != null) {
-                                                loadImage(
-                                                        url,
-                                                        myProfileDialogImage
-                                                );
-                                            }
-                                        }
-                                );
+                                // فقط پس از ذخیره موفق عکس جدید،
+                                // مسیر عکس قبلی را برای حذف بررسی می‌کنیم.
+                                if (oldPhotoUrl != null
+                                        && !oldPhotoUrl.trim().isEmpty()
+                                        && !oldPhotoUrl.equals(url)) {
+                                    deleteOldProfilePhoto(oldPhotoUrl);
+                                }
+                            })
+                            .addOnFailureListener(e ->
+                                Toast.makeText(ChatActivity.this,
+                                    tr("ذخیره عکس در حساب ناموفق بود"),
+                                    Toast.LENGTH_LONG).show()
+                            );
                     }
 
                     @Override
-                    public void onError(
-                            String error
-                    ) {
+                    public void onError(String error) {
+                        Toast.makeText(ChatActivity.this,
+                                tr("خطای عکس پروفایل:\n") + error,
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+        })
+        .addOnFailureListener(e ->
+            Toast.makeText(this, tr("خواندن عکس قبلی ناموفق بود"),
+                    Toast.LENGTH_LONG).show()
+        );
+}
 
-                        Toast.makeText(
-                                ChatActivity.this,
-                                tr("خطای عکس پروفایل:\n") +
-                                        error,
-                                Toast.LENGTH_LONG
-                        ).show();
+    
+private void deleteOldProfilePhoto(String oldPhotoUrl) {
+    if (oldPhotoUrl == null || oldPhotoUrl.trim().isEmpty()) {
+        return;
+    }
+
+    String marker = "/" + PROFILE_BUCKET + "/";
+    int markerIndex = oldPhotoUrl.indexOf(marker);
+
+    if (markerIndex < 0) {
+        return;
+    }
+
+    String encodedPath = oldPhotoUrl.substring(markerIndex + marker.length());
+    int queryIndex = encodedPath.indexOf('?');
+    if (queryIndex >= 0) {
+        encodedPath = encodedPath.substring(0, queryIndex);
+    }
+
+    final String objectPath;
+    try {
+        objectPath = java.net.URLDecoder.decode(encodedPath, "UTF-8");
+    } catch (Exception e) {
+        return;
+    }
+
+    // فقط مسیر عکس قدیمی متعلق به همین کاربر پذیرفته شود.
+    String prefix = "profiles/profile_" + myId + "_";
+    if (!objectPath.startsWith(prefix)) {
+        return;
+    }
+
+    String filename = objectPath.substring(prefix.length());
+    if (!filename.matches("\\d+\\.(jpg|jpeg|png|webp)")) {
+        return;
+    }
+
+    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+    if (currentUser == null) {
+        return;
+    }
+
+    currentUser.getIdToken(false)
+        .addOnSuccessListener(tokenResult -> {
+            String idToken = tokenResult.getToken();
+            if (idToken == null || idToken.isEmpty()) {
+                return;
+            }
+
+            new Thread(() -> {
+                HttpURLConnection connection = null;
+
+                try {
+                    URL functionUrl = new URL(
+                        SUPABASE_URL + "/functions/v1/delete-old-profile-photo"
+                    );
+
+                    connection = (HttpURLConnection) functionUrl.openConnection();
+                    connection.setRequestMethod("POST");
+                    connection.setDoOutput(true);
+                    connection.setConnectTimeout(20000);
+                    connection.setReadTimeout(30000);
+                    connection.setRequestProperty(
+                        "Content-Type", "application/json; charset=UTF-8"
+                    );
+                    connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+                    connection.setRequestProperty("Authorization", "Bearer " + idToken);
+
+                    JSONObject body = new JSONObject();
+                    body.put("path", objectPath);
+
+                    try (OutputStream output = connection.getOutputStream()) {
+                        output.write(body.toString().getBytes(
+                            java.nio.charset.StandardCharsets.UTF_8
+                        ));
+                    }
+
+                    int code = connection.getResponseCode();
+
+                    if (code < 200 || code >= 300) {
+                        InputStream errorStream = connection.getErrorStream();
+                        String errorText = "";
+
+                        if (errorStream != null) {
+                            try (InputStream input = errorStream;
+                                 java.io.ByteArrayOutputStream bytes =
+                                     new java.io.ByteArrayOutputStream()) {
+                                byte[] buffer = new byte[2048];
+                                int count;
+                                while ((count = input.read(buffer)) != -1) {
+                                    bytes.write(buffer, 0, count);
+                                }
+                                errorText = bytes.toString("UTF-8");
+                            }
+                        }
+
+                        Log.e("DeleteOldPhoto",
+                            "HTTP " + code + ": " + errorText);
+                    } else {
+                        Log.d("DeleteOldPhoto", "Old photo deletion requested.");
+                    }
+
+                } catch (Exception e) {
+                    Log.e("DeleteOldPhoto", "Failed to call deletion function", e);
+                } finally {
+                    if (connection != null) {
+                        connection.disconnect();
                     }
                 }
+            }).start();
+        })
+        .addOnFailureListener(e ->
+            Log.e("DeleteOldPhoto", "Could not get Firebase token", e)
         );
-    }
+}
 
     private void uploadToSupabase(
             Uri uri,
