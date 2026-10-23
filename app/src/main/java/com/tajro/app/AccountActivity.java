@@ -32,6 +32,8 @@ import com.google.firebase.firestore.SetOptions;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class AccountActivity extends Activity {
 
@@ -1893,47 +1895,153 @@ public void onVerificationFailed(FirebaseException e) {
                 });
     }
 
-    // حذف دائمی حساب Firebase؛ در صورت نیاز به ورود مجدد، ابتدا دوباره وارد شوید.
-    private void permanentlyDeleteAccount(FirebaseUser user) {
-        deleteAccountButton.setEnabled(false);
-        user.delete()
-                .addOnSuccessListener(unused -> {
-                    String deletedUid = user.getUid();
-                    AppLockManager.lockSession(AccountActivity.this);
-                    clearLoginFields();
-                    // پاک‌سازی سند اصلی پروفایل؛ داده‌های دیگر باید از backend امن پاک شوند.
-                    db.collection("users").document(deletedUid).delete()
-                            .addOnCompleteListener(task -> {
-                                statusText.setText(text(
-                                        "حساب ورود شما حذف شد.",
-                                        "Your sign-in account was deleted.",
-                                        "ستاسو د ننوتلو حساب ړنګ شو.",
-                                        "آپ کا لاگ اِن اکاؤنٹ حذف ہو گیا۔",
-                                        "आपका लॉगिन खाता हटा दिया गया।"
-                                ));
-                                Toast.makeText(AccountActivity.this,
-                                        text("حساب حذف شد", "Account deleted", "حساب ړنګ شو", "اکاؤنٹ حذف ہو گیا", "खाता हटा दिया गया"),
-                                        Toast.LENGTH_LONG).show();
-                                finish();
-                            });
-                })
-                .addOnFailureListener(e -> {
+    
+private void permanentlyDeleteAccount(FirebaseUser user) {
+    deleteAccountButton.setEnabled(false);
+
+    user.getIdToken(false)
+            .addOnSuccessListener(tokenResult -> {
+                String idToken = tokenResult.getToken();
+
+                if (idToken == null || idToken.isEmpty()) {
                     deleteAccountButton.setEnabled(true);
-                    String message = (e.getMessage() == null) ? "" : e.getMessage();
-                    if (message.toLowerCase().contains("recent login") || message.toLowerCase().contains("requires-recent-login")) {
-                        message = text(
-                                "برای امنیت، از حساب خارج شوید، دوباره وارد شوید و حذف را تکرار کنید.",
-                                "For security, log out, log in again, then retry deletion.",
-                                "د امنیت لپاره ووځئ، بیا ننوتل وکړئ او حذف بیا ترسره کړئ.",
-                                "سکیورٹی کے لیے لاگ آؤٹ کرکے دوبارہ لاگ اِن کریں، پھر حذف کریں۔",
-                                "सुरक्षा के लिए लॉग आउट करके दोबारा लॉग इन करें, फिर हटाएँ।"
+                    Toast.makeText(
+                            this,
+                            "توکن ورود دریافت نشد.",
+                            Toast.LENGTH_LONG
+                    ).show();
+                    return;
+                }
+
+                new Thread(() -> {
+                    HttpURLConnection connection = null;
+
+                    try {
+                        URL url = new URL(
+                                "https://gorbhuqmkjlkrklhasdh.supabase.co/functions/v1/delete-user-data"
                         );
+
+                        connection = (HttpURLConnection)
+                                url.openConnection();
+
+                        connection.setRequestMethod("POST");
+                        connection.setConnectTimeout(20000);
+                        connection.setReadTimeout(30000);
+                        connection.setDoOutput(true);
+
+                        connection.setRequestProperty(
+                                "Authorization", "Bearer " + idToken
+                        );
+                        connection.setRequestProperty(
+                                "apikey",
+                                "sb_publishable_a02sM3MABB4afGU90ZBdFA_OTYG6gUs"
+                        );
+                        connection.setRequestProperty(
+                                "Content-Type", "application/json"
+                        );
+
+                        byte[] body =
+                                "{\"dryRun\":false}".getBytes(
+                                        java.nio.charset.StandardCharsets.UTF_8
+                                );
+
+                        try (java.io.OutputStream out =
+                                     connection.getOutputStream()) {
+                            out.write(body);
+                        }
+
+                        int code = connection.getResponseCode();
+
+                        java.io.InputStream stream =
+                                code >= 200 && code < 300
+                                        ? connection.getInputStream()
+                                        : connection.getErrorStream();
+
+                        StringBuilder response = new StringBuilder();
+
+                        if (stream != null) {
+                            try (java.io.BufferedReader reader =
+                                         new java.io.BufferedReader(
+                                                 new java.io.InputStreamReader(
+                                                         stream,
+                                                         java.nio.charset.StandardCharsets.UTF_8
+                                                 ))) {
+                                String line;
+                                while ((line = reader.readLine()) != null) {
+                                    response.append(line);
+                                }
+                            }
+                        }
+
+                        org.json.JSONObject result =
+                                new org.json.JSONObject(response.toString());
+
+                        if (code < 200 || code >= 300
+                                || !result.optBoolean("success", false)
+                                || result.optBoolean("dryRun", true)) {
+                            throw new Exception(
+                                    "پاک‌سازی فایل‌ها موفق نشد."
+                            );
+                        }
+
+                        runOnUiThread(() ->
+                                user.delete()
+                                        .addOnSuccessListener(unused -> {
+                                            String uid = user.getUid();
+
+                                            AppLockManager.lockSession(
+                                                    AccountActivity.this
+                                            );
+                                            clearLoginFields();
+
+                                            db.collection("users")
+                                                    .document(uid)
+                                                    .delete()
+                                                    .addOnCompleteListener(task -> {
+                                                        Toast.makeText(
+                                                                AccountActivity.this,
+                                                                "حساب حذف شد.",
+                                                                Toast.LENGTH_LONG
+                                                        ).show();
+                                                        finish();
+                                                    });
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            deleteAccountButton.setEnabled(true);
+                                            Toast.makeText(
+                                                    AccountActivity.this,
+                                                    "فایل‌ها پاک شدند؛ حذف حساب ناموفق بود. دوباره وارد شوید و تلاش کنید.",
+                                                    Toast.LENGTH_LONG
+                                            ).show();
+                                        })
+                        );
+
+                    } catch (Exception e) {
+                        runOnUiThread(() -> {
+                            deleteAccountButton.setEnabled(true);
+                            Toast.makeText(
+                                    AccountActivity.this,
+                                    "پاک‌سازی انجام نشد؛ حساب حذف نشد. " +
+                                            e.getMessage(),
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        });
+                    } finally {
+                        if (connection != null) {
+                            connection.disconnect();
+                        }
                     }
-                    Toast.makeText(AccountActivity.this,
-                            text("حذف انجام نشد: ", "Deletion failed: ", "حذف ناکام شو: ", "حذف ناکام: ", "हटाना विफल: ") + message,
-                            Toast.LENGTH_LONG).show();
-                });
-    }
+                }).start();
+            })
+            .addOnFailureListener(e -> {
+                deleteAccountButton.setEnabled(true);
+                Toast.makeText(
+                        this,
+                        "توکن ورود دریافت نشد.",
+                        Toast.LENGTH_LONG
+                ).show();
+            });
+}
 
     // ==========================================
     // نمایش وضعیت حساب
