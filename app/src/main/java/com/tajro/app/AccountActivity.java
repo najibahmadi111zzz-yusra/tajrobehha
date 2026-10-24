@@ -775,11 +775,11 @@ public class AccountActivity extends Activity {
             new AlertDialog.Builder(AccountActivity.this)
                     .setTitle(text("حذف دائمی حساب؟", "Delete account permanently?", "حساب د تل لپاره ړنګول؟", "اکاؤنٹ مستقل حذف کریں؟", "खाता स्थायी रूप से हटाएँ?"))
                     .setMessage(text(
-                            "این کار حساب ورود شما را برای همیشه حذف می‌کند و قابل برگشت نیست. برای پاک‌سازی کامل پیام‌ها و فایل‌های ذخیره‌شده در سرور نیز باید سرویس حذف امن سمت سرور تنظیم باشد.",
-                            "This permanently deletes your sign-in account and cannot be undone. Full cleanup of server-stored messages and files also requires a secure server-side deletion service.",
-                            "دا کار ستاسو د ننوتلو حساب د تل لپاره ړنګوي. د سرور پیغامونو او فایلونو بشپړ پاکولو لپاره خوندي سروري خدمت هم اړین دی.",
-                            "یہ آپ کا لاگ اِن اکاؤنٹ مستقل حذف کرے گا۔ سرور کے پیغامات اور فائلیں مکمل مٹانے کے لیے محفوظ سرور سروس بھی ضروری ہے۔",
-                            "यह आपका लॉगिन खाता स्थायी रूप से हटाता है। सर्वर के संदेश और फ़ाइलें पूरी तरह मिटाने के लिए सुरक्षित सर्वर सेवा भी आवश्यक है।"
+                            "این کار اطلاعات حساب شما را به‌طور دائم حذف می‌کند.",
+                            "This permanently deletes your account information.",
+                            "دا ستاسو د حساب معلومات د تل لپاره ړنګوي.",
+                            "یہ آپ کے اکاؤنٹ کی معلومات مستقل طور پر حذف کر دے گا۔",
+                            "यह आपके खाते की जानकारी स्थायी रूप से हटा देगा।"
                     ))
                     .setNegativeButton(text("انصراف", "Cancel", "لغوه", "منسوخ", "रद्द करें"), (dialog, which) -> dialog.dismiss())
                     .setPositiveButton(text("حذف کن", "Delete", "ړنګول", "حذف کریں", "हटाएँ"), (dialog, which) -> permanentlyDeleteAccount(user))
