@@ -4118,10 +4118,9 @@ header.addView(chatMenu,
                     ) {
 
                         saveMediaMessage(
-                                image
-                                        ? "image"
-                                        : "video",
-                                url
+                                image ? "image" : "video",
+                                url,
+                                objectPath
                         );
                     }
 
@@ -4143,7 +4142,8 @@ header.addView(chatMenu,
 
     private void saveMediaMessage(
             String type,
-            String url
+            String url,
+            String storagePath
     ) {
 
         if (blocked) {
@@ -4182,6 +4182,10 @@ header.addView(chatMenu,
                 "mediaUrl",
                 url
         );
+
+        // مسیر دقیق فایل در Supabase برای حذف امن هنگام حذف حساب
+        data.put("storageBucket", CHAT_BUCKET);
+        data.put("storagePath", storagePath);
 
         data.put(
                 "timestamp",
@@ -4460,7 +4464,7 @@ header.addView(chatMenu,
                             String url
                     ) {
 
-                        saveAudioMessage(url);
+                        saveAudioMessage(url, objectPath);
 
                         try {
                             file.delete();
@@ -4485,7 +4489,8 @@ header.addView(chatMenu,
     }
 
     private void saveAudioMessage(
-            String url
+            String url,
+            String storagePath
     ) {
 
         if (blocked) {
@@ -4524,6 +4529,10 @@ header.addView(chatMenu,
                 "audioUrl",
                 url
         );
+
+        // مسیر دقیق فایل در Supabase برای حذف امن هنگام حذف حساب
+        data.put("storageBucket", VOICE_BUCKET);
+        data.put("storagePath", storagePath);
 
         data.put(
                 "timestamp",
@@ -4647,6 +4656,9 @@ private void uploadProfilePhoto(Uri uri) {
                     public void onSuccess(String url) {
                         Map<String, Object> data = new HashMap<>();
                         data.put("photoUrl", url);
+                        // مسیر دقیق عکس پروفایل برای حذف فایل متعلق به همین حساب
+                        data.put("photoStorageBucket", PROFILE_BUCKET);
+                        data.put("photoStoragePath", objectPath);
 
                         db.collection("users").document(myId)
                             .set(data, SetOptions.merge())
