@@ -34,7 +34,6 @@ public class MainActivity extends Activity {
     private TextView footer;
     private String appliedLanguage;
 
-    private Button addButton;
     private Button listButton;
     private Button chatButton;
     private Button aiButton;
@@ -129,7 +128,6 @@ public class MainActivity extends Activity {
 
         button.setGravity(Gravity.CENTER);
 
-        styleButton(button);
 
         LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(
@@ -365,16 +363,6 @@ public class MainActivity extends Activity {
                 LinearLayout.HORIZONTAL
         );
 
-        addButton =
-                createButton(
-                        text(
-                                "✍️ ثبت تجربه",
-                                "✍️ Add Experience",
-                                "✍️ تجربه ثبتول",
-                                "✍️ تجربہ درج کریں",
-                                "✍️ अनुभव दर्ज करें"
-                        )
-                );
 
         listButton =
                 createButton(
@@ -387,7 +375,6 @@ public class MainActivity extends Activity {
                         )
                 );
 
-        row1.addView(addButton);
         row1.addView(listButton);
 
         // ردیف دوم
@@ -571,18 +558,6 @@ public class MainActivity extends Activity {
         );
 
         mainLayout.addView(footer);
-
-        // ثبت تجربه
-        addButton.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            MainActivity.this,
-                            AddExperienceActivity.class
-                    );
-
-            startActivity(intent);
-        });
 
         // دیدن تجربه‌ها
         listButton.setOnClickListener(v -> {
