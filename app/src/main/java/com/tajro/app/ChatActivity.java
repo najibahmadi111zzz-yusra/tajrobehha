@@ -141,6 +141,10 @@ public class ChatActivity extends Activity {
 
     private final Map<String, DocumentSnapshot> messageCache =
             new HashMap<>();
+    // هر پیام یک ظرف مستقل دارد؛ پیام‌های دیگر با تغییر یک پیام بازسازی نمی‌شوند.
+    private final Map<String, LinearLayout> messageViews = new HashMap<>();
+    private final Set<String> dirtyMessageIds = new HashSet<>();
+    private LinearLayout currentMessageContainer;
 
     private final Set<String> hiddenUserIds =
             new HashSet<>();
@@ -2342,6 +2346,8 @@ receiverPhotoUrl = photoUrl;
                 );
 
         messageCache.clear();
+        messageViews.clear();
+        dirtyMessageIds.clear();
 
         insideChat = true;
         blocked = false;
@@ -2785,10 +2791,18 @@ header.addView(chatMenu,
             String id =
                     document.getId();
 
+            if (change.getType() == DocumentChange.Type.REMOVED) {
+                messageCache.remove(id);
+                dirtyMessageIds.remove(id);
+                continue;
+            }
+
             messageCache.put(
                     id,
                     document
             );
+            // پیام تغییرکرده فقط خودش دوباره ساخته می‌شود.
+            dirtyMessageIds.add(id);
 
             if (incoming) {
 
@@ -2943,61 +2957,93 @@ header.addView(chatMenu,
             return;
         }
 
-        messagesContainer.removeAllViews();
+        final int oldScrollY = messagesScroll == null ? 0 : messagesScroll.getScrollY();
+        final boolean wasAtBottom = messagesScroll != null &&
+                messagesScroll.getChildCount() > 0 &&
+                oldScrollY + messagesScroll.getHeight() >=
+                        messagesScroll.getChildAt(0).getHeight() - dp(80);
 
-        List<DocumentSnapshot> list =
-                new ArrayList<>(
-                        messageCache.values()
-                );
+        List<DocumentSnapshot> list = new ArrayList<>(messageCache.values());
+        Collections.sort(list, (a, b) -> {
+            com.google.firebase.Timestamp ta = a.getTimestamp("timestamp");
+            com.google.firebase.Timestamp tb = b.getTimestamp("timestamp");
+            if (ta == null && tb == null) return a.getId().compareTo(b.getId());
+            if (ta == null) return -1;
+            if (tb == null) return 1;
+            int compare = ta.compareTo(tb);
+            return compare != 0 ? compare : a.getId().compareTo(b.getId());
+        });
 
-        Collections.sort(
-                list,
-                (a, b) -> {
+        Set<String> visibleIds = new HashSet<>();
+        for (DocumentSnapshot d : list) {
+            if (!isDeletedForMe(d)) visibleIds.add(d.getId());
+        }
 
-                    com.google.firebase.Timestamp ta =
-                            a.getTimestamp(
-                                    "timestamp"
-                            );
-
-                    com.google.firebase.Timestamp tb =
-                            b.getTimestamp(
-                                    "timestamp"
-                            );
-
-                    if (ta == null &&
-                            tb == null) {
-
-                        return 0;
-                    }
-
-                    if (ta == null) {
-                        return -1;
-                    }
-
-                    if (tb == null) {
-                        return 1;
-                    }
-
-                    return ta.compareTo(tb);
+        // فقط ظرف پیام‌هایی را حذف کن که دیگر وجود ندارند یا برای من حذف شده‌اند.
+        for (String existingId : new ArrayList<>(messageViews.keySet())) {
+            if (!visibleIds.contains(existingId)) {
+                LinearLayout oldView = messageViews.remove(existingId);
+                if (oldView != null && oldView.getParent() == messagesContainer) {
+                    messagesContainer.removeView(oldView);
                 }
-        );
+                dirtyMessageIds.remove(existingId);
+            }
+        }
 
-        for (
-                DocumentSnapshot d :
-                list
-        ) {
+        // پیام جدید یا تغییرکرده را در ظرف مستقل خود بساز.
+        for (DocumentSnapshot d : list) {
+            String id = d.getId();
+            if (!visibleIds.contains(id)) continue;
+            if (!messageViews.containsKey(id) || dirtyMessageIds.contains(id)) {
+                LinearLayout oldView = messageViews.remove(id);
+                int oldIndex = oldView != null && oldView.getParent() == messagesContainer
+                        ? messagesContainer.indexOfChild(oldView) : -1;
+                if (oldView != null && oldView.getParent() == messagesContainer) {
+                    messagesContainer.removeView(oldView);
+                }
 
-            renderOneMessage(d);
+                LinearLayout item = new LinearLayout(this);
+                item.setOrientation(LinearLayout.VERTICAL);
+                item.setLayoutParams(new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                currentMessageContainer = item;
+                renderOneMessage(d);
+                currentMessageContainer = null;
+                messageViews.put(id, item);
+
+                int targetIndex = oldIndex >= 0
+                        ? Math.min(oldIndex, messagesContainer.getChildCount())
+                        : messagesContainer.getChildCount();
+                messagesContainer.addView(item, targetIndex);
+                dirtyMessageIds.remove(id);
+            }
+        }
+
+        // ترتیب را فقط در صورت نیاز اصلاح کن؛ viewهای موجود بی‌دلیل بازسازی نمی‌شوند.
+        List<String> visibleOrder = new ArrayList<>();
+        for (DocumentSnapshot d : list) {
+            if (visibleIds.contains(d.getId())) visibleOrder.add(d.getId());
+        }
+        for (int i = 0; i < visibleOrder.size(); i++) {
+            String id = visibleOrder.get(i);
+            LinearLayout item = messageViews.get(id);
+            if (item == null) continue;
+            int currentIndex = messagesContainer.indexOfChild(item);
+            if (currentIndex != i) {
+                messagesContainer.removeView(item);
+                messagesContainer.addView(item, Math.min(i, messagesContainer.getChildCount()));
+            }
         }
 
         if (messagesScroll != null) {
-
-            messagesScroll.post(
-                    () ->
-                            messagesScroll.fullScroll(
-                                    View.FOCUS_DOWN
-                            )
-            );
+            messagesScroll.post(() -> {
+                if (wasAtBottom) {
+                    messagesScroll.fullScroll(View.FOCUS_DOWN);
+                } else {
+                    messagesScroll.scrollTo(0, oldScrollY);
+                }
+            });
         }
     }
 
@@ -3204,7 +3250,7 @@ header.addView(chatMenu,
                         ? Gravity.END
                         : Gravity.START;
 
-        messagesContainer.addView(
+        currentMessageContainer.addView(
                 bubble,
                 p
         );
@@ -3283,7 +3329,7 @@ header.addView(chatMenu,
                 dp(5)
         );
 
-        messagesContainer.addView(
+        currentMessageContainer.addView(
                 image,
                 p
         );
@@ -3356,7 +3402,7 @@ header.addView(chatMenu,
                 dp(4)
         );
 
-        messagesContainer.addView(
+        currentMessageContainer.addView(
                 play,
                 p
         );
@@ -3410,7 +3456,7 @@ header.addView(chatMenu,
                 dp(1)
         );
 
-        messagesContainer.addView(
+        currentMessageContainer.addView(
                 receipt,
                 p
         );
@@ -3799,6 +3845,8 @@ header.addView(chatMenu,
 
             removeMessageListeners();
             messageCache.clear();
+            messageViews.clear();
+            dirtyMessageIds.clear();
 
             if (messagesContainer != null) {
                 messagesContainer.removeAllViews();
@@ -5669,6 +5717,8 @@ private void downloadImageToView(String url, ImageView imageView) {
         currentChatId = null;
 
         messageCache.clear();
+        messageViews.clear();
+        dirtyMessageIds.clear();
 
         createUsersScreen();
         loadUsers();
@@ -6082,6 +6132,8 @@ private void deleteCurrentChatForMe() {
                                         v -> {
 
                                             messageCache.clear();
+                                            messageViews.clear();
+                                            dirtyMessageIds.clear();
 
                                             if (messagesContainer != null) {
 
@@ -6202,4 +6254,4 @@ private void blockCurrentUser() {
 
 }
     
-    }
+                    }
