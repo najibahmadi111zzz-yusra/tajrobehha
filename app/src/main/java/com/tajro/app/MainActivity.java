@@ -790,7 +790,6 @@ public class MainActivity extends Activity {
             footer.setTextColor(Color.GRAY);
         }
 
-        styleButton(addButton);
         styleButton(listButton);
         styleButton(chatButton);
         styleButton(aiButton);
@@ -799,4 +798,4 @@ public class MainActivity extends Activity {
         styleButton(gameButton);
         styleButton(rewardedButton);
     }
-                    }
+          }
