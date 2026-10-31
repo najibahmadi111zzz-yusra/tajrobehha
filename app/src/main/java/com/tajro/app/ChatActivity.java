@@ -1653,6 +1653,16 @@ titleText =
         Boolean online =
                 d.getBoolean("online");
 
+        // آخرین heartbeat باید تازه باشد؛ در غیر این صورت کاربر آفلاین است.
+        com.google.firebase.Timestamp lastSeen =
+                d.getTimestamp("lastSeen");
+        long presenceAgeMs = lastSeen == null
+                ? Long.MAX_VALUE
+                : System.currentTimeMillis() - lastSeen.toDate().getTime();
+        boolean presenceFresh = presenceAgeMs >= 0
+                && presenceAgeMs <= 150_000L;
+        online = Boolean.TRUE.equals(online) && presenceFresh;
+
         // کاربر بلاک‌شده نباید در فهرست به‌صورت آنلاین نمایش داده شود.
         boolean isBlockedUser =
                 blockedUserIds.contains(uid);
@@ -5725,71 +5735,26 @@ private void downloadImageToView(String url, ImageView imageView) {
     }
 
     @Override
-protected void onResume() {
+    protected void onResume() {
+        super.onResume();
 
-    super.onResume();
+        // وضعیت آنلاین در سطح کل برنامه توسط TajroApplication مدیریت می‌شود.
+        // اینجا عمداً وضعیت را تغییر نمی‌دهیم تا جابه‌جایی بین صفحه‌ها
+        // کاربر را اشتباهاً آفلاین نکند.
 
-    // آنلاین بودن کاربر
-    if (myId != null) {
+        String currentLanguage =
+                LanguageManager.getLanguage(this);
 
-        db.collection("users")
-                .document(myId)
-                .set(
-                        new HashMap<String, Object>() {{
-                            put("online", true);
-                            put(
-                                    "lastSeen",
-                                    FieldValue.serverTimestamp()
-                            );
-                        }},
-                        SetOptions.merge()
-                );
+        if (appliedLanguage != null
+                && !currentLanguage.equals(appliedLanguage)) {
+            recreate();
+        }
     }
-
-    // بررسی تغییر زبان
-    String currentLanguage =
-            LanguageManager.getLanguage(this);
-
-    if (appliedLanguage != null
-            && !currentLanguage.equals(appliedLanguage)) {
-
-        recreate();
-    }
-}
 
     @Override
     protected void onPause() {
-
         super.onPause();
-
-        if (myId != null) {
-
-            Map<String, Object> data =
-                    new HashMap<>();
-
-            data.put(
-                    "online",
-                    false
-            );
-
-            data.put(
-                    "lastSeen",
-                    FieldValue
-                            .serverTimestamp()
-            );
-
-            data.put(
-                    "typingTo",
-                    ""
-            );
-
-            db.collection("users")
-                    .document(myId)
-                    .set(
-                            data,
-                            SetOptions.merge()
-                    );
-        }
+        // Presence lifecycle is managed globally by TajroApplication.
     }
 
     @Override
@@ -6254,4 +6219,4 @@ private void blockCurrentUser() {
 
 }
     
-                    }
+            }
