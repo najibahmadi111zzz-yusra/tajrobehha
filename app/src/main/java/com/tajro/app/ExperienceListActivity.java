@@ -887,9 +887,7 @@ public class ExperienceListActivity extends Activity {
         return Integer.toHexString(
                 value.hashCode()
         );
-    }
-    
-    private void uploadExperienceImage(Uri uri, ImageUploadCallback callback) {
+    }\n\n    private void uploadExperienceImage(Uri uri, ImageUploadCallback callback) {
         FirebaseUser user = auth.getCurrentUser();
 
         if (user == null) {
@@ -1023,9 +1021,7 @@ public class ExperienceListActivity extends Activity {
                 })
                 .addOnFailureListener(e ->
                         callback.onError("دریافت توکن Firebase ناموفق بود"));
-    }
-    
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    }\n\n    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == REQUEST_PICK_EXPERIENCE_IMAGE
@@ -1044,9 +1040,7 @@ public class ExperienceListActivity extends Activity {
                 Toast.makeText(this, "خواندن عکس ممکن نشد", Toast.LENGTH_SHORT).show();
             }
         }
-    }
-    
-    private String normalizeText(
+    }\n\n    private String normalizeText(
             String value
     ) {
 
@@ -2763,7 +2757,7 @@ public class ExperienceListActivity extends Activity {
     }
 
     private void respondFriendRequest(DocumentSnapshot request, String status, Button accept, Button reject) {
-        request.getReference().update("status", status, "respondedAt", FieldValue.serverTimestamp())
+        request.getReference().update("status", status)
                 .addOnSuccessListener(unused -> {
                     accept.setEnabled(false); reject.setEnabled(false);
                     accept.setText("accepted".equals(status) ? "✅ قبول شد" : "قبول");
@@ -2850,4 +2844,4 @@ public class ExperienceListActivity extends Activity {
             if (connection != null) connection.disconnect();
         }
     }
-        }
+}
