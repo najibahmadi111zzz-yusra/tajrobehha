@@ -90,6 +90,7 @@ public class ChatActivity extends Activity {
     private FirebaseFirestore db;
 
     private LinearLayout root;
+    private LinearLayout usersRoot;
     private LinearLayout usersContainer;
     private LinearLayout messagesContainer;
     private ScrollView messagesScroll;
@@ -149,6 +150,10 @@ public class ChatActivity extends Activity {
     private final Set<String> hiddenUserIds =
             new HashSet<>();
 
+    // حذف از فهرست فقط روی همین دستگاه ذخیره می‌شود؛ پیام یا حساب حذف نمی‌شود.
+    private final Set<String> removedChatUserIds =
+            new HashSet<>();
+
     // کاربران مسدودشده؛ فقط برای جلوگیری از نمایش اشتباه وضعیت آنلاین
     private final Set<String> blockedUserIds =
             new HashSet<>();
@@ -205,6 +210,12 @@ public class ChatActivity extends Activity {
         }
 
         myId = user.getUid();
+
+        android.content.SharedPreferences chatPrefs =
+                getSharedPreferences("tajro_chat_list_" + myId, MODE_PRIVATE);
+        removedChatUserIds.clear();
+        removedChatUserIds.addAll(chatPrefs.getStringSet(
+                "removed_users", new HashSet<String>()));
 
         ensureUserProfile();
         createUsersScreen();
@@ -902,6 +913,7 @@ public class ChatActivity extends Activity {
 
         root =
                 new LinearLayout(this);
+        usersRoot = root;
 
         root.setOrientation(
                 LinearLayout.VERTICAL
@@ -1440,8 +1452,6 @@ titleText =
 
         if (usersContainer == null) return;
 
-        usersContainer.removeAllViews();
-
         db.collection("hiddenUsers")
                 .whereEqualTo(
                         "ownerId",
@@ -1553,13 +1563,15 @@ titleText =
                                 }
 
                                 if (hiddenUserIds.contains(id) ||
-                                        hiddenUserIds.contains(d.getId())) {
+                                        hiddenUserIds.contains(d.getId()) ||
+                                        removedChatUserIds.contains(id)) {
                                     continue;
                                 }
 
                                 if (!ids.add(id)) {
                                     continue;
                                 }
+
 
                                 users.add(d);
                             }
@@ -1859,7 +1871,8 @@ private void showUserMenu(
 
     String[] items = {
             tr("👁 مخفی کردن / رفع مخفی"),
-            tr("🚫 بلاک / رفع مسدودیت")
+            tr("🚫 بلاک / رفع مسدودیت"),
+            "حذف از فهرست چت"
     };
 
     new AlertDialog.Builder(this)
@@ -1932,6 +1945,22 @@ private void showUserMenu(
                                                     );
                                         }
                                     });
+
+                        } else if (which == 2) {
+
+                            new AlertDialog.Builder(this)
+                                    .setTitle("حذف از فهرست چت")
+                                    .setMessage("این کار فقط کاربر را از فهرست این دستگاه پنهان می‌کند؛ حساب و پیام‌ها حذف نمی‌شوند.")
+                                    .setNegativeButton(tr("انصراف"), null)
+                                    .setPositiveButton(tr("حذف"), (confirm, result) -> {
+                                        removedChatUserIds.add(uid);
+                                        android.content.SharedPreferences prefs =
+                                                getSharedPreferences("tajro_chat_list_" + myId, MODE_PRIVATE);
+                                        prefs.edit().putStringSet(
+                                                "removed_users", new HashSet<>(removedChatUserIds)).apply();
+                                        loadUsers();
+                                    })
+                                    .show();
 
                         } else {
 
@@ -3715,9 +3744,15 @@ header.addView(chatMenu,
                                             d.getBoolean(
                                                     "online"
                                             );
+                                    com.google.firebase.Timestamp lastSeen =
+                                            d.getTimestamp("lastSeen");
+                                    long age = lastSeen == null
+                                            ? Long.MAX_VALUE
+                                            : System.currentTimeMillis() - lastSeen.toDate().getTime();
+                                    boolean presenceFresh = age >= 0 && age <= 150_000L;
+                                    boolean actuallyOnline = Boolean.TRUE.equals(online) && presenceFresh;
 
-                                    if (online != null &&
-                                            online) {
+                                    if (actuallyOnline) {
 
                                         statusText.setText(
                                                 tr("آنلاین")
@@ -3734,9 +3769,14 @@ header.addView(chatMenu,
 
                                     } else {
 
-                                        statusText.setText(
-                                                tr("آفلاین")
-                                        );
+                                        String offlineLabel = tr("آفلاین");
+                                        if (lastSeen != null) {
+                                            String seenTime = new java.text.SimpleDateFormat(
+                                                    "HH:mm", java.util.Locale.getDefault())
+                                                    .format(lastSeen.toDate());
+                                            offlineLabel = "آخرین بازدید: " + seenTime;
+                                        }
+                                        statusText.setText(offlineLabel);
 
                                         headerOnlineDot
                                                 .setTextColor(
@@ -5730,7 +5770,12 @@ private void downloadImageToView(String url, ImageView imageView) {
         messageViews.clear();
         dirtyMessageIds.clear();
 
-        createUsersScreen();
+        if (usersRoot != null) {
+            root = usersRoot;
+            setContentView(usersRoot);
+        } else {
+            createUsersScreen();
+        }
         loadUsers();
     }
 
@@ -6219,4 +6264,4 @@ private void blockCurrentUser() {
 
 }
     
-            }
+    }
