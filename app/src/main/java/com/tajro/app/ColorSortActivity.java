@@ -71,6 +71,7 @@ public class ColorSortActivity extends Activity {
         private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final float[] colorHsvScratch = new float[3];
 
         private final Handler handler = new Handler();
         private final Random random = new Random();
@@ -87,6 +88,9 @@ public class ColorSortActivity extends Activity {
 
         private volatile AudioTrack activeAudioTrack;
         private Thread soundThread;
+        private volatile AudioTrack ambientAudioTrack;
+        private volatile boolean ambientRunning = false;
+        private Thread ambientThread;
 
         private boolean soundEnabled = true;
 
@@ -138,20 +142,11 @@ public class ColorSortActivity extends Activity {
         private float animProgress = 1f;
 
         /* =========================================================
-           HINT
-           ========================================================= */
-
-        private boolean showingHint = false;
-        private int hintFrom = -1;
-        private int hintTo = -1;
-        private long hintUntil = 0L;
-
-        /* =========================================================
            ERROR / FAILURE SYSTEM
            ========================================================= */
 
         private int mistakes = 0;
-        private final int MAX_MISTAKES = 3;
+        private final int MAX_MISTAKES = 4;
 
         private int errorFrom = -1;
         private int errorTo = -1;
@@ -201,7 +196,14 @@ public class ColorSortActivity extends Activity {
 
                 invalidate();
 
-                handler.postDelayed(this, 16);
+                // Keep pours and short feedback effects fluid; use a lighter
+                // 30 FPS cadence while the player is thinking to reduce heat
+                // and battery use on entry-level Android phones.
+                long now = SystemClock.uptimeMillis();
+                boolean shortEffect = errorStart > 0 && now - errorStart < 650;
+                boolean activeMove = animProgress < 1f;
+                handler.postDelayed(this,
+                        (activeMove || shortEffect || levelFinished || levelFailed) ? 16 : 33);
             }
         };
 
@@ -220,6 +222,7 @@ public class ColorSortActivity extends Activity {
             text.setAntiAlias(true);
 
             setFocusable(true);
+            setContentDescription("بازی مرتب‌سازی رنگ‌ها؛ لمس ظرف‌ها برای انتقال مایع");
 
             soundEnabled = progressPrefs.getBoolean("sound", true);
 
@@ -256,6 +259,7 @@ public class ColorSortActivity extends Activity {
 
             handler.removeCallbacks(frame);
             handler.post(frame);
+            startAmbientMusic();
         }
 
         void stopAnimation() {
@@ -265,6 +269,7 @@ public class ColorSortActivity extends Activity {
             handler.removeCallbacks(frame);
 
             stopActiveSound();
+            stopAmbientMusic();
 
             saveProgress();
         }
@@ -714,6 +719,102 @@ public class ColorSortActivity extends Activity {
 
         void releaseAudio() {
             stopActiveSound();
+            stopAmbientMusic();
+        }
+
+        /* =========================================================
+           SOFT AMBIENT MUSIC + WATER DROPS
+           ========================================================= */
+
+        private synchronized void startAmbientMusic() {
+            if (!soundEnabled || !running || ambientRunning) return;
+
+            ambientRunning = true;
+            ambientThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    final int sampleRate = 22050;
+                    final int framesPerBlock = 1024;
+                    final byte[] buffer = new byte[framesPerBlock * 2];
+                    AudioTrack track = null;
+                    long sample = 0L;
+                    final double[] roots = {261.63, 293.66, 220.00, 246.94};
+                    try {
+                        int min = AudioTrack.getMinBufferSize(
+                                sampleRate,
+                                AudioFormat.CHANNEL_OUT_MONO,
+                                AudioFormat.ENCODING_PCM_16BIT
+                        );
+                        if (min <= 0) min = 4096;
+                        track = new AudioTrack(
+                                AudioManager.STREAM_MUSIC,
+                                sampleRate,
+                                AudioFormat.CHANNEL_OUT_MONO,
+                                AudioFormat.ENCODING_PCM_16BIT,
+                                Math.max(min, buffer.length * 2),
+                                AudioTrack.MODE_STREAM
+                        );
+                        ambientAudioTrack = track;
+                        track.play();
+
+                        while (ambientRunning && soundEnabled && running
+                                && ambientAudioTrack == track) {
+                            for (int i = 0; i < framesPerBlock; i++, sample++) {
+                                double seconds = sample / (double) sampleRate;
+                                int chord = ((int) (seconds / 5.5)) % 4;
+                                double root = roots[chord];
+                                double pad = Math.sin(2.0 * Math.PI * root * seconds)
+                                        * 0.34
+                                        + Math.sin(2.0 * Math.PI * root * 1.25 * seconds)
+                                        * 0.20
+                                        + Math.sin(2.0 * Math.PI * root * 1.5 * seconds)
+                                        * 0.16
+                                        + Math.sin(2.0 * Math.PI * root * 2.0 * seconds)
+                                        * 0.08;
+
+                                // A soft, bell-like water drop every few seconds.
+                                double dropCycle = seconds % 5.2;
+                                double drop = 0.0;
+                                if (dropCycle < 0.72) {
+                                    double env = Math.exp(-dropCycle * 5.2);
+                                    double f = 920.0 - dropCycle * 430.0;
+                                    drop = Math.sin(2.0 * Math.PI * f * dropCycle)
+                                            * env * 0.22;
+                                }
+                                double fade = 0.72 + 0.28 * Math.sin(seconds * 0.22);
+                                double value = (pad * 0.075 + drop * 0.11) * fade;
+                                int pcm = (int) (Math.max(-1.0, Math.min(1.0, value)) * 32700.0);
+                                buffer[i * 2] = (byte) (pcm & 255);
+                                buffer[i * 2 + 1] = (byte) ((pcm >> 8) & 255);
+                            }
+                            int written = track.write(buffer, 0, buffer.length);
+                            if (written < 0) break;
+                        }
+                    } catch (Exception ignored) {
+                    } finally {
+                        if (track != null) {
+                            try { track.pause(); } catch (Exception ignored) {}
+                            try { track.flush(); } catch (Exception ignored) {}
+                            try { track.release(); } catch (Exception ignored) {}
+                        }
+                        if (ambientAudioTrack == track) ambientAudioTrack = null;
+                        ambientRunning = false;
+                    }
+                }
+            }, "ColorSort-Ambient-Audio");
+            ambientThread.setDaemon(true);
+            ambientThread.start();
+        }
+
+        private synchronized void stopAmbientMusic() {
+            ambientRunning = false;
+            AudioTrack track = ambientAudioTrack;
+            ambientAudioTrack = null;
+            if (track != null) {
+                try { track.pause(); } catch (Exception ignored) {}
+                try { track.flush(); } catch (Exception ignored) {}
+                try { track.release(); } catch (Exception ignored) {}
+            }
         }
 
         /* =========================================================
@@ -745,11 +846,6 @@ public class ColorSortActivity extends Activity {
             levelFinished = false;
 
             levelFailed = false;
-
-            showingHint = false;
-
-            hintFrom = -1;
-            hintTo = -1;
 
             animFrom = -1;
             animTo = -1;
@@ -1038,17 +1134,6 @@ public class ColorSortActivity extends Activity {
                     h
             );
 
-            if (showingHint &&
-                    System.currentTimeMillis()
-                            < hintUntil) {
-
-                drawHint(canvas);
-
-            } else {
-
-                showingHint = false;
-            }
-
             if (errorStart > 0 &&
                     SystemClock.uptimeMillis()
                             - errorStart
@@ -1115,8 +1200,8 @@ public class ColorSortActivity extends Activity {
                             0,
                             0,
                             h,
-                            Color.rgb(12, 31, 150),
-                            Color.rgb(19, 7, 88),
+                            Color.rgb(49, 35, 105),
+                            Color.rgb(18, 18, 58),
                             Shader.TileMode.CLAMP
                     );
 
@@ -1138,16 +1223,16 @@ public class ColorSortActivity extends Activity {
                             h * .38f,
                             w * .8f,
                             Color.argb(
-                                    80,
-                                    32,
-                                    112,
-                                    255
+                                    72,
+                                    236,
+                                    157,
+                                    202
                             ),
                             Color.argb(
                                     0,
-                                    20,
-                                    25,
-                                    120
+                                    28,
+                                    18,
+                                    68
                             ),
                             Shader.TileMode.CLAMP
                     );
@@ -1163,36 +1248,47 @@ public class ColorSortActivity extends Activity {
 
             p.setShader(null);
 
-            p.setColor(
-                    Color.argb(
-                            70,
-                            50,
-                            180,
-                            255
-                    )
-            );
+            // Two slowly drifting aurora pools create depth without bitmap assets.
+            float drift = liquidWave * 0.010f;
+            float glowX1 = w * (0.20f + 0.035f * (float) Math.sin(drift));
+            float glowY1 = h * (0.34f + 0.025f * (float) Math.cos(drift * 1.3f));
+            RadialGradient auroraA = new RadialGradient(
+                    glowX1, glowY1, w * 0.42f,
+                    new int[]{Color.argb(42, 75, 190, 255),
+                            Color.argb(18, 115, 90, 255), Color.TRANSPARENT},
+                    new float[]{0f, 0.48f, 1f}, Shader.TileMode.CLAMP);
+            p.setShader(auroraA);
+            c.drawCircle(glowX1, glowY1, w * 0.42f, p);
+            p.setShader(null);
 
-            for (int i = 0; i < 12; i++) {
+            float glowX2 = w * (0.82f + 0.028f * (float) Math.cos(drift * 0.8f));
+            float glowY2 = h * (0.68f + 0.025f * (float) Math.sin(drift));
+            RadialGradient auroraB = new RadialGradient(
+                    glowX2, glowY2, w * 0.36f,
+                    new int[]{Color.argb(34, 255, 105, 190),
+                            Color.argb(15, 110, 80, 255), Color.TRANSPARENT},
+                    new float[]{0f, 0.52f, 1f}, Shader.TileMode.CLAMP);
+            p.setShader(auroraB);
+            c.drawCircle(glowX2, glowY2, w * 0.36f, p);
+            p.setShader(null);
 
-                float x =
-                        (i * 97 + 43) % w;
+            // Tiny fixed stars plus gently drifting dust particles.
+            for (int i = 0; i < 22; i++) {
+                float phase = liquidWave * 0.012f + i * 0.73f;
+                float x = (i * 97f + 43f) % Math.max(1f, w);
+                float y = 80f + ((i * 131f) % Math.max(1f, h - 100f));
+                int twinkle = 34 + (int) (34f * (0.5f + 0.5f * Math.sin(phase * 1.7f)));
+                p.setColor(Color.argb(twinkle, 210, 230, 255));
+                c.drawCircle(x, y, 1.1f + (i % 3) * 0.55f, p);
+            }
 
-                float y =
-                        95 +
-                                (
-                                        (i * 131)
-                                                % Math.max(
-                                                1,
-                                                (int) h
-                                        )
-                                );
-
-                c.drawCircle(
-                        x,
-                        y,
-                        2 + (i % 3),
-                        p
-                );
+            for (int i = 0; i < 18; i++) {
+                float phase = drift + i * 0.73f;
+                float x = (i * 83f + (float) Math.sin(phase) * 22f) % Math.max(1f, w);
+                float y = h * 0.18f + ((i * 109f + liquidWave * (1.1f + (i % 3) * 0.55f)) % (h * 0.68f));
+                int alpha = 24 + (int) (22f * (0.5f + 0.5f * Math.sin(phase * 1.7f)));
+                p.setColor(Color.argb(alpha, 255, 218, 235));
+                c.drawCircle(x, y, 1.8f + (i % 3) * 0.75f, p);
             }
         }
 
@@ -1374,14 +1470,7 @@ public class ColorSortActivity extends Activity {
                     text
             );
 
-            text.setTextSize(24);
-
-            c.drawText(
-                    "+",
-                    w - 27,
-                    55,
-                    text
-            );
+            // No shop is connected yet; keep the coin counter informational.
         }
 
         /* =========================================================
@@ -2307,7 +2396,7 @@ public class ColorSortActivity extends Activity {
             float bx = (startX + endX) * .5f + curve;
             float by = (startY + endY) * .5f + 10f + wave;
 
-            int base = colors[colorIndex];
+            int base = getLevelAdjustedColor(colorIndex);
             int light = lighten(base, 1.55f);
             int dark = darken(base, .38f);
 
@@ -2577,6 +2666,19 @@ public class ColorSortActivity extends Activity {
             };
         }
 
+        private int getLevelAdjustedColor(int colorIndex) {
+            int base = colors[colorIndex];
+            if (level <= 25) return base;
+            Color.colorToHSV(base, colorHsvScratch);
+            // A restrained advanced-stage tint helps distinguish close shades
+            // while keeping each color recognizable and the sorting rules intact.
+            float offset = 1.4f + ((level - 26) % 4) * 0.30f
+                    + (colorIndex % 3) * 0.18f;
+            colorHsvScratch[0] = (colorHsvScratch[0] + offset) % 360f;
+            colorHsvScratch[1] = Math.min(1f, colorHsvScratch[1] * 1.012f);
+            return Color.HSVToColor(Color.alpha(base), colorHsvScratch);
+        }
+
         /* =========================================================
            LIQUID
            ========================================================= */
@@ -2597,7 +2699,7 @@ public class ColorSortActivity extends Activity {
                 return;
             }
 
-            int base = colors[colorIndex];
+            int base = getLevelAdjustedColor(colorIndex);
             int light = lighten(base, 1.55f);
             int mid = lighten(base, 1.08f);
             int dark = darken(base, .42f);
@@ -2686,7 +2788,7 @@ public class ColorSortActivity extends Activity {
                 return;
             }
 
-            int base = colors[colorIndex];
+            int base = getLevelAdjustedColor(colorIndex);
             int light = lighten(base, 1.60f);
 
             float width = right - left;
@@ -2839,6 +2941,27 @@ public class ColorSortActivity extends Activity {
             p.clearShadowLayer();
 
             p.setShader(null);
+
+            // Raised metallic crown and rolled lower rim give the cap depth.
+            p.setShader(new LinearGradient(
+                    cx - capW / 2f, y - 3f,
+                    cx + capW / 2f, y + 5f,
+                    Color.rgb(255, 248, 218),
+                    Color.rgb(184, 119, 42),
+                    Shader.TileMode.CLAMP
+            ));
+            c.drawOval(
+                    new RectF(cx - capW / 2f, y - 4f,
+                            cx + capW / 2f, y + 7f),
+                    p
+            );
+            p.setShader(null);
+            p.setColor(Color.argb(175, 255, 235, 174));
+            c.drawRoundRect(
+                    new RectF(cx - capW / 2f + 1f, y + capH - 5f,
+                            cx + capW / 2f - 1f, y + capH),
+                    3f, 3f, p
+            );
 
             p.setColor(
                     Color.argb(
@@ -3004,11 +3127,11 @@ public class ColorSortActivity extends Activity {
                     y,
                     52,
                     Color.rgb(
-                            169,
-                            24,
-                            244
+                            244,
+                            126,
+                            72
                     ),
-                    "?"
+                    "↻"
             );
 
             drawRoundPanel(
@@ -3090,7 +3213,7 @@ public class ColorSortActivity extends Activity {
             );
 
             c.drawText(
-                    "راهنما",
+                    "شروع دوباره",
                     w / 2f - 105,
                     y + 78,
                     text
@@ -3116,12 +3239,6 @@ public class ColorSortActivity extends Activity {
                     )
             );
 
-            drawBadgeCircle(
-                    c,
-                    w / 2f - 81,
-                    y - 43,
-                    "5"
-            );
         }
 
         /* =========================================================
@@ -3217,7 +3334,7 @@ public class ColorSortActivity extends Activity {
             c.drawText(
                     "مرحله " +
                             level +
-                            " از 30   •   خطا: " +
+                            " از " + MAX_LEVEL + "   •   خطا: " +
                             mistakes +
                             "/" +
                             MAX_MISTAKES +
@@ -3226,67 +3343,6 @@ public class ColorSortActivity extends Activity {
                     w / 2f,
                     top + 96,
                     text
-            );
-        }
-
-        /* =========================================================
-           HINT
-           ========================================================= */
-
-        private void drawHint(Canvas c) {
-
-            float[] a =
-                    getTubeGeometry(
-                            hintFrom
-                    );
-
-            float[] b =
-                    getTubeGeometry(
-                            hintTo
-                    );
-
-            if (a == null ||
-                    b == null) {
-
-                return;
-            }
-
-            stroke.setStyle(
-                    Paint.Style.STROKE
-            );
-
-            stroke.setStrokeWidth(6);
-
-            stroke.setColor(
-                    Color.argb(
-                            230,
-                            255,
-                            215,
-                            30
-                    )
-            );
-
-            c.drawLine(
-                    a[0],
-                    a[1],
-                    b[0],
-                    b[1],
-                    stroke
-            );
-
-            p.setColor(
-                    Color.rgb(
-                            255,
-                            215,
-                            30
-                    )
-            );
-
-            c.drawCircle(
-                    b[0],
-                    b[1],
-                    9,
-                    p
             );
         }
 
@@ -4397,6 +4453,13 @@ public class ColorSortActivity extends Activity {
             float w =
                     getWidth();
 
+            // The home tile is visible in the header, so make its hit area real.
+            if (x >= 8f && x <= 88f && y >= 8f && y <= 88f) {
+                saveProgress();
+                finish();
+                return true;
+            }
+
             /* ---------------------------------
                FAILURE SCREEN
                --------------------------------- */
@@ -4482,11 +4545,8 @@ public class ColorSortActivity extends Activity {
                             controlY
                     ) < 65
             ) {
-
-                showHint();
-
                 playGameSound(1);
-
+                resetLevel();
                 return true;
             }
 
@@ -4505,7 +4565,11 @@ public class ColorSortActivity extends Activity {
                 saveProgress();
 
                 if (soundEnabled) {
+                    startAmbientMusic();
                     playGameSound(1);
+                } else {
+                    stopAmbientMusic();
+                    stopActiveSound();
                 }
 
                 invalidate();
@@ -5032,71 +5096,6 @@ public class ColorSortActivity extends Activity {
         }
 
         /* =========================================================
-           HINT
-           ========================================================= */
-
-        void showHint() {
-
-            if (
-                    levelFinished ||
-                            levelFailed ||
-                            animProgress < 1f
-            ) {
-
-                return;
-            }
-
-            for (
-                    int from = 0;
-                    from < tubes.size();
-                    from++
-            ) {
-
-                if (
-                        tubes.get(from).isEmpty()
-                ) {
-
-                    continue;
-                }
-
-                for (
-                        int to = 0;
-                        to < tubes.size();
-                        to++
-                ) {
-
-                    if (
-                            from != to &&
-                                    canMove(
-                                            from,
-                                            to
-                                    )
-                    ) {
-
-                        hintFrom = from;
-                        hintTo = to;
-
-                        showingHint = true;
-
-                        hintUntil =
-                                System.currentTimeMillis()
-                                        + 1800;
-
-                        invalidate();
-
-                        return;
-                    }
-                }
-            }
-
-            Toast.makeText(
-                    ColorSortActivity.this,
-                    "فعلاً حرکت مناسبی پیدا نشد",
-                    Toast.LENGTH_SHORT
-            ).show();
-        }
-
-        /* =========================================================
            COMPLETE LEVEL
            ========================================================= */
 
@@ -5275,4 +5274,4 @@ public class ColorSortActivity extends Activity {
             }
         }
     }
-      }
+        }
