@@ -256,10 +256,9 @@ public class TajroApplication extends Application {
                 data.put("fcmTokenUpdatedAt",
                         FieldValue.serverTimestamp());
 
-                FirebaseFirestore.getInstance()
-                        .collection("users")
-                        .document(uid)
-                        .set(data, SetOptions.merge())
+                firestore.collection("users")
+        .document(uid)
+        .set(data, SetOptions.merge())
                         .addOnFailureListener(error ->
                                 Log.e(TAG, "FCM token save failed", error));
             })
