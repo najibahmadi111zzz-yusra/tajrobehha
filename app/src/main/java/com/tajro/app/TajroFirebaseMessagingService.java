@@ -67,11 +67,32 @@ public class TajroFirebaseMessagingService extends FirebaseMessagingService {
         showNotification(title, body);
     }
 
-    @Override
-    public void onNewToken(String token) {
-        super.onNewToken(token);
-        // اگر توکن در Firestore ذخیره می‌شود، منطق ذخیره‌سازی پروژه را اینجا نگه دارید.
+@Override
+public void onNewToken(String token) {
+    super.onNewToken(token);
+
+    if (token == null || token.isEmpty()) return;
+
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+    if (user == null) {
+        Log.w("FCM", "Token refreshed, but no signed-in user is available.");
+        return;
     }
+
+    Map<String, Object> data = new HashMap<>();
+    data.put("fcmToken", token);
+    data.put("fcmTokenUpdatedAt", FieldValue.serverTimestamp());
+
+    FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(user.getUid())
+            .set(data, SetOptions.merge())
+            .addOnSuccessListener(unused ->
+                    Log.i("FCM", "New FCM token saved successfully"))
+            .addOnFailureListener(error ->
+                    Log.e("FCM", "Could not save refreshed FCM token", error));
+}
 
     private void showNotification(String title, String body) {
         createNotificationChannel();
