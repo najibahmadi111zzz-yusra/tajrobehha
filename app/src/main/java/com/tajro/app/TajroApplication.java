@@ -19,6 +19,7 @@ import com.google.firebase.database.ServerValue;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.unity3d.ads.InitializationConfiguration;
 import com.unity3d.ads.InitializationListener;
 import com.unity3d.ads.UnityAds;
@@ -102,6 +103,10 @@ public class TajroApplication extends Application {
                 }
 
                 activeUid = newUid;
+                if (newUid != null) {
+    saveFcmToken(newUid);
+}
+                
                 if (appInForeground && activeUid != null) {
                     startPresence(activeUid);
                 }
@@ -238,6 +243,29 @@ public class TajroApplication extends Application {
                 .addOnFailureListener(error ->
                         Log.w(TAG, "Firestore presence update failed", error));
     }
+    
+    private void saveFcmToken(String uid) {
+    if (uid == null || uid.isEmpty()) return;
+
+    FirebaseMessaging.getInstance().getToken()
+            .addOnSuccessListener(token -> {
+                if (token == null || token.isEmpty()) return;
+
+                Map<String, Object> data = new HashMap<>();
+                data.put("fcmToken", token);
+                data.put("fcmTokenUpdatedAt",
+                        FieldValue.serverTimestamp());
+
+                FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(uid)
+                        .set(data, SetOptions.merge())
+                        .addOnFailureListener(error ->
+                                Log.e(TAG, "FCM token save failed", error));
+            })
+            .addOnFailureListener(error ->
+                    Log.e(TAG, "FCM token retrieval failed", error));
+            }
 
     private void initializeUnityAds() {
         Log.i(UNITY_TAG, "========== UNITY DIAGNOSTIC START ==========");
