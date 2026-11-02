@@ -733,19 +733,16 @@ public class ColorSortActivity extends Activity {
             ambientThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    // A gentle, continuously evolving night-time soundscape.
-                    // Generated locally: no network, media files or extra permissions.
+                    // Original, locally synthesized gentle night rain ambience.
+                    // No downloaded music, network access, or extra permissions.
                     final int sampleRate = 22050;
                     final int framesPerBlock = 1024;
                     final byte[] buffer = new byte[framesPerBlock * 2];
                     final double twoPi = Math.PI * 2.0;
-                    final double[] roots = {196.00, 220.00, 174.61, 164.81};
-                    final double[] melody = {
-                            392.00, 440.00, 523.25, 587.33,
-                            523.25, 440.00, 349.23, 392.00
-                    };
+                    final Random rainRandom = new Random();
                     AudioTrack track = null;
                     long sample = 0L;
+                    double filteredRain = 0.0;
                     try {
                         int min = AudioTrack.getMinBufferSize(
                                 sampleRate,
@@ -768,51 +765,26 @@ public class ColorSortActivity extends Activity {
                                 && ambientAudioTrack == track) {
                             for (int i = 0; i < framesPerBlock; i++, sample++) {
                                 double seconds = sample / (double) sampleRate;
-                                double chordPosition = seconds / 8.0;
-                                int chord = ((int) chordPosition) % roots.length;
-                                double chordFade = chordPosition - Math.floor(chordPosition);
-                                // Crossfade the chord change to avoid audible clicks.
-                                double blend = chordFade < 0.10
-                                        ? chordFade / 0.10 : 1.0;
-                                double rootA = roots[chord];
-                                double rootB = roots[(chord + 1) % roots.length];
-                                double root = rootA * (1.0 - blend) + rootB * blend;
+                                double raw = rainRandom.nextDouble() * 2.0 - 1.0;
+                                // Soft low-pass noise gives a distant, steady rainfall texture.
+                                filteredRain += (raw - filteredRain) * 0.035;
+                                double rain = filteredRain * 0.16;
+                                double distantWash = Math.sin(twoPi * 73.4 * seconds)
+                                        * Math.sin(twoPi * 0.075 * seconds) * 0.006;
 
-                                double slowBreath = 0.78 + 0.22 * Math.sin(twoPi * seconds / 13.0);
-                                double pad =
-                                        Math.sin(twoPi * root * seconds) * 0.48
-                                        + Math.sin(twoPi * root * 1.5 * seconds) * 0.17
-                                        + Math.sin(twoPi * root * 2.0 * seconds) * 0.08
-                                        + Math.sin(twoPi * root * 0.5 * seconds) * 0.13;
-
-                                // Sparse, soft pentatonic notes: more like distant chimes than beeps.
-                                double melodyCycle = seconds % 3.6;
-                                int noteIndex = ((int) (seconds / 3.6)) % melody.length;
-                                double noteEnvelope = Math.exp(-melodyCycle * 1.65)
-                                        * Math.min(1.0, melodyCycle * 18.0);
-                                double chime = Math.sin(twoPi * melody[noteIndex] * melodyCycle)
-                                        * noteEnvelope * 0.12;
-                                chime += Math.sin(twoPi * melody[noteIndex] * 2.01 * melodyCycle)
-                                        * noteEnvelope * 0.025;
-
-                                // Occasional rounded water-drop tone with a long, soft decay.
-                                double dropCycle = seconds % 6.4;
+                                // A few rounded water drops, spaced irregularly and kept quiet.
                                 double drop = 0.0;
-                                if (dropCycle < 0.95) {
-                                    double dropEnv = Math.exp(-dropCycle * 4.2)
-                                            * Math.min(1.0, dropCycle * 22.0);
-                                    double dropFreq = 1046.5 - 170.0 * dropCycle;
-                                    drop = Math.sin(twoPi * dropFreq * dropCycle)
-                                            * dropEnv * 0.075;
-                                    drop += Math.sin(twoPi * dropFreq * 2.0 * dropCycle)
-                                            * dropEnv * 0.012;
+                                double cycle = seconds % 4.7;
+                                if (cycle < 0.42) {
+                                    double envelope = Math.exp(-cycle * 10.0)
+                                            * Math.min(1.0, cycle * 32.0);
+                                    double frequency = 1180.0 - 430.0 * cycle;
+                                    drop = Math.sin(twoPi * frequency * cycle)
+                                            * envelope * 0.045;
                                 }
-
-                                // Very quiet airy undertone; slow modulation prevents harshness.
-                                double air = Math.sin(twoPi * 0.17 * seconds)
-                                        * Math.sin(twoPi * 0.035 * seconds) * 0.018;
-                                double value = (pad * 0.050 + chime + drop + air) * slowBreath;
-                                value = Math.tanh(value * 1.35) * 0.78;
+                                double slowBreath = 0.82 + 0.18 * Math.sin(twoPi * seconds / 17.0);
+                                double value = (rain + distantWash + drop) * slowBreath;
+                                value = Math.tanh(value * 1.8) * 0.58;
                                 int pcm = (int) (Math.max(-1.0, Math.min(1.0, value)) * 32700.0);
                                 buffer[i * 2] = (byte) (pcm & 255);
                                 buffer[i * 2 + 1] = (byte) ((pcm >> 8) & 255);
@@ -831,7 +803,7 @@ public class ColorSortActivity extends Activity {
                         ambientRunning = false;
                     }
                 }
-            }, "ColorSort-Ambient-Audio");
+            }, "ColorSort-Gentle-Rain");
             ambientThread.setDaemon(true);
             ambientThread.start();
         }
@@ -1250,38 +1222,50 @@ public class ColorSortActivity extends Activity {
             // Small, distant moon. Its glow is intentionally faint and never dominates.
             float moonX = w * 0.84f;
             float moonY = h * 0.145f;
-            float moonRadius = Math.max(8f, Math.min(13f, w * 0.022f));
+            float moonRadius = Math.max(17f, Math.min(25f, w * 0.043f));
             RadialGradient moonHalo = new RadialGradient(
                     moonX, moonY, moonRadius * 3.6f,
-                    Color.argb(24, 190, 207, 238),
+                    Color.argb(48, 205, 220, 250),
                     Color.TRANSPARENT,
                     Shader.TileMode.CLAMP
             );
             p.setShader(moonHalo);
             c.drawCircle(moonX, moonY, moonRadius * 3.6f, p);
             p.setShader(null);
-            p.setColor(Color.argb(118, 205, 216, 235));
+            p.setColor(Color.argb(225, 226, 235, 255));
             c.drawCircle(moonX, moonY, moonRadius, p);
-            p.setColor(Color.argb(38, 118, 137, 174));
+            p.setColor(Color.argb(48, 118, 137, 174));
             c.drawCircle(moonX + moonRadius * 0.30f,
                     moonY - moonRadius * 0.12f, moonRadius * 0.88f, p);
 
             // Numerous tiny, low-intensity stars create depth without a glittering effect.
-            for (int i = 0; i < 92; i++) {
+            for (int i = 0; i < 125; i++) {
                 float phase = liquidWave * 0.009f + i * 1.713f;
                 float x = (i * 127.7f + 31f) % Math.max(1f, w);
                 float y = 18f + ((i * 173.3f) % Math.max(1f, h - 36f));
                 float twinkle = 0.5f + 0.5f * (float) Math.sin(phase);
-                int alpha = 22 + (int) (35f * twinkle);
-                float radius = 0.55f + (i % 4) * 0.28f;
+                int alpha = 48 + (int) (82f * twinkle);
+                float radius = 0.75f + (i % 4) * 0.38f;
                 p.setColor(Color.argb(alpha, 190, 207, 238));
                 c.drawCircle(x, y, radius, p);
 
                 // Only a few stars get a very subtle soft point of light.
-                if (i % 17 == 0) {
-                    p.setColor(Color.argb(17 + (int) (12f * twinkle), 205, 218, 246));
+                if (i % 11 == 0) {
+                    p.setColor(Color.argb(30 + (int) (28f * twinkle), 215, 228, 255));
                     c.drawCircle(x, y, radius * 2.8f, p);
                 }
+            }
+
+            // Fine, slow rain in the distant sky: decorative only, never obscures the puzzle.
+            for (int i = 0; i < 34; i++) {
+                float speed = 0.34f + (i % 5) * 0.075f;
+                float x = (i * 83.7f + (float) Math.sin(liquidWave * 0.018f + i) * 7f)
+                        % Math.max(1f, w);
+                float span = Math.max(1f, h * 0.72f);
+                float y = h * 0.08f + ((i * 61.3f + liquidWave * speed) % span);
+                p.setColor(Color.argb(18 + (i % 4) * 4, 174, 202, 235));
+                p.setStrokeWidth(0.8f);
+                c.drawLine(x, y, x - 2.2f, y + 7.5f, p);
             }
 
             // Sparse, slow-moving distant dust; deliberately dim and unobtrusive.
@@ -5313,4 +5297,4 @@ public class ColorSortActivity extends Activity {
             }
         }
     }
-        }
+                                     }
