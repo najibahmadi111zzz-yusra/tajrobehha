@@ -125,6 +125,9 @@ public class ChatActivity extends Activity {
     private ListenerRegistration typingListener;
     private ListenerRegistration blockListener;
     private ListenerRegistration reverseBlockListener;
+    private ListenerRegistration unreadMessagesListener;
+    private final Map<String, Integer> unreadCounts = new HashMap<>();
+    private String pendingNotificationMessageId;
 
     private boolean blockedByMe = false;
     private boolean blockedByReceiver = false;
@@ -219,7 +222,9 @@ public class ChatActivity extends Activity {
 
         ensureUserProfile();
         createUsersScreen();
+        listenUnreadMessages();
         loadUsers();
+        openNotificationMessage(getIntent());
     }
 
 
@@ -1448,6 +1453,66 @@ titleText =
         dialog.show();
     }
 
+    private void listenUnreadMessages() {
+        if (unreadMessagesListener != null) {
+            unreadMessagesListener.remove();
+            unreadMessagesListener = null;
+        }
+        unreadMessagesListener = db.collection("messages")
+                .whereEqualTo("receiverId", myId)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null || snapshot == null) {
+                        Log.w("ChatUnread", "Unread message listener failed", error);
+                        return;
+                    }
+                    Map<String, Integer> counts = new HashMap<>();
+                    for (DocumentSnapshot d : snapshot.getDocuments()) {
+                        if (Boolean.TRUE.equals(d.getBoolean("read"))
+                                || Boolean.TRUE.equals(d.getBoolean("deletedForAll"))) {
+                            continue;
+                        }
+                        List<String> deletedFor = (List<String>) d.get("deletedFor");
+                        if (deletedFor != null && deletedFor.contains(myId)) continue;
+                        String sender = d.getString("senderId");
+                        if (sender != null && !sender.equals(myId)) {
+                            Integer old = counts.get(sender);
+                            counts.put(sender, old == null ? 1 : old + 1);
+                        }
+                    }
+                    unreadCounts.clear();
+                    unreadCounts.putAll(counts);
+                    if (!insideChat && usersContainer != null) loadUsers();
+                });
+    }
+
+    private void openNotificationMessage(Intent intent) {
+        if (intent == null) return;
+        String messageId = intent.getStringExtra("messageId");
+        if (messageId == null || messageId.trim().isEmpty()) return;
+        intent.removeExtra("messageId");
+        db.collection("messages").document(messageId).get()
+                .addOnSuccessListener(message -> {
+                    if (!message.exists()) return;
+                    String senderId = message.getString("senderId");
+                    String receiver = message.getString("receiverId");
+                    String chatId = message.getString("chatId");
+                    if (senderId == null || receiver == null || chatId == null
+                            || !myId.equals(receiver) || senderId.equals(myId)) return;
+                    db.collection("users").document(senderId).get()
+                            .addOnSuccessListener(profile -> {
+                                String name = profile.getString("name");
+                                if (name == null || name.trim().isEmpty()) name = profile.getString("displayName");
+                                if (name == null || name.trim().isEmpty()) name = profile.getString("username");
+                                if (name == null || name.trim().isEmpty()) name = tr("کاربر");
+                                String photo = getProfilePhotoUrl(profile);
+                                pendingNotificationMessageId = messageId;
+                                openPrivateChat(senderId, name, photo);
+                            })
+                            .addOnFailureListener(e -> Log.e("ChatNotification", "Could not load sender profile", e));
+                })
+                .addOnFailureListener(e -> Log.e("ChatNotification", "Could not load notified message", e));
+    }
+
     private void loadUsers() {
 
         if (usersContainer == null) return;
@@ -1808,6 +1873,16 @@ titleText =
                         1
                 )
         );
+
+        int unreadCount = unreadCounts.containsKey(finalUid) ? unreadCounts.get(finalUid) : 0;
+        if (unreadCount > 0) {
+            TextView unreadBadge = text(unreadCount > 99 ? "99+" : String.valueOf(unreadCount), 13);
+            unreadBadge.setTextColor(Color.WHITE);
+            unreadBadge.setGravity(Gravity.CENTER);
+            unreadBadge.setPadding(dp(8), dp(4), dp(8), dp(4));
+            unreadBadge.setBackground(bg(Color.rgb(0, 160, 75), 30));
+            card.addView(unreadBadge, new LinearLayout.LayoutParams(dp(38), dp(32)));
+        }
 
         TextView menu =
                 text("⋮", 26);
@@ -3059,6 +3134,16 @@ header.addView(chatMenu,
         }
 
         if (messagesScroll != null) {
+            if (pendingNotificationMessageId != null
+                    && messageViews.containsKey(pendingNotificationMessageId)) {
+                final String targetId = pendingNotificationMessageId;
+                pendingNotificationMessageId = null;
+                messagesScroll.post(() -> {
+                    View target = messageViews.get(targetId);
+                    if (target != null) messagesScroll.smoothScrollTo(0, target.getTop());
+                });
+                return;
+            }
             messagesScroll.post(() -> {
                 if (wasAtBottom) {
                     messagesScroll.fullScroll(View.FOCUS_DOWN);
@@ -5000,264 +5085,72 @@ private void deleteOldProfilePhoto(String oldPhotoUrl) {
             String contentType,
             SupabaseUploadCallback callback
     ) {
-
-        new Thread(
-                () -> {
-
-                    HttpURLConnection connection =
-                            null;
-
-                    InputStream input =
-                            null;
-
-                    OutputStream output =
-                            null;
-
-                    try {
-
-                        String endpoint =
-                                SUPABASE_URL +
-                                        "/storage/v1/object/" +
-                                        bucket +
-                                        "/" +
-                                        encodePath(
-                                                objectPath
-                                        );
-
-                        URL url =
-                                new URL(endpoint);
-
-                        connection =
-                                (HttpURLConnection)
-                                        url.openConnection();
-
-                        connection.setRequestMethod(
-                                "POST"
-                        );
-
-                        connection.setDoOutput(true);
-                        connection.setDoInput(true);
-
-                        connection.setConnectTimeout(
-                                30000
-                        );
-
-                        connection.setReadTimeout(
-                                60000
-                        );
-
-                        /*
-                         * فقط apikey.
-                         * Authorization Bearer برای
-                         * publishable key استفاده نمی‌شود.
-                         */
-                        connection.setRequestProperty(
-                                "apikey",
-                                SUPABASE_PUBLISHABLE_KEY
-                        );
-
-                        connection.setRequestProperty(
-                                "Accept",
-                                "application/json"
-                        );
-
-                        connection.setRequestProperty(
-                                "Content-Type",
-                                contentType
-                        );
-
-                        long size = -1;
-
-                        if ("file".equals(
-                                uri.getScheme()
-                        )) {
-
-                            File file =
-                                    new File(
-                                            uri.getPath()
-                                    );
-
-                            if (!file.exists()) {
-
-                                throw new Exception(
-                                        tr("فایل وجود ندارد")
-                                );
-                            }
-
-                            if (file.length() <= 0) {
-
-                                throw new Exception(
-                                        tr("فایل خالی است")
-                                );
-                            }
-
-                            size =
-                                    file.length();
-
-                            input =
-                                    new FileInputStream(
-                                            file
-                                    );
-
-                        } else {
-
-                            input =
-                                    getContentResolver()
-                                            .openInputStream(
-                                                    uri
-                                            );
-
-                            if (input == null) {
-
-                                throw new Exception(
-                                        tr("فایل قابل خواندن نیست")
-                                );
-                            }
-
-                            size =
-                                    getUriSize(uri);
-                        }
-
-                        if (size > 0) {
-
-                            connection
-                                    .setFixedLengthStreamingMode(
-                                            size
-                                    );
-                        }
-
-                        output =
-                                connection
-                                        .getOutputStream();
-
-                        byte[] buffer =
-                                new byte[8192];
-
-                        int count;
-
-                        while (
-                                (count =
-                                        input.read(
-                                                buffer
-                                        )) != -1
-                        ) {
-
-                            output.write(
-                                    buffer,
-                                    0,
-                                    count
-                            );
-                        }
-
-                        output.flush();
-                        output.close();
-                        output = null;
-
-                        int code =
-                                connection
-                                        .getResponseCode();
-
-                        if (code >= 200 &&
-                                code < 300) {
-
-                            String publicUrl =
-                                    getSupabasePublicUrl(
-                                            bucket,
-                                            objectPath
-                                    );
-
-                            runOnUiThread(
-                                    () ->
-                                            callback.onSuccess(
-                                                    publicUrl
-                                            )
-                            );
-
-                        } else {
-
-                            String body =
-                                    readErrorResponse(
-                                            connection
-                                    );
-
-                            String message =
-                                    "HTTP " +
-                                            code +
-                                            " " +
-                                            connection
-                                                    .getResponseMessage();
-
-                            if (body != null &&
-                                    !body.trim()
-                                            .isEmpty()) {
-
-                                message +=
-                                        "\n" +
-                                                body;
-                            }
-
-                            String finalMessage =
-                                    message;
-
-                            runOnUiThread(
-                                    () ->
-                                            callback.onError(
-                                                    finalMessage
-                                            )
-                            );
-                        }
-
-                    } catch (Exception e) {
-
-                        String message =
-                                e.getMessage();
-
-                        if (message == null ||
-                                message.trim()
-                                        .isEmpty()) {
-
-                            message =
-                                    e.getClass()
-                                            .getSimpleName();
-                        }
-
-                        String finalMessage =
-                                message;
-
-                        runOnUiThread(
-                                () ->
-                                        callback.onError(
-                                                finalMessage
-                                        )
-                        );
-
-                    } finally {
-
-                        try {
-
-                            if (output != null) {
-                                output.close();
-                            }
-
-                        } catch (Exception ignored) {
-                        }
-
-                        try {
-
-                            if (input != null) {
-                                input.close();
-                            }
-
-                        } catch (Exception ignored) {
-                        }
-
-                        if (connection != null) {
-                            connection.disconnect();
-                        }
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            File tempFile = null;
+            try {
+                // بعضی DocumentProviderها اندازه نادرست می‌دهند؛ ابتدا فایل را کامل
+                // در حافظه موقت کپی می‌کنیم تا Content-Length دقیق باشد.
+                tempFile = File.createTempFile("tajro_upload_", ".tmp", getCacheDir());
+                try (InputStream source = getContentResolver().openInputStream(uri);
+                     OutputStream cacheOut = new java.io.FileOutputStream(tempFile)) {
+                    if (source == null) throw new Exception(tr("فایل قابل خواندن نیست"));
+                    byte[] buffer = new byte[16 * 1024];
+                    int count;
+                    while ((count = source.read(buffer)) != -1) {
+                        cacheOut.write(buffer, 0, count);
                     }
-
+                    cacheOut.flush();
                 }
-        ).start();
+                long exactSize = tempFile.length();
+                if (exactSize <= 0) throw new Exception(tr("فایل خالی است"));
+
+                String endpoint = SUPABASE_URL + "/storage/v1/object/" + bucket + "/" + encodePath(objectPath);
+                connection = (HttpURLConnection) new URL(endpoint).openConnection();
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                connection.setDoInput(true);
+                connection.setConnectTimeout(30000);
+                connection.setReadTimeout(60000);
+                connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+                connection.setRequestProperty("Accept", "application/json");
+                connection.setRequestProperty("Content-Type", contentType);
+                connection.setFixedLengthStreamingMode(exactSize);
+
+                try (InputStream fileInput = new FileInputStream(tempFile);
+                     OutputStream networkOutput = connection.getOutputStream()) {
+                    byte[] buffer = new byte[16 * 1024];
+                    int count;
+                    while ((count = fileInput.read(buffer)) != -1) {
+                        networkOutput.write(buffer, 0, count);
+                    }
+                    networkOutput.flush();
+                }
+
+                int code = connection.getResponseCode();
+                if (code >= 200 && code < 300) {
+                    String publicUrl = getSupabasePublicUrl(bucket, objectPath);
+                    runOnUiThread(() -> callback.onSuccess(publicUrl));
+                } else {
+                    String body = readErrorResponse(connection);
+                    String message = "HTTP " + code + " " + connection.getResponseMessage();
+                    if (body != null && !body.trim().isEmpty()) message += "\n" + body;
+                    final String error = message;
+                    runOnUiThread(() -> callback.onError(error));
+                }
+            } catch (Exception e) {
+                String message = e.getMessage();
+                if (message == null || message.trim().isEmpty()) message = e.getClass().getSimpleName();
+                final String error = message;
+                runOnUiThread(() -> callback.onError(error));
+            } finally {
+                if (connection != null) connection.disconnect();
+                if (tempFile != null && tempFile.exists()) {
+                    //noinspection ResultOfMethodCallIgnored
+                    tempFile.delete();
+                }
+            }
+        }, "supabase-upload").start();
     }
 
     private long getUriSize(
@@ -5856,6 +5749,13 @@ private void downloadImageToView(String url, ImageView imageView) {
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        openNotificationMessage(intent);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
 
@@ -5882,6 +5782,10 @@ private void downloadImageToView(String url, ImageView imageView) {
     protected void onDestroy() {
 
         removeChatListeners();
+        if (unreadMessagesListener != null) {
+            unreadMessagesListener.remove();
+            unreadMessagesListener = null;
+        }
 
         try {
 
