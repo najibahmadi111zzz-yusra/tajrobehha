@@ -10,14 +10,13 @@ import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
-import android.util.Log;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldValue;
@@ -29,7 +28,6 @@ import java.util.Map;
 
 public class TajroFirebaseMessagingService extends FirebaseMessagingService {
 
-    // شناسه جدید تا تنظیمات کانال قدیمیِ بی‌صدا دوباره استفاده نشود.
     private static final String CHANNEL_ID = "tajro_chat_messages_v2";
     private static final String CHANNEL_NAME = "پیام‌های تجربه‌ها";
     private static final String CHANNEL_DESCRIPTION = "اعلان پیام‌های متنی، تصویری، ویدیویی و صوتی";
@@ -42,15 +40,14 @@ public class TajroFirebaseMessagingService extends FirebaseMessagingService {
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
+        Map<String, String> data = remoteMessage.getData();
         String title = "پیام جدید";
         String body = "یک پیام جدید دریافت کردید.";
+        String messageType = data.get("type");
+        String senderName = data.get("senderName");
+        String messageId = data.get("messageId");
 
-        String messageType = remoteMessage.getData().get("type");
-        String senderName = remoteMessage.getData().get("senderName");
-
-        if (senderName != null && !senderName.trim().isEmpty()) {
-            title = senderName;
-        }
+        if (senderName != null && !senderName.trim().isEmpty()) title = senderName;
 
         if ("audio".equals(messageType)) {
             body = "🎙️ پیام صوتی جدید";
@@ -59,65 +56,52 @@ public class TajroFirebaseMessagingService extends FirebaseMessagingService {
         } else if ("video".equals(messageType)) {
             body = "🎬 ویدیوی جدید";
         } else if ("text".equals(messageType)) {
-            String message = remoteMessage.getData().get("message");
-            body = (message != null && !message.trim().isEmpty())
-                    ? message : "💬 پیام متنی جدید";
+            String safeBody = data.get("body");
+            if (safeBody == null || safeBody.trim().isEmpty()) safeBody = data.get("message");
+            body = (safeBody != null && !safeBody.trim().isEmpty())
+                    ? safeBody : "💬 پیام متنی جدید";
         } else if (remoteMessage.getNotification() != null) {
             String notificationTitle = remoteMessage.getNotification().getTitle();
             String notificationBody = remoteMessage.getNotification().getBody();
-
-            if (notificationTitle != null && !notificationTitle.trim().isEmpty()) {
-                title = notificationTitle;
-            }
-            if (notificationBody != null && !notificationBody.trim().isEmpty()) {
-                body = notificationBody;
-            }
+            if (notificationTitle != null && !notificationTitle.trim().isEmpty()) title = notificationTitle;
+            if (notificationBody != null && !notificationBody.trim().isEmpty()) body = notificationBody;
         }
 
-        showNotification(title, body);
+        showNotification(title, body, messageId);
     }
 
-@Override
-public void onNewToken(String token) {
-    super.onNewToken(token);
-
-    if (token == null || token.isEmpty()) return;
-
-    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-
-    if (user == null) {
-        Log.w("FCM", "Token refreshed, but no signed-in user is available.");
-        return;
+    @Override
+    public void onNewToken(String token) {
+        super.onNewToken(token);
+        if (token == null || token.isEmpty()) return;
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            Log.w("FCM", "Token refreshed, but no signed-in user is available.");
+            return;
+        }
+        Map<String, Object> data = new HashMap<>();
+        data.put("fcmToken", token);
+        data.put("fcmTokenUpdatedAt", FieldValue.serverTimestamp());
+        FirebaseFirestore.getInstance().collection("users").document(user.getUid())
+                .set(data, SetOptions.merge())
+                .addOnSuccessListener(unused -> Log.i("FCM", "New FCM token saved successfully"))
+                .addOnFailureListener(error -> Log.e("FCM", "Could not save refreshed FCM token", error));
     }
 
-    Map<String, Object> data = new HashMap<>();
-    data.put("fcmToken", token);
-    data.put("fcmTokenUpdatedAt", FieldValue.serverTimestamp());
-
-    FirebaseFirestore.getInstance()
-            .collection("users")
-            .document(user.getUid())
-            .set(data, SetOptions.merge())
-            .addOnSuccessListener(unused ->
-                    Log.i("FCM", "New FCM token saved successfully"))
-            .addOnFailureListener(error ->
-                    Log.e("FCM", "Could not save refreshed FCM token", error));
-}
-
-    private void showNotification(String title, String body) {
+    private void showNotification(String title, String body, String messageId) {
         createNotificationChannel();
-
         Intent intent = new Intent(this, ChatActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-
-        int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            pendingFlags |= PendingIntent.FLAG_IMMUTABLE;
+        if (messageId != null && !messageId.trim().isEmpty()) {
+            intent.putExtra("messageId", messageId);
         }
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 2001, intent, pendingFlags
-        );
+        int requestCode = (messageId == null || messageId.isEmpty())
+                ? (int) (System.currentTimeMillis() & 0x7fffffff)
+                : messageId.hashCode();
+        int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) pendingFlags |= PendingIntent.FLAG_IMMUTABLE;
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, requestCode, intent, pendingFlags);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher)
@@ -130,55 +114,37 @@ public void onNewToken(String token) {
                 .setContentIntent(pendingIntent)
                 .setVibrate(new long[]{0, 300, 200, 300});
 
-        // در Android 7.1 و پایین‌تر، صدای اعلان را مستقیم روی اعلان می‌گذاریم.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            if (soundUri == null) {
-                soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
-            }
+            if (soundUri == null) soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
             builder.setSound(soundUri);
             builder.setDefaults(NotificationCompat.DEFAULT_VIBRATE);
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
 
-        NotificationManagerCompat.from(this).notify(
-                (int) (System.currentTimeMillis() & 0x7fffffff),
-                builder.build()
-        );
+        int notificationId = messageId == null || messageId.isEmpty()
+                ? (int) (System.currentTimeMillis() & 0x7fffffff)
+                : messageId.hashCode();
+        NotificationManagerCompat.from(this).notify(notificationId, builder.build());
     }
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            if (notificationManager == null) {
-                return;
-            }
-
+            if (notificationManager == null) return;
             Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            if (soundUri == null) {
-                soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
-            }
-
+            if (soundUri == null) soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
             AudioAttributes audioAttributes = new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build();
-
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    CHANNEL_NAME,
-                    NotificationManager.IMPORTANCE_HIGH
-            );
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription(CHANNEL_DESCRIPTION);
             channel.enableVibration(true);
             channel.setVibrationPattern(new long[]{0, 300, 200, 300});
             channel.setSound(soundUri, audioAttributes);
-
             notificationManager.createNotificationChannel(channel);
         }
     }
