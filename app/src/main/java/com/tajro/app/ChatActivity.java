@@ -1490,41 +1490,24 @@ titleText =
 
         blockedUserIds.clear();
 
+        // Firestore rules only allow reading block documents owned by this user.
+        // An unfiltered collection read is denied by the current security rules.
         db.collection("blocks")
+                .whereEqualTo("ownerId", myId)
                 .get()
-                .addOnSuccessListener(
-                        snapshot -> {
-
-                            for (
-                                    DocumentSnapshot d :
-                                    snapshot.getDocuments()
-                            ) {
-
-                                String ownerId =
-                                        d.getString("ownerId");
-
-                                String blockedId =
-                                        d.getString("blockedUserId");
-
-                                if (myId.equals(ownerId) &&
-                                        blockedId != null &&
-                                        !blockedId.isEmpty()) {
-                                    blockedUserIds.add(blockedId);
-                                }
-
-                                if (myId.equals(blockedId) &&
-                                        ownerId != null &&
-                                        !ownerId.isEmpty()) {
-                                    blockedUserIds.add(ownerId);
-                                }
-                            }
-
-                            loadVisibleUsers();
+                .addOnSuccessListener(snapshot -> {
+                    for (DocumentSnapshot d : snapshot.getDocuments()) {
+                        String blockedId = d.getString("blockedUserId");
+                        if (blockedId != null && !blockedId.trim().isEmpty()) {
+                            blockedUserIds.add(blockedId);
                         }
-                )
-                .addOnFailureListener(
-                        e -> loadVisibleUsers()
-                );
+                    }
+                    loadVisibleUsers();
+                })
+                .addOnFailureListener(e -> {
+                    Log.w("ChatActivity", "Could not load my blocked users", e);
+                    loadVisibleUsers();
+                });
     }
 
     private void loadVisibleUsers() {
@@ -3588,6 +3571,94 @@ header.addView(chatMenu,
                 );
     }
 
+    /**
+     * درخواست اعلان را پس از ذخیره موفق پیام در Firestore می‌فرستد.
+     * فقط messageId ارسال می‌شود؛ متن و لینک رسانه هرگز ارسال نمی‌شوند.
+     */
+    private void sendChatNotification(String messageId) {
+
+        if (messageId == null || messageId.trim().isEmpty()) {
+            return;
+        }
+
+        FirebaseUser currentUser = auth != null ? auth.getCurrentUser() : null;
+        if (currentUser == null) {
+            Log.w("CHAT_NOTIFICATION", "No signed-in Firebase user");
+            return;
+        }
+
+        currentUser.getIdToken(false)
+                .addOnSuccessListener(tokenResult -> {
+
+                    String firebaseToken = tokenResult.getToken();
+                    if (firebaseToken == null || firebaseToken.isEmpty()) {
+                        Log.e("CHAT_NOTIFICATION", "Firebase ID token is empty");
+                        return;
+                    }
+
+                    new Thread(() -> {
+                        HttpURLConnection connection = null;
+
+                        try {
+                            URL endpoint = new URL(
+                                    SUPABASE_URL + "/functions/v1/send-chat-notification"
+                            );
+
+                            connection = (HttpURLConnection) endpoint.openConnection();
+                            connection.setRequestMethod("POST");
+                            connection.setConnectTimeout(15000);
+                            connection.setReadTimeout(15000);
+                            connection.setDoOutput(true);
+                            connection.setRequestProperty(
+                                    "Authorization", "Bearer " + firebaseToken
+                            );
+                            connection.setRequestProperty(
+                                    "apikey", SUPABASE_PUBLISHABLE_KEY
+                            );
+                            connection.setRequestProperty(
+                                    "Content-Type", "application/json; charset=UTF-8"
+                            );
+                            connection.setRequestProperty("Accept", "application/json");
+
+                            JSONObject requestBody = new JSONObject();
+                            requestBody.put("messageId", messageId);
+
+                            byte[] payload = requestBody.toString().getBytes("UTF-8");
+                            connection.setFixedLengthStreamingMode(payload.length);
+
+                            try (OutputStream output = connection.getOutputStream()) {
+                                output.write(payload);
+                                output.flush();
+                            }
+
+                            int responseCode = connection.getResponseCode();
+                            if (responseCode < 200 || responseCode >= 300) {
+                                Log.e(
+                                        "CHAT_NOTIFICATION",
+                                        "Edge Function returned HTTP " + responseCode
+                                );
+                            } else {
+                                Log.i(
+                                        "CHAT_NOTIFICATION",
+                                        "Notification request accepted for message " + messageId
+                                );
+                            }
+
+                        } catch (Exception error) {
+                            Log.e("CHAT_NOTIFICATION", "Notification request failed", error);
+
+                        } finally {
+                            if (connection != null) {
+                                connection.disconnect();
+                            }
+                        }
+                    }, "chat-notification").start();
+                })
+                .addOnFailureListener(error ->
+                        Log.e("CHAT_NOTIFICATION", "Could not get Firebase ID token", error)
+                );
+    }
+
     private void sendText() {
 
         if (blocked) {
@@ -3665,11 +3736,10 @@ header.addView(chatMenu,
 
         db.collection("messages")
                 .add(data)
-                .addOnSuccessListener(
-                        x ->
-                                messageInput
-                                        .setText("")
-                )
+                .addOnSuccessListener(x -> {
+                    messageInput.setText("");
+                    sendChatNotification(x.getId());
+                })
                 .addOnFailureListener(
                         e ->
                                 Toast.makeText(
@@ -4307,6 +4377,9 @@ header.addView(chatMenu,
 
         db.collection("messages")
                 .add(data)
+                .addOnSuccessListener(x ->
+                        sendChatNotification(x.getId())
+                )
                 .addOnFailureListener(
                         e ->
                                 Toast.makeText(
@@ -4654,6 +4727,9 @@ header.addView(chatMenu,
 
         db.collection("messages")
                 .add(data)
+                .addOnSuccessListener(x ->
+                        sendChatNotification(x.getId())
+                )
                 .addOnFailureListener(
                         e ->
                                 Toast.makeText(
@@ -6107,75 +6183,85 @@ private void reportCurrentUser() {
 
 private void deleteCurrentChatForMe() {
 
-    if (currentChatId == null ||
-            currentChatId.isEmpty()) {
-
+    if (currentChatId == null || currentChatId.isEmpty() ||
+            myId == null || myId.isEmpty()) {
         return;
     }
 
-    db.collection("chats")
-            .document(currentChatId)
-            .collection("messages")
+    // Messages are stored in the root "messages" collection, not
+    // chats/{chatId}/messages. Query each participant direction separately
+    // so each query is provably permitted by the Firestore rules.
+    db.collection("messages")
+            .whereEqualTo("chatId", currentChatId)
+            .whereEqualTo("senderId", myId)
             .get()
-            .addOnSuccessListener(
-                    snapshot -> {
-
-                        com.google.firebase.firestore.WriteBatch batch =
-                                db.batch();
-
-                        for (
-                                DocumentSnapshot doc :
-                                snapshot.getDocuments()
-                        ) {
-
-                            batch.update(
-                                    doc.getReference(),
-                                    "deletedFor",
-                                    FieldValue.arrayUnion(
-                                            myId
-                                    )
-                            );
-                        }
-
-                        batch.commit()
-                                .addOnSuccessListener(
-                                        v -> {
-
-                                            messageCache.clear();
-                                            messageViews.clear();
-                                            dirtyMessageIds.clear();
-
-                                            if (messagesContainer != null) {
-
-                                                messagesContainer
-                                                        .removeAllViews();
-                                            }
-
-                                            Toast.makeText(
-                                                    ChatActivity.this,
-                                                    tr("چت از حساب شما پاک شد"),
-                                                    Toast.LENGTH_SHORT
-                                            ).show();
-                                        }
-                                )
-                                .addOnFailureListener(
-                                        e ->
-                                                Toast.makeText(
-                                                        ChatActivity.this,
-                                                        tr("پاک کردن چت ناموفق بود"),
-                                                        Toast.LENGTH_SHORT
-                                                ).show()
-                                );
-                    }
+            .addOnSuccessListener(sentSnapshot ->
+                    db.collection("messages")
+                            .whereEqualTo("chatId", currentChatId)
+                            .whereEqualTo("receiverId", myId)
+                            .get()
+                            .addOnSuccessListener(receivedSnapshot -> {
+                                Map<String, DocumentSnapshot> unique = new java.util.LinkedHashMap<>();
+                                for (DocumentSnapshot doc : sentSnapshot.getDocuments()) {
+                                    unique.put(doc.getId(), doc);
+                                }
+                                for (DocumentSnapshot doc : receivedSnapshot.getDocuments()) {
+                                    unique.put(doc.getId(), doc);
+                                }
+                                List<DocumentSnapshot> docs = new ArrayList<>(unique.values());
+                                updateDeletedForMeInBatches(docs, 0);
+                            })
+                            .addOnFailureListener(e -> showDeleteChatAccessError(e))
             )
-            .addOnFailureListener(
-                    e ->
-                            Toast.makeText(
-                                    ChatActivity.this,
-                                    tr("دسترسی به پیام‌های چت ناموفق بود"),
-                                    Toast.LENGTH_SHORT
-                            ).show()
-            );
+            .addOnFailureListener(e -> showDeleteChatAccessError(e));
+}
+
+private void showDeleteChatAccessError(Exception error) {
+    Log.e("ChatActivity", "Could not read chat messages for delete-for-me", error);
+    Toast.makeText(
+            ChatActivity.this,
+            tr("دسترسی به پیام‌های چت ناموفق بود"),
+            Toast.LENGTH_LONG
+    ).show();
+}
+
+// Firestore batches are limited to 500 writes; use smaller batches safely.
+private void updateDeletedForMeInBatches(
+        List<DocumentSnapshot> docs,
+        int startIndex
+) {
+    if (startIndex >= docs.size()) {
+        messageCache.clear();
+        messageViews.clear();
+        dirtyMessageIds.clear();
+        if (messagesContainer != null) {
+            messagesContainer.removeAllViews();
+        }
+        Toast.makeText(
+                ChatActivity.this,
+                tr("چت از حساب شما پاک شد"),
+                Toast.LENGTH_SHORT
+        ).show();
+        return;
+    }
+
+    int endIndex = Math.min(startIndex + 400, docs.size());
+    com.google.firebase.firestore.WriteBatch batch = db.batch();
+    for (int i = startIndex; i < endIndex; i++) {
+        DocumentSnapshot doc = docs.get(i);
+        batch.update(doc.getReference(), "deletedFor", FieldValue.arrayUnion(myId));
+    }
+
+    batch.commit()
+            .addOnSuccessListener(v -> updateDeletedForMeInBatches(docs, endIndex))
+            .addOnFailureListener(e -> {
+                Log.e("ChatActivity", "Could not mark chat messages deleted for me", e);
+                Toast.makeText(
+                        ChatActivity.this,
+                        tr("پاک کردن چت ناموفق بود"),
+                        Toast.LENGTH_LONG
+                ).show();
+            });
 }
 
 private void blockCurrentUser() {
@@ -6191,6 +6277,15 @@ private void blockCurrentUser() {
 
         return;
     }
+
+    // Apply the block locally immediately: hide online status and disable chat
+    // while the Firestore write is pending.
+    final String targetUid = receiverId;
+    blockedUserIds.add(targetUid);
+    blockedByMe = true;
+    blocked = true;
+    blockChecksReady = 2;
+    updateBlockStateAfterCheck();
 
     String blockId =
             myId + "_" + receiverId;
@@ -6227,12 +6322,6 @@ private void blockCurrentUser() {
             .addOnSuccessListener(
                     v -> {
 
-                        blockedByMe = true;
-                        blocked = true;
-                        blockChecksReady = 2;
-
-                        updateBlockStateAfterCheck();
-
                         Toast.makeText(
                                 ChatActivity.this,
                                 tr("کاربر مسدود شد؛ پیام و صدا متوقف شد"),
@@ -6242,6 +6331,13 @@ private void blockCurrentUser() {
             )
             .addOnFailureListener(
                     e -> {
+
+                        // The server rejected the block; roll back the optimistic local state.
+                        blockedUserIds.remove(targetUid);
+                        blockedByMe = false;
+                        blocked = blockedByReceiver;
+                        blockChecksReady = 2;
+                        updateBlockStateAfterCheck();
 
                         String error =
                                 e.getMessage();
