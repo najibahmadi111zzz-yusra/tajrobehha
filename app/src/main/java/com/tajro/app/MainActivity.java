@@ -16,6 +16,9 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -711,6 +714,19 @@ public class MainActivity extends Activity {
         // اعمال رنگ و حالت شب
         applyTheme();
     }
+    private void requestNotificationPermission() {
+    if (Build.VERSION.SDK_INT >= 33) {
+
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            requestPermissions(
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    1001
+            );
+        }
+    }
+  }
 
     // برگشت از تنظیمات
     @Override
