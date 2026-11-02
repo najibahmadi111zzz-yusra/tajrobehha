@@ -1440,7 +1440,7 @@ public class ExperienceListActivity extends Activity {
             experienceImage.setAdjustViewBounds(true);
             experienceImage.setBackgroundColor(Color.rgb(235, 242, 244));
             LinearLayout.LayoutParams experienceImageParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(300));
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(400));
             experienceImageParams.setMargins(0, dp(3), 0, dp(10));
             card.addView(experienceImage, experienceImageParams);
             loadExperienceImage(experienceImageUrl, experienceImage);
