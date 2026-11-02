@@ -708,11 +708,15 @@ public class MainActivity extends Activity {
                 contentParams
         );
 
-        // نمایش صفحه
-        setContentView(rootLayout);
+  // نمایش صفحه
+setContentView(rootLayout);
 
-        // اعمال رنگ و حالت شب
-        applyTheme();
+// اعمال رنگ و حالت شب
+applyTheme();
+
+// درخواست اجازه نمایش اعلان‌ها
+requestNotificationPermission();
+        
     }
     private void requestNotificationPermission() {
     if (Build.VERSION.SDK_INT >= 33) {
