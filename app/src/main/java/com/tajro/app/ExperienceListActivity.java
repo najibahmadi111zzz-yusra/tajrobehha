@@ -339,7 +339,7 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("عنوان تجربه را بنویسید")) return "Write the experience title";
             if (fa.equals("تجربه خود را با دیگران شریک کنید...")) return "Share your experience with others...";
             if (fa.equals("🚀 انتشار تجربه")) return "🚀 Publish Experience";
-            if (fa.equals("🖼 انتخاب عکس (اختیاری)")) return "🖼 Choose photo (optional)";
+            if (fa.equals("🖼 انتخاب عکس")) return "🖼 Choose photo";
             if (fa.equals("عکس انتخاب نشده است")) return "No photo selected";
             if (fa.equals("عکس انتخاب شد؛ هنگام انتشار بارگذاری می‌شود")) return "Photo selected; it will upload when published";
             if (fa.equals("لطفاً ابتدا وارد اکانت خود شوید")) return "Please log in first";
@@ -357,7 +357,7 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("عنوان تجربه را بنویسید")) return "د تجربې سرلیک ولیکئ";
             if (fa.equals("تجربه خود را با دیگران شریک کنید...")) return "خپله تجربه له نورو سره شریکه کړئ...";
             if (fa.equals("🚀 انتشار تجربه")) return "🚀 تجربه خپره کړئ";
-            if (fa.equals("🖼 انتخاب عکس (اختیاری)")) return "🖼 عکس وټاکئ (اختیاري)";
+            if (fa.equals("🖼 انتخاب عکس")) return "🖼 عکس وټاکئ";
             if (fa.equals("عکس انتخاب نشده است")) return "عکس نه دی ټاکل شوی";
             if (fa.equals("عکس انتخاب شد؛ هنگام انتشار بارگذاری می‌شود")) return "عکس ټاکل شوی؛ د خپرولو پر مهال پورته کېږي";
             if (fa.equals("لطفاً ابتدا وارد اکانت خود شوید")) return "لومړی خپل حساب ته ننوځئ";
@@ -375,7 +375,7 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("عنوان تجربه را بنویسید")) return "تجربے کا عنوان لکھیں";
             if (fa.equals("تجربه خود را با دیگران شریک کنید...")) return "اپنا تجربہ دوسروں کے ساتھ شیئر کریں...";
             if (fa.equals("🚀 انتشار تجربه")) return "🚀 تجربہ شائع کریں";
-            if (fa.equals("🖼 انتخاب عکس (اختیاری)")) return "🖼 تصویر منتخب کریں (اختیاری)";
+            if (fa.equals("🖼 انتخاب عکس")) return "🖼 تصویر منتخب کریں";
             if (fa.equals("عکس انتخاب نشده است")) return "کوئی تصویر منتخب نہیں";
             if (fa.equals("لطفاً ابتدا وارد اکانت خود شوید")) return "براہِ کرم پہلے لاگ اِن کریں";
             if (fa.equals("لطفاً عنوان و متن تجربه را وارد کنید")) return "عنوان اور متن درج کریں";
@@ -387,7 +387,7 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("عنوان تجربه را بنویسید")) return "अनुभव का शीर्षक लिखें";
             if (fa.equals("تجربه خود را با دیگران شریک کنید...")) return "अपना अनुभव साझा करें...";
             if (fa.equals("🚀 انتشار تجربه")) return "🚀 अनुभव प्रकाशित करें";
-            if (fa.equals("🖼 انتخاب عکس (اختیاری)")) return "🖼 तस्वीर चुनें (वैकल्पिक)";
+            if (fa.equals("🖼 انتخاب عکس")) return "🖼 तस्वीर चुनें";
             if (fa.equals("عکس انتخاب نشده است")) return "कोई तस्वीर नहीं चुनी गई";
             if (fa.equals("لطفاً ابتدا وارد اکانت خود شوید")) return "पहले लॉग इन करें";
             if (fa.equals("لطفاً عنوان و متن تجربه را وارد کنید")) return "शीर्षक और पाठ दर्ज करें";
@@ -525,13 +525,8 @@ public class ExperienceListActivity extends Activity {
         layout.addView(header);
         layout.addView(buildPublishForm());
 
-        TextView feedHeading = new TextView(this);
-        feedHeading.setText(text("📚 تجربه‌های کاربران"));
-        feedHeading.setTextSize(20);
-        feedHeading.setTextColor(Color.rgb(12, 73, 101));
-        feedHeading.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-        feedHeading.setPadding(dp(4), dp(12), dp(4), dp(8));
-        layout.addView(feedHeading);
+        // پروفایل حساب واردشده؛ در جای عنوان «تجربه‌های کاربران»
+        layout.addView(buildMyProfileHeader());
 
         feedLayout = new LinearLayout(this);
         feedLayout.setOrientation(LinearLayout.VERTICAL);
@@ -539,6 +534,110 @@ public class ExperienceListActivity extends Activity {
 
         setContentView(scrollView);
         loadExperiences();
+    }
+
+    // نمایش عکس و نام حساب فعلی در بالای فهرست تجربه‌ها
+    private View buildMyProfileHeader() {
+        LinearLayout profileCard = new LinearLayout(this);
+        profileCard.setOrientation(LinearLayout.HORIZONTAL);
+        profileCard.setGravity(Gravity.CENTER_VERTICAL);
+        profileCard.setPadding(dp(14), dp(11), dp(14), dp(11));
+
+        GradientDrawable cardBackground = new GradientDrawable();
+        cardBackground.setColor(Color.WHITE);
+        cardBackground.setCornerRadius(dp(18));
+        cardBackground.setStroke(dp(1), Color.rgb(210, 230, 235));
+        profileCard.setBackground(cardBackground);
+        profileCard.setElevation(dp(2));
+
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardParams.setMargins(0, dp(12), 0, dp(8));
+        profileCard.setLayoutParams(cardParams);
+
+        ImageView avatar = new ImageView(this);
+        avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        GradientDrawable avatarBackground = new GradientDrawable();
+        avatarBackground.setColor(Color.rgb(224, 241, 246));
+        avatarBackground.setShape(GradientDrawable.OVAL);
+        avatarBackground.setStroke(dp(2), Color.rgb(12, 91, 120));
+        avatar.setBackground(avatarBackground);
+        avatar.setClipToOutline(true);
+        profileCard.addView(avatar, new LinearLayout.LayoutParams(dp(58), dp(58)));
+
+        LinearLayout nameColumn = new LinearLayout(this);
+        nameColumn.setOrientation(LinearLayout.VERTICAL);
+        nameColumn.setGravity(Gravity.CENTER_VERTICAL);
+        nameColumn.setPadding(dp(12), 0, dp(5), 0);
+
+        TextView nameView = new TextView(this);
+        nameView.setText(text("کاربر"));
+        nameView.setTextSize(17);
+        nameView.setTextColor(Color.rgb(8, 65, 90));
+        nameView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        nameView.setSingleLine(true);
+        nameView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        nameColumn.addView(nameView);
+
+        TextView profileHint = new TextView(this);
+        profileHint.setText("پروفایل من");
+        profileHint.setTextSize(12);
+        profileHint.setTextColor(Color.rgb(105, 125, 132));
+        profileHint.setPadding(0, dp(3), 0, 0);
+        nameColumn.addView(profileHint);
+
+        profileCard.addView(nameColumn, new LinearLayout.LayoutParams(
+                0, dp(58), 1));
+
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser != null) {
+            final String uid = currentUser.getUid();
+            String fallbackName = firstNonEmpty(
+                    currentUser.getDisplayName(),
+                    currentUser.getEmail() == null ? "" :
+                            currentUser.getEmail().split("@")[0],
+                    text("کاربر"));
+
+            nameView.setText(fallbackName);
+
+            View.OnClickListener openFallbackProfile =
+                    v -> showPublicProfile(uid, fallbackName, "");
+            profileCard.setOnClickListener(openFallbackProfile);
+            avatar.setOnClickListener(openFallbackProfile);
+            nameView.setOnClickListener(openFallbackProfile);
+
+            db.collection("users").document(uid).get()
+                    .addOnSuccessListener(userDocument -> {
+                        if (!userDocument.exists()) return;
+
+                        String name = firstNonEmpty(
+                                userDocument.getString("name"),
+                                userDocument.getString("username"),
+                                userDocument.getString("displayName"),
+                                fallbackName);
+
+                        String photoUrl = firstNonEmpty(
+                                userDocument.getString("photoUrl"),
+                                userDocument.getString("profilePhoto"),
+                                userDocument.getString("profilePhotoUrl"),
+                                userDocument.getString("photo"),
+                                "");
+
+                        nameView.setText(name);
+                        if (!photoUrl.isEmpty()) {
+                            loadProfileImage(photoUrl, avatar);
+                        }
+
+                        View.OnClickListener openMyProfile =
+                                v -> showPublicProfile(uid, name, photoUrl);
+                        profileCard.setOnClickListener(openMyProfile);
+                        avatar.setOnClickListener(openMyProfile);
+                        nameView.setOnClickListener(openMyProfile);
+                    });
+        }
+
+        return profileCard;
     }
 
     private LinearLayout buildPublishForm() {
@@ -566,7 +665,7 @@ public class ExperienceListActivity extends Activity {
         form.addView(formTitle);
 
         Button chooseImageButton = new Button(this);
-        chooseImageButton.setText(text("🖼 انتخاب عکس (اختیاری)"));
+        chooseImageButton.setText(text("🖼 انتخاب عکس"));
         chooseImageButton.setTextSize(14);
         stylePublishButton(chooseImageButton);
         form.addView(chooseImageButton);
@@ -2850,4 +2949,4 @@ public class ExperienceListActivity extends Activity {
             if (connection != null) connection.disconnect();
         }
     }
-}
+                }
