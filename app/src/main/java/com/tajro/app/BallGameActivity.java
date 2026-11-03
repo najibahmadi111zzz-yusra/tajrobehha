@@ -65,6 +65,7 @@ public class BallGameActivity extends Activity {
         private final ArrayList<RectF> rings = new ArrayList<>();
         private final ArrayList<RectF> springs = new ArrayList<>();
         private final ArrayList<MovingObstacle> movingObstacles = new ArrayList<>();
+        private final ArrayList<MovingGate> movingGates = new ArrayList<>();
         private final ArrayList<Particle> particles = new ArrayList<>();
 
         private RectF finish;
@@ -81,6 +82,8 @@ public class BallGameActivity extends Activity {
         private boolean doveFlying, doveLanded;
 
         private int level = 1;
+        private int score = 0;
+        private int collectedRings = 0;
         private long lastFrame;
         private long finishStartTime;
 
@@ -191,8 +194,10 @@ public class BallGameActivity extends Activity {
             walls.clear();
             spikes.clear();
             rings.clear();
+            collectedRings = 0;
             springs.clear();
             movingObstacles.clear();
+            movingGates.clear();
             particles.clear();
 
             finished = false;
@@ -442,6 +447,16 @@ public class BallGameActivity extends Activity {
                         section,
                         t
                 );
+
+                // دروازه‌های کشویی در مراحل ۳ به بعد؛ با باز و بسته‌شدن، راه عبور زمان‌بندی‌شده می‌سازند.
+                if (level >= 3 && section % 7 == 0) {
+                    float gateX = left + (right - left) * 0.48f;
+                    float gateY = y - t * (2.25f + (section % 3) * 0.25f);
+                    movingGates.add(new MovingGate(
+                            gateX, gateY, t * 0.72f, t * 2.15f,
+                            0.75f + level * 0.035f, section % 2 == 0
+                    ));
+                }
 
                 /*
                  * دیوارهای خشتی بلند.
@@ -854,6 +869,7 @@ public class BallGameActivity extends Activity {
 
             updateParticles(dt);
             updateMovingObstacles();
+            updateMovingGates(dt);
 
             if (finished) {
                 updateDove();
@@ -1019,6 +1035,9 @@ public class BallGameActivity extends Activity {
                     RectF ring =
                             rings.remove(i);
 
+                    collectedRings++;
+                    score += 100;
+
                     createRingParticles(
                             ring.centerX(),
                             ring.centerY()
@@ -1043,10 +1062,57 @@ public class BallGameActivity extends Activity {
                         radius() * 0.85f,
                         hitRect
                 )) {
+                    // چرخ‌دنده مانع مرگ نیست؛ توپ را با نیروی فنری به بیرون پرتاب می‌کند.
+                    float dx = ballX - obstacle.currentX;
+                    float dy = ballY - obstacle.currentY;
+                    float distance = (float) Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 0.001f) {
+                        dx = ballVX == 0 ? 1f : ballVX;
+                        dy = ballVY == 0 ? -1f : ballVY;
+                        distance = (float) Math.sqrt(dx * dx + dy * dy);
+                    }
+                    float nx = dx / distance;
+                    float ny = dy / distance;
+                    float minDistance = obstacle.radius * 1.75f + radius() * 0.88f;
+                    ballX = obstacle.currentX + nx * minDistance;
+                    ballY = obstacle.currentY + ny * minDistance;
 
-                    hit();
+                    float outwardSpeed = ballVX * nx + ballVY * ny;
+                    float kick = 520f + Math.min(260f, obstacle.speed * 1.15f);
+                    if (outwardSpeed < kick) {
+                        float impulse = kick - outwardSpeed;
+                        ballVX += nx * impulse;
+                        ballVY += ny * impulse;
+                    }
+                    // چرخش چرخ‌دنده کمی نیروی مماسی هم به توپ می‌دهد.
+                    float tangent = obstacle.clockwise ? 115f : -115f;
+                    ballVX += -ny * tangent;
+                    ballVY += nx * tangent;
+                    ballVX = Math.max(-maxSpeed * 1.55f, Math.min(maxSpeed * 1.55f, ballVX));
+                    ballVY = Math.max(-1550f, Math.min(1550f, ballVY));
+                    shake = Math.max(shake, 4f);
+                    createRingParticles(obstacle.currentX, obstacle.currentY);
+                    playJumpSound();
+                }
+            }
 
-                    return;
+            for (MovingGate gate : movingGates) {
+                RectF gateRect = gate.getRect();
+                if (circleRect(ballX, ballY, radius() * 0.9f, gateRect)) {
+                    // برخورد به دروازه فقط توپ را عقب می‌زند؛ باعث شروع دوباره مرحله نمی‌شود.
+                    float dx = ballX - gateRect.centerX();
+                    float dy = ballY - gateRect.centerY();
+                    if (Math.abs(dx) > Math.abs(dy) * 0.72f) {
+                        ballX = dx < 0 ? gateRect.left - radius() : gateRect.right + radius();
+                        ballVX = dx < 0 ? -Math.max(260f, Math.abs(ballVX) * 0.72f)
+                                : Math.max(260f, Math.abs(ballVX) * 0.72f);
+                    } else {
+                        ballY = dy < 0 ? gateRect.top - radius() : gateRect.bottom + radius();
+                        ballVY = dy < 0 ? -Math.max(420f, Math.abs(ballVY) * 0.72f)
+                                : Math.max(260f, Math.abs(ballVY) * 0.55f);
+                    }
+                    createRingParticles(gateRect.centerX(), gateRect.centerY());
+                    playJumpSound();
                 }
             }
 
@@ -1193,6 +1259,14 @@ public class BallGameActivity extends Activity {
                                         ) *
                                         tile() *
                                         0.55f;
+            }
+        }
+
+        private void updateMovingGates(float dt) {
+            for (MovingGate gate : movingGates) {
+                gate.phase += dt * gate.speed;
+                // دروازه با موج نرم بالا و پایین می‌رود و گاهی مسیر را باز می‌گذارد.
+                gate.offsetY = (float) Math.sin(gate.phase) * gate.travel;
             }
         }
 
@@ -1352,6 +1426,7 @@ public class BallGameActivity extends Activity {
             if (finished) return;
 
             finished = true;
+            score += 500 + collectedRings * 25;
 
             leftPressed = false;
             rightPressed = false;
@@ -2321,6 +2396,10 @@ public class BallGameActivity extends Activity {
                 );
             }
 
+            for (MovingGate gate : movingGates) {
+                drawMovingGate(canvas, gate);
+            }
+
             for (RectF spike :
                     spikes) {
 
@@ -2617,6 +2696,23 @@ public class BallGameActivity extends Activity {
                 }
 
                 row++;
+            }
+        }
+
+        private void drawMovingGate(Canvas canvas, MovingGate gate) {
+            RectF r = gate.getRect();
+            p.setShader(new LinearGradient(r.left, r.top, r.right, r.bottom,
+                    0xFF7DEBFF, 0xFF1265A8, Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(r, tile() * 0.16f, tile() * 0.16f, p);
+            p.setShader(null);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(Math.max(2f, tile() * 0.06f));
+            p.setColor(0xCCFFFFFF);
+            canvas.drawRoundRect(r, tile() * 0.16f, tile() * 0.16f, p);
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0xAA063B72);
+            for (float yy = r.top + tile() * 0.25f; yy < r.bottom; yy += tile() * 0.34f) {
+                canvas.drawLine(r.left + 4, yy, r.right - 4, yy, p);
             }
         }
 
@@ -3433,6 +3529,13 @@ public class BallGameActivity extends Activity {
                     p
             );
 
+            p.setTextSize(16);
+            p.setTextAlign(Paint.Align.LEFT);
+            canvas.drawText("امتیاز: " + score, 28, 101, p);
+            p.setTextAlign(Paint.Align.RIGHT);
+            canvas.drawText("حلقه: " + collectedRings, getWidth() - 28, 101, p);
+            p.setTextAlign(Paint.Align.CENTER);
+
             if (finished) {
 
                 long elapsed =
@@ -3624,91 +3727,78 @@ public class BallGameActivity extends Activity {
             );
         }
 
-        @Override
-        public boolean onTouchEvent(
-                MotionEvent event
-        ) {
+        private void updatePressedPointers(MotionEvent event, int excludedPointer) {
+            leftPressed = false;
+            rightPressed = false;
 
-            if (!viewReady ||
-                    finished) {
-                return true;
-            }
-
-            float x =
-                    event.getX();
-
-            float y =
-                    event.getY();
-
-            float size =
-                    Math.min(
-                            112,
-                            getWidth() * 0.23f
-                    );
-
-            float bottom =
-                    getHeight() - 105;
-
+            float size = Math.min(112, getWidth() * 0.23f);
+            float bottom = getHeight() - 105;
+            float top = bottom - size;
             float leftX = 24;
+            float rightX = getWidth() - size - 24;
 
-            float jumpX =
-                    getWidth() / 2f -
-                            size / 2f;
+            for (int i = 0; i < event.getPointerCount(); i++) {
+                if (i == excludedPointer) continue;
 
-            float rightX =
-                    getWidth() -
-                            size -
-                            24;
+                float px = event.getX(i);
+                float py = event.getY(i);
 
-            float top =
-                    bottom - size;
-
-            int action =
-                    event.getActionMasked();
-
-            if (action ==
-                    MotionEvent.ACTION_DOWN ||
-                    action ==
-                            MotionEvent.ACTION_MOVE) {
-
-                leftPressed = false;
-                rightPressed = false;
-
-                if (y >= top &&
-                        y <= bottom) {
-
-                    if (x >= leftX &&
-                            x <= leftX + size) {
-
-                        leftPressed = true;
-                    }
-
-                    if (x >= rightX &&
-                            x <= rightX + size) {
-
-                        rightPressed = true;
-                    }
-
-                    // پرش فقط با لمس تازه فعال می‌شود، نه با نگه‌داشتن انگشت.
-                    if (action == MotionEvent.ACTION_DOWN &&
-                            x >= jumpX &&
-                            x <= jumpX + size) {
-
-                        jumpPressed = true;
-                    }
+                if (py >= top && py <= bottom) {
+                    if (px >= leftX && px <= leftX + size) leftPressed = true;
+                    if (px >= rightX && px <= rightX + size) rightPressed = true;
                 }
+            }
+        }
 
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (!viewReady || finished) return true;
+
+            int action = event.getActionMasked();
+            int index = event.getActionIndex();
+
+            if (action == MotionEvent.ACTION_DOWN ||
+                    action == MotionEvent.ACTION_POINTER_DOWN) {
+                float x = event.getX(index);
+                float y = event.getY(index);
+
+                float size = Math.min(112, getWidth() * 0.23f);
+                float bottom = getHeight() - 105;
+                float top = bottom - size;
+                float jumpX = getWidth() / 2f - size / 2f;
+
+                // پرش فقط با لمس تازه دکمه وسط اجرا می‌شود.
+                if (y >= top && y <= bottom &&
+                        x >= jumpX && x <= jumpX + size) {
+                    jumpPressed = true;
+                }
+                updatePressedPointers(event, -1);
+                invalidate();
                 return true;
             }
 
-            if (action ==
-                    MotionEvent.ACTION_UP ||
-                    action ==
-                            MotionEvent.ACTION_CANCEL) {
+            if (action == MotionEvent.ACTION_MOVE) {
+                updatePressedPointers(event, -1);
+                invalidate();
+                return true;
+            }
 
+            if (action == MotionEvent.ACTION_POINTER_UP ||
+                    action == MotionEvent.ACTION_UP) {
+                updatePressedPointers(event, index);
+                if (action == MotionEvent.ACTION_UP) {
+                    leftPressed = false;
+                    rightPressed = false;
+                }
+                invalidate();
+                return true;
+            }
+
+            if (action == MotionEvent.ACTION_CANCEL) {
                 leftPressed = false;
                 rightPressed = false;
-
+                jumpPressed = false;
+                invalidate();
                 return true;
             }
 
@@ -3862,5 +3952,29 @@ public class BallGameActivity extends Activity {
                 );
             }
         }
-    }
+
+        private class MovingGate {
+            float x, baseY, width, height, speed, travel, phase, offsetY;
+
+            MovingGate(float x, float y, float width, float height,
+                       float speed, boolean openPhase) {
+                this.x = x;
+                this.baseY = y;
+                this.width = width;
+                this.height = height;
+                this.speed = speed;
+                this.travel = height * 0.72f;
+                this.phase = openPhase ? 0f : (float) Math.PI;
             }
+
+            RectF getRect() {
+                return new RectF(
+                        x - width / 2f,
+                        baseY + offsetY,
+                        x + width / 2f,
+                        baseY + offsetY + height
+                );
+            }
+        }
+    }
+}
