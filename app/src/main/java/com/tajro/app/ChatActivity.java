@@ -29,6 +29,7 @@ import android.provider.OpenableColumns;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -791,6 +792,9 @@ public class ChatActivity extends Activity {
         image.setScaleType(
                 ImageView.ScaleType.CENTER_CROP
         );
+        // عکس باید تمام قاب دایره‌ای را با برش متناسب پُر کند.
+        image.setPadding(0, 0, 0, 0);
+        image.setAdjustViewBounds(false);
 
         image.setImageResource(
                 android.R.drawable.ic_menu_gallery
@@ -802,6 +806,9 @@ public class ChatActivity extends Activity {
         circleBackground.setShape(GradientDrawable.OVAL);
         image.setBackground(circleBackground);
         image.setClipToOutline(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            image.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
+        }
 
         return image;
     }
@@ -1361,7 +1368,7 @@ titleText =
                                                 );
 
                                                 ImageView avatar =
-                                                        avatarView(52);
+                                                        avatarView(60);
 
                                                 if (photo != null &&
                                                         !photo.trim().isEmpty()) {
@@ -1679,6 +1686,94 @@ titleText =
                 );
     }
 
+    // نمایش تاریخ آخرین بازدید بر اساس زمان ذخیره‌شده در سرور Firebase.
+    private String formatLastSeen(com.google.firebase.Timestamp timestamp) {
+        if (timestamp == null) return tr("آفلاین");
+        java.util.Date date = timestamp.toDate();
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        java.util.Calendar seen = java.util.Calendar.getInstance();
+        seen.setTime(date);
+        java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat(
+                "HH:mm", java.util.Locale.getDefault());
+        String time = timeFormat.format(date);
+        if (now.get(java.util.Calendar.YEAR) == seen.get(java.util.Calendar.YEAR)
+                && now.get(java.util.Calendar.DAY_OF_YEAR) == seen.get(java.util.Calendar.DAY_OF_YEAR)) {
+            return "آخرین بازدید: امروز، " + time;
+        }
+        java.util.Calendar yesterday = (java.util.Calendar) now.clone();
+        yesterday.add(java.util.Calendar.DAY_OF_YEAR, -1);
+        if (yesterday.get(java.util.Calendar.YEAR) == seen.get(java.util.Calendar.YEAR)
+                && yesterday.get(java.util.Calendar.DAY_OF_YEAR) == seen.get(java.util.Calendar.DAY_OF_YEAR)) {
+            return "آخرین بازدید: دیروز، " + time;
+        }
+        java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat(
+                "yyyy/MM/dd", java.util.Locale.getDefault());
+        return "آخرین بازدید: " + dateFormat.format(date) + "، " + time;
+    }
+
+    private boolean isSameMessageDay(com.google.firebase.Timestamp first,
+                                     com.google.firebase.Timestamp second) {
+        if (first == null || second == null) return false;
+        java.util.Calendar a = java.util.Calendar.getInstance();
+        java.util.Calendar b = java.util.Calendar.getInstance();
+        a.setTime(first.toDate());
+        b.setTime(second.toDate());
+        return a.get(java.util.Calendar.YEAR) == b.get(java.util.Calendar.YEAR)
+                && a.get(java.util.Calendar.DAY_OF_YEAR) == b.get(java.util.Calendar.DAY_OF_YEAR);
+    }
+
+    private String formatMessageDay(com.google.firebase.Timestamp timestamp) {
+        if (timestamp == null) return "";
+        java.util.Date date = timestamp.toDate();
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        java.util.Calendar messageDay = java.util.Calendar.getInstance();
+        messageDay.setTime(date);
+        if (now.get(java.util.Calendar.YEAR) == messageDay.get(java.util.Calendar.YEAR)
+                && now.get(java.util.Calendar.DAY_OF_YEAR) == messageDay.get(java.util.Calendar.DAY_OF_YEAR)) {
+            return "امروز";
+        }
+        java.util.Calendar yesterday = (java.util.Calendar) now.clone();
+        yesterday.add(java.util.Calendar.DAY_OF_YEAR, -1);
+        if (yesterday.get(java.util.Calendar.YEAR) == messageDay.get(java.util.Calendar.YEAR)
+                && yesterday.get(java.util.Calendar.DAY_OF_YEAR) == messageDay.get(java.util.Calendar.DAY_OF_YEAR)) {
+            return "دیروز";
+        }
+        return new java.text.SimpleDateFormat("yyyy/MM/dd", java.util.Locale.getDefault()).format(date);
+    }
+
+    private String formatMessageTime(com.google.firebase.Timestamp timestamp) {
+        if (timestamp == null) return "";
+        return new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                .format(timestamp.toDate());
+    }
+
+    private void addMessageDateLabel(LinearLayout item, String label) {
+        TextView dateLabel = text(label, 12);
+        dateLabel.setTextColor(Color.WHITE);
+        dateLabel.setGravity(Gravity.CENTER);
+        dateLabel.setBackground(bg(Color.rgb(75, 90, 110), 20));
+        dateLabel.setPadding(dp(12), dp(4), dp(12), dp(4));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.gravity = Gravity.CENTER;
+        params.setMargins(0, dp(10), 0, dp(7));
+        item.addView(dateLabel, params);
+    }
+
+    private void addMessageTimeLabel(LinearLayout item, com.google.firebase.Timestamp timestamp) {
+        String time = formatMessageTime(timestamp);
+        if (time.isEmpty()) return;
+        TextView timeLabel = text(time, 11);
+        timeLabel.setTextColor(Color.GRAY);
+        timeLabel.setGravity(Gravity.CENTER);
+        timeLabel.setPadding(dp(5), 0, dp(5), dp(2));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.gravity = myId.equals(item.getTag()) ? Gravity.END : Gravity.START;
+        params.setMargins(dp(8), 0, dp(8), dp(5));
+        item.addView(timeLabel, params);
+    }
+
     private void addUserItem(
             DocumentSnapshot d
     ) {
@@ -1774,7 +1869,7 @@ titleText =
         card.setLayoutParams(cp);
 
         ImageView avatar =
-                avatarView(76);
+                avatarView(84);
 
         if (finalPhotoUrl != null &&
                 !finalPhotoUrl.isEmpty()) {
@@ -1843,15 +1938,15 @@ titleText =
                         : Color.GRAY
         );
 
-        TextView status =
-                text(
-                        finalBlockedUser
-                                ? tr(" 🚫 مسدود")
-                                : (online != null && online
-                                        ? tr(" آنلاین")
-                                        : tr(" آفلاین")),
-                        13
-                );
+        String userStatusText;
+        if (finalBlockedUser) {
+            userStatusText = tr(" 🚫 مسدود");
+        } else if (Boolean.TRUE.equals(online)) {
+            userStatusText = tr(" آنلاین");
+        } else {
+            userStatusText = " " + formatLastSeen(lastSeen);
+        }
+        TextView status = text(userStatusText, 12);
 
         if (finalBlockedUser) {
             dot.setText("🚫");
@@ -2525,7 +2620,7 @@ receiverPhotoUrl = photoUrl;
         );
 
         headerAvatar =
-                avatarView(62);
+                avatarView(68);
 
         headerAvatar.setClipToOutline(true);
 
@@ -3088,9 +3183,14 @@ header.addView(chatMenu,
         }
 
         // پیام جدید یا تغییرکرده را در ظرف مستقل خود بساز.
+        com.google.firebase.Timestamp previousVisibleTimestamp = null;
         for (DocumentSnapshot d : list) {
             String id = d.getId();
             if (!visibleIds.contains(id)) continue;
+            com.google.firebase.Timestamp messageTimestamp = d.getTimestamp("timestamp");
+            boolean firstMessageOfDay = messageTimestamp != null
+                    && (previousVisibleTimestamp == null
+                    || !isSameMessageDay(previousVisibleTimestamp, messageTimestamp));
             if (!messageViews.containsKey(id) || dirtyMessageIds.contains(id)) {
                 LinearLayout oldView = messageViews.remove(id);
                 int oldIndex = oldView != null && oldView.getParent() == messagesContainer
@@ -3105,7 +3205,12 @@ header.addView(chatMenu,
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT));
                 currentMessageContainer = item;
+                item.setTag(d.getString("senderId"));
+                if (firstMessageOfDay) {
+                    addMessageDateLabel(item, formatMessageDay(messageTimestamp));
+                }
                 renderOneMessage(d);
+                addMessageTimeLabel(item, messageTimestamp);
                 currentMessageContainer = null;
                 messageViews.put(id, item);
 
@@ -3115,6 +3220,7 @@ header.addView(chatMenu,
                 messagesContainer.addView(item, targetIndex);
                 dirtyMessageIds.remove(id);
             }
+            if (messageTimestamp != null) previousVisibleTimestamp = messageTimestamp;
         }
 
         // ترتیب را فقط در صورت نیاز اصلاح کن؛ viewهای موجود بی‌دلیل بازسازی نمی‌شوند.
@@ -3924,14 +4030,7 @@ header.addView(chatMenu,
 
                                     } else {
 
-                                        String offlineLabel = tr("آفلاین");
-                                        if (lastSeen != null) {
-                                            String seenTime = new java.text.SimpleDateFormat(
-                                                    "HH:mm", java.util.Locale.getDefault())
-                                                    .format(lastSeen.toDate());
-                                            offlineLabel = "آخرین بازدید: " + seenTime;
-                                        }
-                                        statusText.setText(offlineLabel);
+                                        statusText.setText(formatLastSeen(lastSeen));
 
                                         headerOnlineDot
                                                 .setTextColor(
