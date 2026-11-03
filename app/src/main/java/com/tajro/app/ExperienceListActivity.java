@@ -47,6 +47,7 @@ import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.Source;
 
 import java.net.URL;
 import java.util.Calendar;
@@ -57,6 +58,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ExperienceListActivity extends Activity {
 
@@ -70,6 +75,38 @@ public class ExperienceListActivity extends Activity {
     private FirebaseAuth auth;
     private LinearLayout layout;
     private LinearLayout feedLayout;
+    private TextView pullRefreshIndicator;
+    private boolean isPullRefreshing = false;
+    private float pullStartY = 0f;
+    private boolean pullGestureStarted = false;
+
+    // اشتراک‌گذاری درخواست پروفایل بین کارت‌های یک کاربر؛ جلوگیری از خواندن تکراری Firestore
+    private final Map<String, UserProfileData> userProfileCache = new HashMap<>();
+    private final Map<String, List<ProfileViewTarget>> pendingProfileTargets = new HashMap<>();
+    private final Set<String> userProfileRequests = new HashSet<>();
+
+    // تعداد محدود کارگرها برای دانلود عکس‌ها؛ جلوگیری از ساخت ده‌ها Thread هم‌زمان
+    private static final ExecutorService IMAGE_EXECUTOR = Executors.newFixedThreadPool(3);
+
+    private static class UserProfileData {
+        final String name;
+        final String photoUrl;
+        UserProfileData(String name, String photoUrl) {
+            this.name = name;
+            this.photoUrl = photoUrl;
+        }
+    }
+
+    private static class ProfileViewTarget {
+        final TextView nameView;
+        final ImageView imageView;
+        final String userId;
+        ProfileViewTarget(String userId, TextView nameView, ImageView imageView) {
+            this.userId = userId;
+            this.nameView = nameView;
+            this.imageView = imageView;
+        }
+    }
 
     // فرم انتشار تجربه در همین صفحه
     private boolean isPublishing = false;
@@ -528,11 +565,59 @@ public class ExperienceListActivity extends Activity {
         // پروفایل حساب واردشده؛ در جای عنوان «تجربه‌های کاربران»
         layout.addView(buildMyProfileHeader());
 
+        // نشانگر کوچک تازه‌سازی با کشیدن صفحه به پایین
+        pullRefreshIndicator = new TextView(this);
+        pullRefreshIndicator.setText(text("↓ برای تازه‌سازی، صفحه را پایین بکشید"));
+        pullRefreshIndicator.setTextSize(13);
+        pullRefreshIndicator.setTextColor(Color.rgb(12, 91, 120));
+        pullRefreshIndicator.setGravity(Gravity.CENTER);
+        pullRefreshIndicator.setPadding(dp(8), dp(9), dp(8), dp(9));
+        pullRefreshIndicator.setVisibility(View.GONE);
+        layout.addView(pullRefreshIndicator, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
         feedLayout = new LinearLayout(this);
         feedLayout.setOrientation(LinearLayout.VERTICAL);
         layout.addView(feedLayout);
 
         setContentView(scrollView);
+
+        // Pull-to-refresh: فقط وقتی فهرست در بالاترین نقطه است و کاربر رو به پایین می‌کشد.
+        scrollView.setOnTouchListener((view, event) -> {
+            switch (event.getActionMasked()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    pullStartY = event.getY();
+                    pullGestureStarted = scrollView.getScrollY() == 0;
+                    break;
+                case android.view.MotionEvent.ACTION_MOVE:
+                    if (pullGestureStarted && scrollView.getScrollY() == 0) {
+                        float distance = event.getY() - pullStartY;
+                        if (distance > dp(35) && !isPullRefreshing) {
+                            pullRefreshIndicator.setVisibility(View.VISIBLE);
+                            pullRefreshIndicator.setText(text("↓ رها کنید تا تازه‌سازی شود"));
+                        }
+                    }
+                    break;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    if (pullGestureStarted && scrollView.getScrollY() == 0) {
+                        float distance = event.getY() - pullStartY;
+                        if (distance >= dp(85) && !isPullRefreshing) {
+                            isPullRefreshing = true;
+                            pullRefreshIndicator.setVisibility(View.VISIBLE);
+                            pullRefreshIndicator.setText(text("در حال تازه‌سازی تجربه‌ها..."));
+                            loadExperiences();
+                        } else {
+                            pullRefreshIndicator.setVisibility(View.GONE);
+                        }
+                    }
+                    pullGestureStarted = false;
+                    break;
+            }
+            // اجازه می‌دهیم خود ScrollView اسکرول عادی را انجام دهد.
+            return false;
+        });
+
         loadExperiences();
     }
 
@@ -850,6 +935,10 @@ public class ExperienceListActivity extends Activity {
                 .addOnSuccessListener(
                         queryDocumentSnapshots -> {
 
+                            isPullRefreshing = false;
+                            if (pullRefreshIndicator != null) {
+                                pullRefreshIndicator.setVisibility(View.GONE);
+                            }
                             feedLayout.removeAllViews();
 
                             displayedExperienceKeys.clear();
@@ -911,6 +1000,10 @@ public class ExperienceListActivity extends Activity {
                 .addOnFailureListener(
                         e -> {
 
+                            isPullRefreshing = false;
+                            if (pullRefreshIndicator != null) {
+                                pullRefreshIndicator.setVisibility(View.GONE);
+                            }
                             Toast.makeText(
                                     ExperienceListActivity.this,
                                     text(
@@ -1535,8 +1628,9 @@ public class ExperienceListActivity extends Activity {
         // تصویر تجربه (در صورت وجود)
         if (experienceImageUrl != null && !experienceImageUrl.trim().isEmpty()) {
             ImageView experienceImage = new ImageView(this);
-            experienceImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            experienceImage.setAdjustViewBounds(true);
+            // عکس تمام عرض کادر را پر می‌کند؛ فضای خالی بالا و پایین باقی نمی‌ماند.
+            experienceImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            experienceImage.setAdjustViewBounds(false);
             experienceImage.setBackgroundColor(Color.rgb(235, 242, 244));
             LinearLayout.LayoutParams experienceImageParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(550));
@@ -1928,22 +2022,47 @@ public class ExperienceListActivity extends Activity {
     }
 
     private void loadExperienceImage(String imageUrl, ImageView imageView) {
-        new Thread(() -> {
+        if (imageUrl == null || imageUrl.trim().isEmpty() || imageView == null) return;
+        imageView.setTag(imageUrl);
+        IMAGE_EXECUTOR.execute(() -> {
+            HttpURLConnection connection = null;
+            Bitmap bitmap = null;
             try {
-                java.net.HttpURLConnection connection =
-                        (java.net.HttpURLConnection) new URL(imageUrl).openConnection();
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(20000);
+                connection = (HttpURLConnection) new URL(imageUrl).openConnection();
+                connection.setConnectTimeout(12000);
+                connection.setReadTimeout(18000);
                 connection.setInstanceFollowRedirects(true);
-                Bitmap bitmap;
-                try (java.io.InputStream input = connection.getInputStream()) {
-                    bitmap = BitmapFactory.decodeStream(input);
-                } finally {
-                    connection.disconnect();
+                try (InputStream input = connection.getInputStream();
+                     ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                    byte[] buffer = new byte[8192];
+                    int count;
+                    while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+                    byte[] bytes = output.toByteArray();
+                    BitmapFactory.Options bounds = new BitmapFactory.Options();
+                    bounds.inJustDecodeBounds = true;
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.length, bounds);
+                    int sample = 1;
+                    while (bounds.outWidth / sample > 1200 || bounds.outHeight / sample > 1800) {
+                        sample *= 2;
+                    }
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inSampleSize = sample;
+                    options.inPreferredConfig = Bitmap.Config.RGB_565;
+                    bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
                 }
-                if (bitmap != null) runOnUiThread(() -> imageView.setImageBitmap(bitmap));
-            } catch (Exception ignored) { }
-        }).start();
+            } catch (Exception ignored) {
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+            final Bitmap loaded = bitmap;
+            if (loaded != null) runOnUiThread(() -> {
+                if (!isFinishing() && imageUrl.equals(imageView.getTag())) {
+                    imageView.setImageBitmap(loaded);
+                } else if (!loaded.isRecycled()) {
+                    loaded.recycle();
+                }
+            });
+        });
     }
 
     // =========================================================
@@ -2627,37 +2746,89 @@ public class ExperienceListActivity extends Activity {
             ImageView profileImage,
             String fallbackName
     ) {
-        db.collection("users").document(userId).get()
-                .addOnSuccessListener(userDocument -> {
-                    String name = fallbackName;
-                    String photoUrl = "";
-                    if (userDocument.exists()) {
-                        name = firstNonEmpty(
-                                userDocument.getString("name"),
-                                userDocument.getString("username"),
-                                userDocument.getString("displayName"),
-                                fallbackName
-                        );
-                        photoUrl = firstNonEmpty(
-                                userDocument.getString("photoUrl"),
-                                userDocument.getString("profilePhoto"),
-                                userDocument.getString("profilePhotoUrl"),
-                                userDocument.getString("photo"),
-                                ""
-                        );
+        if (userId == null || userId.trim().isEmpty()) return;
+
+        ProfileViewTarget target = new ProfileViewTarget(userId, authorName, profileImage);
+        UserProfileData cached = userProfileCache.get(userId);
+        if (cached != null) {
+            applyUserProfile(target, cached);
+            return;
+        }
+
+        List<ProfileViewTarget> waiting = pendingProfileTargets.get(userId);
+        if (waiting == null) {
+            waiting = new ArrayList<>();
+            pendingProfileTargets.put(userId, waiting);
+        }
+        waiting.add(target);
+
+        // برای هر کاربر فقط یک درخواست هم‌زمان ارسال می‌شود.
+        if (!userProfileRequests.add(userId)) return;
+
+        DocumentReference userRef = db.collection("users").document(userId);
+        // ابتدا کش محلی Firestore: اگر موجود باشد نام تقریباً فوری نمایش داده می‌شود.
+        userRef.get(Source.CACHE).addOnSuccessListener(cachedDocument -> {
+            if (cachedDocument.exists()) {
+                UserProfileData data = makeUserProfileData(cachedDocument, fallbackName);
+                userProfileCache.put(userId, data);
+                List<ProfileViewTarget> cachedTargets = pendingProfileTargets.get(userId);
+                if (cachedTargets != null) {
+                    for (ProfileViewTarget cachedTarget : cachedTargets) {
+                        applyUserProfile(cachedTarget, data);
                     }
-                    authorName.setText(name);
-                    final String finalName = name;
-                    final String finalPhotoUrl = photoUrl;
-                    if (!photoUrl.isEmpty()) {
-                        loadProfileImage(photoUrl, profileImage);
-                    }
-                    View.OnClickListener openProfile = v ->
-                            showPublicProfile(userId, finalName, finalPhotoUrl);
-                    authorName.setOnClickListener(openProfile);
-                    profileImage.setOnClickListener(openProfile);
-                    authorRowClickable(profileImage, authorName, openProfile);
-                });
+                }
+            }
+        }).addOnCompleteListener(cacheTask -> {
+            // سپس نسخه سرور برای دریافت نام/عکس تازه؛ نتیجه کش تا رسیدن سرور حفظ می‌شود.
+            userRef.get(Source.SERVER).addOnSuccessListener(serverDocument -> {
+                UserProfileData data = makeUserProfileData(serverDocument, fallbackName);
+                userProfileCache.put(userId, data);
+                applyPendingUserProfile(userId, data);
+            }).addOnFailureListener(error -> {
+                // اگر شبکه قطع بود، اطلاعات کش‌شده یا نام جایگزین باقی می‌ماند.
+                if (userProfileCache.get(userId) == null) {
+                    UserProfileData fallback = new UserProfileData(fallbackName, "");
+                    applyPendingUserProfile(userId, fallback);
+                } else {
+                    pendingProfileTargets.remove(userId);
+                    userProfileRequests.remove(userId);
+                }
+            });
+        });
+    }
+
+    private UserProfileData makeUserProfileData(DocumentSnapshot document, String fallbackName) {
+        String name = fallbackName;
+        String photoUrl = "";
+        if (document != null && document.exists()) {
+            name = firstNonEmpty(document.getString("name"),
+                    document.getString("username"),
+                    document.getString("displayName"), fallbackName);
+            photoUrl = firstNonEmpty(document.getString("photoUrl"),
+                    document.getString("profilePhoto"),
+                    document.getString("profilePhotoUrl"),
+                    document.getString("photo"), "");
+        }
+        return new UserProfileData(name, photoUrl);
+    }
+
+    private void applyPendingUserProfile(String userId, UserProfileData data) {
+        List<ProfileViewTarget> targets = pendingProfileTargets.remove(userId);
+        userProfileRequests.remove(userId);
+        if (targets == null) return;
+        for (ProfileViewTarget target : targets) applyUserProfile(target, data);
+    }
+
+    private void applyUserProfile(ProfileViewTarget target, UserProfileData data) {
+        if (target.nameView == null || target.imageView == null) return;
+        target.nameView.setText(data.name);
+        if (data.photoUrl != null && !data.photoUrl.isEmpty()) {
+            target.imageView.setTag(data.photoUrl);
+            loadProfileImage(data.photoUrl, target.imageView);
+        }
+        View.OnClickListener openProfile = v ->
+                showPublicProfile(target.userId, data.name, data.photoUrl);
+        authorRowClickable(target.imageView, target.nameView, openProfile);
     }
 
     private void authorRowClickable(ImageView image, TextView name, View.OnClickListener listener) {
@@ -2949,4 +3120,4 @@ public class ExperienceListActivity extends Activity {
             if (connection != null) connection.disconnect();
         }
     }
-                }
+                    }
