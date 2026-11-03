@@ -743,6 +743,11 @@ public class ColorSortActivity extends Activity {
                     AudioTrack track = null;
                     long sample = 0L;
                     double filteredRain = 0.0;
+                    final double[] pianoNotes = {
+                            261.63, 329.63, 392.00, 523.25,
+                            392.00, 329.63, 293.66, 349.23,
+                            440.00, 587.33, 440.00, 349.23
+                    };
                     try {
                         int min = AudioTrack.getMinBufferSize(
                                 sampleRate,
@@ -768,9 +773,9 @@ public class ColorSortActivity extends Activity {
                                 double raw = rainRandom.nextDouble() * 2.0 - 1.0;
                                 // Soft low-pass noise gives a distant, steady rainfall texture.
                                 filteredRain += (raw - filteredRain) * 0.035;
-                                double rain = filteredRain * 0.16;
+                                double rain = filteredRain * 0.078;
                                 double distantWash = Math.sin(twoPi * 73.4 * seconds)
-                                        * Math.sin(twoPi * 0.075 * seconds) * 0.006;
+                                        * Math.sin(twoPi * 0.075 * seconds) * 0.003;
 
                                 // A few rounded water drops, spaced irregularly and kept quiet.
                                 double drop = 0.0;
@@ -780,11 +785,33 @@ public class ColorSortActivity extends Activity {
                                             * Math.min(1.0, cycle * 32.0);
                                     double frequency = 1180.0 - 430.0 * cycle;
                                     drop = Math.sin(twoPi * frequency * cycle)
-                                            * envelope * 0.045;
+                                            * envelope * 0.022;
                                 }
+                                // Soft original piano phrase: slow notes with a natural plucked decay.
+                                // It is synthesized locally, so no audio file or network permission is needed.
+                                double pianoCycle = seconds % 28.8;
+                                int pianoIndex = (int) (pianoCycle / 2.4);
+                                double noteTime = pianoCycle - pianoIndex * 2.4;
+                                double noteFrequency = pianoNotes[pianoIndex % pianoNotes.length];
+                                double pianoEnvelope = (1.0 - Math.exp(-noteTime * 13.0))
+                                        * Math.exp(-noteTime * 1.18);
+                                double piano = Math.sin(twoPi * noteFrequency * noteTime)
+                                        * 0.105
+                                        + Math.sin(twoPi * noteFrequency * 2.002 * noteTime)
+                                        * 0.018
+                                        + Math.sin(twoPi * noteFrequency * 0.5 * noteTime)
+                                        * 0.025;
+                                piano *= pianoEnvelope;
+
+                                // A very quiet sustained chord underneath the melody adds warmth.
+                                double chord = Math.sin(twoPi * 130.81 * seconds) * 0.010
+                                        + Math.sin(twoPi * 164.81 * seconds) * 0.008
+                                        + Math.sin(twoPi * 196.00 * seconds) * 0.007;
+
                                 double slowBreath = 0.82 + 0.18 * Math.sin(twoPi * seconds / 17.0);
-                                double value = (rain + distantWash + drop) * slowBreath;
-                                value = Math.tanh(value * 1.8) * 0.58;
+                                double value = (rain + distantWash + drop) * slowBreath
+                                        + piano + chord;
+                                value = Math.tanh(value * 1.65) * 0.58;
                                 int pcm = (int) (Math.max(-1.0, Math.min(1.0, value)) * 32700.0);
                                 buffer[i * 2] = (byte) (pcm & 255);
                                 buffer[i * 2 + 1] = (byte) ((pcm >> 8) & 255);
@@ -1219,40 +1246,77 @@ public class ColorSortActivity extends Activity {
             c.drawCircle(hazeX, hazeY, w * 0.72f, p);
             p.setShader(null);
 
-            // Small, distant moon. Its glow is intentionally faint and never dominates.
-            float moonX = w * 0.84f;
-            float moonY = h * 0.145f;
-            float moonRadius = Math.max(17f, Math.min(25f, w * 0.043f));
+            // A soft bank of distant blue clouds, inspired by the supplied moonlit reference.
+            // Kept translucent so the bottles and controls remain easy to see.
+            float cloudLine = h * 0.635f;
+            p.setShader(new RadialGradient(
+                    w * 0.34f, cloudLine, w * 0.48f,
+                    new int[]{Color.argb(34, 76, 126, 220),
+                            Color.argb(18, 43, 91, 177), Color.TRANSPARENT},
+                    new float[]{0f, 0.58f, 1f}, Shader.TileMode.CLAMP
+            ));
+            c.drawOval(new RectF(-w * 0.12f, cloudLine - h * 0.045f,
+                    w * 0.72f, cloudLine + h * 0.12f), p);
+            p.setShader(null);
+            p.setColor(Color.argb(17, 107, 153, 225));
+            c.drawOval(new RectF(w * 0.48f, cloudLine - h * 0.025f,
+                    w * 1.12f, cloudLine + h * 0.105f), p);
+
+            // Brighter silver crescent moon with a wider, gentle blue-white halo.
+            float moonX = w * 0.82f;
+            float moonY = h * 0.155f;
+            float moonRadius = Math.max(20f, Math.min(31f, w * 0.052f));
+            float moonPulse = 0.94f + 0.06f * (float) Math.sin(liquidWave * 0.018f);
             RadialGradient moonHalo = new RadialGradient(
-                    moonX, moonY, moonRadius * 3.6f,
-                    Color.argb(48, 205, 220, 250),
-                    Color.TRANSPARENT,
-                    Shader.TileMode.CLAMP
+                    moonX, moonY, moonRadius * 4.8f,
+                    new int[]{Color.argb(92, 184, 211, 255),
+                            Color.argb(35, 136, 174, 245), Color.TRANSPARENT},
+                    new float[]{0f, 0.42f, 1f}, Shader.TileMode.CLAMP
             );
             p.setShader(moonHalo);
-            c.drawCircle(moonX, moonY, moonRadius * 3.6f, p);
+            c.drawCircle(moonX, moonY, moonRadius * 4.8f, p);
             p.setShader(null);
-            p.setColor(Color.argb(225, 226, 235, 255));
-            c.drawCircle(moonX, moonY, moonRadius, p);
-            p.setColor(Color.argb(48, 118, 137, 174));
-            c.drawCircle(moonX + moonRadius * 0.30f,
-                    moonY - moonRadius * 0.12f, moonRadius * 0.88f, p);
 
-            // Numerous tiny, low-intensity stars create depth without a glittering effect.
-            for (int i = 0; i < 125; i++) {
-                float phase = liquidWave * 0.009f + i * 1.713f;
+            Path crescent = new Path();
+            crescent.moveTo(moonX + moonRadius * 0.34f, moonY - moonRadius);
+            crescent.cubicTo(moonX - moonRadius * 1.12f, moonY - moonRadius * 0.82f,
+                    moonX - moonRadius * 1.22f, moonY + moonRadius * 0.78f,
+                    moonX + moonRadius * 0.34f, moonY + moonRadius);
+            crescent.cubicTo(moonX - moonRadius * 0.18f, moonY + moonRadius * 0.48f,
+                    moonX - moonRadius * 0.18f, moonY - moonRadius * 0.48f,
+                    moonX + moonRadius * 0.34f, moonY - moonRadius);
+            crescent.close();
+            p.setShader(new LinearGradient(moonX - moonRadius, moonY - moonRadius,
+                    moonX + moonRadius, moonY + moonRadius,
+                    Color.rgb(255, 255, 255), Color.rgb(164, 203, 255), Shader.TileMode.CLAMP));
+            p.setAlpha((int) (255f * moonPulse));
+            p.setShadowLayer(15f, 0f, 0f, Color.rgb(153, 199, 255));
+            c.drawPath(crescent, p);
+            p.clearShadowLayer();
+            p.setAlpha(255);
+            p.setShader(null);
+
+            // More visible stars with slow, soft twinkling and a few delicate starbursts.
+            for (int i = 0; i < 145; i++) {
+                float phase = liquidWave * 0.012f + i * 1.713f;
                 float x = (i * 127.7f + 31f) % Math.max(1f, w);
                 float y = 18f + ((i * 173.3f) % Math.max(1f, h - 36f));
                 float twinkle = 0.5f + 0.5f * (float) Math.sin(phase);
-                int alpha = 48 + (int) (82f * twinkle);
-                float radius = 0.75f + (i % 4) * 0.38f;
-                p.setColor(Color.argb(alpha, 190, 207, 238));
+                int alpha = 75 + (int) (125f * twinkle);
+                float radius = 0.9f + (i % 4) * 0.43f;
+                p.setColor(Color.argb(alpha, 205, 222, 255));
                 c.drawCircle(x, y, radius, p);
 
-                // Only a few stars get a very subtle soft point of light.
-                if (i % 11 == 0) {
-                    p.setColor(Color.argb(30 + (int) (28f * twinkle), 215, 228, 255));
-                    c.drawCircle(x, y, radius * 2.8f, p);
+                if (i % 9 == 0) {
+                    p.setColor(Color.argb(38 + (int) (65f * twinkle), 220, 235, 255));
+                    c.drawCircle(x, y, radius * 3.2f, p);
+                }
+                if (i % 29 == 0) {
+                    stroke.setStyle(Paint.Style.STROKE);
+                    stroke.setStrokeWidth(1.0f);
+                    stroke.setColor(Color.argb(65 + (int) (90f * twinkle), 220, 235, 255));
+                    c.drawLine(x - radius * 3.5f, y, x + radius * 3.5f, y, stroke);
+                    c.drawLine(x, y - radius * 3.5f, x, y + radius * 3.5f, stroke);
                 }
             }
 
@@ -5297,4 +5361,4 @@ public class ColorSortActivity extends Activity {
             }
         }
     }
-                                     }
+                }
