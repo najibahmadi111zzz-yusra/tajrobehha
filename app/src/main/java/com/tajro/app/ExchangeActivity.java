@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -29,6 +31,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.text.SimpleDateFormat;
 
 public class ExchangeActivity extends Activity {
 
@@ -45,10 +48,25 @@ public class ExchangeActivity extends Activity {
 
     private TextView totalText;
     private TextView balanceText;
+    private TextView ratesInfoText;
 
     private String[] currencies;
 
     private String appliedLanguage;
+
+    private final Handler rateRefreshHandler =
+            new Handler(Looper.getMainLooper());
+
+    private final Runnable rateRefreshRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (exchangeData != null) {
+                exchangeData.forceUpdateRates();
+                rateRefreshHandler.postDelayed(() -> updateRate(), 20000L);
+            }
+            rateRefreshHandler.postDelayed(this, 60L * 60L * 1000L);
+        }
+    };
 
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -165,6 +183,16 @@ public class ExchangeActivity extends Activity {
                     "اماراتي درهم",
                     "اماراتی درہم",
                     "यूएई दिरहम"
+            );
+        }
+
+        if (ExchangeData.KWD.equals(currency)) {
+            return text(
+                    "دینار کویت",
+                    "Kuwaiti Dinar",
+                    "کویټي دینار",
+                    "کویتی دینار",
+                    "कुवैती दीनार"
             );
         }
 
@@ -368,6 +396,10 @@ public class ExchangeActivity extends Activity {
 
         if (ExchangeData.IQD.equals(currency)) {
             return "🇮🇶";
+        }
+
+        if (ExchangeData.KWD.equals(currency)) {
+            return "🇰🇼";
         }
 
         if (ExchangeData.INR.equals(currency)) {
@@ -649,6 +681,12 @@ public class ExchangeActivity extends Activity {
         );
 
         typeSpinner.setAdapter(typeAdapter);
+        typeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateRate();
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+        });
 
         main.addView(typeSpinner);
 
@@ -687,6 +725,10 @@ public class ExchangeActivity extends Activity {
         );
 
         main.addView(rateInput);
+
+        ratesInfoText = makeText("", 14);
+        ratesInfoText.setTextColor(Color.DKGRAY);
+        main.addView(ratesInfoText);
 
         noteInput =
                 makeInput(
@@ -1237,33 +1279,46 @@ public class ExchangeActivity extends Activity {
 
     private void updateRate() {
 
-        if (currencySpinner == null) {
+        if (currencySpinner == null || rateInput == null || exchangeData == null) {
             return;
         }
 
-        Object selected =
-                currencySpinner.getSelectedItem();
+        Object selected = currencySpinner.getSelectedItem();
+        if (selected == null) return;
 
-        if (selected == null) {
-            return;
-        }
-
-        String currency =
-                selected.toString();
-
+        String currency = selected.toString();
         if (ExchangeData.AFN.equals(currency)) {
-
             rateInput.setText("1");
+            if (ratesInfoText != null) {
+                ratesInfoText.setText(text(
+                        "نرخ افغانی: ۱", "Afghani rate: 1", "د افغانۍ نرخ: ۱", "افغانی کی شرح: ۱", "अफ़गानी दर: १"
+                ));
+            }
             return;
         }
 
-        double rate =
-                exchangeData.getRate(currency);
+        double buyRate = exchangeData.getBuyRate(currency);
+        double sellRate = exchangeData.getSellRate(currency);
+        boolean buying = typeSpinner == null || typeSpinner.getSelectedItemPosition() == 0;
+        double selectedRate = buying ? buyRate : sellRate;
 
-        if (rate > 0) {
+        if (selectedRate > 0) {
+            rateInput.setText(formatNumber(selectedRate));
+        }
 
-            rateInput.setText(
-                    formatNumber(rate)
+        if (ratesInfoText != null) {
+            String updateLabel;
+            long updatedAt = exchangeData.getLastRateUpdateTime();
+            if (updatedAt > 0) {
+                updateLabel = new SimpleDateFormat("yyyy/MM/dd  HH:mm", Locale.getDefault())
+                        .format(new Date(updatedAt));
+            } else {
+                updateLabel = text("هنوز دریافت نشده", "Not fetched yet", "تر اوسه نه دی ترلاسه شوی", "ابھی موصول نہیں ہوا", "अभी प्राप्त नहीं हुआ");
+            }
+            ratesInfoText.setText(
+                    text("خرید: ", "Buy: ", "پېرود: ", "خرید: ", "खरीद: ") + formatNumber(buyRate)
+                            + "    " + text("فروش: ", "Sell: ", "پلور: ", "فروخت: ", "बिक्री: ") + formatNumber(sellRate)
+                            + "\n" + text("آخرین دریافت: ", "Last fetched: ", "وروستی ترلاسه کول: ", "آخری وصولی: ", "अंतिम प्राप्ति: ") + updateLabel
             );
         }
     }
@@ -3737,8 +3792,18 @@ public class ExchangeActivity extends Activity {
 
         if (exchangeData != null) {
 
+            exchangeData.forceUpdateRates();
             updateBalance();
             updateRate();
+            rateRefreshHandler.postDelayed(() -> updateRate(), 15000L);
+            rateRefreshHandler.removeCallbacks(rateRefreshRunnable);
+            rateRefreshHandler.postDelayed(rateRefreshRunnable, 60L * 60L * 1000L);
         }
     }
+
+    @Override
+    protected void onPause() {
+        rateRefreshHandler.removeCallbacks(rateRefreshRunnable);
+        super.onPause();
     }
+}
