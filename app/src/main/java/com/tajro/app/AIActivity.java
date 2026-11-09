@@ -6,6 +6,9 @@ import android.os.Bundle;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.res.Configuration;
+import android.view.ViewParent;
+import java.util.Locale;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -50,10 +53,64 @@ public class AIActivity extends Activity {
     private final int background = Color.rgb(235, 248, 250);
     private final int textColor = Color.rgb(28, 48, 62);
 
-    private static final String WELCOME_MESSAGE =
-            "سلام! 🌟 من دستیار هوشمند تجربه‌ها هستم.\n" +
-            "دربارهٔ آموزش، تکنولوژی، زندگی روزمره و موضوعات " +
-            "گوناگون سؤال بپرس. تلاش می‌کنم پاسخ روشن و مفیدی بدهم.";
+    private String languageCode() {
+        return LanguageManager.getLanguage(this);
+    }
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(LanguageManager.applyLanguage(newBase));
+    }
+
+    private String tr(String key) {
+        String lang = languageCode();
+        String[] values;
+        switch (key) {
+            case "welcome": values = new String[]{
+                    "سلام! 🌟 من دستیار هوشمند تجربه‌ها هستم.\nدربارهٔ آموزش، تکنولوژی، زندگی روزمره و موضوعات گوناگون سؤال بپرس. تلاش می‌کنم پاسخ روشن و مفیدی بدهم.",
+                    "Hello! 🌟 I am TajroBehha's AI assistant.\nAsk me about education, technology, daily life, and many other topics. I'll do my best to give clear and useful answers.",
+                    "سلام! 🌟 زه د تجربه‌ها هوښیار مرستیال یم.\nد زده‌کړو، ټکنالوژۍ، ورځني ژوند او بېلابېلو موضوعاتو په اړه پوښتنې وکړئ.",
+                    "السلام علیکم! 🌟 میں تجربہ‌ها کا ذہین معاون ہوں۔\nتعلیم، ٹیکنالوجی، روزمرہ زندگی اور مختلف موضوعات کے بارے میں سوال پوچھیں۔",
+                    "नमस्ते! 🌟 मैं TajroBehha का स्मार्ट सहायक हूँ।\nशिक्षा, तकनीक, रोज़मर्रा की ज़िंदगी और अन्य विषयों पर सवाल पूछें।",
+                    "مرحباً! 🌟 أنا المساعد الذكي لتجربه‌ها.\nاسألني عن التعليم والتكنولوجيا والحياة اليومية وموضوعات متنوعة، وسأحاول تقديم إجابة واضحة ومفيدة."
+            }; break;
+            case "title": values = new String[]{"دستیار هوشمند", "AI Assistant", "هوښیار مرستیال", "ذہین معاون", "स्मार्ट सहायक", "المساعد الذكي"}; break;
+            case "subtitle": values = new String[]{"همراه دانای شما", "Your knowledgeable companion", "ستاسو پوه ملګری", "آپ کا باخبر ساتھی", "आपका जानकार साथी", "رفيقك المعرفي"}; break;
+            case "menu": values = new String[]{"منوی دستیار", "Assistant menu", "د مرستیال غورنۍ", "معاون کا مینو", "सहायक मेनू", "قائمة المساعد"}; break;
+            case "welcome_title": values = new String[]{"✨  بپرس، یاد بگیر و تجربه کن\nسؤالت را بنویس؛ من برای پاسخ‌گویی آماده‌ام.", "✨ Ask, learn, and explore\nWrite your question; I'm ready to help.", "✨ وپوښتئ، زده کړه وکړئ او تجربه ترلاسه کړئ\nخپله پوښتنه ولیکئ.", "✨ پوچھیں، سیکھیں اور تجربہ کریں\nاپنا سوال لکھیں، میں تیار ہوں۔", "✨ पूछें, सीखें और अनुभव करें\nअपना सवाल लिखें।", "✨ اسأل وتعلّم واكتشف\nاكتب سؤالك، أنا مستعد للمساعدة."}; break;
+            case "hint": values = new String[]{"پیام خود را بنویسید...", "Write your message...", "خپل پیغام ولیکئ...", "اپنا پیغام لکھیں...", "अपना संदेश लिखें...", "اكتب رسالتك..."}; break;
+            case "new_chat": values = new String[]{"گفتگوی جدید", "New chat", "نوې خبرې اترې", "نئی گفتگو", "नई बातचीत", "محادثة جديدة"}; break;
+            case "clear_chat": values = new String[]{"پاک‌کردن گفتگو", "Clear chat", "خبرې اترې پاکول", "گفتگو صاف کریں", "बातचीत साफ़ करें", "مسح المحادثة"}; break;
+            case "about": values = new String[]{"درباره دستیار", "About assistant", "د مرستیال په اړه", "معاون کے بارے میں", "सहायक के बारे में", "حول المساعد"}; break;
+            case "wait": values = new String[]{"لطفاً صبر کنید تا پاسخ فعلی دریافت شود.", "Please wait for the current answer.", "مهرباني وکړئ د اوسني ځواب لپاره انتظار وکړئ.", "براہِ کرم موجودہ جواب کا انتظار کریں۔", "कृपया मौजूदा जवाब की प्रतीक्षा करें।", "يرجى الانتظار حتى يكتمل الرد الحالي."}; break;
+            case "new_started": values = new String[]{"گفتگوی جدید آغاز شد", "New chat started", "نوې خبرې اترې پیل شوې", "نئی گفتگو شروع ہو گئی", "नई बातचीत शुरू हुई", "بدأت محادثة جديدة"}; break;
+            case "clear_confirm": values = new String[]{"آیا می‌خواهید پیام‌های این گفتگو پاک شوند؟", "Do you want to clear this conversation?", "ایا غواړئ دا خبرې اترې پاکې کړئ؟", "کیا آپ یہ گفتگو صاف کرنا چاہتے ہیں؟", "क्या आप इस बातचीत को साफ़ करना चाहते हैं?", "هل تريد مسح رسائل هذه المحادثة؟"}; break;
+            case "cancel": values = new String[]{"انصراف", "Cancel", "لغوه", "منسوخ", "रद्द करें", "إلغاء"}; break;
+            case "clear": values = new String[]{"پاک کن", "Clear", "پاکول", "صاف کریں", "साफ़ करें", "امسح"}; break;
+            case "close": values = new String[]{"بستن", "Close", "بندول", "بند کریں", "बंद करें", "إغلاق"}; break;
+            case "cleared_msg": values = new String[]{"گفتگو پاک شد. 🌟 هر سؤال تازه‌ای داری بپرس.", "Chat cleared. 🌟 Ask me anything new.", "خبرې اترې پاکې شوې. 🌟 نوې پوښتنه وکړئ.", "گفتگو صاف ہو گئی۔ 🌟 کوئی نیا سوال پوچھیں۔", "बातचीत साफ़ हो गई। 🌟 नया सवाल पूछें।", "تم مسح المحادثة. 🌟 اسألني أي سؤال جديد."}; break;
+            case "cleared": values = new String[]{"گفتگو پاک شد", "Chat cleared", "خبرې اترې پاکې شوې", "گفتگو صاف ہو گئی", "बातचीत साफ़ हुई", "تم مسح المحادثة"}; break;
+            case "about_msg": values = new String[]{"دستیار هوشمند تجربه‌ها\n\nهمراه شما برای پرسش، یادگیری و دریافت پاسخ درباره موضوعات گوناگون.", "TajroBehha AI Assistant\n\nHere to help you ask, learn, and get answers on many topics.", "د تجربه‌ها هوښیار مرستیال\n\nستاسو د پوښتنو او زده‌کړو ملګری.", "تجربہ‌ها کا ذہین معاون\n\nمختلف موضوعات پر سوالات اور سیکھنے میں آپ کا ساتھی۔", "TajroBehha स्मार्ट सहायक\n\nविभिन्न विषयों पर सवालों और सीखने में आपका साथी।", "المساعد الذكي لتجربه‌ها\n\nرفيقك في السؤال والتعلّم والحصول على إجابات في موضوعات متنوعة."}; break;
+            case "empty": values = new String[]{"لطفاً سؤال خود را بنویسید", "Please write your question", "مهرباني وکړئ خپله پوښتنه ولیکئ", "براہِ کرم اپنا سوال لکھیں", "कृपया अपना सवाल लिखें", "يرجى كتابة سؤالك"}; break;
+            case "thinking": values = new String[]{"در حال فکر کردن... ✨", "Thinking... ✨", "فکر کوم... ✨", "سوچ رہا ہوں... ✨", "सोच रहा हूँ... ✨", "أفكر... ✨"}; break;
+            case "not_configured": values = new String[]{"کلید OpenRouter در برنامه تنظیم نشده است.", "OpenRouter key is not configured in the app.", "د OpenRouter کیلي په اپ کې نه ده ټاکل شوې.", "ایپ میں OpenRouter کلید سیٹ نہیں ہے۔", "ऐप में OpenRouter कुंजी सेट नहीं है।", "مفتاح OpenRouter غير مُعدّ في التطبيق."}; break;
+            case "no_answer": values = new String[]{"پاسخی از مدل دریافت نشد.", "No response was received from the model.", "له ماډل څخه ځواب ترلاسه نه شو.", "ماڈل سے جواب موصول نہیں ہوا۔", "मॉडल से कोई जवाब नहीं मिला।", "لم يتم استلام رد من النموذج."}; break;
+            case "empty_answer": values = new String[]{"پاسخ مدل خالی بود.", "The model returned an empty answer.", "د ماډل ځواب تش و.", "ماڈل کا جواب خالی تھا۔", "मॉडल का जवाब खाली था।", "كان رد النموذج فارغاً."}; break;
+            case "sorry": values = new String[]{"متأسفم، پاسخ دریافت نشد.", "Sorry, the answer could not be retrieved.", "بښنه غواړم، ځواب ترلاسه نه شو.", "معذرت، جواب موصول نہیں ہو سکا۔", "क्षमा करें, जवाब प्राप्त नहीं हुआ।", "عذراً، تعذّر الحصول على الرد."}; break;
+            case "unknown_error": values = new String[]{"خطای نامشخص: ", "Unknown error: ", "نامعلومه تېروتنه: ", "نامعلومہ خرابی: ", "अज्ञात त्रुटि: ", "خطأ غير معروف: "}; break;
+            case "you": values = new String[]{"شما", "You", "تاسو", "آپ", "आप", "أنت"}; break;
+            case "assistant": values = new String[]{"✦ دستیار هوشمند", "✦ AI Assistant", "✦ هوښیار مرستیال", "✦ ذہین معاون", "✦ स्मार्ट सहायक", "✦ المساعد الذكي"}; break;
+            case "copy": values = new String[]{"▣  کپی پاسخ", "▣  Copy answer", "▣  ځواب کاپي", "▣  جواب کاپی کریں", "▣  जवाब कॉपी करें", "▣  نسخ الرد"}; break;
+            case "copy_label": values = new String[]{"پاسخ دستیار", "Assistant answer", "د مرستیال ځواب", "معاون کا جواب", "सहायक का जवाब", "رد المساعد"}; break;
+            case "copied": values = new String[]{"پاسخ کپی شد", "Answer copied", "ځواب کاپي شو", "جواب کاپی ہو گیا", "जवाब कॉपी हुआ", "تم نسخ الرد"}; break;
+            default: values = new String[]{key,key,key,key,key,key};
+        }
+        int index = "en".equals(lang) ? 1 : "ps".equals(lang) ? 2 : "ur".equals(lang) ? 3 : "hi".equals(lang) ? 4 : "ar".equals(lang) ? 5 : 0;
+        return values[index];
+    }
+
+    private String getWelcomeMessage() { return tr("welcome"); }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +124,9 @@ public class AIActivity extends Activity {
 
         LinearLayout main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
+        main.setLayoutDirection("ar".equals(languageCode()) || "ur".equals(languageCode()) ||
+                "ps".equals(languageCode()) || "fa".equals(languageCode())
+                ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
         main.setBackgroundColor(background);
 
         LinearLayout header = new LinearLayout(this);
@@ -98,12 +158,12 @@ public class AIActivity extends Activity {
         LinearLayout titleBox = new LinearLayout(this);
         titleBox.setOrientation(LinearLayout.VERTICAL);
         TextView title = new TextView(this);
-        title.setText("دستیار هوشمند");
+        title.setText(tr("title"));
         title.setTextSize(21);
         title.setTextColor(Color.WHITE);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         TextView subtitle = new TextView(this);
-        subtitle.setText("همراه دانای شما");
+        subtitle.setText(tr("subtitle"));
         subtitle.setTextSize(12);
         subtitle.setTextColor(Color.rgb(160, 238, 237));
         titleBox.addView(title);
@@ -116,14 +176,13 @@ public class AIActivity extends Activity {
         menuIcon.setTextSize(28);
         menuIcon.setTextColor(Color.WHITE);
         menuIcon.setGravity(Gravity.CENTER);
-        menuIcon.setContentDescription("منوی دستیار");
+        menuIcon.setContentDescription(tr("menu"));
         header.addView(menuIcon, new LinearLayout.LayoutParams(dp(40), dp(48)));
         menuIcon.setOnClickListener(v -> showAssistantMenu(menuIcon));
         main.addView(header);
 
         TextView welcome = new TextView(this);
-        welcome.setText("✨  بپرس، یاد بگیر و تجربه کن\n" +
-                "سؤالت را بنویس؛ من برای پاسخ‌گویی آماده‌ام.");
+        welcome.setText(tr("welcome_title"));
         welcome.setTextSize(14);
         welcome.setTextColor(primary);
         welcome.setGravity(Gravity.CENTER);
@@ -135,6 +194,7 @@ public class AIActivity extends Activity {
         scrollView.setClipToPadding(false);
         messagesLayout = new LinearLayout(this);
         messagesLayout.setOrientation(LinearLayout.VERTICAL);
+        messagesLayout.setLayoutDirection(main.getLayoutDirection());
         messagesLayout.setPadding(dp(12), dp(8), dp(12), dp(12));
         scrollView.addView(messagesLayout, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -148,7 +208,11 @@ public class AIActivity extends Activity {
         bottom.setBackgroundColor(Color.WHITE);
 
         questionInput = new EditText(this);
-        questionInput.setHint("پیام خود را بنویسید...");
+        questionInput.setHint(tr("hint"));
+        questionInput.setTextDirection("ar".equals(languageCode()) || "ur".equals(languageCode()) ||
+                "ps".equals(languageCode()) || "fa".equals(languageCode())
+                ? View.TEXT_DIRECTION_RTL : View.TEXT_DIRECTION_LTR);
+        questionInput.setLayoutDirection(main.getLayoutDirection());
         questionInput.setTextSize(16);
         questionInput.setTextColor(textColor);
         questionInput.setHintTextColor(Color.GRAY);
@@ -178,7 +242,7 @@ public class AIActivity extends Activity {
         main.addView(bottom);
 
         setContentView(main);
-        addMessage(false, WELCOME_MESSAGE, false);
+        addMessage(false, getWelcomeMessage(), false);
         sendButton.setOnClickListener(v -> sendQuestion());
         questionInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
@@ -191,30 +255,30 @@ public class AIActivity extends Activity {
 
     private void showAssistantMenu(View anchor) {
         PopupMenu popup = new PopupMenu(AIActivity.this, anchor);
-        popup.getMenu().add(0, 1, 0, "گفتگوی جدید");
-        popup.getMenu().add(0, 2, 1, "پاک‌کردن گفتگو");
-        popup.getMenu().add(0, 3, 2, "درباره دستیار");
+        popup.getMenu().add(0, 1, 0, tr("new_chat"));
+        popup.getMenu().add(0, 2, 1, tr("clear_chat"));
+        popup.getMenu().add(0, 3, 2, tr("about"));
 
         popup.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == 1) {
                 if (isSending) {
-                    Toast.makeText(this, "لطفاً صبر کنید تا پاسخ فعلی دریافت شود.",
+                    Toast.makeText(this, tr("wait"),
                             Toast.LENGTH_SHORT).show();
                     return true;
                 }
                 messagesLayout.removeAllViews();
-                addMessage(false, WELCOME_MESSAGE, false);
+                addMessage(false, getWelcomeMessage(), false);
                 questionInput.setText("");
-                Toast.makeText(this, "گفتگوی جدید آغاز شد", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, tr("new_started"), Toast.LENGTH_SHORT).show();
                 return true;
             }
             if (id == 2) {
                 new AlertDialog.Builder(AIActivity.this)
-                        .setTitle("پاک‌کردن گفتگو")
-                        .setMessage("آیا می‌خواهید پیام‌های این گفتگو پاک شوند؟")
-                        .setNegativeButton("انصراف", (dialog, which) -> dialog.dismiss())
-                        .setPositiveButton("پاک کن", (dialog, which) -> {
+                        .setTitle(tr("clear_chat"))
+                        .setMessage(tr("clear_confirm"))
+                        .setNegativeButton(tr("cancel"), (dialog, which) -> dialog.dismiss())
+                        .setPositiveButton(tr("clear"), (dialog, which) -> {
                             if (isSending) {
                                 Toast.makeText(this,
                                         "لطفاً پس از پایان پاسخ فعلی دوباره تلاش کنید.",
@@ -222,17 +286,16 @@ public class AIActivity extends Activity {
                                 return;
                             }
                             messagesLayout.removeAllViews();
-                            addMessage(false, "گفتگو پاک شد. 🌟 هر سؤال تازه‌ای داری بپرس.", false);
-                            Toast.makeText(this, "گفتگو پاک شد", Toast.LENGTH_SHORT).show();
+                            addMessage(false, tr("cleared_msg"), false);
+                            Toast.makeText(this, tr("cleared"), Toast.LENGTH_SHORT).show();
                         }).show();
                 return true;
             }
             if (id == 3) {
                 new AlertDialog.Builder(AIActivity.this)
-                        .setTitle("درباره دستیار هوشمند")
-                        .setMessage("دستیار هوشمند تجربه‌ها\n\n" +
-                                "همراه شما برای پرسش، یادگیری و دریافت پاسخ درباره موضوعات گوناگون.")
-                        .setPositiveButton("بستن", null)
+                        .setTitle(tr("title"))
+                        .setMessage(tr("about_msg"))
+                         .setPositiveButton(tr("close"), null)
                         .show();
                 return true;
             }
@@ -260,7 +323,7 @@ public class AIActivity extends Activity {
 
         String question = questionInput.getText().toString().trim();
         if (question.isEmpty()) {
-            Toast.makeText(this, "لطفاً سؤال خود را بنویسید", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, tr("empty"), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -271,14 +334,14 @@ public class AIActivity extends Activity {
         questionInput.setText("");
         ((InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE))
                 .hideSoftInputFromWindow(questionInput.getWindowToken(), 0);
-        final TextView loading = addMessage(false, "در حال فکر کردن... ✨", false);
+        final TextView loading = addMessage(false, tr("thinking"), false);
 
         executor.execute(() -> {
             HttpURLConnection connection = null;
             try {
                 String apiKey = BuildConfig.OPENROUTER_API_KEY;
                 if (apiKey == null || apiKey.trim().isEmpty()) {
-                    throw new Exception("کلید OpenRouter در برنامه تنظیم نشده است.");
+                    throw new Exception(tr("not_configured"));
                 }
 
                 URL url = new URL("https://openrouter.ai/api/v1/chat/completions");
@@ -295,18 +358,19 @@ public class AIActivity extends Activity {
                 JSONArray messages = new JSONArray();
                 JSONObject systemMessage = new JSONObject();
                 systemMessage.put("role", "system");
+                String responseLanguage = "fa".equals(languageCode()) ? "فارسی/دری" :
+                        "en".equals(languageCode()) ? "English" :
+                        "ps".equals(languageCode()) ? "پښتو" :
+                        "ur".equals(languageCode()) ? "اردو" :
+                        "hi".equals(languageCode()) ? "हिन्दी" : "العربية";
                 systemMessage.put("content",
-                        "تو دستیار هوشمند اپلیکیشن «تجربه‌ها» هستی. " +
-                        "به زبان فارسی/دری، روشن، محترمانه و مفید پاسخ بده. " +
-                        "خود را به موضوع تجربه‌های ثبت‌شده محدود نکن؛ " +
-                        "تا جایی که دانش و توانایی مدل اجازه می‌دهد، " +
-                        "به پرسش‌های عمومی، علمی، آموزشی، فناوری، " +
-                        "تاریخی و روزمره پاسخ بده. " +
-                        "اگر اطلاعات کافی نداری، صادقانه بگو. " +
-                        "اطلاعات ساختگی را به عنوان حقیقت ارائه نکن. " +
-                        "برای پرسش‌های پزشکی پاسخ عمومی و محتاطانه بده " +
-                        "و در وضعیت‌های جدی مراجعه به پزشک را توصیه کن. " +
-                        "پاسخ‌ها را منظم و متناسب با سؤال بنویس.");
+                        "You are the AI assistant of the TajroBehha app. Always answer in " + responseLanguage + ". " +
+                        "Use clear, respectful, useful language. Do not limit yourself to user experiences; " +
+                        "answer general, scientific, educational, technology, historical and everyday questions " +
+                        "as far as your knowledge allows. If you do not have enough information, say so honestly. " +
+                        "Never present fabricated information as fact. For medical questions, give cautious general " +
+                        "information and recommend consulting a doctor for serious situations. " +
+                        "Organize answers appropriately for the question.");
                 messages.put(systemMessage);
                 JSONObject userMessage = new JSONObject();
                 userMessage.put("role", "user");
@@ -337,10 +401,10 @@ public class AIActivity extends Activity {
 
                 JSONObject json = new JSONObject(response.toString());
                 JSONArray choices = json.getJSONArray("choices");
-                if (choices.length() == 0) throw new Exception("پاسخی از مدل دریافت نشد.");
+                if (choices.length() == 0) throw new Exception(tr("no_answer"));
                 JSONObject message = choices.getJSONObject(0).getJSONObject("message");
                 String answer = message.optString("content", "").trim();
-                if (answer.isEmpty()) throw new Exception("پاسخ مدل خالی بود.");
+                if (answer.isEmpty()) throw new Exception(tr("empty_answer"));
 
                 String finalAnswer = answer;
                 runOnUiThread(() -> {
@@ -350,11 +414,11 @@ public class AIActivity extends Activity {
                 });
             } catch (Exception e) {
                 String error = e.getMessage();
-                if (error == null || error.isEmpty()) error = "خطای نامشخص: " + e;
+                if (error == null || error.isEmpty()) error = tr("unknown_error") + e;
                 String finalError = error;
                 runOnUiThread(() -> {
                     removeMessage(loading);
-                    addMessage(false, "متأسفم، پاسخ دریافت نشد.\n" + finalError, false);
+                    addMessage(false, tr("sorry") + "\n" + finalError, false);
                     finishSending();
                 });
             } finally {
@@ -393,7 +457,7 @@ public class AIActivity extends Activity {
         wrapper.addView(bubble, bubbleParams);
 
         TextView sender = new TextView(this);
-        sender.setText(isUser ? "شما" : "✦ دستیار هوشمند");
+        sender.setText(isUser ? tr("you") : tr("assistant"));
         sender.setTextSize(13);
         sender.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         sender.setTextColor(isUser ? primary : Color.rgb(10, 115, 153));
@@ -412,7 +476,7 @@ public class AIActivity extends Activity {
 
         if (allowCopy) {
             Button copyButton = new Button(this);
-            copyButton.setText("▣  کپی پاسخ");
+            copyButton.setText(tr("copy"));
             copyButton.setTextSize(12);
             copyButton.setTextColor(primary);
             copyButton.setAllCaps(false);
@@ -428,8 +492,8 @@ public class AIActivity extends Activity {
             bubble.addView(copyButton, copyParams);
             copyButton.setOnClickListener(v -> {
                 ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                clipboard.setPrimaryClip(ClipData.newPlainText("پاسخ دستیار", message));
-                Toast.makeText(this, "پاسخ کپی شد", Toast.LENGTH_SHORT).show();
+                clipboard.setPrimaryClip(ClipData.newPlainText(tr("copy_label"), message));
+                Toast.makeText(this, tr("copied"), Toast.LENGTH_SHORT).show();
             });
         }
 
