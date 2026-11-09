@@ -431,6 +431,136 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("⏳ در حال بررسی...")) return "⏳ जाँच हो रही है...";
             if (fa.equals("تجربه با موفقیت منتشر شد! 🎉")) return "अनुभव सफलतापूर्वक प्रकाशित हुआ! 🎉";
         }
+
+        // العربية
+        if ("ar".equals(lang)) {
+            if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\n")) return "لم تُنشر أي تجربة بعد.\n\n";
+            if (fa.equals("اولین تجربه خود را ثبت کنید! ✍️")) return "كن أول من يشارك تجربته! ✍️";
+            if (fa.equals("❤️ واکنش")) return "❤️ تفاعل";
+            if (fa.equals("۰")) return "٠";
+            if (fa.equals("۱")) return "١";
+            if (fa.equals("۲")) return "٢";
+            if (fa.equals("۳")) return "٣";
+            if (fa.equals("۴")) return "٤";
+            if (fa.equals("۵")) return "٥";
+            if (fa.equals("۶")) return "٦";
+            if (fa.equals("۷")) return "٧";
+            if (fa.equals("۸")) return "٨";
+            if (fa.equals("۹")) return "٩";
+            if (fa.equals("تجربه‌ها")) return "التجارب";
+            if (fa.equals("📚 تجربه‌های کاربران")) return "📚 تجارب المستخدمين";
+            if (fa.equals("هر تجربه یک درس و هر داستان چراغیست")) return "كل تجربة درس، وكل قصة نور";
+            if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ خيارات التجربة";
+            if (fa.equals("شریک‌سازی تجربه")) return "مشاركة التجربة";
+            if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\nاولین تجربه خود را ثبت کنید! ✍️")) return "لم تُنشر أي تجربة بعد.\\n\\nكن أول من يشارك تجربته! ✍️";
+            if (fa.equals("بدون عنوان")) return "بلا عنوان";
+            if (fa.equals("کاربر")) return "مستخدم";
+            if (fa.equals("برای لایک کردن وارد حساب شوید")) return "يرجى تسجيل الدخول للإعجاب";
+            if (fa.equals("✏️ ویرایش")) return "✏️ تعديل";
+            if (fa.equals("🗑️ حذف")) return "🗑️ حذف";
+            if (fa.equals("مطمئن هستید این تجربه حذف شود؟")) return "هل أنت متأكد من حذف هذه التجربة؟";
+            if (fa.equals("لغو")) return "إلغاء";
+            if (fa.equals("حذف")) return "حذف";
+            if (fa.equals("تجربه حذف شد 🗑️")) return "تم حذف التجربة 🗑️";
+            if (fa.equals("خطا در حذف تجربه")) return "حدث خطأ أثناء حذف التجربة";
+            if (fa.equals("خطا در دریافت تجربه‌ها")) return "حدث خطأ أثناء تحميل التجارب";
+            if (fa.equals("خطا در برداشتن لایک")) return "حدث خطأ أثناء إزالة الإعجاب";
+            if (fa.equals("خطا در ثبت لایک")) return "حدث خطأ أثناء تسجيل الإعجاب";
+            if (fa.equals("خطا در بررسی لایک")) return "حدث خطأ أثناء التحقق من الإعجاب";
+            if (fa.equals("✍️ ثبت تجربه جدید")) return "✍️ نشر تجربة جديدة";
+            if (fa.equals("عنوان تجربه را بنویسید")) return "اكتب عنوان التجربة";
+            if (fa.equals("تجربه خود را با دیگران شریک کنید...")) return "شارك تجربتك مع الآخرين...";
+            if (fa.equals("🚀 انتشار تجربه")) return "🚀 نشر التجربة";
+            if (fa.equals("🖼 انتخاب عکس")) return "🖼 اختيار صورة";
+            if (fa.equals("عکس انتخاب نشده است")) return "لم يتم اختيار صورة";
+            if (fa.equals("عکس انتخاب شد؛ هنگام انتشار بارگذاری می‌شود")) return "تم اختيار الصورة؛ سيتم رفعها عند النشر";
+            if (fa.equals("لطفاً ابتدا وارد اکانت خود شوید")) return "يرجى تسجيل الدخول أولاً";
+            if (fa.equals("لطفاً عنوان و متن تجربه را وارد کنید")) return "يرجى إدخال عنوان التجربة ونصها";
+            if (fa.equals("عنوان تجربه خیلی طولانی است")) return "عنوان التجربة طويل جداً";
+            if (fa.equals("متن تجربه خیلی طولانی است")) return "نص التجربة طويل جداً";
+            if (fa.equals("⏳ در حال بررسی...")) return "⏳ جارٍ التحقق...";
+            if (fa.equals("این تجربه قبلاً منتشر شده است ❤️")) return "تم نشر هذه التجربة مسبقاً ❤️";
+            if (fa.equals("تجربه با موفقیت منتشر شد! 🎉")) return "تم نشر التجربة بنجاح! 🎉";
+            if (fa.equals("خطا در بررسی تجربه: ")) return "خطأ أثناء التحقق من التجربة: ";
+            if (fa.equals("خطا در انتشار تجربه: ")) return "خطأ أثناء نشر التجربة: ";
+            if (fa.equals("↓ برای تازه‌سازی، صفحه را پایین بکشید")) return "↓ اسحب الصفحة للأسفل للتحديث";
+            if (fa.equals("↓ رها کنید تا تازه‌سازی شود")) return "↓ اترك للتحديث";
+            if (fa.equals("در حال تازه‌سازی تجربه‌ها...")) return "جارٍ تحديث التجارب...";
+            if (fa.equals("پروفایل من")) return "ملفي الشخصي";
+            if (fa.equals("انتخاب عکس تجربه")) return "اختيار صورة التجربة";
+            if (fa.equals("باز کردن گالری ممکن نشد")) return "تعذّر فتح المعرض";
+            if (fa.equals("⏳ در حال بارگذاری عکس...")) return "⏳ جارٍ تحميل الصورة...";
+            if (fa.equals("بارگذاری عکس ناموفق بود: ")) return "فشل رفع الصورة: ";
+            if (fa.equals("لطفاً ابتدا وارد حساب خود شوید")) return "يرجى تسجيل الدخول أولاً";
+            if (fa.equals("توکن ورود دریافت نشد")) return "لم يتم استلام رمز تسجيل الدخول";
+            if (fa.equals("فایل عکس قابل خواندن نیست")) return "تعذّرت قراءة ملف الصورة";
+            if (fa.equals("حجم عکس باید کمتر از ۴ مگابایت باشد")) return "يجب أن يكون حجم الصورة أقل من 4 ميغابايت";
+            if (fa.equals("نشانی عکس از سرور دریافت نشد")) return "لم يتم استلام رابط الصورة من الخادم";
+            if (fa.equals("خطای ناشناخته در آپلود عکس")) return "خطأ غير معروف أثناء رفع الصورة";
+            if (fa.equals("دریافت توکن Firebase ناموفق بود")) return "فشل الحصول على رمز Firebase";
+            if (fa.equals("خواندن عکس ممکن نشد")) return "تعذّرت قراءة الصورة";
+            if (fa.equals("👍 واکنش")) return "👍 تفاعل";
+            if (fa.equals("واکنش خود را انتخاب کنید")) return "اختر تفاعلك";
+            if (fa.equals("👍 لایک")) return "👍 إعجاب";
+            if (fa.equals("❤️ قلب")) return "❤️ قلب";
+            if (fa.equals("💬 کامنت")) return "💬 تعليق";
+            if (fa.equals("↗ اشتراک‌گذاری")) return "↗ مشاركة";
+            if (fa.equals("⬇️ ذخیره عکس در گالری")) return "⬇️ حفظ الصورة في المعرض";
+            if (fa.equals("بستن")) return "إغلاق";
+            if (fa.equals("تصویر تجربه")) return "صورة التجربة";
+            if (fa.equals("⬇️ ذخیره در گالری")) return "⬇️ حفظ في المعرض";
+            if (fa.equals("آدرس عکس موجود نیست")) return "رابط الصورة غير متوفر";
+            if (fa.equals("برای ذخیره در گالری، نسخهٔ جدید برنامه را نصب کنید")) return "ثبّت الإصدار الجديد من التطبيق لحفظ الصورة في المعرض";
+            if (fa.equals("در حال ذخیره عکس...")) return "جارٍ حفظ الصورة...";
+            if (fa.equals("تصویر قابل خواندن نیست")) return "تعذّرت قراءة الصورة";
+            if (fa.equals("ذخیره‌سازی شروع نشد")) return "لم يبدأ الحفظ";
+            if (fa.equals("نوشتن تصویر انجام نشد")) return "تعذّرت كتابة الصورة";
+            if (fa.equals("عکس با موفقیت در گالری ذخیره شد 📸")) return "تم حفظ الصورة في المعرض بنجاح 📸";
+            if (fa.equals("ذخیره عکس ناموفق بود؛ اتصال اینترنت را بررسی کنید")) return "فشل حفظ الصورة؛ تحقق من اتصال الإنترنت";
+            if (fa.equals("اشتراک‌گذاری تجربه")) return "مشاركة التجربة";
+            if (fa.equals("💬 کامنت (")) return "💬 التعليقات (";
+            if (fa.equals("نظر خود را بنویسید...")) return "اكتب تعليقك...";
+            if (fa.equals("کامنت‌ها")) return "التعليقات";
+            if (fa.equals("ثبت کامنت")) return "إرسال التعليق";
+            if (fa.equals("هنوز کامنتی ثبت نشده است.")) return "لا توجد تعليقات بعد.";
+            if (fa.equals("بارگذاری کامنت‌ها ناموفق بود")) return "فشل تحميل التعليقات";
+            if (fa.equals("برای ثبت کامنت وارد حساب شوید")) return "يرجى تسجيل الدخول لإضافة تعليق";
+            if (fa.equals("متن کامنت را بنویسید")) return "اكتب نص التعليق";
+            if (fa.equals("کامنت ثبت شد")) return "تم إرسال التعليق";
+            if (fa.equals("ثبت کامنت ناموفق بود")) return "فشل إرسال التعليق";
+            if (fa.equals("واکنش‌دهندگان")) return "المتفاعلون";
+            if (fa.equals("بارگذاری واکنش‌ها ناموفق بود")) return "فشل تحميل التفاعلات";
+            if (fa.equals("همه")) return "الكل";
+            if (fa.equals("بارگذاری تعداد قلب‌ها ناموفق بود")) return "فشل تحميل عدد القلوب";
+            if (fa.equals("خطا در برداشتن قلب")) return "حدث خطأ أثناء إزالة القلب";
+            if (fa.equals("خطا در ثبت قلب")) return "حدث خطأ أثناء تسجيل القلب";
+            if (fa.equals("خطا در بررسی قلب")) return "حدث خطأ أثناء التحقق من القلب";
+            if (fa.equals("نام کاربری")) return "اسم المستخدم";
+            if (fa.equals("درباره من")) return "نبذة عني";
+            if (fa.equals("شهر")) return "المدينة";
+            if (fa.equals("تخصص")) return "التخصص";
+            if (fa.equals("🤝 درخواست دوستی")) return "🤝 طلب صداقة";
+            if (fa.equals("📩 درخواست‌های دوستی")) return "📩 طلبات الصداقة";
+            if (fa.equals("پروفایل کاربر")) return "الملف الشخصي";
+            if (fa.equals("پروفایل بارگذاری نشد؛ اتصال را بررسی کنید.")) return "تعذّر تحميل الملف الشخصي؛ تحقق من الاتصال.";
+            if (fa.equals("این کاربر عکس پروفایل ندارد.")) return "هذا المستخدم ليس لديه صورة شخصية.";
+            if (fa.equals("✅ دوست هستید")) return "✅ أنتما صديقان";
+            if (fa.equals("⏳ درخواست فرستاده شده")) return "⏳ تم إرسال الطلب";
+            if (fa.equals("برای درخواست دوستی اول وارد حساب شوید.")) return "يرجى تسجيل الدخول أولاً لإرسال طلب صداقة.";
+            if (fa.equals("درخواست دوستی فرستاده شد.")) return "تم إرسال طلب الصداقة.";
+            if (fa.equals("ارسال درخواست ناموفق بود؛ قوانین فایربیس را بررسی کنید.")) return "فشل إرسال الطلب؛ تحقق من قواعد Firebase.";
+            if (fa.equals("بررسی درخواست دوستی ناموفق بود.")) return "فشل التحقق من طلب الصداقة.";
+            if (fa.equals("در حال دریافت نام کاربر…")) return "جارٍ تحميل اسم المستخدم…";
+            if (fa.equals("قبول")) return "قبول";
+            if (fa.equals("رد")) return "رفض";
+            if (fa.equals("درخواست دوستی جدیدی نداری.")) return "ليس لديك طلبات صداقة جديدة.";
+            if (fa.equals("درخواست‌های دوستی")) return "طلبات الصداقة";
+            if (fa.equals("دریافت درخواست‌ها ناموفق بود؛ قوانین فایربیس را بررسی کنید.")) return "فشل تحميل الطلبات؛ تحقق من قواعد Firebase.";
+            if (fa.equals("✅ قبول شد")) return "✅ تم القبول";
+            if (fa.equals("رد شد")) return "تم الرفض";
+            if (fa.equals("پاسخ ثبت شد.")) return "تم تسجيل الرد.";
+            if (fa.equals("ثبت پاسخ ناموفق بود؛ قوانین فایربیس را بررسی کنید.")) return "فشل تسجيل الرد؛ تحقق من قواعد Firebase.";
+        }
         return fa;
     }
 
@@ -666,7 +796,7 @@ public class ExperienceListActivity extends Activity {
         nameColumn.addView(nameView);
 
         TextView profileHint = new TextView(this);
-        profileHint.setText("پروفایل من");
+        profileHint.setText(text("پروفایل من"));
         profileHint.setTextSize(12);
         profileHint.setTextColor(Color.rgb(105, 125, 132));
         profileHint.setPadding(0, dp(3), 0, 0);
@@ -776,10 +906,10 @@ public class ExperienceListActivity extends Activity {
             intent.setType("image/*");
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             try {
-                startActivityForResult(Intent.createChooser(intent, "انتخاب عکس تجربه"),
+                startActivityForResult(Intent.createChooser(intent, text("انتخاب عکس تجربه")),
                         REQUEST_PICK_EXPERIENCE_IMAGE);
             } catch (Exception e) {
-                Toast.makeText(this, "باز کردن گالری ممکن نشد", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, text("باز کردن گالری ممکن نشد"), Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -863,7 +993,7 @@ public class ExperienceListActivity extends Activity {
     private void publishInlineExperience(FirebaseUser user, String titleText,
                                          String experience, String contentKey) {
         if (selectedImageUri != null) {
-            publishButton.setText("⏳ در حال بارگذاری عکس...");
+            publishButton.setText(text("⏳ در حال بارگذاری عکس..."));
             uploadExperienceImage(selectedImageUri, new ImageUploadCallback() {
                 @Override public void onSuccess(String imageUrl) {
                     saveInlineExperience(user, titleText, experience, contentKey, imageUrl);
@@ -871,7 +1001,7 @@ public class ExperienceListActivity extends Activity {
                 @Override public void onError(String error) {
                     resetPublishButton();
                     Toast.makeText(ExperienceListActivity.this,
-                            "بارگذاری عکس ناموفق بود: " + error, Toast.LENGTH_LONG).show();
+                            text("بارگذاری عکس ناموفق بود: ") + error, Toast.LENGTH_LONG).show();
                 }
             });
         } else {
@@ -1007,7 +1137,7 @@ public class ExperienceListActivity extends Activity {
                             Toast.makeText(
                                     ExperienceListActivity.this,
                                     text(
-                                            "خطا در دریافت تجربه‌ها"
+                                            text("خطا در دریافت تجربه‌ها")
                                     ),
                                     Toast.LENGTH_LONG
                             ).show();
@@ -1085,7 +1215,7 @@ public class ExperienceListActivity extends Activity {
         FirebaseUser user = auth.getCurrentUser();
 
         if (user == null) {
-            callback.onError("لطفاً ابتدا وارد حساب خود شوید");
+            callback.onError(text("لطفاً ابتدا وارد حساب خود شوید"));
             return;
         }
 
@@ -1094,7 +1224,7 @@ public class ExperienceListActivity extends Activity {
                     String idToken = tokenResult.getToken();
 
                     if (idToken == null || idToken.isEmpty()) {
-                        callback.onError("توکن ورود دریافت نشد");
+                        callback.onError(text("توکن ورود دریافت نشد"));
                         return;
                     }
 
@@ -1116,7 +1246,7 @@ public class ExperienceListActivity extends Activity {
                                  ByteArrayOutputStream buffer =
                                          new ByteArrayOutputStream()) {
                                 if (input == null) {
-                                    throw new Exception("فایل عکس قابل خواندن نیست");
+                                    throw new Exception(text("فایل عکس قابل خواندن نیست"));
                                 }
 
                                 byte[] chunk = new byte[8192];
@@ -1128,7 +1258,7 @@ public class ExperienceListActivity extends Activity {
                                     total += count;
                                     if (total > maxBytes) {
                                         throw new Exception(
-                                                "حجم عکس باید کمتر از ۴ مگابایت باشد");
+                                                text("حجم عکس باید کمتر از ۴ مگابایت باشد"));
                                     }
                                     buffer.write(chunk, 0, count);
                                 }
@@ -1192,7 +1322,7 @@ public class ExperienceListActivity extends Activity {
                                         responseJson.optString("imageUrl", "");
                                 if (imageUrl.isEmpty()) {
                                     throw new Exception(
-                                            "نشانی عکس از سرور دریافت نشد");
+                                            text("نشانی عکس از سرور دریافت نشد"));
                                 }
                                 runOnUiThread(() -> callback.onSuccess(imageUrl));
                             } else {
@@ -1203,7 +1333,7 @@ public class ExperienceListActivity extends Activity {
 
                         } catch (Exception e) {
                             String error = e.getMessage() == null
-                                    ? "خطای ناشناخته در آپلود عکس"
+                                    ? text("خطای ناشناخته در آپلود عکس")
                                     : e.getMessage();
                             runOnUiThread(() -> callback.onError(error));
                         } finally {
@@ -1214,7 +1344,7 @@ public class ExperienceListActivity extends Activity {
                     }).start();
                 })
                 .addOnFailureListener(e ->
-                        callback.onError("دریافت توکن Firebase ناموفق بود"));
+                        callback.onError(text("دریافت توکن Firebase ناموفق بود")));
     }
     
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -1228,12 +1358,12 @@ public class ExperienceListActivity extends Activity {
             try {
                 imagePreview.setImageURI(selectedImageUri);
                 imagePreview.setVisibility(View.VISIBLE);
-                imageStatus.setText("عکس انتخاب شد؛ هنگام انتشار بارگذاری می‌شود");
+                imageStatus.setText(text("عکس انتخاب شد؛ هنگام انتشار بارگذاری می‌شود"));
             } catch (Exception e) {
                 selectedImageUri = null;
                 imagePreview.setVisibility(View.GONE);
-                imageStatus.setText("خواندن عکس ممکن نشد");
-                Toast.makeText(this, "خواندن عکس ممکن نشد", Toast.LENGTH_SHORT).show();
+                imageStatus.setText(text("خواندن عکس ممکن نشد"));
+                Toast.makeText(this, text("خواندن عکس ممکن نشد"), Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -1260,10 +1390,8 @@ public class ExperienceListActivity extends Activity {
                 new TextView(this);
 
         empty.setText(
-                text(
-                        "هنوز تجربه‌ای منتشر نشده است.\n\n" +
-                                "اولین تجربه خود را ثبت کنید! ✍️"
-                )
+                text("هنوز تجربه‌ای منتشر نشده است.\n\n") +
+                        text("اولین تجربه خود را ثبت کنید! ✍️")
         );
 
         empty.setTextSize(18);
@@ -1665,7 +1793,7 @@ public class ExperienceListActivity extends Activity {
 
         // واکنش یکپارچه: لمس کوتاه لایک، نگه‌داشتن برای انتخاب لایک یا قلب
         TextView likeButton = new TextView(this);
-        likeButton.setText("👍 واکنش");
+        likeButton.setText(text("👍 واکنش"));
         likeButton.setTextSize(14);
         likeButton.setTextColor(Color.rgb(22, 105, 177));
         likeButton.setGravity(Gravity.CENTER);
@@ -1676,14 +1804,14 @@ public class ExperienceListActivity extends Activity {
         likeRow.addView(likeButton, new LinearLayout.LayoutParams(dp(92), dp(36)));
 
         TextView likeCount = new TextView(this);
-        likeCount.setText("۰"); likeCount.setTextSize(13);
+        likeCount.setText(text("۰")); likeCount.setTextSize(13);
         likeCount.setTextColor(Color.rgb(105, 105, 105));
         likeCount.setGravity(Gravity.CENTER_VERTICAL);
         likeCount.setPadding(dp(4), 0, dp(8), 0);
         likeRow.addView(likeCount, new LinearLayout.LayoutParams(dp(25), dp(36)));
 
         TextView heartCount = new TextView(this);
-        heartCount.setText("۰"); heartCount.setTextSize(13);
+        heartCount.setText(text("۰")); heartCount.setTextSize(13);
         heartCount.setTextColor(Color.rgb(211, 48, 72));
         heartCount.setGravity(Gravity.CENTER_VERTICAL);
         heartCount.setPadding(dp(2), 0, dp(5), 0);
@@ -1699,8 +1827,8 @@ public class ExperienceListActivity extends Activity {
         });
         likeButton.setOnLongClickListener(v -> {
             new AlertDialog.Builder(ExperienceListActivity.this)
-                    .setTitle("واکنش خود را انتخاب کنید")
-                    .setItems(new String[]{"👍 لایک", "❤️ قلب"}, (dlg, which) -> {
+                    .setTitle(text("واکنش خود را انتخاب کنید"))
+                    .setItems(new String[]{text("👍 لایک"), text("❤️ قلب")}, (dlg, which) -> {
                         if (currentUserId == null) {
                             Toast.makeText(ExperienceListActivity.this, text("برای لایک کردن وارد حساب شوید"), Toast.LENGTH_SHORT).show();
                         } else if (which == 0) {
@@ -1766,7 +1894,7 @@ public class ExperienceListActivity extends Activity {
         socialRow.setGravity(Gravity.CENTER_VERTICAL);
         socialRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         TextView commentsButton = new TextView(this);
-        commentsButton.setText("💬 کامنت");
+        commentsButton.setText(text("💬 کامنت"));
         commentsButton.setTextSize(14);
         commentsButton.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         commentsButton.setTextColor(Color.rgb(12, 91, 120));
@@ -1776,7 +1904,7 @@ public class ExperienceListActivity extends Activity {
                 Color.rgb(235, 248, 250), Color.rgb(167, 218, 224)));
 
         TextView shareButtonCard = new TextView(this);
-        shareButtonCard.setText("↗ اشتراک‌گذاری");
+        shareButtonCard.setText(text("↗ اشتراک‌گذاری"));
         shareButtonCard.setTextSize(14);
         shareButtonCard.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         shareButtonCard.setTextColor(Color.rgb(113, 83, 25));
@@ -1986,7 +2114,7 @@ public class ExperienceListActivity extends Activity {
                 } finally {
                     connection.disconnect();
                 }
-                if (bitmap == null) throw new IOException("تصویر قابل خواندن نیست");
+                if (bitmap == null) throw new IOException(text("تصویر قابل خواندن نیست"));
 
                 String fileName = "Tajrobehha_" + System.currentTimeMillis() + ".jpg";
                 ContentValues values = new ContentValues();
@@ -1998,12 +2126,12 @@ public class ExperienceListActivity extends Activity {
 
                 android.net.Uri imageUri = getContentResolver().insert(
                         MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-                if (imageUri == null) throw new IOException("ذخیره‌سازی شروع نشد");
+                if (imageUri == null) throw new IOException(text("ذخیره‌سازی شروع نشد"));
 
                 try (OutputStream output = getContentResolver().openOutputStream(imageUri)) {
                     if (output == null || !bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
                         getContentResolver().delete(imageUri, null, null);
-                        throw new IOException("نوشتن تصویر انجام نشد");
+                        throw new IOException(text("نوشتن تصویر انجام نشد"));
                     }
                 }
                 ContentValues finished = new ContentValues();
@@ -2079,12 +2207,12 @@ public class ExperienceListActivity extends Activity {
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/plain");
         intent.putExtra(Intent.EXTRA_TEXT, out.toString());
-        startActivity(Intent.createChooser(intent, "اشتراک‌گذاری تجربه"));
+        startActivity(Intent.createChooser(intent, text("اشتراک‌گذاری تجربه")));
     }
 
     private void loadCommentCount(DocumentReference experience, TextView target) {
         experience.collection("comments").get().addOnSuccessListener(q ->
-                target.setText("💬 کامنت (" + formatCount(q.size()) + ")"));
+                target.setText(text("💬 کامنت (") + formatCount(q.size()) + ")"));
     }
 
     private void showComments(DocumentReference experience, TextView countView) {
@@ -2097,16 +2225,16 @@ public class ExperienceListActivity extends Activity {
         scroll.addView(list);
         content.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(260)));
         EditText input = new EditText(this);
-        input.setHint("نظر خود را بنویسید...");
+        input.setHint(text("نظر خود را بنویسید..."));
         input.setGravity(Gravity.RIGHT | Gravity.TOP);
         content.addView(input);
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("کامنت‌ها")
-                .setView(content).setNegativeButton("بستن", null)
-                .setPositiveButton("ثبت کامنت", null).create();
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(text("کامنت‌ها"))
+                .setView(content).setNegativeButton(text("بستن"), null)
+                .setPositiveButton(text("ثبت کامنت"), null).create();
         experience.collection("comments").get()
                 .addOnSuccessListener(q -> {
                     list.removeAllViews();
-                    if (q.isEmpty()) { TextView empty = new TextView(this); empty.setText("هنوز کامنتی ثبت نشده است."); empty.setGravity(Gravity.RIGHT); list.addView(empty); }
+                    if (q.isEmpty()) { TextView empty = new TextView(this); empty.setText(text("هنوز کامنتی ثبت نشده است.")); empty.setGravity(Gravity.RIGHT); list.addView(empty); }
                     for (DocumentSnapshot d : q.getDocuments()) {
                         String uid = d.getString("userId");
                         String comment = d.getString("text");
@@ -2117,20 +2245,20 @@ public class ExperienceListActivity extends Activity {
                         list.addView(row);
                         if (uid != null) db.collection("users").document(uid).get().addOnSuccessListener(u -> {
                             String name = u.getString("name"); if (name == null || name.trim().isEmpty()) name = u.getString("username");
-                            row.setText((name == null || name.trim().isEmpty() ? "کاربر" : name) + "\n" + (comment == null ? "" : comment));
+                            row.setText((name == null || name.trim().isEmpty() ? text("کاربر") : name) + "\n" + (comment == null ? "" : comment));
                         });
                     }
-                }).addOnFailureListener(e -> Toast.makeText(this, "بارگذاری کامنت‌ها ناموفق بود", Toast.LENGTH_SHORT).show());
+                }).addOnFailureListener(e -> Toast.makeText(this, text("بارگذاری کامنت‌ها ناموفق بود"), Toast.LENGTH_SHORT).show());
         dialog.setOnShowListener(unused -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             FirebaseUser user = auth == null ? null : auth.getCurrentUser();
             String value = input.getText().toString().trim();
-            if (user == null) { Toast.makeText(this, "برای ثبت کامنت وارد حساب شوید", Toast.LENGTH_SHORT).show(); return; }
-            if (value.isEmpty()) { input.setError("متن کامنت را بنویسید"); return; }
+            if (user == null) { Toast.makeText(this, text("برای ثبت کامنت وارد حساب شوید"), Toast.LENGTH_SHORT).show(); return; }
+            if (value.isEmpty()) { input.setError(text("متن کامنت را بنویسید")); return; }
             java.util.HashMap<String,Object> data = new java.util.HashMap<>();
             data.put("userId", user.getUid()); data.put("text", value); data.put("timestamp", FieldValue.serverTimestamp());
             experience.collection("comments").add(data).addOnSuccessListener(ref -> {
-                loadCommentCount(experience, countView); Toast.makeText(this, "کامنت ثبت شد", Toast.LENGTH_SHORT).show(); dialog.dismiss();
-            }).addOnFailureListener(e -> Toast.makeText(this, "ثبت کامنت ناموفق بود", Toast.LENGTH_SHORT).show());
+                loadCommentCount(experience, countView); Toast.makeText(this, text("کامنت ثبت شد"), Toast.LENGTH_SHORT).show(); dialog.dismiss();
+            }).addOnFailureListener(e -> Toast.makeText(this, text("ثبت کامنت ناموفق بود"), Toast.LENGTH_SHORT).show());
         }));
         dialog.show();
     }
@@ -2141,7 +2269,7 @@ public class ExperienceListActivity extends Activity {
         LinearLayout people = new LinearLayout(this); people.setOrientation(LinearLayout.VERTICAL);
         ScrollView scroll = new ScrollView(this); scroll.addView(people);
         root.addView(tabs); root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(320)));
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("واکنش‌دهندگان").setView(root).setPositiveButton("بستن", null).create();
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(text("واکنش‌دهندگان")).setView(root).setPositiveButton(text("بستن"), null).create();
         final String[] selected = {"all"};
         Runnable[] render = new Runnable[1];
         render[0] = () -> {
@@ -2156,18 +2284,18 @@ public class ExperienceListActivity extends Activity {
                     LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(0, dp(6), 0, dp(6));
                     ImageView avatar = new ImageView(this); avatar.setImageResource(android.R.drawable.sym_def_app_icon);
                     row.addView(avatar, new LinearLayout.LayoutParams(dp(42), dp(42)));
-                    TextView name = new TextView(this); name.setText("کاربر"); name.setTextSize(15); name.setPadding(dp(10),0,dp(10),0); name.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
+                    TextView name = new TextView(this); name.setText(text("کاربر")); name.setTextSize(15); name.setPadding(dp(10),0,dp(10),0); name.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
                     row.addView(name, new LinearLayout.LayoutParams(0, dp(46), 1)); people.addView(row);
                     db.collection("users").document(userId).get().addOnSuccessListener(u -> {
                         String n = u.getString("name"); if (n == null || n.trim().isEmpty()) n = u.getString("username"); if (n == null || n.trim().isEmpty()) n = u.getString("displayName");
-                        name.setText(("likes".equals(col) ? "👍 " : "❤️ ") + (n == null || n.trim().isEmpty() ? "کاربر" : n));
+                        name.setText(("likes".equals(col) ? "👍 " : "❤️ ") + (n == null || n.trim().isEmpty() ? text("کاربر") : n));
                         String photo = u.getString("photoUrl"); if (photo == null) photo = u.getString("profilePhotoUrl"); if (photo == null) photo = u.getString("profilePhoto"); if (photo == null) photo = u.getString("photo");
                         if (photo != null && !photo.trim().isEmpty()) loadProfileImage(photo, avatar);
                     });
                 }
-            }).addOnFailureListener(e -> Toast.makeText(this, "بارگذاری واکنش‌ها ناموفق بود", Toast.LENGTH_SHORT).show());
+            }).addOnFailureListener(e -> Toast.makeText(this, text("بارگذاری واکنش‌ها ناموفق بود"), Toast.LENGTH_SHORT).show());
         };
-        String[] labels = {"همه", "👍 لایک", "❤️ قلب"}; String[] keys = {"all", "likes", "hearts"};
+        String[] labels = {text("همه"), text("👍 لایک"), text("❤️ قلب")}; String[] keys = {"all", "likes", "hearts"};
         for (int i=0;i<labels.length;i++) { final String key=keys[i]; Button b=new Button(this); b.setText(labels[i]); tabs.addView(b,new LinearLayout.LayoutParams(0,dp(44),1)); b.setOnClickListener(v->{selected[0]=key;render[0].run();}); }
         dialog.show(); render[0].run();
     }
@@ -2188,7 +2316,7 @@ public class ExperienceListActivity extends Activity {
                 heartCount.setText(formatCount(snapshot.size())))
                 .addOnFailureListener(e ->
                         Toast.makeText(ExperienceListActivity.this,
-                                "بارگذاری تعداد قلب‌ها ناموفق بود",
+                                text("بارگذاری تعداد قلب‌ها ناموفق بود"),
                                 Toast.LENGTH_SHORT).show());
     }
 
@@ -2202,24 +2330,24 @@ public class ExperienceListActivity extends Activity {
         heart.get().addOnSuccessListener(snapshot -> {
             if (snapshot.exists()) {
                 heart.delete().addOnSuccessListener(unused -> {
-                    heartButton.setText("👍 واکنش");
+                    heartButton.setText(text("👍 واکنش"));
                     hearts.get().addOnSuccessListener(items ->
                             heartCount.setText(formatCount(items.size())));
                 }).addOnFailureListener(e -> Toast.makeText(this,
-                        "خطا در برداشتن قلب", Toast.LENGTH_SHORT).show());
+                        text("خطا در برداشتن قلب"), Toast.LENGTH_SHORT).show());
             } else {
                 java.util.HashMap<String, Object> data = new java.util.HashMap<>();
                 data.put("userId", currentUserId);
                 data.put("timestamp", FieldValue.serverTimestamp());
                 heart.set(data).addOnSuccessListener(unused -> {
-                    heartButton.setText("❤️ واکنش");
+                    heartButton.setText(text("❤️ واکنش"));
                     hearts.get().addOnSuccessListener(items ->
                             heartCount.setText(formatCount(items.size())));
                 }).addOnFailureListener(e -> Toast.makeText(this,
-                        "خطا در ثبت قلب", Toast.LENGTH_SHORT).show());
+                        text("خطا در ثبت قلب"), Toast.LENGTH_SHORT).show());
             }
         }).addOnFailureListener(e -> Toast.makeText(this,
-                "خطا در بررسی قلب", Toast.LENGTH_SHORT).show());
+                text("خطا در بررسی قلب"), Toast.LENGTH_SHORT).show());
     }
 
     private void loadLikeStatus(
@@ -2247,8 +2375,8 @@ public class ExperienceListActivity extends Activity {
 
                             likeButton.setText(
                                     liked
-                                            ? "👍 لایک"
-                                            : "👍 لایک"
+                                            ? text("👍 لایک")
+                                            : text("👍 لایک")
                             );
 
                             loadLikeCount(
@@ -2329,7 +2457,7 @@ public class ExperienceListActivity extends Activity {
                                                 unused -> {
 
                                                     likeButton.setText(
-                                                            "👍 لایک"
+                                                            text("👍 لایک")
                                                     );
 
                                                     decreaseLikeCount(
@@ -2344,7 +2472,7 @@ public class ExperienceListActivity extends Activity {
                                                     Toast.makeText(
                                                             ExperienceListActivity.this,
                                                             text(
-                                                                    "خطا در برداشتن لایک"
+                                                                    text("خطا در برداشتن لایک")
                                                             ),
                                                             Toast.LENGTH_SHORT
                                                     ).show();
@@ -2375,7 +2503,7 @@ public class ExperienceListActivity extends Activity {
                                                 unused -> {
 
                                                     likeButton.setText(
-                                                            "👍 لایک"
+                                                            text("👍 لایک")
                                                     );
 
                                                     increaseLikeCount(
@@ -2390,7 +2518,7 @@ public class ExperienceListActivity extends Activity {
                                                     Toast.makeText(
                                                             ExperienceListActivity.this,
                                                             text(
-                                                                    "خطا در ثبت لایک"
+                                                                    text("خطا در ثبت لایک")
                                                             ),
                                                             Toast.LENGTH_SHORT
                                                     ).show();
@@ -2405,7 +2533,7 @@ public class ExperienceListActivity extends Activity {
                             Toast.makeText(
                                     ExperienceListActivity.this,
                                     text(
-                                            "خطا در بررسی لایک"
+                                            text("خطا در بررسی لایک")
                                     ),
                                     Toast.LENGTH_SHORT
                             ).show();
@@ -2529,16 +2657,16 @@ public class ExperienceListActivity extends Activity {
 
             value =
                     value
-                            .replace("۰", "0")
-                            .replace("۱", "1")
-                            .replace("۲", "2")
-                            .replace("۳", "3")
-                            .replace("۴", "4")
-                            .replace("۵", "5")
-                            .replace("۶", "6")
-                            .replace("۷", "7")
-                            .replace("۸", "8")
-                            .replace("۹", "9");
+                            .replace(text("۰"), "0")
+                            .replace(text("۱"), "1")
+                            .replace(text("۲"), "2")
+                            .replace(text("۳"), "3")
+                            .replace(text("۴"), "4")
+                            .replace(text("۵"), "5")
+                            .replace(text("۶"), "6")
+                            .replace(text("۷"), "7")
+                            .replace(text("۸"), "8")
+                            .replace(text("۹"), "9");
 
             return Integer.parseInt(value);
 
@@ -2724,16 +2852,16 @@ public class ExperienceListActivity extends Activity {
     ) {
 
         return value
-                .replace("0", "۰")
-                .replace("1", "۱")
-                .replace("2", "۲")
-                .replace("3", "۳")
-                .replace("4", "۴")
-                .replace("5", "۵")
-                .replace("6", "۶")
-                .replace("7", "۷")
-                .replace("8", "۸")
-                .replace("9", "۹");
+                .replace("0", text("۰"))
+                .replace("1", text("۱"))
+                .replace("2", text("۲"))
+                .replace("3", text("۳"))
+                .replace("4", text("۴"))
+                .replace("5", text("۵"))
+                .replace("6", text("۶"))
+                .replace("7", text("۷"))
+                .replace("8", text("۸"))
+                .replace("9", text("۹"));
     }
 
     // =========================================================
@@ -2881,31 +3009,31 @@ public class ExperienceListActivity extends Activity {
             nameView.setPadding(0, dp(12), 0, dp(8));
             panel.addView(nameView, new LinearLayout.LayoutParams(-1, -2));
 
-            addProfileDetail(panel, "نام کاربری", firstNonEmpty(d.getString("username"), d.getString("userName")));
-            addProfileDetail(panel, "درباره من", firstNonEmpty(d.getString("bio"), d.getString("about"), d.getString("description")));
-            addProfileDetail(panel, "شهر", firstNonEmpty(d.getString("city"), d.getString("location")));
-            addProfileDetail(panel, "تخصص", firstNonEmpty(d.getString("profession"), d.getString("job"), d.getString("occupation")));
+            addProfileDetail(panel, text("نام کاربری"), firstNonEmpty(d.getString("username"), d.getString("userName")));
+            addProfileDetail(panel, text("درباره من"), firstNonEmpty(d.getString("bio"), d.getString("about"), d.getString("description")));
+            addProfileDetail(panel, text("شهر"), firstNonEmpty(d.getString("city"), d.getString("location")));
+            addProfileDetail(panel, text("تخصص"), firstNonEmpty(d.getString("profession"), d.getString("job"), d.getString("occupation")));
 
             String myId = auth.getCurrentUser() == null ? "" : auth.getCurrentUser().getUid();
             if (!uid.equals(myId) && !myId.isEmpty()) {
                 Button friendButton = new Button(this);
-                friendButton.setText("🤝 درخواست دوستی");
+                friendButton.setText(text("🤝 درخواست دوستی"));
                 panel.addView(friendButton, new LinearLayout.LayoutParams(-1, -2));
                 setFriendButtonState(uid, friendButton);
                 friendButton.setOnClickListener(v -> sendFriendRequest(uid, friendButton));
             } else if (uid.equals(myId)) {
                 Button incoming = new Button(this);
-                incoming.setText("📩 درخواست‌های دوستی");
+                incoming.setText(text("📩 درخواست‌های دوستی"));
                 panel.addView(incoming, new LinearLayout.LayoutParams(-1, -2));
                 incoming.setOnClickListener(v -> showIncomingFriendRequests());
             }
 
             new AlertDialog.Builder(this)
-                    .setTitle("پروفایل کاربر")
+                    .setTitle(text("پروفایل کاربر"))
                     .setView(scroll)
-                    .setPositiveButton("بستن", null)
+                    .setPositiveButton(text("بستن"), null)
                     .show();
-        }).addOnFailureListener(e -> Toast.makeText(this, "پروفایل بارگذاری نشد؛ اتصال را بررسی کنید.", Toast.LENGTH_SHORT).show());
+        }).addOnFailureListener(e -> Toast.makeText(this, text("پروفایل بارگذاری نشد؛ اتصال را بررسی کنید."), Toast.LENGTH_SHORT).show());
     }
 
     private void addProfileDetail(LinearLayout panel, String label, String value) {
@@ -2921,14 +3049,14 @@ public class ExperienceListActivity extends Activity {
 
     private void showLargeProfilePhoto(String photo, String name) {
         if (photo == null || photo.trim().isEmpty()) {
-            Toast.makeText(this, "این کاربر عکس پروفایل ندارد.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, text("این کاربر عکس پروفایل ندارد."), Toast.LENGTH_SHORT).show();
             return;
         }
         ImageView image = new ImageView(this);
         image.setAdjustViewBounds(true);
         image.setScaleType(ImageView.ScaleType.FIT_CENTER);
         loadProfileImage(photo, image);
-        new AlertDialog.Builder(this).setTitle(name).setView(image).setPositiveButton("بستن", null).show();
+        new AlertDialog.Builder(this).setTitle(name).setView(image).setPositiveButton(text("بستن"), null).show();
     }
 
     private void setFriendButtonState(String otherUid, Button button) {
@@ -2940,19 +3068,19 @@ public class ExperienceListActivity extends Activity {
                     for (DocumentSnapshot item : q.getDocuments()) {
                         if (otherUid.equals(item.getString("receiverId"))) { match = item; break; }
                     }
-                    if (match == null) button.setText("🤝 درخواست دوستی");
+                    if (match == null) button.setText(text("🤝 درخواست دوستی"));
                     else {
                         String status = match.getString("status");
-                        button.setText("accepted".equals(status) ? "✅ دوست هستید" : "⏳ درخواست فرستاده شده");
+                        button.setText("accepted".equals(status) ? text("✅ دوست هستید") : text("⏳ درخواست فرستاده شده"));
                         button.setEnabled(!"accepted".equals(status));
                     }
-                }).addOnFailureListener(e -> button.setText("🤝 درخواست دوستی"));
+                }).addOnFailureListener(e -> button.setText(text("🤝 درخواست دوستی")));
     }
 
     private void sendFriendRequest(String receiverId, Button button) {
         FirebaseUser current = auth.getCurrentUser();
         if (current == null) {
-            Toast.makeText(this, "برای درخواست دوستی اول وارد حساب شوید.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, text("برای درخواست دوستی اول وارد حساب شوید."), Toast.LENGTH_SHORT).show();
             return;
         }
         String senderId = current.getUid();
@@ -2963,7 +3091,7 @@ public class ExperienceListActivity extends Activity {
                     for (DocumentSnapshot item : existing.getDocuments()) {
                         if (receiverId.equals(item.getString("receiverId"))) {
                             String status = item.getString("status");
-                            button.setText("accepted".equals(status) ? "✅ دوست هستید" : "⏳ درخواست فرستاده شده");
+                            button.setText("accepted".equals(status) ? text("✅ دوست هستید") : text("⏳ درخواست فرستاده شده"));
                             button.setEnabled(!"accepted".equals(status));
                             return;
                         }
@@ -2975,17 +3103,17 @@ public class ExperienceListActivity extends Activity {
                     request.put("createdAt", FieldValue.serverTimestamp());
                     db.collection("friendRequests").add(request)
                             .addOnSuccessListener(ref -> {
-                                button.setText("⏳ درخواست فرستاده شده");
+                                button.setText(text("⏳ درخواست فرستاده شده"));
                                 button.setEnabled(false);
-                                Toast.makeText(this, "درخواست دوستی فرستاده شد.", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(this, text("درخواست دوستی فرستاده شد."), Toast.LENGTH_SHORT).show();
                             })
                             .addOnFailureListener(e -> {
                                 button.setEnabled(true);
-                                Toast.makeText(this, "ارسال درخواست ناموفق بود؛ قوانین فایربیس را بررسی کنید.", Toast.LENGTH_LONG).show();
+                                Toast.makeText(this, text("ارسال درخواست ناموفق بود؛ قوانین فایربیس را بررسی کنید."), Toast.LENGTH_LONG).show();
                             });
                 }).addOnFailureListener(e -> {
                     button.setEnabled(true);
-                    Toast.makeText(this, "بررسی درخواست دوستی ناموفق بود.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, text("بررسی درخواست دوستی ناموفق بود."), Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -3008,13 +3136,13 @@ public class ExperienceListActivity extends Activity {
                         row.setOrientation(LinearLayout.VERTICAL);
                         row.setPadding(dp(10), dp(8), dp(10), dp(8));
                         TextView sender = new TextView(this);
-                        sender.setText("در حال دریافت نام کاربر…");
+                        sender.setText(text("در حال دریافت نام کاربر…"));
                         row.addView(sender);
                         if (senderId != null) db.collection("users").document(senderId).get().addOnSuccessListener(u ->
-                                sender.setText(firstNonEmpty(u.getString("name"), u.getString("username"), "کاربر")));
+                                sender.setText(firstNonEmpty(u.getString("name"), u.getString("username"), text("کاربر"))));
                         LinearLayout actions = new LinearLayout(this);
-                        Button accept = new Button(this); accept.setText("قبول");
-                        Button reject = new Button(this); reject.setText("رد");
+                        Button accept = new Button(this); accept.setText(text("قبول"));
+                        Button reject = new Button(this); reject.setText(text("رد"));
                         actions.addView(accept, new LinearLayout.LayoutParams(0, -2, 1));
                         actions.addView(reject, new LinearLayout.LayoutParams(0, -2, 1));
                         row.addView(actions);
@@ -3024,22 +3152,22 @@ public class ExperienceListActivity extends Activity {
                     }
                     if (!hasPending) {
                         TextView empty = new TextView(this);
-                        empty.setText("درخواست دوستی جدیدی نداری.");
+                        empty.setText(text("درخواست دوستی جدیدی نداری."));
                         empty.setPadding(dp(18), dp(18), dp(18), dp(18));
                         list.addView(empty);
                     }
-                    new AlertDialog.Builder(this).setTitle("درخواست‌های دوستی").setView(scroller).setPositiveButton("بستن", null).show();
-                }).addOnFailureListener(e -> Toast.makeText(this, "دریافت درخواست‌ها ناموفق بود؛ قوانین فایربیس را بررسی کنید.", Toast.LENGTH_LONG).show());
+                    new AlertDialog.Builder(this).setTitle(text("درخواست‌های دوستی")).setView(scroller).setPositiveButton(text("بستن"), null).show();
+                }).addOnFailureListener(e -> Toast.makeText(this, text("دریافت درخواست‌ها ناموفق بود؛ قوانین فایربیس را بررسی کنید."), Toast.LENGTH_LONG).show());
     }
 
     private void respondFriendRequest(DocumentSnapshot request, String status, Button accept, Button reject) {
         request.getReference().update("status", status)
                 .addOnSuccessListener(unused -> {
                     accept.setEnabled(false); reject.setEnabled(false);
-                    accept.setText("accepted".equals(status) ? "✅ قبول شد" : "قبول");
-                    reject.setText("rejected".equals(status) ? "رد شد" : "رد");
-                    Toast.makeText(this, "پاسخ ثبت شد.", Toast.LENGTH_SHORT).show();
-                }).addOnFailureListener(e -> Toast.makeText(this, "ثبت پاسخ ناموفق بود؛ قوانین فایربیس را بررسی کنید.", Toast.LENGTH_LONG).show());
+                    accept.setText("accepted".equals(status) ? text("✅ قبول شد") : text("قبول"));
+                    reject.setText("rejected".equals(status) ? text("رد شد") : text("رد"));
+                    Toast.makeText(this, text("پاسخ ثبت شد."), Toast.LENGTH_SHORT).show();
+                }).addOnFailureListener(e -> Toast.makeText(this, text("ثبت پاسخ ناموفق بود؛ قوانین فایربیس را بررسی کنید."), Toast.LENGTH_LONG).show());
     }
 
     // =========================================================
