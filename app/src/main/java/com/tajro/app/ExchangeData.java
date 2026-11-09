@@ -44,7 +44,7 @@ public class ExchangeData {
             "last_shahzada_rate_update";
 
     private static final long RATE_UPDATE_INTERVAL =
-            24L * 60L * 60L * 1000L;
+            60L * 60L * 1000L; // یک ساعت
 
     private static final String SHAHZADA_URL =
             "https://sarafi.af/fa/exchange-rates/sarai-shahzada";
@@ -60,6 +60,7 @@ public class ExchangeData {
     public static final String SAR = "ریال سعودی";
     public static final String AED = "درهم امارات";
     public static final String IQD = "دینار عراق";
+    public static final String KWD = "دینار کویت";
     public static final String INR = "روپیه هند";
     public static final String PKR = "روپیه پاکستانی";
     public static final String TRY = "لیر ترکیه";
@@ -69,6 +70,7 @@ public class ExchangeData {
 
     private final SharedPreferences prefs;
     private final Context appContext;
+    private volatile boolean ratesUpdateInProgress = false;
 
     private ExchangeData(Context context) {
 
@@ -109,6 +111,7 @@ public class ExchangeData {
                 SAR,
                 AED,
                 IQD,
+                KWD,
                 INR,
                 PKR,
                 TRY,
@@ -133,6 +136,7 @@ public class ExchangeData {
         initializeBalance(SAR, 0);
         initializeBalance(AED, 0);
         initializeBalance(IQD, 0);
+        initializeBalance(KWD, 0);
         initializeBalance(INR, 0);
         initializeBalance(PKR, 0);
         initializeBalance(TRY, 0);
@@ -147,6 +151,7 @@ public class ExchangeData {
         initializeRate(SAR, 18.67);
         initializeRate(AED, 19.05);
         initializeRate(IQD, 0.054);
+        initializeRate(KWD, 210);
         initializeRate(INR, 0.84);
         initializeRate(PKR, 0.25);
         initializeRate(TRY, 2);
@@ -170,6 +175,9 @@ public class ExchangeData {
 
         initializeBuyRate(IQD, 0.054);
         initializeSellRate(IQD, 0.054);
+
+        initializeBuyRate(KWD, 210);
+        initializeSellRate(KWD, 210);
 
         initializeBuyRate(INR, 0.84);
         initializeSellRate(INR, 0.84);
@@ -262,6 +270,13 @@ public class ExchangeData {
     }
 
     private void updateRatesOnline() {
+
+        synchronized (this) {
+            if (ratesUpdateInProgress) {
+                return;
+            }
+            ratesUpdateInProgress = true;
+        }
 
         Thread thread =
                 new Thread(() -> {
@@ -394,6 +409,14 @@ public class ExchangeData {
                                 false
                         );
 
+                        // دینار کویت
+                        updated |= updateShahzadaRate(
+                                page,
+                                "KWD",
+                                KWD,
+                                false
+                        );
+
                         // روپیه هند
                         updated |= updateShahzadaRate(
                                 page,
@@ -445,6 +468,7 @@ public class ExchangeData {
                         if (connection != null) {
                             connection.disconnect();
                         }
+                        ratesUpdateInProgress = false;
                     }
 
                 });
@@ -502,10 +526,12 @@ public class ExchangeData {
              * USD - دالر آمریکا 64.55 64.60
              */
 
+            // ساختار فعلی سایت به شکل USD/AFN است، نه USD -
+            // ابتدا قالب جدید و سپس قالب قدیمی را امتحان می‌کنیم.
             Pattern pattern =
                     Pattern.compile(
                             code
-                                    + "\\s*-.*?"
+                                    + "\\s*/\\s*AFN\\b.*?"
                                     + "(\\d+(?:[.,]\\d+)?)"
                                     + "\\s+"
                                     + "(\\d+(?:[.,]\\d+)?)",
@@ -516,7 +542,12 @@ public class ExchangeData {
                     pattern.matcher(text);
 
             if (!matcher.find()) {
-                return false;
+                Pattern oldPattern = Pattern.compile(
+                        code + "\\s*-.*?(\\d+(?:[.,]\\d+)?)\\s+(\\d+(?:[.,]\\d+)?)",
+                        Pattern.CASE_INSENSITIVE
+                );
+                matcher = oldPattern.matcher(text);
+                if (!matcher.find()) return false;
             }
 
             double buy =
@@ -705,6 +736,7 @@ public class ExchangeData {
 
     public void forceUpdateRates() {
 
+        // هنگام ورود دوباره به صفحه صرافی، نرخ بازار دوباره دریافت شود.
         updateRatesOnline();
     }
 
