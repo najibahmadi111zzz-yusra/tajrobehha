@@ -92,7 +92,8 @@ public class MainActivity extends Activity {
             String en,
             String ps,
             String ur,
-            String hi
+            String hi,
+            String ar
     ) {
         String language =
                 LanguageManager.getLanguage(this);
@@ -111,6 +112,10 @@ public class MainActivity extends Activity {
 
         if ("hi".equals(language)) {
             return hi;
+        }
+
+        if ("ar".equals(language)) {
+            return ar;
         }
 
         return fa;
@@ -308,7 +313,8 @@ public class MainActivity extends Activity {
                         "Experiences",
                         "تجربې",
                         "تجربات",
-                        "अनुभव"
+                        "अनुभव",
+                        "التجارب"
                 )
         );
 
@@ -340,7 +346,8 @@ public class MainActivity extends Activity {
                         "Share your experiences and learn from others",
                         "خپلې تجربې ثبت کړئ او له نورو سره یې شریکې کړئ",
                         "اپنے تجربات درج کریں اور دوسروں کے ساتھ شیئر کریں",
-                        "अपने अनुभव दर्ज करें और दूसरों के साथ साझा करें"
+                        "अपने अनुभव दर्ज करें और दूसरों के साथ साझा करें",
+                        "سجّل تجاربك وشاركها مع الآخرين"
                 )
         );
 
@@ -374,7 +381,8 @@ public class MainActivity extends Activity {
                                 "📚 View Experiences",
                                 "📚 تجربې کتل",
                                 "📚 تجربات دیکھیں",
-                                "📚 अनुभव देखें"
+                                "📚 अनुभव देखें",
+                                "📚 عرض التجارب"
                         )
                 );
 
@@ -395,7 +403,8 @@ public class MainActivity extends Activity {
                                 "💬 Chat",
                                 "💬 خبرې",
                                 "💬 چیٹ",
-                                "💬 चैट"
+                                "💬 चैट",
+                                "💬 الدردشة"
                         )
                 );
 
@@ -406,7 +415,8 @@ public class MainActivity extends Activity {
                                 "🤖 AI Assistant",
                                 "🤖 هوښیار مرستیال",
                                 "🤖 ذہین معاون",
-                                "🤖 स्मार्ट सहायक"
+                                "🤖 स्मार्ट सहायक",
+                                "🤖 المساعد الذكي"
                         )
                 );
 
@@ -428,7 +438,8 @@ public class MainActivity extends Activity {
                                 "💱 Exchange",
                                 "💱 صرافي",
                                 "💱 صرافی",
-                                "💱 मुद्रा विनिमय"
+                                "💱 मुद्रा विनिमय",
+                                "💱 الصرافة"
                         )
                 );
 
@@ -439,7 +450,8 @@ public class MainActivity extends Activity {
                                 "⚙️ Settings",
                                 "⚙️ ترتیبات",
                                 "⚙️ ترتیبات",
-                                "⚙️ सेटिंग्स"
+                                "⚙️ सेटिंग्स",
+                                "⚙️ الإعدادات"
                         )
                 );
 
@@ -454,7 +466,8 @@ public class MainActivity extends Activity {
                                 "🎮 Ball Game",
                                 "🎮 د توپ لوبه",
                                 "🎮 گیند کا کھیل",
-                                "🎮 गेंद का खेल"
+                                "🎮 गेंद का खेल",
+                                "🎮 لعبة الكرة"
                         )
                 );
 
@@ -483,7 +496,8 @@ public class MainActivity extends Activity {
                                 "🎁 Support Experiences",
                                 "🎁 د تجربو ملاتړ",
                                 "🎁 تجربات کی حمایت",
-                                "🎁 अनुभवों का समर्थन"
+                                "🎁 अनुभवों का समर्थन",
+                                "🎁 دعم التجارب"
                         )
                 );
 
@@ -514,7 +528,8 @@ public class MainActivity extends Activity {
                         "Support the development of the app by watching a short ad.",
                         "د لنډ اعلان په کتلو سره د اپلېکېشن له پرمختګ څخه ملاتړ وکړئ.",
                         "ایک مختصر اشتہار دیکھ کر ایپ کی ترقی میں مدد کریں۔",
-                        "एक छोटा विज्ञापन देखकर ऐप के विकास में सहयोग करें।"
+                        "एक छोटा विज्ञापन देखकर ऐप के विकास में सहयोग करें।",
+                        "ادعم تطوير التطبيق بمشاهدة إعلان قصير"
                 )
         );
 
@@ -546,7 +561,8 @@ public class MainActivity extends Activity {
                         "Experiences • Learn • Share",
                         "تجربې • زده کړه • شریک یې کړه",
                         "تجربات • سیکھیں • شیئر کریں",
-                        "अनुभव • सीखें • साझा करें"
+                        "अनुभव • सीखें • साझा करें",
+                        "التجارب • تعلّم • شارك"
                 )
         );
 
@@ -664,7 +680,8 @@ public class MainActivity extends Activity {
                                                 "⏳ The ad is not ready yet. Try again shortly.",
                                                 "⏳ اعلان لا تر اوسه چمتو نه دی، لږ وروسته بیا هڅه وکړئ.",
                                                 "⏳ اشتہار ابھی تیار نہیں، کچھ دیر بعد دوبارہ کوشش کریں۔",
-                                                "⏳ विज्ञापन अभी तैयार नहीं है, थोड़ी देर बाद फिर कोशिश करें।"
+                                                "⏳ विज्ञापन अभी तैयार नहीं है, थोड़ी देर बाद फिर कोशिश करें।",
+                                                "⏳ الإعلان غير جاهز بعد، حاول مرة أخرى بعد قليل."
                                         ),
                                         Toast.LENGTH_SHORT
                                 ).show();
@@ -683,7 +700,8 @@ public class MainActivity extends Activity {
                                                 "❌ Ad failed to display.",
                                                 "❌ د اعلان ښودل ناکام شول.",
                                                 "❌ اشتہار دکھانے میں ناکامی ہوئی۔",
-                                                "❌ विज्ञापन दिखाने में विफल रहा।"
+                                                "❌ विज्ञापन दिखाने में विफल रहा।",
+                                                "❌ تعذّر عرض الإعلان."
                                         ),
                                         Toast.LENGTH_SHORT
                                 ).show();
