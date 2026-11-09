@@ -35,12 +35,12 @@ import org.json.JSONObject;
 import java.io.InputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.security.MessageDigest;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -1067,12 +1067,10 @@ public class ExperienceListActivity extends Activity {
                 )
                 .get()
                 .addOnSuccessListener(this::displayExperienceSnapshot)
-                .addOnFailureListener(error -> loadCachedExperiencesAfterFailure(error));
+                .addOnFailureListener(this::loadCachedExperiencesAfterFailure);
     }
 
-
-    // در قطع اینترنت، نسخه ذخیره‌شده Firestore را نمایش می‌دهد؛ سپس با اتصال بعدی
-    // درخواست عادی loadExperiences داده‌های تازه را دریافت می‌کند.
+    // در صورت قطع اینترنت، فقط تجربه‌هایی را نشان می‌دهد که قبلاً روی همین گوشی کش شده‌اند.
     private void loadCachedExperiencesAfterFailure(Exception networkError) {
         db.collection("experiences")
                 .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -2129,7 +2127,9 @@ public class ExperienceListActivity extends Activity {
             StringBuilder out = new StringBuilder();
             for (byte b : digest) out.append(String.format(java.util.Locale.US, "%02x", b));
             return out.toString();
-        } catch (Exception e) { return Integer.toHexString(value.hashCode()); }
+        } catch (Exception e) {
+            return Integer.toHexString(String.valueOf(value).hashCode());
+        }
     }
 
     private File experienceCacheDir(String type) {
@@ -2141,45 +2141,76 @@ public class ExperienceListActivity extends Activity {
     private File cacheExperienceImage(String url) {
         File dir = experienceCacheDir("images");
         File target = new File(dir, experienceCacheKey(url));
-        if (target.isFile() && target.length() > 0) return target;
-        HttpURLConnection connection = null; File temp = new File(dir, target.getName() + ".tmp");
+        if (target.isFile() && target.length() > 0) {
+            target.setLastModified(System.currentTimeMillis());
+            return target;
+        }
+        HttpURLConnection connection = null;
+        File temp = new File(dir, target.getName() + ".tmp");
         try {
             connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setConnectTimeout(12000); connection.setReadTimeout(18000);
+            connection.setConnectTimeout(12000);
+            connection.setReadTimeout(18000);
             connection.setInstanceFollowRedirects(true);
-            int code = connection.getResponseCode(); if (code < 200 || code >= 300) return null;
-            long size = connection.getContentLengthLong(); if (size > 15L * 1024L * 1024L) return null;
+            int code = connection.getResponseCode();
+            if (code < 200 || code >= 300) return null;
+            long size = connection.getContentLengthLong();
+            if (size > 15L * 1024L * 1024L) return null;
             long total = 0;
             try (InputStream in = connection.getInputStream(); FileOutputStream out = new FileOutputStream(temp)) {
-                byte[] buffer = new byte[8192]; int n;
-                while ((n = in.read(buffer)) != -1) { total += n; if (total > 15L * 1024L * 1024L) throw new IOException("Image too large"); out.write(buffer,0,n); }
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = in.read(buffer)) != -1) {
+                    total += count;
+                    if (total > 15L * 1024L * 1024L) throw new IOException("Image too large");
+                    out.write(buffer, 0, count);
+                }
             }
-            if (total == 0 || !temp.renameTo(target)) { temp.delete(); return null; }
+            if (total == 0 || !temp.renameTo(target)) {
+                temp.delete();
+                return null;
+            }
             trimExperienceCache(dir, 45L * 1024L * 1024L);
             return target;
-        } catch (Exception e) { temp.delete(); return null; }
-        finally { if (connection != null) connection.disconnect(); }
+        } catch (Exception e) {
+            temp.delete();
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
     private void trimExperienceCache(File dir, long maxBytes) {
-        File[] files = dir.listFiles(); if (files == null) return;
-        long total = 0; for (File f : files) if (f.isFile()) total += f.length();
-        java.util.Arrays.sort(files, (a,b) -> Long.compare(a.lastModified(), b.lastModified()));
-        for (File f : files) { if (total <= maxBytes) break; long size=f.length(); if (f.delete()) total-=size; }
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        long total = 0;
+        for (File file : files) if (file.isFile() && !file.getName().endsWith(".tmp")) total += file.length();
+        java.util.Arrays.sort(files, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+        for (File file : files) {
+            if (total <= maxBytes) break;
+            if (!file.isFile()) continue;
+            long size = file.length();
+            if (file.delete()) total -= size;
+        }
     }
 
     private void loadExperienceImage(String imageUrl, ImageView imageView) {
         if (imageUrl == null || imageUrl.trim().isEmpty() || imageView == null) return;
-        final String key = imageUrl.trim(); imageView.setTag(key);
+        final String key = imageUrl.trim();
+        imageView.setTag(key);
         IMAGE_EXECUTOR.execute(() -> {
             Bitmap bitmap = null;
             try {
                 File cached = cacheExperienceImage(key);
                 if (cached != null) {
-                    BitmapFactory.Options bounds = new BitmapFactory.Options(); bounds.inJustDecodeBounds = true;
+                    BitmapFactory.Options bounds = new BitmapFactory.Options();
+                    bounds.inJustDecodeBounds = true;
                     BitmapFactory.decodeFile(cached.getAbsolutePath(), bounds);
-                    int sample = 1; while (bounds.outWidth / sample > 1200 || bounds.outHeight / sample > 1800) sample *= 2;
-                    BitmapFactory.Options options = new BitmapFactory.Options(); options.inSampleSize = sample; options.inPreferredConfig = Bitmap.Config.RGB_565;
+                    int sample = 1;
+                    while (bounds.outWidth / sample > 1200 || bounds.outHeight / sample > 1800) sample *= 2;
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inSampleSize = sample;
+                    options.inPreferredConfig = Bitmap.Config.RGB_565;
                     bitmap = BitmapFactory.decodeFile(cached.getAbsolutePath(), options);
                 }
             } catch (Exception ignored) { }
@@ -3175,8 +3206,12 @@ public class ExperienceListActivity extends Activity {
     private void loadProfileImage(String photoUrl, ImageView imageView) {
         if (photoUrl == null || photoUrl.trim().isEmpty() || imageView == null) return;
         final String storedUrl = photoUrl.trim();
+        imageView.setTag(storedUrl);
         File cachedProfile = new File(experienceCacheDir("profiles"), experienceCacheKey(storedUrl));
-        if (cachedProfile.isFile() && cachedProfile.length() > 0) showCachedProfileImage(cachedProfile, imageView);
+        if (cachedProfile.isFile() && cachedProfile.length() > 0) {
+            cachedProfile.setLastModified(System.currentTimeMillis());
+            showCachedProfileImage(cachedProfile, imageView, storedUrl);
+        }
         if (storedUrl.contains("/storage/v1/object/public/" + PROFILE_BUCKET + "/") ||
                 storedUrl.contains("/storage/v1/object/" + PROFILE_BUCKET + "/")) {
             loadPrivateProfileImage(storedUrl, imageView);
@@ -3232,43 +3267,62 @@ public class ExperienceListActivity extends Activity {
         }).start();
     }
 
-    private void showCachedProfileImage(File cached, ImageView imageView) {
+    private void showCachedProfileImage(File cached, ImageView imageView, String expectedTag) {
         IMAGE_EXECUTOR.execute(() -> {
-            BitmapFactory.Options bounds = new BitmapFactory.Options(); bounds.inJustDecodeBounds = true;
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
             BitmapFactory.decodeFile(cached.getAbsolutePath(), bounds);
-            int sample=1; while(bounds.outWidth/sample>600 || bounds.outHeight/sample>600) sample*=2;
-            BitmapFactory.Options opts=new BitmapFactory.Options(); opts.inSampleSize=sample; opts.inPreferredConfig=Bitmap.Config.RGB_565;
-            Bitmap bitmap=BitmapFactory.decodeFile(cached.getAbsolutePath(), opts);
-            if(bitmap!=null) runOnUiThread(() -> { if(!isFinishing()) imageView.setImageBitmap(bitmap); });
+            int sample = 1;
+            while (bounds.outWidth / sample > 600 || bounds.outHeight / sample > 600) sample *= 2;
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = sample;
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            Bitmap bitmap = BitmapFactory.decodeFile(cached.getAbsolutePath(), options);
+            if (bitmap != null) runOnUiThread(() -> {
+                if (!isFinishing() && expectedTag.equals(imageView.getTag())) imageView.setImageBitmap(bitmap);
+                else if (!bitmap.isRecycled()) bitmap.recycle();
+            });
         });
     }
 
     private void downloadProfileImage(String url, ImageView imageView, String stableCacheKey) {
-        HttpURLConnection connection = null; File temp = null;
+        HttpURLConnection connection = null;
+        File temp = null;
         try {
             File dir = experienceCacheDir("profiles");
             String key = experienceCacheKey(stableCacheKey);
             File cached = new File(dir, key);
             if (!cached.isFile() || cached.length() == 0) {
                 connection = (HttpURLConnection) new URL(url).openConnection();
-                connection.setConnectTimeout(15000); connection.setReadTimeout(20000);
-                int code = connection.getResponseCode(); if (code < 200 || code >= 300) return;
-                long size = connection.getContentLengthLong(); if (size > 8L * 1024L * 1024L) return;
-                temp = new File(dir, key + ".tmp"); long total=0;
-                try (InputStream input = connection.getInputStream(); FileOutputStream out = new FileOutputStream(temp)) {
-                    byte[] buffer = new byte[8192]; int n;
-                    while ((n=input.read(buffer))!=-1) { total+=n; if(total>8L*1024L*1024L) throw new IOException("Profile too large"); out.write(buffer,0,n); }
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(20000);
+                int code = connection.getResponseCode();
+                if (code < 200 || code >= 300) return;
+                long size = connection.getContentLengthLong();
+                if (size > 8L * 1024L * 1024L) return;
+                temp = new File(dir, key + ".tmp");
+                long total = 0;
+                try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(temp)) {
+                    byte[] buffer = new byte[8192];
+                    int count;
+                    while ((count = input.read(buffer)) != -1) {
+                        total += count;
+                        if (total > 8L * 1024L * 1024L) throw new IOException("Profile too large");
+                        output.write(buffer, 0, count);
+                    }
                 }
-                if (total == 0 || !temp.renameTo(cached)) { temp.delete(); return; }
+                if (total == 0 || !temp.renameTo(cached)) {
+                    temp.delete();
+                    return;
+                }
                 trimExperienceCache(dir, 12L * 1024L * 1024L);
             }
-            BitmapFactory.Options bounds = new BitmapFactory.Options(); bounds.inJustDecodeBounds=true;
-            BitmapFactory.decodeFile(cached.getAbsolutePath(), bounds);
-            int sample=1; while(bounds.outWidth/sample>600 || bounds.outHeight/sample>600) sample*=2;
-            BitmapFactory.Options opts=new BitmapFactory.Options(); opts.inSampleSize=sample; opts.inPreferredConfig=Bitmap.Config.RGB_565;
-            Bitmap bitmap=BitmapFactory.decodeFile(cached.getAbsolutePath(), opts);
-            if (bitmap != null) runOnUiThread(() -> { if (!isFinishing()) imageView.setImageBitmap(bitmap); });
-        } catch (Exception ignored) { if (temp != null) temp.delete(); }
-        finally { if (connection != null) connection.disconnect(); }
+            showCachedProfileImage(cached, imageView, stableCacheKey);
+        } catch (Exception ignored) {
+            if (temp != null) temp.delete();
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
-                          }
+
+    }
