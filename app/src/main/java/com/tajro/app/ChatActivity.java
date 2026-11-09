@@ -15,6 +15,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.graphics.Typeface;
 import android.media.MediaPlayer;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaRecorder;
 import android.media.AudioManager;
 import android.media.Ringtone;
@@ -34,6 +35,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.VideoView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -56,11 +58,13 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -3520,10 +3524,20 @@ header.addView(chatMenu,
                 dp(2)
         );
 
-        loadImage(
-                url,
-                image
-        );
+        // برای ویدیو پس‌زمینه تیره و آیکون پخش نشان می‌دهیم؛
+        // پس از دریافت فایل، فریم واقعی ویدیو به‌عنوان پیش‌نمایش قرار می‌گیرد.
+        image.setTag(url);
+        if (video) {
+            image.setBackground(bg(Color.rgb(32, 38, 46), 14));
+            image.setImageResource(android.R.drawable.ic_media_play);
+            image.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            image.setAlpha(1f);
+            loadVideoThumbnail(url, image);
+        } else {
+            image.setImageResource(android.R.drawable.ic_menu_gallery);
+            image.setAlpha(0.55f);
+            loadImage(url, image);
+        }
 
         LinearLayout.LayoutParams p =
                 new LinearLayout.LayoutParams(
@@ -3556,11 +3570,9 @@ header.addView(chatMenu,
         }
 
         if (!video) {
-
-            image.setOnClickListener(
-                    v ->
-                            showImageViewer(url)
-            );
+            image.setOnClickListener(v -> showImageViewer(url));
+        } else {
+            image.setOnClickListener(v -> playVideo(url, image));
         }
 
         if (messageId != null) {
@@ -4931,56 +4943,218 @@ header.addView(chatMenu,
     private void playAudio(
             String url
     ) {
+        if (url == null || url.trim().isEmpty()) return;
+        new Thread(() -> {
+            File audio = getCachedMediaFile(url, "audio");
+            if (audio == null) {
+                audio = downloadMediaToCache(url, "audio", 30L * 1024L * 1024L);
+            }
+            final File readyAudio = audio;
+            runOnUiThread(() -> {
+                if (readyAudio == null || !readyAudio.isFile()) {
+                    Toast.makeText(this, tr("صدا هنوز ذخیره نشده است؛ پس از وصل‌شدن اینترنت دوباره تلاش کنید"), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                playCachedAudio(readyAudio.getAbsolutePath());
+            });
+        }).start();
+    }
 
+    private void playCachedAudio(String localPath) {
         try {
-
             if (player != null) {
-
                 player.release();
                 player = null;
             }
-
-            player =
-                    new MediaPlayer();
-
-            player.setDataSource(url);
-
-            player.setOnPreparedListener(
-                    MediaPlayer::start
-            );
-
-            player.setOnCompletionListener(
-                    mp -> {
-
-                        mp.release();
-                        player = null;
-                    }
-            );
-
-            player.setOnErrorListener(
-                    (mp, what, extra) -> {
-
-                        Toast.makeText(
-                                this,
-                                tr("پخش صدا ناموفق بود"),
-                                Toast.LENGTH_SHORT
-                        ).show();
-
-                        return true;
-                    }
-            );
-
+            player = new MediaPlayer();
+            player.setDataSource(localPath);
+            player.setOnPreparedListener(MediaPlayer::start);
+            player.setOnCompletionListener(mp -> {
+                mp.release();
+                if (player == mp) player = null;
+            });
+            player.setOnErrorListener((mp, what, extra) -> {
+                Toast.makeText(this, tr("پخش صدا ناموفق بود"), Toast.LENGTH_SHORT).show();
+                return true;
+            });
             player.prepareAsync();
-
         } catch (Exception e) {
-
-            Toast.makeText(
-                    this,
-                    tr("خطا در پخش صدا"),
-                    Toast.LENGTH_SHORT
-            ).show();
+            Log.e("ChatMediaCache", "Audio playback failed", e);
+            Toast.makeText(this, tr("خطا در پخش صدا"), Toast.LENGTH_SHORT).show();
         }
     }
+
+    // فریم اول ویدیو را از نسخه کش‌شده می‌خواند تا پیام ویدیو سفید و خالی نماند.
+    private void loadVideoThumbnail(String url, ImageView target) {
+        if (url == null || target == null) return;
+        // برای جلوگیری از مصرف ناخواسته اینترنت، فقط نسخه‌ای را می‌خوانیم که قبلاً کش شده است.
+        File cached = getCachedMediaFile(url, "video");
+        if (cached != null) loadVideoThumbnailFromFile(cached, url, target);
+    }
+
+    private void loadVideoThumbnailFromFile(File video, String url, ImageView target) {
+        if (video == null || target == null) return;
+        new Thread(() -> {
+            Bitmap frame = null;
+            MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+            try {
+                retriever.setDataSource(video.getAbsolutePath());
+                frame = retriever.getFrameAtTime(1_000_000L,
+                        MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                if (frame == null) {
+                    frame = retriever.getFrameAtTime(0L,
+                            MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                }
+            } catch (Exception e) {
+                Log.w("ChatVideo", "Could not create video thumbnail", e);
+            } finally {
+                try { retriever.release(); } catch (Exception ignored) { }
+            }
+            final Bitmap thumbnail = frame;
+            if (thumbnail != null) {
+                runOnUiThread(() -> {
+                    if (target.getTag() != null && url.equals(target.getTag())) {
+                        target.setImageBitmap(thumbnail);
+                        target.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                        target.setAlpha(1f);
+                    }
+                });
+            }
+        }, "chat-video-thumbnail").start();
+    }
+
+    private void playVideo(String url, ImageView preview) {
+        if (url == null || url.trim().isEmpty()) return;
+        Toast.makeText(this, tr("در حال آماده‌سازی ویدیو..."), Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            File video = getCachedMediaFile(url, "video");
+            if (video == null) video = downloadMediaToCache(url, "video", 100L * 1024L * 1024L);
+            final File readyVideo = video;
+            runOnUiThread(() -> {
+                if (readyVideo == null || !readyVideo.isFile() || readyVideo.length() == 0) {
+                    Toast.makeText(this, tr("ویدیو دریافت نشد؛ اینترنت یا دسترسی فایل را بررسی کنید"), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                loadVideoThumbnailFromFile(readyVideo, url, preview);
+                VideoView videoView = new VideoView(this);
+                LinearLayout holder = new LinearLayout(this);
+                holder.setGravity(Gravity.CENTER);
+                holder.setBackgroundColor(Color.BLACK);
+                holder.setPadding(dp(8), dp(8), dp(8), dp(8));
+                holder.addView(videoView, new LinearLayout.LayoutParams(-1, dp(280)));
+                AlertDialog dialog = new AlertDialog.Builder(this)
+                        .setTitle(tr("ویدیو"))
+                        .setView(holder)
+                        .setPositiveButton(tr("بستن"), (d, w) -> videoView.stopPlayback())
+                        .create();
+                dialog.setOnDismissListener(d -> { try { videoView.stopPlayback(); } catch (Exception ignored) {} });
+                videoView.setOnPreparedListener(mp -> {
+                    mp.setLooping(false);
+                    videoView.start();
+                });
+                videoView.setOnErrorListener((mp, what, extra) -> {
+                    Log.e("ChatVideo", "VideoView error what=" + what + ", extra=" + extra);
+                    Toast.makeText(this, tr("قالب این ویدیو در گوشی پشتیبانی نمی‌شود یا فایل ناقص است"), Toast.LENGTH_LONG).show();
+                    return true;
+                });
+                // ابتدا پنجره و سطح نمایش ساخته شود، سپس مسیر فایل به VideoView داده شود.
+                dialog.show();
+                if (dialog.getWindow() != null) dialog.getWindow().setLayout(-1, dp(360));
+                videoView.setVideoPath(readyVideo.getAbsolutePath());
+            });
+        }).start();
+    }
+
+    // کش خصوصی و محدود برای رسانه‌های چت؛ فایل‌ها داخل فضای خصوصی برنامه می‌مانند.
+    private File chatMediaCacheDir() {
+        File dir = new File(getCacheDir(), "tajro_chat_media");
+        if (!dir.exists()) dir.mkdirs();
+        return dir;
+    }
+
+    private String chatCacheKey(String value) {
+        try {
+            String stable = value == null ? "" : value.trim();
+            int query = stable.indexOf('?');
+            if (query >= 0) stable = stable.substring(0, query);
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(stable.getBytes("UTF-8"));
+            StringBuilder out = new StringBuilder();
+            for (byte b : digest) out.append(String.format(java.util.Locale.US, "%02x", b));
+            return out.toString();
+        } catch (Exception e) {
+            return Integer.toHexString(String.valueOf(value).hashCode());
+        }
+    }
+
+    private File getCachedMediaFile(String stableKey, String type) {
+        File file = new File(chatMediaCacheDir(), type + "_" + chatCacheKey(stableKey));
+        if (file.isFile() && file.length() > 0) {
+            file.setLastModified(System.currentTimeMillis());
+            return file;
+        }
+        return null;
+    }
+
+    private File downloadMediaToCache(String url, String type, long maxFileBytes) {
+        return downloadMediaToCache(url, type, maxFileBytes, url);
+    }
+
+    private File downloadMediaToCache(String url, String type, long maxFileBytes, String stableKey) {
+        HttpURLConnection connection = null;
+        File dir = chatMediaCacheDir();
+        File target = new File(dir, type + "_" + chatCacheKey(stableKey));
+        File temp = new File(dir, target.getName() + ".tmp");
+        try {
+            if (target.isFile() && target.length() > 0) return target;
+            connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(30000);
+            connection.setInstanceFollowRedirects(true);
+            if (url.startsWith(SUPABASE_URL)) connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+            int code = connection.getResponseCode();
+            if (code < 200 || code >= 300) return null;
+            long declared = connection.getContentLengthLong();
+            if (declared > maxFileBytes) return null;
+            long total = 0;
+            try (InputStream in = connection.getInputStream(); FileOutputStream out = new FileOutputStream(temp)) {
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = in.read(buffer)) != -1) {
+                    total += count;
+                    if (total > maxFileBytes) throw new java.io.IOException("Media exceeds cache limit");
+                    out.write(buffer, 0, count);
+                }
+                out.flush();
+            }
+            if (total == 0 || !temp.renameTo(target)) {
+                temp.delete();
+                return null;
+            }
+            trimChatMediaCache(140L * 1024L * 1024L);
+            return target;
+        } catch (Exception e) {
+            temp.delete();
+            Log.w("ChatMediaCache", "Media download/cache unavailable", e);
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
+    private void trimChatMediaCache(long maxBytes) {
+        File[] files = chatMediaCacheDir().listFiles();
+        if (files == null) return;
+        long total = 0;
+        for (File file : files) if (file.isFile() && !file.getName().endsWith(".tmp")) total += file.length();
+        java.util.Arrays.sort(files, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+        for (File file : files) {
+            if (total <= maxBytes) break;
+            if (!file.isFile()) continue;
+            long size = file.length();
+            if (file.delete()) total -= size;
+        }
+    }
+
 
     
 private void uploadProfilePhoto(Uri uri) {
@@ -5419,6 +5593,7 @@ private void loadImage(
     if (url == null || url.trim().isEmpty() || imageView == null) return;
 
     final String originalUrl = url.trim();
+    imageView.setTag(originalUrl);
 
     // عکس‌های پروفایل در باکت خصوصی هستند؛ ابتدا از تابع لینک موقت می‌گیریم.
     if (originalUrl.contains("/storage/v1/object/public/" + PROFILE_BUCKET + "/") ||
@@ -5432,6 +5607,11 @@ private void loadImage(
 
 private void loadPrivateProfileImage(String storedUrl, ImageView imageView) {
     new Thread(() -> {
+        File cachedProfile = getCachedMediaFile(storedUrl, "image");
+        if (cachedProfile != null) {
+            showChatCachedImage(cachedProfile, imageView, storedUrl);
+            return;
+        }
         HttpURLConnection connection = null;
         try {
             String marker = "/" + PROFILE_BUCKET + "/";
@@ -5494,7 +5674,7 @@ private void loadPrivateProfileImage(String storedUrl, ImageView imageView) {
                 return;
             }
 
-            downloadImageToView(signedUrl, imageView);
+            downloadImageToView(signedUrl, imageView, storedUrl);
         } catch (Exception e) {
             Log.e("ChatImage", "Private profile image failed", e);
         } finally {
@@ -5543,51 +5723,55 @@ private Bitmap makeCircularProfileBitmap(Bitmap source) {
 }
 
 private void downloadImageToView(String url, ImageView imageView) {
+    downloadImageToView(url, imageView, url);
+}
+
+private void downloadImageToView(String url, ImageView imageView, String stableCacheKey) {
+    if (url == null || imageView == null) return;
+    Object expectedTag = imageView.getTag();
     new Thread(() -> {
-        HttpURLConnection connection = null;
-        try {
-            URL imageUrl = new URL(url);
-            connection = (HttpURLConnection) imageUrl.openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(20000);
-            connection.setReadTimeout(30000);
-            connection.setInstanceFollowRedirects(true);
-            connection.setUseCaches(false);
-            connection.setRequestProperty("Accept", "image/*");
-            connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
-            connection.connect();
-
-            int responseCode = connection.getResponseCode();
-            if (responseCode < 200 || responseCode >= 300) {
-                Log.e("ChatImage", "Image HTTP " + responseCode + ": " + url);
-                return;
-            }
-
-            Bitmap bitmap;
-            try (InputStream input = connection.getInputStream()) {
-                bitmap = BitmapFactory.decodeStream(input);
-            }
-            if (bitmap == null) {
-                Log.e("ChatImage", "Image decode failed: " + url);
-                return;
-            }
-            final Bitmap imageToShow = imageView == myHeaderProfileButton
-                    ? makeCircularProfileBitmap(bitmap)
-                    : bitmap;
-            runOnUiThread(() -> {
-                if (imageView == myHeaderProfileButton) {
-                    imageView.setPadding(0, 0, 0, 0);
-                    imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                }
-                imageView.setImageBitmap(imageToShow);
-            });
-        } catch (Exception e) {
-            Log.e("ChatImage", "Image load failed: " + url, e);
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        File cached = getCachedMediaFile(stableCacheKey, "image");
+        if (cached == null) cached = downloadMediaToCache(url, "image", 15L * 1024L * 1024L, stableCacheKey);
+        if (cached != null) showChatCachedImage(cached, imageView, expectedTag);
+        else Log.w("ChatImage", "Image is not cached and could not be downloaded");
     }).start();
 }
+
+private void showChatCachedImage(File file, ImageView imageView, Object expectedTag) {
+    if (file == null || imageView == null) return;
+    new Thread(() -> {
+        Bitmap bitmap = null;
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
+            int sample = 1;
+            while (bounds.outWidth / sample > 1200 || bounds.outHeight / sample > 1600) sample *= 2;
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = sample;
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            bitmap = BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+        } catch (Exception e) {
+            Log.w("ChatImage", "Cached image decode failed", e);
+        }
+        final Bitmap decoded = bitmap;
+        if (decoded != null) runOnUiThread(() -> {
+            if (isFinishing() || (expectedTag != null && !expectedTag.equals(imageView.getTag()))) {
+                if (!decoded.isRecycled()) decoded.recycle();
+                return;
+            }
+            Bitmap shown = imageView == myHeaderProfileButton ? makeCircularProfileBitmap(decoded) : decoded;
+            if (imageView == myHeaderProfileButton) {
+                imageView.setPadding(0, 0, 0, 0);
+                imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            }
+            imageView.setImageBitmap(shown);
+            imageView.setAlpha(1f);
+            if (shown != decoded && !decoded.isRecycled()) decoded.recycle();
+        });
+    }).start();
+}
+
 
     private void showImageViewer(
             String url
@@ -6415,4 +6599,4 @@ private void blockCurrentUser() {
 
 }
     
-}
+            }
