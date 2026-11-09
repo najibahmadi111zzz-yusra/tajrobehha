@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.util.Base64;
+import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -32,6 +33,9 @@ import android.widget.Toast;
 import android.widget.EditText;
 import org.json.JSONObject;
 import java.io.InputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.security.MessageDigest;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -1062,87 +1066,57 @@ public class ExperienceListActivity extends Activity {
                         Query.Direction.DESCENDING
                 )
                 .get()
-                .addOnSuccessListener(
-                        queryDocumentSnapshots -> {
+                .addOnSuccessListener(this::displayExperienceSnapshot)
+                .addOnFailureListener(error -> loadCachedExperiencesAfterFailure(error));
+    }
 
-                            isPullRefreshing = false;
-                            if (pullRefreshIndicator != null) {
-                                pullRefreshIndicator.setVisibility(View.GONE);
-                            }
-                            feedLayout.removeAllViews();
 
-                            displayedExperienceKeys.clear();
+    // در قطع اینترنت، نسخه ذخیره‌شده Firestore را نمایش می‌دهد؛ سپس با اتصال بعدی
+    // درخواست عادی loadExperiences داده‌های تازه را دریافت می‌کند.
+    private void loadCachedExperiencesAfterFailure(Exception networkError) {
+        db.collection("experiences")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get(Source.CACHE)
+                .addOnSuccessListener(cached -> {
+                    if (cached != null && !cached.isEmpty()) {
+                        displayExperienceSnapshot(cached);
+                    } else {
+                        isPullRefreshing = false;
+                        if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+                        showEmptyMessage();
+                        Toast.makeText(this, text("خطا در دریافت تجربه‌ها"), Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(cacheError -> {
+                    isPullRefreshing = false;
+                    if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+                    Toast.makeText(this, text("خطا در دریافت تجربه‌ها"), Toast.LENGTH_SHORT).show();
+                    Log.w("ExperiencesOffline", "No cached feed available", cacheError);
+                });
+    }
 
-                            if (queryDocumentSnapshots.isEmpty()) {
+    private void displayExperienceSnapshot(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots) {
+        isPullRefreshing = false;
+        if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+        feedLayout.removeAllViews();
+        displayedExperienceKeys.clear();
 
-                                showEmptyMessage();
+        if (queryDocumentSnapshots == null || queryDocumentSnapshots.isEmpty()) {
+            showEmptyMessage();
+            return;
+        }
 
-                                return;
-                            }
-
-                            FirebaseUser currentUser =
-                                    auth.getCurrentUser();
-
-                            String currentUserId =
-                                    null;
-
-                            if (currentUser != null) {
-
-                                currentUserId =
-                                        currentUser.getUid();
-                            }
-
-                            int displayedCount = 0;
-
-                            for (
-                                    DocumentSnapshot document :
-                                    queryDocumentSnapshots
-                            ) {
-
-                                String uniqueKey =
-                                        getExperienceUniqueKey(
-                                                document
-                                        );
-
-                                if (displayedExperienceKeys
-                                        .contains(uniqueKey)) {
-
-                                    continue;
-                                }
-
-                                displayedExperienceKeys
-                                        .add(uniqueKey);
-
-                                createExperienceCard(
-                                        document,
-                                        currentUserId
-                                );
-
-                                displayedCount++;
-                            }
-
-                            if (displayedCount == 0) {
-
-                                showEmptyMessage();
-                            }
-                        }
-                )
-                .addOnFailureListener(
-                        e -> {
-
-                            isPullRefreshing = false;
-                            if (pullRefreshIndicator != null) {
-                                pullRefreshIndicator.setVisibility(View.GONE);
-                            }
-                            Toast.makeText(
-                                    ExperienceListActivity.this,
-                                    text(
-                                            text("خطا در دریافت تجربه‌ها")
-                                    ),
-                                    Toast.LENGTH_LONG
-                            ).show();
-                        }
-                );
+        FirebaseUser currentUser = auth.getCurrentUser();
+        String currentUserId = currentUser == null ? null : currentUser.getUid();
+        int displayedCount = 0;
+        for (DocumentSnapshot document : queryDocumentSnapshots) {
+            String uniqueKey = getExperienceUniqueKey(document);
+            if (displayedExperienceKeys.contains(uniqueKey)) continue;
+            displayedExperienceKeys.add(uniqueKey);
+            createExperienceCard(document, currentUserId);
+            displayedCount++;
+        }
+        if (displayedCount == 0) showEmptyMessage();
     }
 
     private String getExperienceUniqueKey(
@@ -2149,46 +2123,70 @@ public class ExperienceListActivity extends Activity {
         }).start();
     }
 
+    private String experienceCacheKey(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes("UTF-8"));
+            StringBuilder out = new StringBuilder();
+            for (byte b : digest) out.append(String.format(java.util.Locale.US, "%02x", b));
+            return out.toString();
+        } catch (Exception e) { return Integer.toHexString(value.hashCode()); }
+    }
+
+    private File experienceCacheDir(String type) {
+        File dir = new File(getCacheDir(), "tajro_" + type + "_cache");
+        if (!dir.exists()) dir.mkdirs();
+        return dir;
+    }
+
+    private File cacheExperienceImage(String url) {
+        File dir = experienceCacheDir("images");
+        File target = new File(dir, experienceCacheKey(url));
+        if (target.isFile() && target.length() > 0) return target;
+        HttpURLConnection connection = null; File temp = new File(dir, target.getName() + ".tmp");
+        try {
+            connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setConnectTimeout(12000); connection.setReadTimeout(18000);
+            connection.setInstanceFollowRedirects(true);
+            int code = connection.getResponseCode(); if (code < 200 || code >= 300) return null;
+            long size = connection.getContentLengthLong(); if (size > 15L * 1024L * 1024L) return null;
+            long total = 0;
+            try (InputStream in = connection.getInputStream(); FileOutputStream out = new FileOutputStream(temp)) {
+                byte[] buffer = new byte[8192]; int n;
+                while ((n = in.read(buffer)) != -1) { total += n; if (total > 15L * 1024L * 1024L) throw new IOException("Image too large"); out.write(buffer,0,n); }
+            }
+            if (total == 0 || !temp.renameTo(target)) { temp.delete(); return null; }
+            trimExperienceCache(dir, 45L * 1024L * 1024L);
+            return target;
+        } catch (Exception e) { temp.delete(); return null; }
+        finally { if (connection != null) connection.disconnect(); }
+    }
+
+    private void trimExperienceCache(File dir, long maxBytes) {
+        File[] files = dir.listFiles(); if (files == null) return;
+        long total = 0; for (File f : files) if (f.isFile()) total += f.length();
+        java.util.Arrays.sort(files, (a,b) -> Long.compare(a.lastModified(), b.lastModified()));
+        for (File f : files) { if (total <= maxBytes) break; long size=f.length(); if (f.delete()) total-=size; }
+    }
+
     private void loadExperienceImage(String imageUrl, ImageView imageView) {
         if (imageUrl == null || imageUrl.trim().isEmpty() || imageView == null) return;
-        imageView.setTag(imageUrl);
+        final String key = imageUrl.trim(); imageView.setTag(key);
         IMAGE_EXECUTOR.execute(() -> {
-            HttpURLConnection connection = null;
             Bitmap bitmap = null;
             try {
-                connection = (HttpURLConnection) new URL(imageUrl).openConnection();
-                connection.setConnectTimeout(12000);
-                connection.setReadTimeout(18000);
-                connection.setInstanceFollowRedirects(true);
-                try (InputStream input = connection.getInputStream();
-                     ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-                    byte[] buffer = new byte[8192];
-                    int count;
-                    while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
-                    byte[] bytes = output.toByteArray();
-                    BitmapFactory.Options bounds = new BitmapFactory.Options();
-                    bounds.inJustDecodeBounds = true;
-                    BitmapFactory.decodeByteArray(bytes, 0, bytes.length, bounds);
-                    int sample = 1;
-                    while (bounds.outWidth / sample > 1200 || bounds.outHeight / sample > 1800) {
-                        sample *= 2;
-                    }
-                    BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inSampleSize = sample;
-                    options.inPreferredConfig = Bitmap.Config.RGB_565;
-                    bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+                File cached = cacheExperienceImage(key);
+                if (cached != null) {
+                    BitmapFactory.Options bounds = new BitmapFactory.Options(); bounds.inJustDecodeBounds = true;
+                    BitmapFactory.decodeFile(cached.getAbsolutePath(), bounds);
+                    int sample = 1; while (bounds.outWidth / sample > 1200 || bounds.outHeight / sample > 1800) sample *= 2;
+                    BitmapFactory.Options options = new BitmapFactory.Options(); options.inSampleSize = sample; options.inPreferredConfig = Bitmap.Config.RGB_565;
+                    bitmap = BitmapFactory.decodeFile(cached.getAbsolutePath(), options);
                 }
-            } catch (Exception ignored) {
-            } finally {
-                if (connection != null) connection.disconnect();
-            }
+            } catch (Exception ignored) { }
             final Bitmap loaded = bitmap;
             if (loaded != null) runOnUiThread(() -> {
-                if (!isFinishing() && imageUrl.equals(imageView.getTag())) {
-                    imageView.setImageBitmap(loaded);
-                } else if (!loaded.isRecycled()) {
-                    loaded.recycle();
-                }
+                if (!isFinishing() && key.equals(imageView.getTag())) imageView.setImageBitmap(loaded);
+                else if (!loaded.isRecycled()) loaded.recycle();
             });
         });
     }
@@ -3177,12 +3175,14 @@ public class ExperienceListActivity extends Activity {
     private void loadProfileImage(String photoUrl, ImageView imageView) {
         if (photoUrl == null || photoUrl.trim().isEmpty() || imageView == null) return;
         final String storedUrl = photoUrl.trim();
+        File cachedProfile = new File(experienceCacheDir("profiles"), experienceCacheKey(storedUrl));
+        if (cachedProfile.isFile() && cachedProfile.length() > 0) showCachedProfileImage(cachedProfile, imageView);
         if (storedUrl.contains("/storage/v1/object/public/" + PROFILE_BUCKET + "/") ||
                 storedUrl.contains("/storage/v1/object/" + PROFILE_BUCKET + "/")) {
             loadPrivateProfileImage(storedUrl, imageView);
             return;
         }
-        new Thread(() -> downloadProfileImage(storedUrl, imageView)).start();
+        new Thread(() -> downloadProfileImage(storedUrl, imageView, storedUrl)).start();
     }
 
     private void loadPrivateProfileImage(String storedUrl, ImageView imageView) {
@@ -3224,7 +3224,7 @@ public class ExperienceListActivity extends Activity {
                 while ((count = response.read(buffer)) != -1) bytes.write(buffer, 0, count);
                 response.close();
                 String signedUrl = new JSONObject(bytes.toString("UTF-8")).optString("url", "");
-                if (!signedUrl.isEmpty()) downloadProfileImage(signedUrl, imageView);
+                if (!signedUrl.isEmpty()) downloadProfileImage(signedUrl, imageView, storedUrl);
             } catch (Exception ignored) {
             } finally {
                 if (connection != null) connection.disconnect();
@@ -3232,20 +3232,43 @@ public class ExperienceListActivity extends Activity {
         }).start();
     }
 
-    private void downloadProfileImage(String url, ImageView imageView) {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(20000);
-            Bitmap bitmap;
-            try (InputStream input = connection.getInputStream()) {
-                bitmap = BitmapFactory.decodeStream(input);
-            }
-            if (bitmap != null) runOnUiThread(() -> imageView.setImageBitmap(bitmap));
-        } catch (Exception ignored) {
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+    private void showCachedProfileImage(File cached, ImageView imageView) {
+        IMAGE_EXECUTOR.execute(() -> {
+            BitmapFactory.Options bounds = new BitmapFactory.Options(); bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(cached.getAbsolutePath(), bounds);
+            int sample=1; while(bounds.outWidth/sample>600 || bounds.outHeight/sample>600) sample*=2;
+            BitmapFactory.Options opts=new BitmapFactory.Options(); opts.inSampleSize=sample; opts.inPreferredConfig=Bitmap.Config.RGB_565;
+            Bitmap bitmap=BitmapFactory.decodeFile(cached.getAbsolutePath(), opts);
+            if(bitmap!=null) runOnUiThread(() -> { if(!isFinishing()) imageView.setImageBitmap(bitmap); });
+        });
     }
-                    }
+
+    private void downloadProfileImage(String url, ImageView imageView, String stableCacheKey) {
+        HttpURLConnection connection = null; File temp = null;
+        try {
+            File dir = experienceCacheDir("profiles");
+            String key = experienceCacheKey(stableCacheKey);
+            File cached = new File(dir, key);
+            if (!cached.isFile() || cached.length() == 0) {
+                connection = (HttpURLConnection) new URL(url).openConnection();
+                connection.setConnectTimeout(15000); connection.setReadTimeout(20000);
+                int code = connection.getResponseCode(); if (code < 200 || code >= 300) return;
+                long size = connection.getContentLengthLong(); if (size > 8L * 1024L * 1024L) return;
+                temp = new File(dir, key + ".tmp"); long total=0;
+                try (InputStream input = connection.getInputStream(); FileOutputStream out = new FileOutputStream(temp)) {
+                    byte[] buffer = new byte[8192]; int n;
+                    while ((n=input.read(buffer))!=-1) { total+=n; if(total>8L*1024L*1024L) throw new IOException("Profile too large"); out.write(buffer,0,n); }
+                }
+                if (total == 0 || !temp.renameTo(cached)) { temp.delete(); return; }
+                trimExperienceCache(dir, 12L * 1024L * 1024L);
+            }
+            BitmapFactory.Options bounds = new BitmapFactory.Options(); bounds.inJustDecodeBounds=true;
+            BitmapFactory.decodeFile(cached.getAbsolutePath(), bounds);
+            int sample=1; while(bounds.outWidth/sample>600 || bounds.outHeight/sample>600) sample*=2;
+            BitmapFactory.Options opts=new BitmapFactory.Options(); opts.inSampleSize=sample; opts.inPreferredConfig=Bitmap.Config.RGB_565;
+            Bitmap bitmap=BitmapFactory.decodeFile(cached.getAbsolutePath(), opts);
+            if (bitmap != null) runOnUiThread(() -> { if (!isFinishing()) imageView.setImageBitmap(bitmap); });
+        } catch (Exception ignored) { if (temp != null) temp.delete(); }
+        finally { if (connection != null) connection.disconnect(); }
+    }
+                          }
