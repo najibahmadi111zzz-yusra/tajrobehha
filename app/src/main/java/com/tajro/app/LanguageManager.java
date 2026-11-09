@@ -104,6 +104,11 @@ public class LanguageManager {
             return "हिन्दी";
         }
 
+        // زبان عربی
+        if ("ar".equals(code)) {
+            return "العربية";
+        }
+
         return "دری";
     }
 }
