@@ -968,6 +968,10 @@ public class ChatActivity extends Activity {
         profile.setScaleType(
                 ImageView.ScaleType.CENTER_CROP
         );
+        // دکمه ImageButton در بعضی تم‌ها padding داخلی دارد؛ آن را حذف می‌کنیم
+        // تا عکس خود کاربر تمام دایره ۴۸dp را بدون قاب خالی بپوشاند.
+        profile.setPadding(0, 0, 0, 0);
+        profile.setCropToPadding(true);
 
         profile.setImageResource(
                 android.R.drawable.ic_menu_myplaces
@@ -5499,6 +5503,45 @@ private void loadPrivateProfileImage(String storedUrl, ImageView imageView) {
     }).start();
 }
 
+// فقط برای عکس پروفایل خود کاربر در گوشه بالای صفحه:
+// تصویر را با برش CENTER_CROP به یک دایره واقعی تبدیل می‌کند؛
+// بنابراین حتی اگر خود فایل عکس مربع باشد، گوشه‌های مربعی دیده نمی‌شوند.
+private Bitmap makeCircularProfileBitmap(Bitmap source) {
+    if (source == null || source.isRecycled()) return source;
+
+    int width = source.getWidth();
+    int height = source.getHeight();
+    int size = Math.min(width, height);
+    if (size <= 0) return source;
+
+    Bitmap output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+    android.graphics.Canvas canvas = new android.graphics.Canvas(output);
+    android.graphics.Paint paint = new android.graphics.Paint(
+            android.graphics.Paint.ANTI_ALIAS_FLAG |
+                    android.graphics.Paint.FILTER_BITMAP_FLAG
+    );
+    android.graphics.BitmapShader shader = new android.graphics.BitmapShader(
+            source,
+            android.graphics.Shader.TileMode.CLAMP,
+            android.graphics.Shader.TileMode.CLAMP
+    );
+
+    float scale = Math.max((float) size / width, (float) size / height);
+    float scaledWidth = width * scale;
+    float scaledHeight = height * scale;
+    float dx = (size - scaledWidth) / 2f;
+    float dy = (size - scaledHeight) / 2f;
+    android.graphics.Matrix matrix = new android.graphics.Matrix();
+    matrix.setScale(scale, scale);
+    matrix.postTranslate(dx, dy);
+    shader.setLocalMatrix(matrix);
+    paint.setShader(shader);
+
+    float radius = size / 2f;
+    canvas.drawCircle(radius, radius, radius, paint);
+    return output;
+}
+
 private void downloadImageToView(String url, ImageView imageView) {
     new Thread(() -> {
         HttpURLConnection connection = null;
@@ -5528,7 +5571,16 @@ private void downloadImageToView(String url, ImageView imageView) {
                 Log.e("ChatImage", "Image decode failed: " + url);
                 return;
             }
-            runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+            final Bitmap imageToShow = imageView == myHeaderProfileButton
+                    ? makeCircularProfileBitmap(bitmap)
+                    : bitmap;
+            runOnUiThread(() -> {
+                if (imageView == myHeaderProfileButton) {
+                    imageView.setPadding(0, 0, 0, 0);
+                    imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                }
+                imageView.setImageBitmap(imageToShow);
+            });
         } catch (Exception e) {
             Log.e("ChatImage", "Image load failed: " + url, e);
         } finally {
@@ -6363,4 +6415,4 @@ private void blockCurrentUser() {
 
 }
     
-    }
+}
