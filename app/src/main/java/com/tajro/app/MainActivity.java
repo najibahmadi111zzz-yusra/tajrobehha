@@ -458,16 +458,16 @@ public class MainActivity extends Activity {
         row3.addView(exchangeButton);
         row3.addView(settingsButton);
 
-        // بازی
+        // بازی‌ها: ورود به صفحه انتخاب هر دو بازی
         gameButton =
                 createButton(
                         text(
-                                "🎮 بازی توپ در خانه‌ها",
-                                "🎮 Ball Game",
-                                "🎮 د توپ لوبه",
-                                "🎮 گیند کا کھیل",
-                                "🎮 गेंद का खेल",
-                                "🎮 لعبة الكرة"
+                                "🎮 بازی‌ها",
+                                "🎮 Games",
+                                "🎮 لوبې",
+                                "🎮 کھیل",
+                                "🎮 खेल",
+                                "🎮 الألعاب"
                         )
                 );
 
