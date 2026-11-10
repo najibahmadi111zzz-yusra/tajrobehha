@@ -32,6 +32,20 @@ public class ColorSortActivity extends Activity {
 
     private SortGameView gameView;
 
+    // متن‌های بازی بر اساس زبان انتخاب‌شده در برنامه
+    private String tr(String fa, String en, String ps, String ur, String hi, String ar) {
+        String language = LanguageManager.getLanguage(this);
+        switch (language) {
+            case "en": return en;
+            case "ps": return ps;
+            case "ur": return ur;
+            case "hi": return hi;
+            case "ar": return ar;
+            default: return fa;
+        }
+    }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -222,7 +236,7 @@ public class ColorSortActivity extends Activity {
             text.setAntiAlias(true);
 
             setFocusable(true);
-            setContentDescription("بازی مرتب‌سازی رنگ‌ها؛ لمس ظرف‌ها برای انتقال مایع");
+            setContentDescription(tr("بازی مرتب‌سازی رنگ‌ها؛ لمس ظرف‌ها برای انتقال مایع", "Color Sort; tap bottles to pour", "د رنګونو ترتیب؛ د مایع بدلولو لپاره بوتلونه لمس کړئ", "رنگوں کی ترتیب؛ مائع منتقل کرنے کے لیے بوتلوں کو چھوئیں", "रंगों को क्रम में लगाएँ; तरल डालने के लिए बोतलों को छुएँ", "ترتيب الألوان؛ المس الزجاجات لنقل السائل"));
 
             soundEnabled = progressPrefs.getBoolean("sound", true);
 
@@ -1423,7 +1437,7 @@ public class ColorSortActivity extends Activity {
             text.setColor(Color.WHITE);
 
             c.drawText(
-                    "★  مرحله " + level,
+                    "★  " + tr("مرحله ", "Level ", "مرحله ", "مرحلہ ", "स्तर ", "المرحلة ") + level,
                     (stageLeft + stageRight) / 2f,
                     59,
                     text
@@ -3252,7 +3266,7 @@ public class ColorSortActivity extends Activity {
             text.setColor(Color.WHITE);
 
             c.drawText(
-                    "حرکت‌ها",
+                    tr("حرکت‌ها", "Moves", "حرکتونه", "چالیں", "चालें", "الحركات"),
                     w / 2f + 50,
                     y - 4,
                     text
@@ -3293,21 +3307,21 @@ public class ColorSortActivity extends Activity {
             text.setColor(Color.WHITE);
 
             c.drawText(
-                    "بازگشت",
+                    tr("بازگشت", "Undo", "بېرته", "واپس", "वापस", "تراجع"),
                     75,
                     y + 78,
                     text
             );
 
             c.drawText(
-                    "شروع دوباره",
+                    tr("شروع دوباره", "Restart", "بیا پیل", "دوبارہ شروع", "फिर शुरू करें", "إعادة البدء"),
                     w / 2f - 105,
                     y + 78,
                     text
             );
 
             c.drawText(
-                    "صدا",
+                    tr("صدا", "Sound", "غږ", "آواز", "ध्वनि", "الصوت"),
                     w - 75,
                     y + 78,
                     text
@@ -3384,7 +3398,7 @@ public class ColorSortActivity extends Activity {
             text.setColor(Color.WHITE);
 
             c.drawText(
-                    "رنگ‌ها را به درستی مرتب کنید",
+                    tr("رنگ‌ها را به درستی مرتب کنید", "Sort the colors correctly", "رنګونه په سمه توګه ترتیب کړئ", "رنگوں کو درست ترتیب دیں", "रंगों को सही क्रम में लगाएँ", "رتّب الألوان بشكل صحيح"),
                     w / 2f,
                     top + 43,
                     text
@@ -3401,7 +3415,7 @@ public class ColorSortActivity extends Activity {
             );
 
             c.drawText(
-                    "جوایز مرحله: ★ 40   ★★ 70   ★★★ 100 سکه",
+                    tr("جوایز مرحله: ★ 40   ★★ 70   ★★★ 100 سکه", "Level rewards: ★ 40   ★★ 70   ★★★ 100 coins", "د مرحلې انعامونه: ★ 40   ★★ 70   ★★★ 100 سکې", "مرحلے کے انعامات: ★ 40   ★★ 70   ★★★ 100 سکے", "स्तर के पुरस्कार: ★ 40   ★★ 70   ★★★ 100 सिक्के", "مكافآت المرحلة: ★ 40   ★★ 70   ★★★ 100 قطعة"),
                     w / 2f,
                     top + 73,
                     text
@@ -3419,13 +3433,13 @@ public class ColorSortActivity extends Activity {
             );
 
             c.drawText(
-                    "مرحله " +
+                    tr("مرحله ", "Level ", "مرحله ", "مرحلہ ", "स्तर ", "المرحلة ") +
                             level +
-                            " از " + MAX_LEVEL + "   •   خطا: " +
+                            tr(" از ", " of ", " له ", " از ", " में से ", " من ") + MAX_LEVEL + tr("   •   خطا: ", "   •   Mistakes: ", "   •   تېروتنې: ", "   •   غلطیاں: ", "   •   गलतियाँ: ", "   •   أخطاء: ") +
                             mistakes +
                             "/" +
                             MAX_MISTAKES +
-                            "   •   سکه: " +
+                            tr("   •   سکه: ", "   •   Coins: ", "   •   سکې: ", "   •   سکے: ", "   •   सिक्के: ", "   •   العملات: ") +
                             coins,
                     w / 2f,
                     top + 96,
@@ -3621,7 +3635,7 @@ public class ColorSortActivity extends Activity {
             text.setTextSize(31);
 
             c.drawText(
-                    "عالی! مرحله کامل شد",
+                    tr("عالی! مرحله کامل شد", "Great! Level completed", "ډېر ښه! مرحله بشپړه شوه", "زبردست! مرحلہ مکمل ہو گیا", "शानदार! स्तर पूरा हुआ", "رائع! اكتملت المرحلة"),
                     w / 2f,
                     h / 2f - 98,
                     text
@@ -3662,9 +3676,9 @@ public class ColorSortActivity extends Activity {
             text.setColor(Color.WHITE);
 
             c.drawText(
-                    "مرحله " +
+                    tr("مرحله ", "Level ", "مرحله ", "مرحلہ ", "स्तर ", "المرحلة ") +
                             level +
-                            " کامل شد",
+                            tr(" کامل شد", " completed", " بشپړه شوه", " مکمل ہوا", " पूरा हुआ", " اكتملت"),
                     w / 2f,
                     h / 2f + 10,
                     text
@@ -3681,9 +3695,9 @@ public class ColorSortActivity extends Activity {
             );
 
             c.drawText(
-                    "جایزه: +" +
+                    tr("جایزه: +", "Reward: +", "انعام: +", "انعام: +", "इनाम: +", "المكافأة: +") +
                             lastEarnedCoins +
-                            " سکه",
+                            tr(" سکه", " coins", " سکې", " سکے", " सिक्के", " قطعة"),
                     w / 2f,
                     h / 2f + 48,
                     text
@@ -3698,9 +3712,9 @@ public class ColorSortActivity extends Activity {
             );
 
             c.drawText(
-                    "امتیاز کل: " +
+                    tr("امتیاز کل: ", "Total score: ", "ټولې نمرې: ", "کل اسکور: ", "कुल अंक: ", "المجموع: ") +
                             coins +
-                            " سکه",
+                            tr(" سکه", " coins", " سکې", " سکے", " सिक्के", " قطعة"),
                     w / 2f,
                     h / 2f + 78,
                     text
@@ -3710,7 +3724,7 @@ public class ColorSortActivity extends Activity {
                     c,
                     w / 2f,
                     h / 2f + 122,
-                    "ادامه"
+                    tr("ادامه", "Continue", "دوام", "جاری رکھیں", "जारी रखें", "متابعة")
             );
         }
 
@@ -3790,7 +3804,7 @@ public class ColorSortActivity extends Activity {
             text.setTextSize(30);
 
             c.drawText(
-                    "مرحله تمام نشد",
+                    tr("مرحله تمام نشد", "Level failed", "مرحله ناکامه شوه", "مرحلہ ناکام ہو گیا", "स्तर असफल हुआ", "لم تكتمل المرحلة"),
                     w / 2f,
                     h / 2f - 85,
                     text
@@ -3801,7 +3815,7 @@ public class ColorSortActivity extends Activity {
             text.setColor(Color.WHITE);
 
             c.drawText(
-                    "سه خطا انجام شد",
+                    tr("سه خطا انجام شد", "Three mistakes made", "درې تېروتنې وشوې", "تین غلطیاں ہوئیں", "तीन गलतियाँ हुईं", "حدثت ثلاثة أخطاء"),
                     w / 2f,
                     h / 2f - 42,
                     text
@@ -3818,7 +3832,7 @@ public class ColorSortActivity extends Activity {
             );
 
             c.drawText(
-                    "نگران نباش؛ مرحله دوباره از اول شروع می‌شود.",
+                    tr("نگران نباش؛ مرحله دوباره از اول شروع می‌شود.", "Do not worry; the level will restart.", "اندېښنه مه کوئ؛ مرحله به بیا پیل شي.", "فکر نہ کریں؛ مرحلہ دوبارہ شروع ہوگا۔", "चिंता न करें; स्तर फिर शुरू होगा।", "لا تقلق؛ ستبدأ المرحلة من جديد."),
                     w / 2f,
                     h / 2f - 5,
                     text
@@ -3828,7 +3842,7 @@ public class ColorSortActivity extends Activity {
                     c,
                     w / 2f,
                     h / 2f + 65,
-                    "دوباره تلاش کن"
+                    tr("دوباره تلاش کن", "Try again", "بیا هڅه وکړئ", "دوبارہ کوشش کریں", "फिर कोशिश करें", "حاول مجدداً")
             );
         }
 
@@ -5091,7 +5105,7 @@ public class ColorSortActivity extends Activity {
 
                 Toast.makeText(
                         ColorSortActivity.this,
-                        "حرکتی برای برگشت وجود ندارد",
+                        tr("حرکتی برای برگشت وجود ندارد", "No move to undo", "د بېرته ګرځولو حرکت نشته", "واپس جانے کے لیے کوئی چال نہیں", "वापस जाने की कोई चाल नहीं", "لا توجد حركة للتراجع"),
                         Toast.LENGTH_SHORT
                 ).show();
 
@@ -5296,7 +5310,7 @@ public class ColorSortActivity extends Activity {
 
                 Toast.makeText(
                         ColorSortActivity.this,
-                        "🏆 هر ۵۰ مرحله را کامل کردی!",
+                        tr("🏆 هر ۵۰ مرحله را کامل کردی!", "🏆 You completed all 50 levels!", "🏆 تاسو ټولې ۵۰ مرحلې بشپړې کړې!", "🏆 آپ نے تمام ۵۰ مرحلے مکمل کر لیے!", "🏆 आपने सभी ५० स्तर पूरे कर लिए!", "🏆 أكملت جميع المراحل الخمسين!"),
                         Toast.LENGTH_LONG
                 ).show();
 
@@ -5361,4 +5375,4 @@ public class ColorSortActivity extends Activity {
             }
         }
     }
-                }
+        }
