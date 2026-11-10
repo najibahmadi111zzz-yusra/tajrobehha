@@ -29,7 +29,14 @@ public class GamesActivity extends Activity {
         root.setBackgroundColor(getLightThemeColor());
 
         TextView title = new TextView(this);
-        title.setText("🎮 بازی‌ها");
+        title.setText(tr(
+                "🎮 بازی‌ها",
+                "🎮 Games",
+                "🎮 لوبې",
+                "🎮 کھیل",
+                "🎮 खेल",
+                "🎮 الألعاب"
+        ));
         title.setTextSize(30);
         title.setTextColor(themeColor);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -45,8 +52,14 @@ public class GamesActivity extends Activity {
         );
 
         Button ballGame = createGameButton(
-                "🎮 توپ در خانه‌ها",
-                "توپ را با ◀️ ⬆️ ▶️ به خانه پایان برسان"
+                tr("🎮 توپ در خانه‌ها", "🎮 Ball Game", "🎮 د توپ لوبه",
+                        "🎮 گیند کا کھیل", "🎮 गेंद का खेल", "🎮 لعبة الكرة"),
+                tr("توپ را با ◀️ ⬆️ ▶️ به خانه پایان برسان",
+                        "Guide the ball to the finish using ◀️ ⬆️ ▶️",
+                        "توپ د ◀️ ⬆️ ▶️ په وسیله تر پای پورې ورسوه",
+                        "گیند کو ◀️ ⬆️ ▶️ سے اختتام تک پہنچائیں",
+                        "◀️ ⬆️ ▶️ से गेंद को अंतिम स्थान तक पहुँचाएँ",
+                        "وجّه الكرة إلى نقطة النهاية باستخدام ◀️ ⬆️ ▶️")
         );
 
         root.addView(
@@ -55,8 +68,14 @@ public class GamesActivity extends Activity {
         );
 
         Button colorSortGame = createGameButton(
-                "🎨 سورت رنگ‌ها",
-                "رنگ‌ها را در شیشه‌ها مرتب کن"
+                tr("🎨 مرتب‌سازی رنگ‌ها", "🎨 Color Sort", "🎨 د رنګونو ترتیب",
+                        "🎨 رنگوں کی ترتیب", "🎨 रंगों को सजाएँ", "🎨 ترتيب الألوان"),
+                tr("رنگ‌ها را در شیشه‌ها مرتب کن",
+                        "Sort the colors into the bottles",
+                        "رنګونه په بوتلونو کې منظم کړه",
+                        "رنگوں کو بوتلوں میں ترتیب دیں",
+                        "रंगों को बोतलों में क्रम से सजाएँ",
+                        "رتّب الألوان داخل القوارير")
         );
 
         root.addView(
@@ -65,10 +84,14 @@ public class GamesActivity extends Activity {
         );
 
         TextView info = new TextView(this);
-        info.setText(
-                "بازی‌ها برای سرگرمی طراحی شده‌اند\n" +
-                "و می‌توانیم مراحل بیشتری به آنها اضافه کنیم."
-        );
+        info.setText(tr(
+                "بازی‌ها برای سرگرمی طراحی شده‌اند\\nو می‌توانیم مراحل بیشتری به آنها اضافه کنیم.",
+                "These games are made for fun.\\nMore levels can be added in the future.",
+                "دا لوبې د ساتېرۍ لپاره جوړې شوې دي.\\nپه راتلونکي کې نور پړاوونه هم ورزیاتېدای شي.",
+                "یہ کھیل تفریح کے لیے بنائے گئے ہیں۔\\nآئندہ مزید مراحل شامل کیے جا سکتے ہیں۔",
+                "ये खेल मनोरंजन के लिए बनाए गए हैं।\\nभविष्य में और स्तर जोड़े जा सकते हैं।",
+                "صُممت هذه الألعاب للترفيه.\\nيمكن إضافة المزيد من المراحل مستقبلًا."
+        ));
         info.setTextSize(16);
         info.setTextColor(Color.DKGRAY);
         info.setGravity(Gravity.CENTER);
@@ -105,6 +128,28 @@ public class GamesActivity extends Activity {
 
             startActivity(intent);
         });
+    }
+
+    // دریافت متن مطابق زبان انتخاب‌شده در برنامه
+    private String tr(
+            String fa,
+            String en,
+            String ps,
+            String ur,
+            String hi,
+            String ar
+    ) {
+        String language = LanguageManager.getLanguage(this);
+
+        switch (language) {
+            case "en": return en;
+            case "ps": return ps;
+            case "ur": return ur;
+            case "hi": return hi;
+            case "ar": return ar;
+            case "fa":
+            default: return fa;
+        }
     }
 
     private Button createGameButton(
