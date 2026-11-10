@@ -103,6 +103,10 @@ public class ExchangeActivity extends Activity {
         String lang =
                 LanguageManager.getLanguage(this);
 
+        if ("ar".equals(lang)) {
+            return arabicText(fa);
+        }
+
         if ("en".equals(lang)) {
             return en;
         }
@@ -119,6 +123,139 @@ public class ExchangeActivity extends Activity {
             return hi;
         }
 
+        return fa;
+    }
+
+    private String arabicText(String fa) {
+        if ("افغانی".equals(fa)) return "أفغاني";
+        if ("دالر".equals(fa)) return "دولار أمريكي";
+        if ("یورو".equals(fa)) return "يورو";
+        if ("پوند انگلیس".equals(fa)) return "جنيه إسترليني";
+        if ("ریال سعودی".equals(fa)) return "ريال سعودي";
+        if ("درهم امارات".equals(fa)) return "درهم إماراتي";
+        if ("دینار کویت".equals(fa)) return "دينار كويتي";
+        if ("دینار عراق".equals(fa)) return "دينار عراقي";
+        if ("روپیه هند".equals(fa)) return "روبية هندية";
+        if ("روپیه پاکستانی".equals(fa)) return "روبية باكستانية";
+        if ("لیر ترکیه".equals(fa)) return "ليرة تركية";
+        if ("تومان".equals(fa)) return "تومان";
+        if ("خرید".equals(fa)) return "شراء";
+        if ("فروش".equals(fa)) return "بيع";
+        if ("نقدی".equals(fa)) return "نقدي";
+        if ("💱 صرافی تجربه‌ها".equals(fa)) return "💱 صرافة تجارب";
+        if ("ثبت و مدیریت خرید و فروش ارز".equals(fa)) return "تسجيل وإدارة شراء وبيع العملات";
+        if ("نام مشتری".equals(fa)) return "اسم العميل";
+        if ("شماره تلفن".equals(fa)) return "رقم الهاتف";
+        if ("انتخاب ارز".equals(fa)) return "اختر العملة";
+        if ("نوع معامله".equals(fa)) return "نوع المعاملة";
+        if ("مقدار ارز".equals(fa)) return "كمية العملة";
+        if ("نرخ هر واحد به افغانی".equals(fa)) return "سعر الوحدة بالأفغاني";
+        if ("یادداشت / توضیحات".equals(fa)) return "ملاحظة / توضيحات";
+        if ("مجموع: 0 افغانی".equals(fa)) return "الإجمالي: 0 أفغاني";
+        if ("موجودی: 0".equals(fa)) return "الرصيد: 0";
+        if ("موجودی: ".equals(fa)) return "الرصيد: ";
+        if ("✅ موجودی ".equals(fa)) return "✅ الرصيد ";
+        if ("🧮 محاسبه".equals(fa)) return "🧮 حساب";
+        if ("💾 ثبت معامله".equals(fa)) return "💾 تسجيل المعاملة";
+        if ("📜 تاریخچه معاملات".equals(fa)) return "📜 سجل المعاملات";
+        if ("👤 مشتریان".equals(fa)) return "👤 العملاء";
+        if ("📊 گزارش صرافی".equals(fa)) return "📊 تقرير الصرافة";
+        if ("💰 مدیریت موجودی".equals(fa)) return "💰 إدارة الرصيد";
+        if ("💰 موجودی همه ارزها".equals(fa)) return "💰 أرصدة جميع العملات";
+        if ("🔄 تبدیل ارز".equals(fa)) return "🔄 تحويل العملات";
+        if ("🔐 گاوصندوق هوشمند".equals(fa)) return "🔐 الخزنة الذكية";
+        if ("گاوصندوق در دسترس نیست".equals(fa)) return "الخزنة غير متاحة";
+        if ("⚙️ تنظیمات".equals(fa)) return "⚙️ الإعدادات";
+        if ("موجودی فعلی: 0".equals(fa)) return "الرصيد الحالي: 0";
+        if ("مقدار موجودی جدید".equals(fa)) return "مقدار الرصيد الجديد";
+        if ("💾 ذخیره موجودی".equals(fa)) return "💾 حفظ الرصيد";
+        if ("ارز را انتخاب کنید".equals(fa)) return "يرجى اختيار العملة";
+        if ("موجودی فعلی: ".equals(fa)) return "الرصيد الحالي: ";
+        if ("مقدار موجودی را وارد کنید".equals(fa)) return "أدخل مقدار الرصيد";
+        if ("مقدار موجودی نادرست است".equals(fa)) return "مقدار الرصيد غير صحيح";
+        if ("بستن".equals(fa)) return "إغلاق";
+        if ("نرخ افغانی: ۱".equals(fa)) return "سعر الأفغاني: ١";
+        if ("هنوز دریافت نشده".equals(fa)) return "لم يتم الاستلام بعد";
+        if ("خرید: ".equals(fa)) return "شراء: ";
+        if ("فروش: ".equals(fa)) return "بيع: ";
+        if ("آخرین دریافت: ".equals(fa)) return "آخر تحديث: ";
+        if ("موجودی ".equals(fa)) return "الرصيد ";
+        if ("مجموع: ".equals(fa)) return "الإجمالي: ";
+        if ("مقدار و نرخ را درست وارد کنید".equals(fa)) return "أدخل المقدار والسعر بشكل صحيح";
+        if ("ارز و نوع معامله را انتخاب کنید".equals(fa)) return "اختر العملة ونوع المعاملة";
+        if ("مقدار ارز را وارد کنید".equals(fa)) return "أدخل كمية العملة";
+        if ("نرخ ارز را وارد کنید".equals(fa)) return "أدخل سعر العملة";
+        if ("مقدار یا نرخ نادرست است".equals(fa)) return "المقدار أو السعر غير صحيح";
+        if ("مقدار و نرخ باید بیشتر از صفر باشد".equals(fa)) return "يجب أن يكون المقدار والسعر أكبر من صفر";
+        if ("افغانی ارز پایه است؛ ارز خارجی را انتخاب کنید.".equals(fa)) return "الأفغاني هو العملة الأساسية؛ اختر عملة أجنبية.";
+        if ("موجودی افغانی صرافی کافی نیست.".equals(fa)) return "رصيد الأفغاني في الصرافة غير كافٍ.";
+        if ("خطا در ثبت معامله؛ موجودی تغییر نکرد.".equals(fa)) return "حدث خطأ أثناء تسجيل المعاملة؛ لم يتغير الرصيد.";
+        if ("✅ معامله با موفقیت ثبت شد".equals(fa)) return "✅ تم تسجيل المعاملة بنجاح";
+        if ("تجربه‌ها".equals(fa)) return "تجارب";
+        if ("رسید معامله".equals(fa)) return "إيصال المعاملة";
+        if ("شناسه معامله: ".equals(fa)) return "معرّف المعاملة: ";
+        if ("تاریخ هجری: ".equals(fa)) return "التاريخ الهجري: ";
+        if ("مشتری: ".equals(fa)) return "العميل: ";
+        if ("بدون نام".equals(fa)) return "بدون اسم";
+        if ("تلفن: ".equals(fa)) return "الهاتف: ";
+        if ("نوع معامله: ".equals(fa)) return "نوع المعاملة: ";
+        if ("ارز: ".equals(fa)) return "العملة: ";
+        if ("مقدار: ".equals(fa)) return "المقدار: ";
+        if ("نرخ هر واحد: ".equals(fa)) return "سعر الوحدة: ";
+        if ("مبلغ نهایی: ".equals(fa)) return "المبلغ النهائي: ";
+        if ("یادداشت: ".equals(fa)) return "ملاحظة: ";
+        if ("وضعیت حساب: ".equals(fa)) return "حالة الحساب: ";
+        if ("تشکر از شما 🌹".equals(fa)) return "شكراً لكم 🌹";
+        if ("🧾 رسید معامله".equals(fa)) return "🧾 إيصال المعاملة";
+        if ("📋 کپی".equals(fa)) return "📋 نسخ";
+        if ("📤 اشتراک‌گذاری".equals(fa)) return "📤 مشاركة";
+        if ("رسید معامله تجربه‌ها".equals(fa)) return "إيصال معاملة تجارب";
+        if ("📋 رسید کپی شد".equals(fa)) return "📋 تم نسخ الإيصال";
+        if ("🧾 رسید معامله تجربه‌ها".equals(fa)) return "🧾 إيصال معاملة تجارب";
+        if ("📤 ارسال رسید با...".equals(fa)) return "📤 إرسال الإيصال عبر...";
+        if ("برنامه‌ای برای اشتراک‌گذاری پیدا نشد".equals(fa)) return "لم يتم العثور على تطبيق للمشاركة";
+        if ("هنوز معامله‌ای ثبت نشده است.".equals(fa)) return "لم يتم تسجيل أي معاملة بعد.";
+        if ("باشه".equals(fa)) return "حسناً";
+        if ("نوع: ".equals(fa)) return "النوع: ";
+        if ("نرخ: ".equals(fa)) return "السعر: ";
+        if ("حساب: ".equals(fa)) return "الحساب: ";
+        if ("هنوز مشتری ثبت نشده است.".equals(fa)) return "لم يتم تسجيل أي عميل بعد.";
+        if ("🔎 جستجوی نام مشتری".equals(fa)) return "🔎 البحث عن اسم العميل";
+        if ("بدهکاری: ".equals(fa)) return "المديونية: ";
+        if ("افغانی\\n".equals(fa)) return "أفغاني\\n";
+        if ("طلبکاری: ".equals(fa)) return "المستحقات: ";
+        if ("مانده حساب: ".equals(fa)) return "رصيد الحساب: ";
+        if ("🔎 مشتری با این نام پیدا نشد.".equals(fa)) return "🔎 لم يتم العثور على عميل بهذا الاسم.";
+        if ("👥 تعداد نتیجه: ".equals(fa)) return "👥 عدد النتائج: ";
+        if ("گزارش صرافی".equals(fa)) return "تقرير الصرافة";
+        if ("تعداد معاملات: ".equals(fa)) return "عدد المعاملات: ";
+        if ("مجموع خرید: ".equals(fa)) return "إجمالي المشتريات: ";
+        if ("مجموع فروش: ".equals(fa)) return "إجمالي المبيعات: ";
+        if ("اختلاف فروش و خرید: ".equals(fa)) return "الفرق بين البيع والشراء: ";
+        if ("📊 گزارش".equals(fa)) return "📊 التقرير";
+        if ("مقدار برای تبدیل".equals(fa)) return "المقدار للتحويل";
+        if ("نتیجه: 0".equals(fa)) return "النتيجة: 0";
+        if ("🔄 تبدیل".equals(fa)) return "🔄 تحويل";
+        if ("از ارز".equals(fa)) return "من العملة";
+        if ("به ارز".equals(fa)) return "إلى العملة";
+        if ("نتیجه: ".equals(fa)) return "النتيجة: ";
+        if ("مقدار را درست وارد کنید".equals(fa)) return "أدخل المقدار بشكل صحيح";
+        if ("🗑 پاک کردن تاریخچه معاملات".equals(fa)) return "🗑 مسح سجل المعاملات";
+        if ("⚠️ پاک کردن تمام اطلاعات صرافی".equals(fa)) return "⚠️ حذف جميع بيانات الصرافة";
+        if ("⚙️ تنظیمات صرافی".equals(fa)) return "⚙️ إعدادات الصرافة";
+        if ("⚠️ هشدار".equals(fa)) return "⚠️ تحذير";
+        if ("آیا مطمئن هستید که تاریخچه معاملات حذف شود؟".equals(fa)) return "هل أنت متأكد من حذف سجل المعاملات؟";
+        if ("لغو".equals(fa)) return "إلغاء";
+        if ("ادامه".equals(fa)) return "متابعة";
+        if ("تأیید نهایی".equals(fa)) return "التأكيد النهائي";
+        if ("این عملیات تاریخچه معاملات را حذف می‌کند.".equals(fa)) return "ستؤدي هذه العملية إلى حذف سجل المعاملات.";
+        if ("حذف".equals(fa)) return "حذف";
+        if ("تاریخچه معاملات حذف شد".equals(fa)) return "تم حذف سجل المعاملات";
+        if ("⚠️ هشدار بسیار مهم".equals(fa)) return "⚠️ تحذير مهم جداً";
+        if ("تمام موجودی‌ها، معاملات، مشتریان و نرخ‌ها حذف می‌شوند.".equals(fa)) return "سيتم حذف جميع الأرصدة والمعاملات والعملاء والأسعار.";
+        if ("آیا واقعاً می‌خواهید تمام اطلاعات صرافی پاک شود؟".equals(fa)) return "هل تريد حقاً حذف جميع بيانات الصرافة؟";
+        if ("حذف همه".equals(fa)) return "حذف الكل";
+        if ("تمام اطلاعات پاک شد".equals(fa)) return "تم حذف جميع البيانات";
         return fa;
     }
 
