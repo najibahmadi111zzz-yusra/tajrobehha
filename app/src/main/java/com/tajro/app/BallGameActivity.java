@@ -20,6 +20,20 @@ public class BallGameActivity extends Activity {
 
     private ProBounceView gameView;
 
+    // متن‌های بازی بر اساس زبان انتخاب‌شده در برنامه
+    private String tr(String fa, String en, String ps, String ur, String hi, String ar) {
+        String language = LanguageManager.getLanguage(this);
+        switch (language) {
+            case "en": return en;
+            case "ps": return ps;
+            case "ur": return ur;
+            case "hi": return hi;
+            case "ar": return ar;
+            default: return fa;
+        }
+    }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,6 +83,7 @@ public class BallGameActivity extends Activity {
         private final ArrayList<Particle> particles = new ArrayList<>();
 
         private RectF finish;
+        private RectF finishRing; // حلقه بزرگ آبی دروازه پایان مرحله
 
         private float ballX, ballY, ballVX, ballVY;
         private float spawnX, spawnY;
@@ -84,6 +99,11 @@ public class BallGameActivity extends Activity {
         private int level = 1;
         private int score = 0;
         private int collectedRings = 0;
+
+        // سکه‌های دائمی بازیکن و جایزه مرحله جاری
+        private int coins = 0;
+        private int lastLevelReward = 0;
+
         private long lastFrame;
         private long finishStartTime;
 
@@ -136,7 +156,9 @@ public class BallGameActivity extends Activity {
             );
 
             level = preferences.getInt("saved_level", 1);
+            coins = preferences.getInt("saved_coins", 0);
 
+            if (coins < 0) coins = 0;
             if (level < 1) level = 1;
             if (level > 10) level = 10;
 
@@ -664,6 +686,17 @@ public class BallGameActivity extends Activity {
                             worldWidth - t * 1.5f,
                             finishY
                     );
+
+            // حلقه بزرگ و درخشان آبی؛ توپ باید از داخل آن عبور کند.
+            float portalSize = t * 2.75f;
+            float portalCenterX = finish.left + t * 1.25f;
+            float portalCenterY = finish.top - t * 0.95f;
+            finishRing = new RectF(
+                    portalCenterX - portalSize / 2f,
+                    portalCenterY - portalSize / 2f,
+                    portalCenterX + portalSize / 2f,
+                    portalCenterY + portalSize / 2f
+            );
         }
 
         private void addWorldObjects(
@@ -737,8 +770,8 @@ public class BallGameActivity extends Activity {
                         new RectF(
                                 rx,
                                 ry,
-                                rx + t * 1.45f,
-                                ry + t * 1.45f
+                                rx + t * 1.85f,
+                                ry + t * 1.85f
                         )
                 );
 
@@ -765,15 +798,17 @@ public class BallGameActivity extends Activity {
 
             if (section % springEvery == 0) {
 
-                float sx =
-                        left +
-                                (right - left) *
-                                        0.58f;
+                // پرتاب‌کننده را از زیر دیوار بیرون می‌آوریم تا کاملاً دیده و قابل لمس باشد.
+                float sx = Math.min(
+                        left + (right - left) * 0.72f + t * 0.45f,
+                        right - t * 1.45f
+                );
+                float springTop = y - t * 0.72f;
 
                 springs.add(
                         new RectF(
                                 sx,
-                                y - t * 0.52f,
+                                springTop,
                                 sx + t * 1.15f,
                                 y
                         )
@@ -842,8 +877,8 @@ public class BallGameActivity extends Activity {
                         new RectF(
                                 bx,
                                 by,
-                                bx + t * 1.5f,
-                                by + t * 1.5f
+                                bx + t * 1.9f,
+                                by + t * 1.9f
                         )
                 );
 
@@ -1145,11 +1180,8 @@ public class BallGameActivity extends Activity {
                 ballVX = 0;
             }
 
-            if (finish != null &&
-                    ballX + radius() > finish.left &&
-                    ballX - radius() < finish.right &&
-                    ballY + radius() > finish.top &&
-                    ballY - radius() < finish.bottom) {
+            if (finishRing != null &&
+                    circleRect(ballX, ballY, radius(), finishRing)) {
 
                 finishLevel();
 
@@ -1428,6 +1460,14 @@ public class BallGameActivity extends Activity {
             finished = true;
             score += 500 + collectedRings * 25;
 
+            // جایزه هر مرحله: پاداش پایه + پاداش سختی + سکه‌های جمع‌آوری‌شده
+            lastLevelReward =
+                    25 +
+                    level * 10 +
+                    collectedRings * 15 +
+                    (level == 10 ? 200 : 0);
+            coins += lastLevelReward;
+
             leftPressed = false;
             rightPressed = false;
             jumpPressed = false;
@@ -1485,15 +1525,10 @@ public class BallGameActivity extends Activity {
                             1
                     );
 
-            if (level > old) {
-
-                preferences.edit()
-                        .putInt(
-                                "saved_level",
-                                level
-                        )
-                        .apply();
-            }
+            preferences.edit()
+                    .putInt("saved_coins", coins)
+                    .putInt("saved_level", Math.max(old, level))
+                    .apply();
         }
 
         private void updateParticles(float dt) {
@@ -2436,6 +2471,11 @@ public class BallGameActivity extends Activity {
                 );
             }
 
+            if (finishRing != null) {
+                drawRing(canvas, finishRing);
+                drawPortalSparkles(canvas, finishRing);
+            }
+
             drawFinish(
                     canvas
             );
@@ -2793,10 +2833,10 @@ public class BallGameActivity extends Activity {
                     Paint.Style.STROKE
             );
 
-            glow.setStrokeWidth(15);
+            glow.setStrokeWidth(Math.max(12f, r.width() * 0.10f));
 
             glow.setColor(
-                    0x55FFF15A
+                    0x6633CFFF
             );
 
             canvas.drawCircle(
@@ -2810,7 +2850,7 @@ public class BallGameActivity extends Activity {
                     Paint.Style.STROKE
             );
 
-            p.setStrokeWidth(7);
+            p.setStrokeWidth(Math.max(6f, r.width() * 0.055f));
 
             p.setShader(
                     new LinearGradient(
@@ -2818,8 +2858,8 @@ public class BallGameActivity extends Activity {
                             r.top,
                             r.right,
                             r.bottom,
-                            0xFFFFFFFF,
-                            0xFFFFA600,
+                            0xFFE8FFFF,
+                            0xFF008BFF,
                             Shader.TileMode.CLAMP
                     )
             );
@@ -2853,6 +2893,24 @@ public class BallGameActivity extends Activity {
             );
 
             p.setAlpha(255);
+        }
+
+        private void drawPortalSparkles(Canvas canvas, RectF r) {
+            float cx = r.centerX();
+            float cy = r.centerY();
+            float pulse = 1f + (float) Math.sin(time * 4.2f) * 0.045f;
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(Math.max(2f, tile() * 0.045f));
+            p.setColor(0xAAE9FFFF);
+            canvas.drawCircle(cx, cy, r.width() * 0.47f * pulse, p);
+            p.setStyle(Paint.Style.FILL);
+            for (int i = 0; i < 4; i++) {
+                double a = time * 1.7 + i * Math.PI / 2.0;
+                float x = cx + (float) Math.cos(a) * r.width() * 0.58f;
+                float y = cy + (float) Math.sin(a) * r.height() * 0.58f;
+                p.setColor(0xFFEFFFFF);
+                canvas.drawCircle(x, y, Math.max(2f, tile() * 0.07f), p);
+            }
         }
 
         private void drawSpring(
@@ -3340,6 +3398,13 @@ public class BallGameActivity extends Activity {
                         doveY,
                         doveFlying
                 );
+                // کبوتر دوم کمی عقب‌تر پرواز می‌کند تا جشن پایان مرحله زنده‌تر شود.
+                drawDove(
+                        canvas,
+                        doveX - tile() * 1.25f,
+                        doveY + tile() * 0.62f,
+                        doveFlying
+                );
             }
 
             canvas.restore();
@@ -3503,12 +3568,12 @@ public class BallGameActivity extends Activity {
             );
 
             canvas.drawRoundRect(
-                    18,
-                    18,
-                    getWidth() - 18,
-                    76,
-                    28,
-                    28,
+                    16,
+                    14,
+                    getWidth() - 16,
+                    124,
+                    26,
+                    26,
                     p
             );
 
@@ -3523,17 +3588,42 @@ public class BallGameActivity extends Activity {
             p.setTextSize(23);
 
             canvas.drawText(
-                    "🔴 مرحله " + level,
+                    "🔴 " + tr("مرحله ", "Level ", "مرحله ", "مرحلہ ", "स्तर ", "المرحلة ") + level,
                     getWidth() * 0.50f,
                     56,
                     p
             );
 
-            p.setTextSize(16);
+            p.setTextSize(15);
             p.setTextAlign(Paint.Align.LEFT);
-            canvas.drawText("امتیاز: " + score, 28, 101, p);
-            p.setTextAlign(Paint.Align.RIGHT);
-            canvas.drawText("حلقه: " + collectedRings, getWidth() - 28, 101, p);
+            canvas.drawText(
+                    tr("امتیاز: ", "Score: ", "نمرې: ", "اسکور: ", "अंक: ", "النقاط: ") + score,
+                    28,
+                    105,
+                    p
+            );
+
+            p.setTextAlign(Paint.Align.CENTER);
+            canvas.drawText(
+                    tr("حلقه: ", "Rings: ", "حلقې: ", "حلقے: ", "छल्ले: ", "الحلقات: ") + collectedRings,
+                    getWidth() * 0.50f,
+                    105,
+                    p
+            );
+
+            // نشان طلایی کیف پول سکه‌ها
+            float coinX = getWidth() - 105;
+            float coinY = 99;
+            p.setColor(0xFFFFD54F);
+            canvas.drawCircle(coinX, coinY - 5, 11, p);
+            p.setColor(0xFFFFA000);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(2.5f);
+            canvas.drawCircle(coinX, coinY - 5, 8, p);
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(Color.WHITE);
+            p.setTextAlign(Paint.Align.LEFT);
+            canvas.drawText(String.valueOf(coins), coinX + 16, 101, p);
             p.setTextAlign(Paint.Align.CENTER);
 
             if (finished) {
@@ -3555,7 +3645,7 @@ public class BallGameActivity extends Activity {
                 p.setTextSize(31);
 
                 canvas.drawText(
-                        "مرحله کامل شد!",
+                        tr("مرحله کامل شد!", "Level completed!", "مرحله بشپړه شوه!", "مرحلہ مکمل ہو گیا!", "स्तर पूरा हुआ!", "اكتملت المرحلة!"),
                         getWidth() / 2f,
                         getHeight() * 0.28f,
                         p
@@ -3566,7 +3656,7 @@ public class BallGameActivity extends Activity {
                 if (level < 10) {
 
                     canvas.drawText(
-                            "آماده مرحله بعد",
+                            tr("آماده مرحله بعد", "Ready for next level", "راتلونکې مرحلې ته چمتو", "اگلے مرحلے کے لیے تیار", "अगले स्तर के लिए तैयार", "استعد للمرحلة التالية"),
                             getWidth() / 2f,
                             getHeight() *
                                     0.28f +
@@ -3577,7 +3667,7 @@ public class BallGameActivity extends Activity {
                 } else {
 
                     canvas.drawText(
-                            "آخرین مرحله کامل شد!",
+                            tr("آخرین مرحله کامل شد!", "Final level completed!", "وروستۍ مرحله بشپړه شوه!", "آخری مرحلہ مکمل ہو گیا!", "अंतिम स्तर पूरा हुआ!", "اكتملت المرحلة الأخيرة!"),
                             getWidth() / 2f,
                             getHeight() *
                                     0.28f +
@@ -3586,22 +3676,35 @@ public class BallGameActivity extends Activity {
                     );
                 }
 
-                p.setTextSize(17);
+                p.setTextSize(19);
+                p.setColor(0xFFFFD54F);
+                canvas.drawText(
+                        "+" + lastLevelReward + " " +
+                                tr("سکه جایزه", "bonus coins", "د انعام سکې", "انعامی سکے", "बोनस सिक्के", "عملات مكافأة"),
+                        getWidth() / 2f,
+                        getHeight() * 0.28f + 76,
+                        p
+                );
 
+                p.setColor(0xFF5D7188);
+                p.setTextSize(15);
+                canvas.drawText(
+                        tr("موجودی سکه: ", "Coin balance: ", "د سکو ټولټال: ", "سکوں کا بیلنس: ", "सिक्कों का शेष: ", "رصيد العملات: ") + coins,
+                        getWidth() / 2f,
+                        getHeight() * 0.28f + 104,
+                        p
+                );
+
+                p.setColor(0xFF5D7188);
+                p.setTextSize(15);
                 canvas.drawText(
                         String.format(
                                 Locale.US,
-                                "%.0f ثانیه",
-                                Math.max(
-                                        0,
-                                        6f -
-                                                seconds
-                                )
+                                tr("%.0f ثانیه", "%.0f seconds", "%.0f ثانیې", "%.0f سیکنڈ", "%.0f सेकंड", "%.0f ثانية"),
+                                Math.max(0, 6f - seconds)
                         ),
                         getWidth() / 2f,
-                        getHeight() *
-                                0.28f +
-                                72,
+                        getHeight() * 0.28f + 130,
                         p
                 );
             }
@@ -3977,4 +4080,4 @@ public class BallGameActivity extends Activity {
             }
         }
     }
-}
+                }
