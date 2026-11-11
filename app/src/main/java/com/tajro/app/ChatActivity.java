@@ -53,6 +53,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
+import com.google.android.gms.tasks.Tasks;
 
 import org.json.JSONObject;
 
@@ -73,6 +74,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ChatActivity extends Activity {
 
@@ -90,6 +93,9 @@ public class ChatActivity extends Activity {
     private static final String CHAT_BUCKET = "chat_media";
     private static final String VOICE_BUCKET = "voice_messages";
     private static final String PROFILE_BUCKET = "profile_photos_public";
+
+    // تعداد محدود کارگرهای رسانه برای جلوگیری از فشار Threadهای هم‌زمان روی گوشی‌های ضعیف
+    private static final ExecutorService MEDIA_EXECUTOR = Executors.newFixedThreadPool(3);
 
     private FirebaseAuth auth;
     private FirebaseFirestore db;
@@ -1238,18 +1244,6 @@ titleText =
         );
 
         root.addView(header);
-
-        TextView info =
-                text(
-                        tr("یک کاربر را انتخاب کنید تا چت خصوصی باز شود."),
-                        14
-                );
-
-        info.setGravity(
-                Gravity.CENTER
-        );
-
-        root.addView(info);
 
         ScrollView scroll =
                 new ScrollView(this);
@@ -4405,15 +4399,7 @@ header.addView(chatMenu,
                         Intent.ACTION_OPEN_DOCUMENT
                 );
 
-        intent.setType("*/*");
-
-        intent.putExtra(
-                Intent.EXTRA_MIME_TYPES,
-                new String[]{
-                        "image/*",
-                        "video/*"
-                }
-        );
+        intent.setType("image/*");
 
         intent.addCategory(
                 Intent.CATEGORY_OPENABLE
@@ -4533,13 +4519,10 @@ header.addView(chatMenu,
                     "application/octet-stream";
         }
 
-        boolean image =
-                mime.startsWith("image/");
+        boolean image = mime.startsWith("image/");
 
-        boolean video =
-                mime.startsWith("video/");
-
-        if (!image && !video) {
+        // ارسال و آپلود ویدیو عمداً غیرفعال است؛ پیام‌های ویدیویی قدیمی فقط برای سازگاری قابل مشاهده می‌مانند.
+        if (!image) {
 
             Toast.makeText(
                     this,
@@ -4551,32 +4534,14 @@ header.addView(chatMenu,
         }
 
         String ext;
-
-        if (image) {
-
-            if (mime.contains("png")) {
-
-                ext = "png";
-
-            } else if (mime.contains("webp")) {
-
-                ext = "webp";
-
-            } else {
-
-                ext = "jpg";
-            }
-
+        if (mime.contains("png")) {
+            ext = "png";
+        } else if (mime.contains("webp")) {
+            ext = "webp";
+        } else if (mime.contains("gif")) {
+            ext = "gif";
         } else {
-
-            if (mime.contains("3gp")) {
-
-                ext = "3gp";
-
-            } else {
-
-                ext = "mp4";
-            }
+            ext = "jpg";
         }
 
         String objectPath =
@@ -4609,7 +4574,7 @@ header.addView(chatMenu,
                     ) {
 
                         saveMediaMessage(
-                                image ? "image" : "video",
+                                "image",
                                 url,
                                 objectPath
                         );
@@ -5067,7 +5032,7 @@ header.addView(chatMenu,
             String url
     ) {
         if (url == null || url.trim().isEmpty()) return;
-        new Thread(() -> {
+        MEDIA_EXECUTOR.execute(() -> {
             File audio = getCachedMediaFile(url, "audio");
             if (audio == null) {
                 audio = downloadMediaToCache(url, "audio", 30L * 1024L * 1024L);
@@ -5080,7 +5045,7 @@ header.addView(chatMenu,
                 }
                 playCachedAudio(readyAudio.getAbsolutePath());
             });
-        }).start();
+        });
     }
 
     private void playCachedAudio(String localPath) {
@@ -5189,8 +5154,24 @@ header.addView(chatMenu,
     }
 
     // کش خصوصی و محدود برای رسانه‌های چت؛ فایل‌ها داخل فضای خصوصی برنامه می‌مانند.
+    // رسانه‌های بازشده در filesDir نگهداری می‌شوند؛ برخلاف cacheDir سیستم آن‌ها را خودکار پاک نمی‌کند.
     private File chatMediaCacheDir() {
-        File dir = new File(getCacheDir(), "tajro_chat_media");
+        File dir = new File(getFilesDir(), "tajro_chat_media");
+        if (!dir.exists()) {
+            // انتقال کش نسخه قبلی برای حفظ فایل‌هایی که قبلاً دانلود شده‌اند.
+            File legacy = new File(getCacheDir(), "tajro_chat_media");
+            if (legacy.isDirectory()) {
+                //noinspection ResultOfMethodCallIgnored
+                dir.mkdirs();
+                File[] oldFiles = legacy.listFiles();
+                if (oldFiles != null) {
+                    for (File oldFile : oldFiles) {
+                        File destination = new File(dir, oldFile.getName());
+                        if (!destination.exists()) oldFile.renameTo(destination);
+                    }
+                }
+            }
+        }
         if (!dir.exists()) dir.mkdirs();
         return dir;
     }
@@ -5222,6 +5203,8 @@ header.addView(chatMenu,
         return downloadMediaToCache(url, type, maxFileBytes, url);
     }
 
+    // دانلود قابل ادامه: اگر اینترنت وسط کار قطع شود، فایل .tmp باقی می‌ماند
+    // و دفعه بعد با HTTP Range از همان نقطه ادامه می‌یابد (در صورت پشتیبانی سرور).
     private File downloadMediaToCache(String url, String type, long maxFileBytes, String stableKey) {
         HttpURLConnection connection = null;
         File dir = chatMediaCacheDir();
@@ -5229,17 +5212,30 @@ header.addView(chatMenu,
         File temp = new File(dir, target.getName() + ".tmp");
         try {
             if (target.isFile() && target.length() > 0) return target;
+            long offset = temp.isFile() ? temp.length() : 0L;
+            if (offset > maxFileBytes) { temp.delete(); offset = 0L; }
             connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(30000);
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(20000);
             connection.setInstanceFollowRedirects(true);
+            connection.setRequestProperty("Accept-Encoding", "identity");
+            if (offset > 0) connection.setRequestProperty("Range", "bytes=" + offset + "-");
             if (url.startsWith(SUPABASE_URL)) connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
             int code = connection.getResponseCode();
-            if (code < 200 || code >= 300) return null;
+            if (offset > 0 && code == HttpURLConnection.HTTP_OK) {
+                // سرور Range را نپذیرفته؛ از ابتدا دانلود کن تا فایل خراب ترکیب نشود.
+                temp.delete();
+                offset = 0L;
+            } else if (offset > 0 && code != HttpURLConnection.HTTP_PARTIAL) {
+                return null;
+            } else if (offset == 0 && (code < 200 || code >= 300)) {
+                return null;
+            }
             long declared = connection.getContentLengthLong();
-            if (declared > maxFileBytes) return null;
-            long total = 0;
-            try (InputStream in = connection.getInputStream(); FileOutputStream out = new FileOutputStream(temp)) {
+            if (declared > maxFileBytes || offset + Math.max(0L, declared) > maxFileBytes) return null;
+            long total = offset;
+            try (InputStream in = connection.getInputStream();
+                 FileOutputStream out = new FileOutputStream(temp, offset > 0)) {
                 byte[] buffer = new byte[8192];
                 int count;
                 while ((count = in.read(buffer)) != -1) {
@@ -5248,16 +5244,26 @@ header.addView(chatMenu,
                     out.write(buffer, 0, count);
                 }
                 out.flush();
+                out.getFD().sync();
             }
-            if (total == 0 || !temp.renameTo(target)) {
-                temp.delete();
-                return null;
+            if (total == 0) { temp.delete(); return null; }
+            // اگر پاسخ Range ناقص بوده باشد، فایل موقت حفظ می‌شود تا تلاش بعدی ادامه دهد.
+            String contentRange = connection.getHeaderField("Content-Range");
+            if (code == HttpURLConnection.HTTP_PARTIAL && contentRange != null) {
+                int slash = contentRange.lastIndexOf('/');
+                if (slash > 0) {
+                    try {
+                        long expected = Long.parseLong(contentRange.substring(slash + 1).trim());
+                        if (expected > total) return null;
+                        if (expected != total) return null;
+                    } catch (NumberFormatException ignored) { }
+                }
             }
-            trimChatMediaCache(140L * 1024L * 1024L);
+            if (!temp.renameTo(target)) return null;
             return target;
         } catch (Exception e) {
-            temp.delete();
-            Log.w("ChatMediaCache", "Media download/cache unavailable", e);
+            // فایل موقت عمداً حذف نمی‌شود؛ تلاش بعدی می‌تواند ادامه دهد.
+            Log.w("ChatMediaCache", "Media download interrupted; partial file retained", e);
             return null;
         } finally {
             if (connection != null) connection.disconnect();
@@ -5729,7 +5735,7 @@ private void loadImage(
 }
 
 private void loadPrivateProfileImage(String storedUrl, ImageView imageView) {
-    new Thread(() -> {
+    MEDIA_EXECUTOR.execute(() -> {
         File cachedProfile = getCachedMediaFile(storedUrl, "image");
         if (cachedProfile != null) {
             showChatCachedImage(cachedProfile, imageView, storedUrl);
@@ -5755,7 +5761,7 @@ private void loadPrivateProfileImage(String storedUrl, ImageView imageView) {
                 return;
             }
 
-            String idToken = currentUser.getIdToken(false).getResult().getToken();
+            String idToken = Tasks.await(currentUser.getIdToken(false)).getToken();
             URL functionUrl = new URL(SUPABASE_URL + "/functions/v1/profile-photo-url");
             connection = (HttpURLConnection) functionUrl.openConnection();
             connection.setRequestMethod("POST");
@@ -5803,7 +5809,7 @@ private void loadPrivateProfileImage(String storedUrl, ImageView imageView) {
         } finally {
             if (connection != null) connection.disconnect();
         }
-    }).start();
+    });
 }
 
 // فقط برای عکس پروفایل خود کاربر در گوشه بالای صفحه:
@@ -5852,17 +5858,17 @@ private void downloadImageToView(String url, ImageView imageView) {
 private void downloadImageToView(String url, ImageView imageView, String stableCacheKey) {
     if (url == null || imageView == null) return;
     Object expectedTag = imageView.getTag();
-    new Thread(() -> {
+    MEDIA_EXECUTOR.execute(() -> {
         File cached = getCachedMediaFile(stableCacheKey, "image");
         if (cached == null) cached = downloadMediaToCache(url, "image", 15L * 1024L * 1024L, stableCacheKey);
         if (cached != null) showChatCachedImage(cached, imageView, expectedTag);
         else Log.w("ChatImage", "Image is not cached and could not be downloaded");
-    }).start();
+    });
 }
 
 private void showChatCachedImage(File file, ImageView imageView, Object expectedTag) {
     if (file == null || imageView == null) return;
-    new Thread(() -> {
+    MEDIA_EXECUTOR.execute(() -> {
         Bitmap bitmap = null;
         try {
             BitmapFactory.Options bounds = new BitmapFactory.Options();
@@ -5892,7 +5898,7 @@ private void showChatCachedImage(File file, ImageView imageView, Object expected
             imageView.setAlpha(1f);
             if (shown != decoded && !decoded.isRecycled()) decoded.recycle();
         });
-    }).start();
+    });
 }
 
 
