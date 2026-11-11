@@ -44,6 +44,7 @@ import java.security.MessageDigest;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -661,7 +662,7 @@ public class ExperienceListActivity extends Activity {
 
         TextView emblem = new TextView(this);
         emblem.setText("📖  💡");
-        emblem.setTextSize(16);
+        emblem.setTextSize(14.5f); // آیکن سربرگ کمی کوچک‌تر
         emblem.setGravity(Gravity.CENTER);
         emblem.setPadding(dp(8), 0, dp(8), dp(5));
         header.addView(emblem);
@@ -783,7 +784,7 @@ public class ExperienceListActivity extends Activity {
         avatarBackground.setStroke(dp(2), Color.rgb(12, 91, 120));
         avatar.setBackground(avatarBackground);
         avatar.setClipToOutline(true);
-        profileCard.addView(avatar, new LinearLayout.LayoutParams(dp(58), dp(58)));
+        profileCard.addView(avatar, new LinearLayout.LayoutParams(dp(52), dp(52))); // آواتار بالای صفحه حدود ۱۰٪ کوچک‌تر
 
         LinearLayout nameColumn = new LinearLayout(this);
         nameColumn.setOrientation(LinearLayout.VERTICAL);
@@ -1728,13 +1729,13 @@ public class ExperienceListActivity extends Activity {
         // تصویر تجربه (در صورت وجود)
         if (experienceImageUrl != null && !experienceImageUrl.trim().isEmpty()) {
             ImageView experienceImage = new ImageView(this);
-            // عکس تمام عرض کادر را پر می‌کند؛ فضای خالی بالا و پایین باقی نمی‌ماند.
+            // نمایش یکپارچه مانند فید فیسبوک؛ بدون نوار یا حاشیه خالی اطراف عکس.
             experienceImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
             experienceImage.setAdjustViewBounds(false);
-            experienceImage.setBackgroundColor(Color.rgb(235, 242, 244));
+            experienceImage.setBackgroundColor(Color.TRANSPARENT);
             LinearLayout.LayoutParams experienceImageParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(550));
-            experienceImageParams.setMargins(0, dp(3), 0, dp(10));
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(420));
+            experienceImageParams.setMargins(dp(8), dp(8), dp(8), dp(14));
             card.addView(experienceImage, experienceImageParams);
             loadExperienceImage(experienceImageUrl, experienceImage);
             final String imageToOpen = experienceImageUrl;
@@ -2132,12 +2133,30 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
+    // تصاویر مشاهده‌شده در فضای دائمی خصوصی برنامه ذخیره می‌شوند تا آفلاین باقی بمانند.
     private File experienceCacheDir(String type) {
-        File dir = new File(getCacheDir(), "tajro_" + type + "_cache");
+        String folderName = "tajro_" + type + "_cache";
+        File dir = new File(getFilesDir(), folderName);
+        if (!dir.exists()) {
+            // کش نسخه قبلی را به محل دائمی منتقل می‌کنیم تا دانلودهای قبلی از دست نروند.
+            File legacy = new File(getCacheDir(), folderName);
+            if (legacy.isDirectory()) {
+                //noinspection ResultOfMethodCallIgnored
+                dir.mkdirs();
+                File[] oldFiles = legacy.listFiles();
+                if (oldFiles != null) {
+                    for (File oldFile : oldFiles) {
+                        File destination = new File(dir, oldFile.getName());
+                        if (!destination.exists()) oldFile.renameTo(destination);
+                    }
+                }
+            }
+        }
         if (!dir.exists()) dir.mkdirs();
         return dir;
     }
 
+    // ذخیره دائمی عکس؛ دانلود نیمه‌تمام با Range در تلاش بعدی ادامه می‌یابد.
     private File cacheExperienceImage(String url) {
         File dir = experienceCacheDir("images");
         File target = new File(dir, experienceCacheKey(url));
@@ -2148,16 +2167,28 @@ public class ExperienceListActivity extends Activity {
         HttpURLConnection connection = null;
         File temp = new File(dir, target.getName() + ".tmp");
         try {
+            long offset = temp.isFile() ? temp.length() : 0L;
+            if (offset > 15L * 1024L * 1024L) { temp.delete(); offset = 0L; }
             connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setConnectTimeout(12000);
-            connection.setReadTimeout(18000);
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(20000);
             connection.setInstanceFollowRedirects(true);
+            connection.setRequestProperty("Accept-Encoding", "identity");
+            if (offset > 0) connection.setRequestProperty("Range", "bytes=" + offset + "-");
             int code = connection.getResponseCode();
-            if (code < 200 || code >= 300) return null;
-            long size = connection.getContentLengthLong();
-            if (size > 15L * 1024L * 1024L) return null;
-            long total = 0;
-            try (InputStream in = connection.getInputStream(); FileOutputStream out = new FileOutputStream(temp)) {
+            if (offset > 0 && code == HttpURLConnection.HTTP_OK) {
+                temp.delete();
+                offset = 0L;
+            } else if (offset > 0 && code != HttpURLConnection.HTTP_PARTIAL) {
+                return null;
+            } else if (offset == 0 && (code < 200 || code >= 300)) {
+                return null;
+            }
+            long declared = connection.getContentLengthLong();
+            if (declared > 15L * 1024L * 1024L || offset + Math.max(0L, declared) > 15L * 1024L * 1024L) return null;
+            long total = offset;
+            try (InputStream in = connection.getInputStream();
+                 FileOutputStream out = new FileOutputStream(temp, offset > 0)) {
                 byte[] buffer = new byte[8192];
                 int count;
                 while ((count = in.read(buffer)) != -1) {
@@ -2165,15 +2196,25 @@ public class ExperienceListActivity extends Activity {
                     if (total > 15L * 1024L * 1024L) throw new IOException("Image too large");
                     out.write(buffer, 0, count);
                 }
+                out.flush();
+                out.getFD().sync();
             }
-            if (total == 0 || !temp.renameTo(target)) {
-                temp.delete();
-                return null;
+            if (total == 0) { temp.delete(); return null; }
+            String contentRange = connection.getHeaderField("Content-Range");
+            if (code == HttpURLConnection.HTTP_PARTIAL && contentRange != null) {
+                int slash = contentRange.lastIndexOf('/');
+                if (slash > 0) {
+                    try {
+                        long expected = Long.parseLong(contentRange.substring(slash + 1).trim());
+                        if (expected > total || expected != total) return null;
+                    } catch (NumberFormatException ignored) { }
+                }
             }
-            trimExperienceCache(dir, 45L * 1024L * 1024L);
+            if (!temp.renameTo(target)) return null;
             return target;
         } catch (Exception e) {
-            temp.delete();
+            // فایل .tmp حفظ می‌شود تا پس از برگشت اینترنت ادامه دانلود ممکن باشد.
+            Log.w("ExperiencesOffline", "Image download interrupted; partial file retained", e);
             return null;
         } finally {
             if (connection != null) connection.disconnect();
@@ -3217,11 +3258,11 @@ public class ExperienceListActivity extends Activity {
             loadPrivateProfileImage(storedUrl, imageView);
             return;
         }
-        new Thread(() -> downloadProfileImage(storedUrl, imageView, storedUrl)).start();
+        IMAGE_EXECUTOR.execute(() -> downloadProfileImage(storedUrl, imageView, storedUrl));
     }
 
     private void loadPrivateProfileImage(String storedUrl, ImageView imageView) {
-        new Thread(() -> {
+        IMAGE_EXECUTOR.execute(() -> {
             HttpURLConnection connection = null;
             try {
                 String marker = "/" + PROFILE_BUCKET + "/";
@@ -3234,7 +3275,7 @@ public class ExperienceListActivity extends Activity {
 
                 FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                 if (currentUser == null) return;
-                String idToken = currentUser.getIdToken(false).getResult().getToken();
+                String idToken = Tasks.await(currentUser.getIdToken(false)).getToken();
                 URL functionUrl = new URL(SUPABASE_URL + "/functions/v1/profile-photo-url");
                 connection = (HttpURLConnection) functionUrl.openConnection();
                 connection.setRequestMethod("POST");
@@ -3264,7 +3305,7 @@ public class ExperienceListActivity extends Activity {
             } finally {
                 if (connection != null) connection.disconnect();
             }
-        }).start();
+        });
     }
 
     private void showCachedProfileImage(File cached, ImageView imageView, String expectedTag) {
@@ -3315,7 +3356,6 @@ public class ExperienceListActivity extends Activity {
                     temp.delete();
                     return;
                 }
-                trimExperienceCache(dir, 12L * 1024L * 1024L);
             }
             showCachedProfileImage(cached, imageView, stableCacheKey);
         } catch (Exception ignored) {
@@ -3325,4 +3365,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-    }
+                          }
