@@ -1009,12 +1009,10 @@ public class ChatActivity extends Activity {
 
         data.put("userId", myId);
 
-        data.put(
-                "email",
-                user.getEmail() == null
-                        ? ""
-                        : user.getEmail()
-        );
+        // Email and phone must not be stored in the publicly readable user profile.
+        // Delete legacy values from this user's profile when it is refreshed.
+        data.put("email", FieldValue.delete());
+        data.put("phoneNumber", FieldValue.delete());
 
         data.put("online", true);
 
@@ -1024,14 +1022,6 @@ public class ChatActivity extends Activity {
         );
 
         data.put("typingTo", "");
-
-        if (user.getPhoneNumber() != null) {
-
-            data.put(
-                    "phoneNumber",
-                    user.getPhoneNumber()
-            );
-        }
 
         if (user.getDisplayName() != null &&
                 !user.getDisplayName()
@@ -1381,7 +1371,7 @@ titleText =
 
                                                 TextView hint =
                                                         text(
-                                                                "نام، ایمیل یا شماره را جستجو کنید",
+                                                                "نام کاربر را جستجو کنید",
                                                                 15
                                                         );
 
@@ -1403,22 +1393,11 @@ titleText =
 
                                                 String name =
                                                         d.getString("name");
-                                                String email =
-                                                        d.getString("email");
-                                                String phone =
-                                                        d.getString("phoneNumber");
-
                                                 if (name == null) name = "";
-                                                if (email == null) email = "";
-                                                if (phone == null) phone = "";
+                                                String n = name.trim().toLowerCase();
 
-                                                String n = name.toLowerCase();
-                                                String e = email.toLowerCase();
-                                                String ph = phone.toLowerCase();
-
-                                                if (n.contains(query) ||
-                                                        e.contains(query) ||
-                                                        ph.contains(query)) {
+                                                // Search is strictly by display name; never by email or phone.
+                                                if (!n.isEmpty() && n.contains(query)) {
                                                     matches.add(d);
                                                 }
                                             }
@@ -1460,18 +1439,13 @@ titleText =
 
                                                 String uid = d.getId();
                                                 String name = d.getString("name");
-                                                String email = d.getString("email");
-                                                String phone = d.getString("phoneNumber");
                                                 String photo = getProfilePhotoUrl(d);
                                                 boolean online = Boolean.TRUE.equals(
                                                         d.getBoolean("online")
                                                 );
 
                                                 if (name == null || name.trim().isEmpty()) {
-                                                    name = email;
-                                                }
-                                                if (name == null || name.trim().isEmpty()) {
-                                                    name = "کاربر";
+                                                    name = tr("کاربر");
                                                 }
 
                                                 final String finalName = name;
@@ -1516,16 +1490,6 @@ titleText =
                                                         Typeface.BOLD
                                                 );
 
-                                                String contact =
-                                                        email != null && !email.isEmpty()
-                                                                ? email
-                                                                : phone;
-
-                                                if (contact == null) contact = "";
-
-                                                TextView contactView =
-                                                        text(contact, 13);
-
                                                 TextView statusView =
                                                         text(
                                                                 online ? "● فعال" : "○ غیرفعال",
@@ -1533,7 +1497,6 @@ titleText =
                                                         );
 
                                                 info.addView(nameView);
-                                                info.addView(contactView);
                                                 info.addView(statusView);
 
                                                 row.addView(
@@ -1913,13 +1876,6 @@ titleText =
 
         String name =
                 d.getString("name");
-
-        if (name == null ||
-                name.trim().isEmpty()) {
-
-            name =
-                    d.getString("email");
-        }
 
         if (name == null ||
                 name.trim().isEmpty()) {
@@ -6728,4 +6684,4 @@ private void blockCurrentUser() {
 
 }
     
-    }
+                                     }
