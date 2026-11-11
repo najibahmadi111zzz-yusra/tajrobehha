@@ -67,6 +67,9 @@ dependencies {
     implementation 'com.google.firebase:firebase-messaging'
 
     implementation 'com.google.guava:guava:31.0.1-android'
+    
+implementation 'io.github.webrtc-sdk:android:150.7871.04'
+
 
     // Unity Ads
     implementation 'com.unity3d.ads:unity-ads:4.20.0'
