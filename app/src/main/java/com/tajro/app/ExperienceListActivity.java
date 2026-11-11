@@ -815,8 +815,6 @@ public class ExperienceListActivity extends Activity {
             final String uid = currentUser.getUid();
             String fallbackName = firstNonEmpty(
                     currentUser.getDisplayName(),
-                    currentUser.getEmail() == null ? "" :
-                            currentUser.getEmail().split("@")[0],
                     text("کاربر"));
 
             nameView.setText(fallbackName);
@@ -1020,7 +1018,7 @@ public class ExperienceListActivity extends Activity {
         data.put("title", titleText);
         data.put("text", experience);
         data.put("userId", user.getUid());
-        data.put("authorEmail", user.getEmail());
+        // Do not copy the account email into publicly readable experience documents.
         data.put("contentKey", contentKey);
         data.put("likesCount", 0L);
         data.put("timestamp", FieldValue.serverTimestamp());
@@ -2394,30 +2392,42 @@ public class ExperienceListActivity extends Activity {
                              String currentUserId,
                              TextView heartButton,
                              TextView heartCount) {
-        CollectionReference hearts = experience.getReference()
-                .collection("hearts");
-        DocumentReference heart = hearts.document(currentUserId);
-        heart.get().addOnSuccessListener(snapshot -> {
-            if (snapshot.exists()) {
-                heart.delete().addOnSuccessListener(unused -> {
-                    heartButton.setText(text("👍 واکنش"));
-                    hearts.get().addOnSuccessListener(items ->
-                            heartCount.setText(formatCount(items.size())));
-                }).addOnFailureListener(e -> Toast.makeText(this,
-                        text("خطا در برداشتن قلب"), Toast.LENGTH_SHORT).show());
-            } else {
-                java.util.HashMap<String, Object> data = new java.util.HashMap<>();
-                data.put("userId", currentUserId);
-                data.put("timestamp", FieldValue.serverTimestamp());
-                heart.set(data).addOnSuccessListener(unused -> {
-                    heartButton.setText(text("❤️ واکنش"));
-                    hearts.get().addOnSuccessListener(items ->
-                            heartCount.setText(formatCount(items.size())));
-                }).addOnFailureListener(e -> Toast.makeText(this,
-                        text("خطا در ثبت قلب"), Toast.LENGTH_SHORT).show());
+
+        if (currentUserId == null || currentUserId.trim().isEmpty()) return;
+
+        DocumentReference experienceRef = experience.getReference();
+        DocumentReference heartRef = experienceRef.collection("hearts").document(currentUserId);
+        DocumentReference likeRef = experienceRef.collection("likes").document(currentUserId);
+
+        db.runTransaction(transaction -> {
+            // تمام خواندن‌ها باید پیش از هر نوشتن انجام شوند.
+            DocumentSnapshot heartSnap = transaction.get(heartRef);
+            DocumentSnapshot likeSnap = transaction.get(likeRef);
+
+            if (heartSnap.exists()) {
+                transaction.delete(heartRef);
+                return "removed";
             }
-        }).addOnFailureListener(e -> Toast.makeText(this,
-                text("خطا در بررسی قلب"), Toast.LENGTH_SHORT).show());
+            if (likeSnap.exists()) {
+                return "has_like";
+            }
+
+            java.util.HashMap<String, Object> data = new java.util.HashMap<>();
+            data.put("userId", currentUserId);
+            data.put("timestamp", FieldValue.serverTimestamp());
+            transaction.set(heartRef, data);
+            return "added";
+        }).addOnSuccessListener(result -> {
+            if ("has_like".equals(result)) {
+                Toast.makeText(this, text("شما قبلاً این تجربه را لایک کرده‌اید؛ هر تجربه فقط یک واکنش دارد."), Toast.LENGTH_SHORT).show();
+            } else {
+                heartButton.setText("removed".equals(result) ? text("👍 واکنش") : text("❤️ واکنش"));
+            }
+            loadHeartStatus(experience, heartCount);
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, text("خطا در ثبت یا برداشتن قلب"), Toast.LENGTH_SHORT).show();
+            loadHeartStatus(experience, heartCount);
+        });
     }
 
     private void loadLikeStatus(
@@ -2502,189 +2512,52 @@ public class ExperienceListActivity extends Activity {
             TextView likeButton,
             TextView likeCount
     ) {
+        if (currentUserId == null || currentUserId.trim().isEmpty()) return;
 
-        if (currentUserId == null) {
-            return;
-        }
+        DocumentReference experienceRef = experience.getReference();
+        DocumentReference likeRef = experienceRef.collection("likes").document(currentUserId);
+        DocumentReference heartRef = experienceRef.collection("hearts").document(currentUserId);
 
-        DocumentReference experienceReference =
-                experience.getReference();
+        db.runTransaction(transaction -> {
+            // همه اسناد مورد نیاز قبل از شروع نوشتن خوانده می‌شوند.
+            DocumentSnapshot experienceSnap = transaction.get(experienceRef);
+            DocumentSnapshot likeSnap = transaction.get(likeRef);
+            DocumentSnapshot heartSnap = transaction.get(heartRef);
 
-        DocumentReference likeReference =
-                experienceReference
-                        .collection("likes")
-                        .document(currentUserId);
-
-        likeReference.get()
-                .addOnSuccessListener(
-                        likeDocument -> {
-
-                            if (likeDocument.exists()) {
-
-                                likeReference
-                                        .delete()
-                                        .addOnSuccessListener(
-                                                unused -> {
-
-                                                    likeButton.setText(
-                                                            text("👍 لایک")
-                                                    );
-
-                                                    decreaseLikeCount(
-                                                            experienceReference,
-                                                            likeCount
-                                                    );
-                                                }
-                                        )
-                                        .addOnFailureListener(
-                                                e -> {
-
-                                                    Toast.makeText(
-                                                            ExperienceListActivity.this,
-                                                            text(
-                                                                    text("خطا در برداشتن لایک")
-                                                            ),
-                                                            Toast.LENGTH_SHORT
-                                                    ).show();
-                                                }
-                                        );
-
-                            } else {
-
-                                java.util.HashMap<
-                                        String,
-                                        Object
-                                        > likeData =
-                                        new java.util.HashMap<>();
-
-                                likeData.put(
-                                        "userId",
-                                        currentUserId
-                                );
-
-                                likeData.put(
-                                        "timestamp",
-                                        FieldValue.serverTimestamp()
-                                );
-
-                                likeReference
-                                        .set(likeData)
-                                        .addOnSuccessListener(
-                                                unused -> {
-
-                                                    likeButton.setText(
-                                                            text("👍 لایک")
-                                                    );
-
-                                                    increaseLikeCount(
-                                                            experienceReference,
-                                                            likeCount
-                                                    );
-                                                }
-                                        )
-                                        .addOnFailureListener(
-                                                e -> {
-
-                                                    Toast.makeText(
-                                                            ExperienceListActivity.this,
-                                                            text(
-                                                                    text("خطا در ثبت لایک")
-                                                            ),
-                                                            Toast.LENGTH_SHORT
-                                                    ).show();
-                                                }
-                                        );
-                            }
-                        }
-                )
-                .addOnFailureListener(
-                        e -> {
-
-                            Toast.makeText(
-                                    ExperienceListActivity.this,
-                                    text(
-                                            text("خطا در بررسی لایک")
-                                    ),
-                                    Toast.LENGTH_SHORT
-                            ).show();
-                        }
+            if (!experienceSnap.exists()) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException(
+                        "Experience not found",
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.NOT_FOUND
                 );
-    }
+            }
+            if (heartSnap.exists()) return "has_heart";
 
-    private void increaseLikeCount(
-            DocumentReference experienceReference,
-            TextView likeCount
-    ) {
+            Long savedCount = experienceSnap.getLong("likesCount");
+            long count = savedCount == null ? 0L : Math.max(0L, savedCount);
 
-        experienceReference
-                .update(
-                        "likesCount",
-                        FieldValue.increment(1)
-                )
-                .addOnSuccessListener(
-                        unused -> {
+            if (likeSnap.exists()) {
+                transaction.delete(likeRef);
+                transaction.update(experienceRef, "likesCount", Math.max(0L, count - 1L));
+                return "removed";
+            }
 
-                            int oldCount =
-                                    getCountFromText(
-                                            likeCount
-                                    );
-
-                            likeCount.setText(
-                                    formatCount(
-                                            oldCount + 1
-                                    )
-                            );
-                        }
-                )
-                .addOnFailureListener(
-                        e -> {
-
-                            loadLikeCountFromSubcollection(
-                                    experienceReference,
-                                    likeCount
-                            );
-                        }
-                );
-    }
-
-    private void decreaseLikeCount(
-            DocumentReference experienceReference,
-            TextView likeCount
-    ) {
-
-        experienceReference
-                .update(
-                        "likesCount",
-                        FieldValue.increment(-1)
-                )
-                .addOnSuccessListener(
-                        unused -> {
-
-                            int oldCount =
-                                    getCountFromText(
-                                            likeCount
-                                    );
-
-                            if (oldCount > 0) {
-                                oldCount--;
-                            }
-
-                            likeCount.setText(
-                                    formatCount(
-                                            oldCount
-                                    )
-                            );
-                        }
-                )
-                .addOnFailureListener(
-                        e -> {
-
-                            loadLikeCountFromSubcollection(
-                                    experienceReference,
-                                    likeCount
-                            );
-                        }
-                );
+            java.util.HashMap<String, Object> data = new java.util.HashMap<>();
+            data.put("userId", currentUserId);
+            data.put("timestamp", FieldValue.serverTimestamp());
+            transaction.set(likeRef, data);
+            transaction.update(experienceRef, "likesCount", count + 1L);
+            return "added";
+        }).addOnSuccessListener(result -> {
+            if ("has_heart".equals(result)) {
+                Toast.makeText(this, text("شما قبلاً برای این تجربه قلب گذاشته‌اید؛ هر تجربه فقط یک واکنش دارد."), Toast.LENGTH_SHORT).show();
+            } else {
+                likeButton.setText(text("👍 لایک"));
+            }
+            loadLikeCountFromSubcollection(experienceRef, likeCount);
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, text("خطا در ثبت یا برداشتن لایک"), Toast.LENGTH_SHORT).show();
+            loadLikeCountFromSubcollection(experienceRef, likeCount);
+        });
     }
 
     private void loadLikeCountFromSubcollection(
@@ -3365,4 +3238,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-                          }
+        }
