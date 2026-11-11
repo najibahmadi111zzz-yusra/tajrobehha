@@ -94,7 +94,7 @@ public class AccountActivity extends Activity {
             case "📝 ثبت‌نام": return "📝 إنشاء حساب";
             case "📧 ایمیل": return "📧 البريد الإلكتروني";
             case "📱 شماره تلفن": return "📱 رقم الهاتف";
-            case "نام نمایشی شما": return "اسمك الظاهر";
+            case "نام شما": return "اسمك";
             case "ایمیل یا شماره تلفن خود را وارد کنید": return "أدخل بريدك الإلكتروني أو رقم هاتفك";
             case "رمز ورود": return "كلمة المرور";
             case "کد تأیید SMS را وارد کنید": return "أدخل رمز التحقق عبر SMS";
@@ -420,11 +420,11 @@ public class AccountActivity extends Activity {
 
         nameInput.setHint(
                 text(
-                        "نام نمایشی شما",
-                        "Your display name",
-                        "ستاسو ښودل کېدونکی نوم",
-                        "آپ کا نمایشی نام",
-                        "आपका प्रदर्शन नाम"
+                        "نام شما",
+                        "Your name",
+                        "ستاسو نوم",
+                        "آپ کا نام",
+                        "आपका नाम"
                 )
         );
 
@@ -1066,7 +1066,19 @@ public class AccountActivity extends Activity {
 
         if (name.isEmpty()) {
 
-            name = email.split("@")[0];
+            Toast.makeText(
+                    this,
+                    text(
+                            "نام خود را وارد کنید",
+                            "Enter your name",
+                            "خپل نوم دننه کړئ",
+                            "اپنا نام درج کریں",
+                            "अपना नाम दर्ज करें"
+                    ),
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
         }
 
         final String finalName = name;
@@ -1160,11 +1172,11 @@ public class AccountActivity extends Activity {
             Toast.makeText(
                     this,
                     text(
-                            "نام نمایشی را وارد کنید",
-                            "Enter your display name",
-                            "خپل ښودل کېدونکی نوم دننه کړئ",
-                            "اپنا نمایشی نام درج کریں",
-                            "अपना प्रदर्शन नाम दर्ज करें"
+                            "نام خود را وارد کنید",
+                            "Enter your name",
+                            "خپل نوم دننه کړئ",
+                            "اپنا نام درج کریں",
+                            "अपना नाम दर्ज करें"
                     ),
                     Toast.LENGTH_SHORT
             ).show();
@@ -1533,15 +1545,22 @@ public void onVerificationFailed(FirebaseException e) {
 
                     if (mode == 1) {
 
+                        // Name is required before starting phone registration.
+                        // Never create a profile with a blank or generic name.
                         if (name.isEmpty()) {
-
-                            name = text(
-                                    "کاربر",
-                                    "User",
-                                    "کارن",
-                                    "صارف",
-                                    "उपयोगकर्ता"
-                            );
+                            Toast.makeText(
+                                    AccountActivity.this,
+                                    text(
+                                            "نام خود را وارد کنید",
+                                            "Enter your name",
+                                            "خپل نوم دننه کړئ",
+                                            "اپنا نام درج کریں",
+                                            "अपना नाम दर्ज करें"
+                                    ),
+                                    Toast.LENGTH_LONG
+                            ).show();
+                            auth.signOut();
+                            return;
                         }
 
                         saveUserToFirestore(
@@ -1720,11 +1739,11 @@ public void onVerificationFailed(FirebaseException e) {
             Toast.makeText(
                     this,
                     text(
-                            "نام نمایشی را وارد کنید",
-                            "Enter your display name",
-                            "خپل ښودل کېدونکی نوم دننه کړئ",
-                            "اپنا نمایشی نام درج کریں",
-                            "अपना प्रदर्शन नाम दर्ज करें"
+                            "نام خود را وارد کنید",
+                            "Enter your name",
+                            "خپل نوم دننه کړئ",
+                            "اپنا نام درج کریں",
+                            "अपना नाम दर्ज करें"
                     ),
                     Toast.LENGTH_SHORT
             ).show();
@@ -1740,23 +1759,15 @@ public void onVerificationFailed(FirebaseException e) {
                 name
         );
 
-        data.put(
-                "email",
-                user.getEmail()
-        );
+        // Keep email and phone private in Firebase Authentication.
+        // Remove legacy public copies from the Firestore user document.
+        data.put("email", FieldValue.delete());
+        data.put("phoneNumber", FieldValue.delete());
 
         data.put(
                 "userId",
                 user.getUid()
         );
-
-        if (user.getPhoneNumber() != null) {
-
-            data.put(
-                    "phoneNumber",
-                    user.getPhoneNumber()
-            );
-        }
 
         data.put(
                 "updatedAt",
@@ -1816,23 +1827,14 @@ public void onVerificationFailed(FirebaseException e) {
                 name
         );
 
-        data.put(
-                "email",
-                user.getEmail()
-        );
+        // Email and phone stay in Firebase Authentication, not public user data.
+        data.put("email", FieldValue.delete());
+        data.put("phoneNumber", FieldValue.delete());
 
         data.put(
                 "userId",
                 user.getUid()
         );
-
-        if (user.getPhoneNumber() != null) {
-
-            data.put(
-                    "phoneNumber",
-                    user.getPhoneNumber()
-            );
-        }
 
         data.put(
                 "online",
@@ -2098,6 +2100,20 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
 }
 
     // ==========================================
+    // حذف ایمیل و شماره از پروفایل عمومی Firestore
+    // ==========================================
+
+    private void removePrivateContactFields(String uid) {
+        Map<String, Object> privateFields = new HashMap<>();
+        privateFields.put("email", FieldValue.delete());
+        privateFields.put("phoneNumber", FieldValue.delete());
+
+        db.collection("users")
+                .document(uid)
+                .set(privateFields, SetOptions.merge());
+    }
+
+    // ==========================================
     // نمایش وضعیت حساب
     // ==========================================
 
@@ -2109,6 +2125,9 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
         if (user != null) {
 
             loadUserProfile(user);
+
+            // Clean legacy email/phone copies from this user's public profile.
+            removePrivateContactFields(user.getUid());
 
             setUserOnline(
                     user.getUid()
