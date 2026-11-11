@@ -7,7 +7,7 @@
 <application  
     android:name=".TajroApplication"  
     android:theme="@style/AppTheme"  
-    android:label="تجربه‌ها"  
+    android:label="iNtaj"
     android:allowBackup="true"  
     android:icon="@drawable/ic_launcher"  
     android:roundIcon="@drawable/ic_launcher">  
