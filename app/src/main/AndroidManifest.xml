@@ -10,14 +10,6 @@
     <!-- Notifications (runtime permission is still required on Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Full-screen incoming-call notification (subject to Android/user settings) -->
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-
-    <!-- Required only if the app starts a foreground service for an ongoing call.
-         The service must also declare foregroundServiceType="microphone". -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-
     <application
         android:name=".TajroApplication"
         android:theme="@style/AppTheme"
@@ -58,13 +50,6 @@
         <activity
             android:name=".VoiceActivity"
             android:exported="false" />
-
-        <!-- Audio-only WebRTC call screen -->
-        <activity
-            android:name=".VoiceCallActivity"
-            android:exported="false"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true" />
 
         <activity
             android:name=".GamesActivity"
