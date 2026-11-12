@@ -27,6 +27,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.HorizontalScrollView;
 import android.widget.TextView;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -81,6 +82,10 @@ public class ExperienceListActivity extends Activity {
     private LinearLayout layout;
     private LinearLayout feedLayout;
     private TextView pullRefreshIndicator;
+    private LinearLayout storiesLayout;
+    private LinearLayout friendsLayout;
+    private boolean refreshBatchActive = false;
+    private int refreshTasksRemaining = 0;
     private boolean isPullRefreshing = false;
     private float pullStartY = 0f;
     private boolean pullGestureStarted = false;
@@ -157,6 +162,15 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("تجربه‌ها")) return "Experiences";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 Users' Experiences";
             if (fa.equals("هر تجربه یک درس و هر داستان چراغیست")) return "Every Experience Is a Lesson, Every Story a Light";
+            if (fa.equals("داستان‌های ۲۴ ساعته")) return "24-hour Stories";
+            if (fa.equals("دوستان")) return "Friends";
+            if (fa.equals("داستان من")) return "My Story";
+            if (fa.equals("داستان کوتاه خود را بنویسید...")) return "Write a short story...";
+            if (fa.equals("داستان جدید")) return "New Story";
+            if (fa.equals("انتشار")) return "Publish";
+            if (fa.equals("داستان منتشر شد.")) return "Story published.";
+            if (fa.equals("هنوز دوستی اضافه نشده است.")) return "No friends added yet.";
+            if (fa.equals("این داستان پس از ۲۴ ساعت ناپدید می‌شود.")) return "This story disappears after 24 hours.";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ Experience options";
             if (fa.equals("شریک‌سازی تجربه")) return "Share experience";
@@ -213,6 +227,15 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("تجربه‌ها")) return "تجربې";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 د کاروونکو تجربې";
             if (fa.equals("هر تجربه یک درس و هر داستان چراغیست")) return "هره تجربه یو درس دی او هره کیسه یوه رڼا ده";
+            if (fa.equals("داستان‌های ۲۴ ساعته")) return "۲۴ ساعته کیسې";
+            if (fa.equals("دوستان")) return "ملګري";
+            if (fa.equals("داستان من")) return "زما کیسه";
+            if (fa.equals("داستان کوتاه خود را بنویسید...")) return "خپله لنډه کیسه ولیکئ...";
+            if (fa.equals("داستان جدید")) return "نوې کیسه";
+            if (fa.equals("انتشار")) return "خپرول";
+            if (fa.equals("داستان منتشر شد.")) return "کیسه خپره شوه.";
+            if (fa.equals("هنوز دوستی اضافه نشده است.")) return "تر اوسه ملګری نه دی زیات شوی.";
+            if (fa.equals("این داستان پس از ۲۴ ساعت ناپدید می‌شود.")) return "دا کیسه له ۲۴ ساعتونو وروسته ورکېږي.";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ د تجربې اختیارونه";
             if (fa.equals("شریک‌سازی تجربه")) return "تجربه شریکول";
@@ -269,6 +292,15 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("تجربه‌ها")) return "تجربات";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 صارفین کے تجربات";
             if (fa.equals("هر تجربه یک درس و هر داستان چراغیست")) return "ہر تجربہ ایک سبق ہے اور ہر کہانی ایک چراغ ہے";
+            if (fa.equals("داستان‌های ۲۴ ساعته")) return "۲۴ گھنٹے کی کہانیاں";
+            if (fa.equals("دوستان")) return "دوست";
+            if (fa.equals("داستان من")) return "میری کہانی";
+            if (fa.equals("داستان کوتاه خود را بنویسید...")) return "اپنی مختصر کہانی لکھیں...";
+            if (fa.equals("داستان جدید")) return "نئی کہانی";
+            if (fa.equals("انتشار")) return "شائع کریں";
+            if (fa.equals("داستان منتشر شد.")) return "کہانی شائع ہو گئی۔";
+            if (fa.equals("هنوز دوستی اضافه نشده است.")) return "ابھی کوئی دوست شامل نہیں۔";
+            if (fa.equals("این داستان پس از ۲۴ ساعت ناپدید می‌شود.")) return "یہ کہانی ۲۴ گھنٹے بعد غائب ہو جائے گی۔";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ تجربے کے اختیارات";
             if (fa.equals("شریک‌سازی تجربه")) return "تجربہ شیئر کریں";
@@ -325,6 +357,15 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("تجربه‌ها")) return "अनुभव";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 उपयोगकर्ताओं के अनुभव";
             if (fa.equals("هر تجربه یک درس و هر داستان چراغیست")) return "हर अनुभव एक सबक है और हर कहानी एक रोशनी है";
+            if (fa.equals("داستان‌های ۲۴ ساعته")) return "२४ घंटे की कहानियाँ";
+            if (fa.equals("دوستان")) return "मित्र";
+            if (fa.equals("داستان من")) return "मेरी कहानी";
+            if (fa.equals("داستان کوتاه خود را بنویسید...")) return "अपनी छोटी कहानी लिखें...";
+            if (fa.equals("داستان جدید")) return "नई कहानी";
+            if (fa.equals("انتشار")) return "प्रकाशित करें";
+            if (fa.equals("داستان منتشر شد.")) return "कहानी प्रकाशित हुई।";
+            if (fa.equals("هنوز دوستی اضافه نشده است.")) return "अभी कोई मित्र नहीं जोड़ा गया है।";
+            if (fa.equals("این داستان پس از ۲۴ ساعت ناپدید می‌شود.")) return "यह कहानी २४ घंटे बाद गायब हो जाएगी।";
 
             if (fa.equals("⋮ گزینه‌های تجربه")) return "⋮ अनुभव विकल्प";
             if (fa.equals("شریک‌سازی تجربه")) return "अनुभव साझा करें";
@@ -700,6 +741,25 @@ public class ExperienceListActivity extends Activity {
         // پروفایل حساب واردشده؛ در جای عنوان «تجربه‌های کاربران»
         layout.addView(buildMyProfileHeader());
 
+        // بخش داستان‌های ۲۴ ساعته و فهرست دوستان؛ مستقل از فید تجربه‌ها
+        layout.addView(buildSectionHeading("داستان‌های ۲۴ ساعته", "✨"));
+        HorizontalScrollView storiesScroller = new HorizontalScrollView(this);
+        storiesScroller.setHorizontalScrollBarEnabled(false);
+        storiesLayout = new LinearLayout(this);
+        storiesLayout.setOrientation(LinearLayout.HORIZONTAL);
+        storiesLayout.setPadding(0, dp(4), 0, dp(8));
+        storiesScroller.addView(storiesLayout);
+        layout.addView(storiesScroller);
+
+        layout.addView(buildSectionHeading("دوستان", "👥"));
+        HorizontalScrollView friendsScroller = new HorizontalScrollView(this);
+        friendsScroller.setHorizontalScrollBarEnabled(false);
+        friendsLayout = new LinearLayout(this);
+        friendsLayout.setOrientation(LinearLayout.HORIZONTAL);
+        friendsLayout.setPadding(0, dp(4), 0, dp(8));
+        friendsScroller.addView(friendsLayout);
+        layout.addView(friendsScroller);
+
         // نشانگر کوچک تازه‌سازی با کشیدن صفحه به پایین
         pullRefreshIndicator = new TextView(this);
         pullRefreshIndicator.setText(text("↓ برای تازه‌سازی، صفحه را پایین بکشید"));
@@ -740,8 +800,8 @@ public class ExperienceListActivity extends Activity {
                         if (distance >= dp(85) && !isPullRefreshing) {
                             isPullRefreshing = true;
                             pullRefreshIndicator.setVisibility(View.VISIBLE);
-                            pullRefreshIndicator.setText(text("در حال تازه‌سازی تجربه‌ها..."));
-                            loadExperiences();
+                            pullRefreshIndicator.setText(text("در حال تازه‌سازی داستان‌ها، دوستان و تجربه‌ها..."));
+                            refreshAllSections();
                         } else {
                             pullRefreshIndicator.setVisibility(View.GONE);
                         }
@@ -754,6 +814,320 @@ public class ExperienceListActivity extends Activity {
         });
 
         loadExperiences();
+        loadStories();
+        loadFriends();
+    }
+
+    private View buildSectionHeading(String titleText, String emoji) {
+        LinearLayout heading = new LinearLayout(this);
+        heading.setOrientation(LinearLayout.HORIZONTAL);
+        heading.setGravity(Gravity.CENTER_VERTICAL);
+        heading.setPadding(dp(4), dp(12), dp(4), dp(3));
+        TextView title = new TextView(this);
+        title.setText(emoji + "  " + text(titleText));
+        title.setTextSize(17);
+        title.setTextColor(Color.rgb(13, 53, 82));
+        title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        heading.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        return heading;
+    }
+
+    private void refreshAllSections() {
+        if (refreshBatchActive) return;
+        refreshBatchActive = true;
+        refreshTasksRemaining = 3;
+        loadExperiences();
+        loadStories();
+        loadFriends();
+    }
+
+    private void finishRefreshTask() {
+        if (!refreshBatchActive) return;
+        refreshTasksRemaining--;
+        if (refreshTasksRemaining <= 0) {
+            refreshBatchActive = false;
+            isPullRefreshing = false;
+            if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+        }
+    }
+
+    private void loadStories() {
+        if (storiesLayout == null) return;
+        storiesLayout.removeAllViews();
+        addStoryCreateTile();
+        Timestamp now = Timestamp.now();
+        db.collection("stories").whereGreaterThan("expiresAt", now)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (storiesLayout == null) return;
+                    List<DocumentSnapshot> active = new ArrayList<>();
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        Timestamp expiry = doc.getTimestamp("expiresAt");
+                        if (expiry != null && expiry.toDate().after(new Date())) active.add(doc);
+                    }
+                    Collections.sort(active, (a, b) -> {
+                        Timestamp ta = a.getTimestamp("createdAt");
+                        Timestamp tb = b.getTimestamp("createdAt");
+                        long va = ta == null ? 0L : ta.toDate().getTime();
+                        long vb = tb == null ? 0L : tb.toDate().getTime();
+                        return Long.compare(vb, va);
+                    });
+                    for (DocumentSnapshot story : active) addStoryTile(story);
+                    finishRefreshTask();
+                })
+                .addOnFailureListener(error -> {
+                    // در حالت آفلاین، نسخه کش‌شده داستان‌ها نیز نمایش داده شود.
+                    db.collection("stories").whereGreaterThan("expiresAt", Timestamp.now())
+                            .get(Source.CACHE)
+                            .addOnSuccessListener(cached -> {
+                                if (storiesLayout != null) {
+                                    for (DocumentSnapshot story : cached.getDocuments()) {
+                                        Timestamp expiry = story.getTimestamp("expiresAt");
+                                        if (expiry != null && expiry.toDate().after(new Date())) addStoryTile(story);
+                                    }
+                                }
+                                finishRefreshTask();
+                            })
+                            .addOnFailureListener(e -> finishRefreshTask());
+                });
+    }
+
+    private void addStoryCreateTile() {
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(Gravity.CENTER);
+        tile.setPadding(dp(10), dp(8), dp(10), dp(8));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.WHITE);
+        bg.setCornerRadius(dp(17));
+        bg.setStroke(dp(1), Color.rgb(205, 220, 228));
+        tile.setBackground(bg);
+        TextView plus = new TextView(this);
+        plus.setText("＋");
+        plus.setTextSize(30);
+        plus.setTextColor(Color.rgb(13, 113, 132));
+        plus.setGravity(Gravity.CENTER);
+        tile.addView(plus, new LinearLayout.LayoutParams(dp(58), dp(58)));
+        TextView label = new TextView(this);
+        label.setText(text("داستان من"));
+        label.setTextSize(12);
+        label.setTextColor(Color.rgb(34, 57, 69));
+        tile.addView(label);
+        tile.setOnClickListener(v -> showCreateStoryDialog());
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(88), dp(112));
+        lp.setMargins(0, 0, dp(9), 0);
+        storiesLayout.addView(tile, lp);
+    }
+
+    private void addStoryTile(DocumentSnapshot story) {
+        String uid = story.getString("userId");
+        String storyText = firstNonEmpty(story.getString("text"), "داستان تصویری");
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(Gravity.CENTER);
+        tile.setPadding(dp(8), dp(8), dp(8), dp(8));
+        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{Color.rgb(13, 69, 104), Color.rgb(21, 128, 132)});
+        bg.setCornerRadius(dp(17));
+        bg.setStroke(dp(2), Color.rgb(218, 183, 93));
+        tile.setBackground(bg);
+        TextView icon = new TextView(this);
+        icon.setText("✦");
+        icon.setTextColor(Color.WHITE);
+        icon.setTextSize(25);
+        icon.setGravity(Gravity.CENTER);
+        tile.addView(icon, new LinearLayout.LayoutParams(dp(58), dp(52)));
+        TextView preview = new TextView(this);
+        preview.setText(storyText);
+        preview.setTextColor(Color.WHITE);
+        preview.setTextSize(11);
+        preview.setMaxLines(2);
+        preview.setGravity(Gravity.CENTER);
+        tile.addView(preview);
+        TextView authorName = new TextView(this);
+        authorName.setText(text("کاربر"));
+        authorName.setTextColor(Color.rgb(238, 247, 250));
+        authorName.setTextSize(9);
+        authorName.setGravity(Gravity.CENTER);
+        authorName.setMaxLines(1);
+        tile.addView(authorName);
+        tile.setOnClickListener(v -> showStory(story));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(88), dp(112));
+        lp.setMargins(0, 0, dp(9), 0);
+        storiesLayout.addView(tile, lp);
+        if (uid != null) {
+            db.collection("users").document(uid).get().addOnSuccessListener(user -> {
+                String name = firstNonEmpty(user.getString("name"), user.getString("username"), "کاربر");
+                authorName.setText(name);
+                preview.setContentDescription(name + "، " + storyText);
+            });
+        }
+    }
+
+    private void showCreateStoryDialog() {
+        EditText input = new EditText(this);
+        input.setHint(text("داستان کوتاه خود را بنویسید..."));
+        input.setMinLines(3);
+        input.setMaxLines(6);
+        input.setGravity(Gravity.TOP | Gravity.RIGHT);
+        input.setPadding(dp(14), dp(12), dp(14), dp(12));
+        new AlertDialog.Builder(this)
+                .setTitle(text("داستان جدید"))
+                .setView(input)
+                .setNegativeButton(text("لغو"), null)
+                .setPositiveButton(text("انتشار"), (dialog, which) -> {
+                    String value = input.getText().toString().trim();
+                    if (value.isEmpty()) {
+                        Toast.makeText(this, text("متن داستان خالی است."), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (value.length() > 2000) {
+                        Toast.makeText(this, text("حداکثر طول داستان ۲۰۰۰ حرف است."), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    publishTextStory(value);
+                }).show();
+    }
+
+    private void publishTextStory(String value) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            Toast.makeText(this, text("برای انتشار داستان ابتدا وارد حساب شوید."), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String cleanText = value == null ? "" : value.trim();
+        if (cleanText.isEmpty()) {
+            Toast.makeText(this, text("متن داستان خالی است."), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (cleanText.length() > 2000) {
+            Toast.makeText(this, text("حداکثر طول داستان ۲۰۰۰ حرف است."), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Map<String, Object> story = new HashMap<>();
+        story.put("userId", user.getUid());
+        story.put("text", cleanText);
+        story.put("mediaType", "text");
+        // createdAt از زمان معتبر سرور ثبت می‌شود. برای رعایت محدودیت ۲۴ ساعته Rules،
+        // زمان انقضا کمی کمتر از ۲۴ ساعت تنظیم می‌شود تا اختلاف ساعت معمول گوشی باعث رد درخواست نشود.
+        // برای ۲۴ ساعت دقیق از لحظه ثبت سرور، باید expiresAt در Cloud Function ساخته شود.
+        long safeExpiryMillis = Timestamp.now().toDate().getTime() + 23L * 60L * 60L * 1000L + 50L * 60L * 1000L;
+        story.put("createdAt", FieldValue.serverTimestamp());
+        story.put("expiresAt", new Timestamp(new Date(safeExpiryMillis)));
+
+        db.collection("stories").add(story)
+                .addOnSuccessListener(ref -> {
+                    Toast.makeText(this, text("داستان منتشر شد."), Toast.LENGTH_SHORT).show();
+                    loadStories();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("TajrobehhaStories", "Story publish failed", e);
+                    Toast.makeText(this, text("انتشار داستان ناموفق بود: ") + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+    }
+
+    private void showStory(DocumentSnapshot story) {
+        Timestamp expiry = story.getTimestamp("expiresAt");
+        if (expiry == null || !expiry.toDate().after(new Date())) {
+            Toast.makeText(this, text("زمان این داستان تمام شده است."), Toast.LENGTH_SHORT).show();
+            loadStories();
+            return;
+        }
+        String uid = story.getString("userId");
+        String body = firstNonEmpty(story.getString("text"), "");
+        String title = text("داستان");
+        if (uid != null) {
+            db.collection("users").document(uid).get().addOnSuccessListener(user -> {
+                String name = firstNonEmpty(user.getString("name"), user.getString("username"), text("کاربر"));
+                TextView content = new TextView(this);
+                content.setText(body + "\n\n" + text("این داستان پس از ۲۴ ساعت ناپدید می‌شود."));
+                content.setTextSize(18);
+                content.setTextColor(Color.rgb(20, 48, 65));
+                content.setGravity(Gravity.CENTER);
+                content.setPadding(dp(22), dp(28), dp(22), dp(28));
+                new AlertDialog.Builder(this).setTitle(name + " · " + title).setView(content)
+                        .setPositiveButton(text("بستن"), null).show();
+            });
+        }
+    }
+
+    private void loadFriends() {
+        if (friendsLayout == null) return;
+        friendsLayout.removeAllViews();
+        String myId = auth.getCurrentUser() == null ? "" : auth.getCurrentUser().getUid();
+        if (myId.isEmpty()) { finishRefreshTask(); return; }
+        final Set<String> friendIds = new HashSet<>();
+        final int[] completed = {0};
+        com.google.firebase.firestore.Query[] queries = new com.google.firebase.firestore.Query[]{
+                db.collection("friendRequests").whereEqualTo("senderId", myId),
+                db.collection("friendRequests").whereEqualTo("receiverId", myId)
+        };
+        for (com.google.firebase.firestore.Query query : queries) {
+            query.get().addOnSuccessListener(snapshot -> {
+                for (DocumentSnapshot request : snapshot.getDocuments()) {
+                    if (!"accepted".equals(request.getString("status"))) continue;
+                    String sender = request.getString("senderId");
+                    String receiver = request.getString("receiverId");
+                    String other = myId.equals(sender) ? receiver : sender;
+                    if (other != null && !other.isEmpty() && !myId.equals(other)) friendIds.add(other);
+                }
+                if (++completed[0] == 2) displayFriends(friendIds);
+            }).addOnFailureListener(error -> {
+                if (++completed[0] == 2) displayFriends(friendIds);
+            });
+        }
+    }
+
+    private void displayFriends(Set<String> friendIds) {
+        if (friendsLayout == null) return;
+        friendsLayout.removeAllViews();
+        if (friendIds.isEmpty()) {
+            TextView empty = new TextView(this);
+            empty.setText(text("هنوز دوستی اضافه نشده است."));
+            empty.setTextColor(Color.rgb(100, 117, 126));
+            empty.setTextSize(13);
+            empty.setPadding(dp(10), dp(15), dp(10), dp(15));
+            friendsLayout.addView(empty);
+            finishRefreshTask();
+            return;
+        }
+        for (String uid : friendIds) {
+            LinearLayout item = new LinearLayout(this);
+            item.setOrientation(LinearLayout.VERTICAL);
+            item.setGravity(Gravity.CENTER);
+            item.setPadding(dp(7), dp(7), dp(7), dp(7));
+            ImageView avatar = new ImageView(this);
+            avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            GradientDrawable circle = new GradientDrawable();
+            circle.setColor(Color.rgb(221, 239, 242));
+            circle.setShape(GradientDrawable.OVAL);
+            circle.setStroke(dp(2), Color.rgb(18, 130, 137));
+            avatar.setBackground(circle);
+            avatar.setClipToOutline(true);
+            item.addView(avatar, new LinearLayout.LayoutParams(dp(54), dp(54)));
+            TextView name = new TextView(this);
+            name.setText(text("کاربر"));
+            name.setTextSize(11);
+            name.setTextColor(Color.rgb(34, 57, 69));
+            name.setGravity(Gravity.CENTER);
+            name.setMaxWidth(dp(78));
+            name.setMaxLines(1);
+            item.addView(name);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(78), dp(91));
+            lp.setMargins(0, 0, dp(6), 0);
+            friendsLayout.addView(item, lp);
+            db.collection("users").document(uid).get().addOnSuccessListener(user -> {
+                String displayName = firstNonEmpty(user.getString("name"), user.getString("username"), user.getString("displayName"), text("کاربر"));
+                String photo = firstNonEmpty(user.getString("photoUrl"), user.getString("profilePhoto"), user.getString("profilePhotoUrl"), user.getString("photo"), "");
+                name.setText(displayName);
+                if (!photo.isEmpty()) loadProfileImage(photo, avatar);
+                View.OnClickListener open = v -> showPublicProfile(uid, displayName, photo);
+                item.setOnClickListener(open);
+            });
+        }
+        finishRefreshTask();
     }
 
     // نمایش عکس و نام حساب فعلی در بالای فهرست تجربه‌ها
@@ -1078,23 +1452,32 @@ public class ExperienceListActivity extends Activity {
                     if (cached != null && !cached.isEmpty()) {
                         displayExperienceSnapshot(cached);
                     } else {
-                        isPullRefreshing = false;
-                        if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+                        finishRefreshTask();
+                        if (!refreshBatchActive) {
+                            isPullRefreshing = false;
+                            if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+                        }
                         showEmptyMessage();
                         Toast.makeText(this, text("خطا در دریافت تجربه‌ها"), Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(cacheError -> {
-                    isPullRefreshing = false;
-                    if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+                    finishRefreshTask();
+                    if (!refreshBatchActive) {
+                        isPullRefreshing = false;
+                        if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+                    }
                     Toast.makeText(this, text("خطا در دریافت تجربه‌ها"), Toast.LENGTH_SHORT).show();
                     Log.w("ExperiencesOffline", "No cached feed available", cacheError);
                 });
     }
 
     private void displayExperienceSnapshot(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots) {
-        isPullRefreshing = false;
-        if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+        finishRefreshTask();
+        if (!refreshBatchActive) {
+            isPullRefreshing = false;
+            if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+        }
         feedLayout.removeAllViews();
         displayedExperienceKeys.clear();
 
@@ -3110,6 +3493,7 @@ public class ExperienceListActivity extends Activity {
                     accept.setText("accepted".equals(status) ? text("✅ قبول شد") : text("قبول"));
                     reject.setText("rejected".equals(status) ? text("رد شد") : text("رد"));
                     Toast.makeText(this, text("پاسخ ثبت شد."), Toast.LENGTH_SHORT).show();
+                    if ("accepted".equals(status)) loadFriends();
                 }).addOnFailureListener(e -> Toast.makeText(this, text("ثبت پاسخ ناموفق بود؛ قوانین فایربیس را بررسی کنید."), Toast.LENGTH_LONG).show());
     }
 
@@ -3238,4 +3622,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-        }
+                }
