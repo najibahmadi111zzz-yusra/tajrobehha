@@ -1,104 +1,119 @@
-<?xml version="1.0" encoding="utf-8"?>  <manifest xmlns:android="http://schemas.android.com/apk/res/android">  <uses-permission android:name="android.permission.INTERNET" />  
-<uses-permission android:name="android.permission.RECORD_AUDIO" />
-<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-<!-- اجازه نمایش اعلان در Android 13 و بالاتر -->  
-<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />  
+    <!-- Network and audio -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-<application  
-    android:name=".TajroApplication"  
-    android:theme="@style/AppTheme"  
-    android:label="iNtaj"
-    android:allowBackup="true"  
-    android:icon="@drawable/ic_launcher"  
-    android:roundIcon="@drawable/ic_launcher">  
+    <!-- Notifications (runtime permission is still required on Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- قفل امنیتی برنامه -->  
-    <activity  
-        android:name=".AppLockActivity"  
-        android:exported="false" />  
+    <!-- Full-screen incoming-call notification (subject to Android/user settings) -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
-    <activity  
-        android:name=".AIActivity"  
-        android:exported="false" />  
+    <!-- Required only if the app starts a foreground service for an ongoing call.
+         The service must also declare foregroundServiceType="microphone". -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
-    <activity  
-        android:name=".ChatActivity"  
-        android:exported="false" />  
+    <application
+        android:name=".TajroApplication"
+        android:theme="@style/AppTheme"
+        android:label="iNtaj"
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher">
 
-    <activity  
-        android:name=".AccountActivity"  
-        android:exported="false" />  
+        <!-- App lock -->
+        <activity
+            android:name=".AppLockActivity"
+            android:exported="false" />
 
-    <activity  
-        android:name=".EditExperienceActivity"  
-        android:exported="false" />  
+        <activity
+            android:name=".AIActivity"
+            android:exported="false" />
 
-    <activity  
-        android:name=".ExperienceListActivity"  
-        android:exported="false" />  
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false" />
 
-    <activity  
-        android:name=".AddExperienceActivity"  
-        android:exported="false" />  
+        <activity
+            android:name=".AccountActivity"
+            android:exported="false" />
 
-    <activity  
-        android:name=".VoiceActivity"  
-        android:exported="false" />  
-      
-            <activity  
-        android:name=".GamesActivity"  
-        android:exported="false" />  
+        <activity
+            android:name=".EditExperienceActivity"
+            android:exported="false" />
 
-    <activity  
-        android:name=".ColorSortActivity"  
-        android:exported="false" />
+        <activity
+            android:name=".ExperienceListActivity"
+            android:exported="false" />
 
-<activity  
-android:name=".BallGameActivity"  
-android:exported="false" />
+        <activity
+            android:name=".AddExperienceActivity"
+            android:exported="false" />
 
-<activity  
-        android:name=".ExchangeActivity"  
-        android:exported="false" />  
+        <activity
+            android:name=".VoiceActivity"
+            android:exported="false" />
 
-    <activity  
-        android:name=".VaultActivity"  
-        android:exported="false" />  
+        <!-- Audio-only WebRTC call screen -->
+        <activity
+            android:name=".VoiceCallActivity"
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true" />
 
-    <!-- تنظیمات -->  
-    <activity  
-        android:name=".SettingsActivity"  
-        android:exported="false" />  
+        <activity
+            android:name=".GamesActivity"
+            android:exported="false" />
 
-    <!-- دریافت اعلان‌های Firebase -->  
-    <service  
-        android:name=".TajroFirebaseMessagingService"  
-        android:exported="false">  
+        <activity
+            android:name=".ColorSortActivity"
+            android:exported="false" />
 
-        <intent-filter>  
-            <action android:name="com.google.firebase.MESSAGING_EVENT" />  
-        </intent-filter>  
+        <activity
+            android:name=".BallGameActivity"
+            android:exported="false" />
 
-    </service>  
+        <activity
+            android:name=".ExchangeActivity"
+            android:exported="false" />
 
-     <!-- صفحه مقدمه آغازین -->
-<activity
-    android:name=".SplashActivity"
-    android:exported="true">
+        <activity
+            android:name=".VaultActivity"
+            android:exported="false" />
 
-    <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-    </intent-filter>
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
 
-</activity>
+        <!-- Firebase Cloud Messaging receiver.
+             The TajroFirebaseMessagingService Java class must exist in this package. -->
+        <service
+            android:name=".TajroFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
-<!-- صفحه اصلی برنامه -->
-<activity
-    android:name=".MainActivity"
-    android:exported="false" />
+        <!-- Launcher -->
+        <activity
+            android:name=".SplashActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
-</application>
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
+
+    </application>
 
 </manifest>
