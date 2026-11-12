@@ -30,8 +30,13 @@ import android.widget.ScrollView;
 import android.widget.HorizontalScrollView;
 import android.widget.TextView;
 import android.widget.ImageView;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 import android.widget.EditText;
+import android.widget.VideoView;
+import android.widget.MediaController;
+import android.media.MediaMetadataRetriever;
+import android.app.Dialog;
 import org.json.JSONObject;
 import java.io.InputStream;
 import java.io.File;
@@ -121,9 +126,18 @@ public class ExperienceListActivity extends Activity {
     // فرم انتشار تجربه در همین صفحه
     private boolean isPublishing = false;
     private static final int REQUEST_PICK_EXPERIENCE_IMAGE = 7314;
+    private static final int REQUEST_PICK_EXPERIENCE_VIDEO = 7316;
     private static final String EXPERIENCE_UPLOAD_FUNCTION =
             SUPABASE_URL + "/functions/v1/upload-experience-image";
+    private static final String VIDEO_UPLOAD_FUNCTION =
+            SUPABASE_URL + "/functions/v1/upload-experience-video";
+    private static final int REQUEST_PICK_STORY_MEDIA = 7315;
+    private static final long MAX_STORY_VIDEO_BYTES = 20L * 1024L * 1024L;
+    private static final int MAX_STORY_VIDEO_SECONDS = 60;
+    private Uri selectedStoryMediaUri;
+    private String selectedStoryMediaType = "";
     private Uri selectedImageUri;
+    private Uri selectedVideoUri;
     private ImageView imagePreview;
     private TextView imageStatus;
     private EditText experienceTitleField;
@@ -703,7 +717,7 @@ public class ExperienceListActivity extends Activity {
 
         TextView emblem = new TextView(this);
         emblem.setText("📖  💡");
-        emblem.setTextSize(14.5f); // آیکن سربرگ کمی کوچک‌تر
+        emblem.setTextSize(7.25f); // آیکن بالای صفحه ۵۰٪ کوچک‌تر
         emblem.setGravity(Gravity.CENTER);
         emblem.setPadding(dp(8), 0, dp(8), dp(5));
         header.addView(emblem);
@@ -736,13 +750,13 @@ public class ExperienceListActivity extends Activity {
         header.addView(subtitle);
 
         layout.addView(header);
-        layout.addView(buildPublishForm());
+        layout.addView(buildPublishEntryButton());
 
         // پروفایل حساب واردشده؛ در جای عنوان «تجربه‌های کاربران»
         layout.addView(buildMyProfileHeader());
 
         // بخش داستان‌های ۲۴ ساعته و فهرست دوستان؛ مستقل از فید تجربه‌ها
-        layout.addView(buildSectionHeading("داستان‌های ۲۴ ساعته", "✨"));
+        layout.addView(buildSectionHeading("داستان‌ها", "✨"));
         HorizontalScrollView storiesScroller = new HorizontalScrollView(this);
         storiesScroller.setHorizontalScrollBarEnabled(false);
         storiesLayout = new LinearLayout(this);
@@ -896,75 +910,149 @@ public class ExperienceListActivity extends Activity {
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER);
-        tile.setPadding(dp(10), dp(8), dp(10), dp(8));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(Color.WHITE);
-        bg.setCornerRadius(dp(17));
-        bg.setStroke(dp(1), Color.rgb(205, 220, 228));
-        tile.setBackground(bg);
+        tile.setPadding(dp(5), dp(4), dp(5), dp(4));
+
+        FrameLayout circleFrame = new FrameLayout(this);
+        GradientDrawable ring = new GradientDrawable();
+        ring.setColor(Color.WHITE);
+        ring.setShape(GradientDrawable.OVAL);
+        ring.setStroke(dp(3), Color.rgb(24, 142, 155));
+        circleFrame.setBackground(ring);
+
         TextView plus = new TextView(this);
         plus.setText("＋");
-        plus.setTextSize(30);
-        plus.setTextColor(Color.rgb(13, 113, 132));
+        plus.setTextSize(34);
+        plus.setTextColor(Color.rgb(15, 113, 132));
         plus.setGravity(Gravity.CENTER);
-        tile.addView(plus, new LinearLayout.LayoutParams(dp(58), dp(58)));
+        circleFrame.addView(plus, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
+        TextView plusBadge = new TextView(this);
+        plusBadge.setText("+");
+        plusBadge.setTextSize(13);
+        plusBadge.setTextColor(Color.WHITE);
+        plusBadge.setGravity(Gravity.CENTER);
+        GradientDrawable badgeBg = new GradientDrawable();
+        badgeBg.setColor(Color.rgb(28, 176, 104));
+        badgeBg.setShape(GradientDrawable.OVAL);
+        badgeBg.setStroke(dp(2), Color.WHITE);
+        plusBadge.setBackground(badgeBg);
+        FrameLayout.LayoutParams badgeParams = new FrameLayout.LayoutParams(
+                dp(23), dp(23), Gravity.BOTTOM | Gravity.RIGHT);
+        circleFrame.addView(plusBadge, badgeParams);
+
+        tile.addView(circleFrame, new LinearLayout.LayoutParams(dp(68), dp(68)));
         TextView label = new TextView(this);
         label.setText(text("داستان من"));
-        label.setTextSize(12);
+        label.setTextSize(11);
         label.setTextColor(Color.rgb(34, 57, 69));
+        label.setGravity(Gravity.CENTER);
+        label.setMaxLines(1);
         tile.addView(label);
+
         tile.setOnClickListener(v -> showCreateStoryDialog());
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(88), dp(112));
-        lp.setMargins(0, 0, dp(9), 0);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(82), dp(94));
+        lp.setMargins(0, 0, dp(5), 0);
         storiesLayout.addView(tile, lp);
     }
 
     private void addStoryTile(DocumentSnapshot story) {
         String uid = story.getString("userId");
-        String storyText = firstNonEmpty(story.getString("text"), "داستان تصویری");
+        String storyText = firstNonEmpty(story.getString("text"),
+                "video".equals(story.getString("mediaType")) ? "داستان ویدیویی" : "داستان تصویری");
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER);
-        tile.setPadding(dp(8), dp(8), dp(8), dp(8));
-        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                new int[]{Color.rgb(13, 69, 104), Color.rgb(21, 128, 132)});
-        bg.setCornerRadius(dp(17));
-        bg.setStroke(dp(2), Color.rgb(218, 183, 93));
-        tile.setBackground(bg);
-        TextView icon = new TextView(this);
-        icon.setText("✦");
-        icon.setTextColor(Color.WHITE);
-        icon.setTextSize(25);
-        icon.setGravity(Gravity.CENTER);
-        tile.addView(icon, new LinearLayout.LayoutParams(dp(58), dp(52)));
-        TextView preview = new TextView(this);
-        preview.setText(storyText);
-        preview.setTextColor(Color.WHITE);
-        preview.setTextSize(11);
-        preview.setMaxLines(2);
-        preview.setGravity(Gravity.CENTER);
-        tile.addView(preview);
+        tile.setPadding(dp(5), dp(4), dp(5), dp(4));
+
+        FrameLayout avatarFrame = new FrameLayout(this);
+        GradientDrawable ring = new GradientDrawable();
+        ring.setColor(Color.WHITE);
+        ring.setShape(GradientDrawable.OVAL);
+        ring.setStroke(dp(3), Color.rgb(220, 72, 111));
+        avatarFrame.setBackground(ring);
+        avatarFrame.setPadding(dp(3), dp(3), dp(3), dp(3));
+        ImageView avatar = new ImageView(this);
+        avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        GradientDrawable avatarBg = new GradientDrawable();
+        avatarBg.setColor(Color.rgb(18, 91, 115));
+        avatarBg.setShape(GradientDrawable.OVAL);
+        avatar.setBackground(avatarBg);
+        avatar.setClipToOutline(true);
+        FrameLayout.LayoutParams avatarParams = new FrameLayout.LayoutParams(dp(58), dp(58), Gravity.CENTER);
+        avatarFrame.addView(avatar, avatarParams);
+        TextView fallback = new TextView(this);
+        fallback.setText("✦");
+        fallback.setTextSize(24);
+        fallback.setTextColor(Color.WHITE);
+        fallback.setGravity(Gravity.CENTER);
+        avatarFrame.addView(fallback, avatarParams);
+        View onlineDot = makeOnlineDot(false);
+        FrameLayout.LayoutParams dotParams = new FrameLayout.LayoutParams(dp(13), dp(13), Gravity.BOTTOM | Gravity.RIGHT);
+        dotParams.setMargins(0, 0, dp(1), dp(1));
+        avatarFrame.addView(onlineDot, dotParams);
+        tile.addView(avatarFrame, new LinearLayout.LayoutParams(dp(70), dp(70)));
+
         TextView authorName = new TextView(this);
         authorName.setText(text("کاربر"));
-        authorName.setTextColor(Color.rgb(238, 247, 250));
-        authorName.setTextSize(9);
+        authorName.setTextColor(Color.rgb(38, 57, 68));
+        authorName.setTextSize(10);
         authorName.setGravity(Gravity.CENTER);
         authorName.setMaxLines(1);
+        authorName.setMaxWidth(dp(76));
         tile.addView(authorName);
         tile.setOnClickListener(v -> showStory(story));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(88), dp(112));
-        lp.setMargins(0, 0, dp(9), 0);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(82), dp(94));
+        lp.setMargins(0, 0, dp(5), 0);
         storiesLayout.addView(tile, lp);
-        if (uid != null) {
+        if (uid != null && !uid.isEmpty()) {
             db.collection("users").document(uid).get().addOnSuccessListener(user -> {
-                String name = firstNonEmpty(user.getString("name"), user.getString("username"), "کاربر");
+                String name = firstNonEmpty(user.getString("name"), user.getString("username"), user.getString("displayName"), "کاربر");
+                String photo = firstNonEmpty(user.getString("photoUrl"), user.getString("profilePhoto"), user.getString("profilePhotoUrl"), user.getString("photo"), "");
                 authorName.setText(name);
-                preview.setContentDescription(name + "، " + storyText);
+                if (!photo.isEmpty()) { fallback.setVisibility(View.GONE); loadProfileImage(photo, avatar); }
+                boolean online = Boolean.TRUE.equals(user.getBoolean("isOnline")) || Boolean.TRUE.equals(user.getBoolean("online"));
+                setOnlineDot(onlineDot, online);
+                tile.setContentDescription(name + "، " + storyText);
             });
         }
     }
 
+    private View makeOnlineDot(boolean online) {
+        View dot = new View(this);
+        setOnlineDot(dot, online);
+        return dot;
+    }
+
+    private void setOnlineDot(View dot, boolean online) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setShape(GradientDrawable.OVAL);
+        shape.setColor(online ? Color.rgb(35, 190, 91) : Color.rgb(150, 160, 165));
+        shape.setStroke(dp(2), Color.WHITE);
+        dot.setBackground(shape);
+    }
+
     private void showCreateStoryDialog() {
+        final String[] choices = {
+                text("داستان متنی"),
+                text("انتخاب عکس"),
+                text("انتخاب ویدیو")
+        };
+        new AlertDialog.Builder(this)
+                .setTitle(text("داستان جدید"))
+                .setItems(choices, (dialog, which) -> {
+                    if (which == 0) {
+                        showTextStoryComposer();
+                    } else {
+                        openStoryMediaPicker(which == 1 ? "image" : "video");
+                    }
+                })
+                .setNegativeButton(text("لغو"), null)
+                .show();
+    }
+
+    private void showTextStoryComposer() {
         EditText input = new EditText(this);
         input.setHint(text("داستان کوتاه خود را بنویسید..."));
         input.setMinLines(3);
@@ -977,16 +1065,240 @@ public class ExperienceListActivity extends Activity {
                 .setNegativeButton(text("لغو"), null)
                 .setPositiveButton(text("انتشار"), (dialog, which) -> {
                     String value = input.getText().toString().trim();
-                    if (value.isEmpty()) {
-                        Toast.makeText(this, text("متن داستان خالی است."), Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (value.length() > 2000) {
-                        Toast.makeText(this, text("حداکثر طول داستان ۲۰۰۰ حرف است."), Toast.LENGTH_SHORT).show();
+                    if (value.isEmpty() || value.length() > 2000) {
+                        Toast.makeText(this, text("متن داستان خالی یا بیش از حد طولانی است."), Toast.LENGTH_SHORT).show();
                         return;
                     }
                     publishTextStory(value);
                 }).show();
+    }
+
+    private void openStoryMediaPicker(String type) {
+        selectedStoryMediaType = type;
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType(type.equals("image") ? "image/*" : "video/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        try {
+            startActivityForResult(Intent.createChooser(intent,
+                    text(type.equals("image") ? "انتخاب عکس داستان" : "انتخاب ویدیوی داستان")),
+                    REQUEST_PICK_STORY_MEDIA);
+        } catch (Exception e) {
+            Toast.makeText(this, text("باز کردن گالری ممکن نشد"), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showStoryMediaCaptionDialog(Uri uri, String mediaType) {
+        EditText caption = new EditText(this);
+        caption.setHint(text("توضیح کوتاه (اختیاری)"));
+        caption.setMinLines(2);
+        caption.setMaxLines(4);
+        caption.setGravity(Gravity.TOP | Gravity.RIGHT);
+        new AlertDialog.Builder(this)
+                .setTitle(text(mediaType.equals("image") ? "انتشار داستان تصویری" : "انتشار داستان ویدیویی"))
+                .setView(caption)
+                .setNegativeButton(text("لغو"), null)
+                .setPositiveButton(text("انتشار"), (d, w) ->
+                        publishMediaStory(uri, mediaType, caption.getText().toString().trim()))
+                .show();
+    }
+
+    private void publishMediaStory(Uri uri, String mediaType, String caption) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            Toast.makeText(this, text("برای انتشار داستان ابتدا وارد حساب شوید."), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if ("image".equals(mediaType)) {
+            uploadExperienceImage(uri, new ImageUploadCallback() {
+                @Override public void onSuccess(String mediaUrl) {
+                    saveMediaStory(user.getUid(), caption, "image", mediaUrl, null, 0, 0);
+                }
+                @Override public void onError(String error) {
+                    Toast.makeText(ExperienceListActivity.this,
+                            text("بارگذاری عکس ناموفق بود: ") + error, Toast.LENGTH_LONG).show();
+                }
+            });
+        } else {
+            uploadStoryVideo(uri, new VideoUploadCallback() {
+                @Override public void onSuccess(String mediaUrl, String path, long size, int duration) {
+                    saveMediaStory(user.getUid(), caption, "video", mediaUrl, path, size, duration);
+                }
+                @Override public void onError(String error) {
+                    Toast.makeText(ExperienceListActivity.this, error, Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+
+    private void saveMediaStory(String uid, String caption, String mediaType,
+                                String mediaUrl, String videoPath, long size, int duration) {
+        Map<String, Object> story = new HashMap<>();
+        story.put("userId", uid);
+        story.put("text", caption == null ? "" : caption);
+        story.put("mediaType", mediaType);
+        story.put("mediaUrl", mediaUrl);
+        story.put("createdAt", FieldValue.serverTimestamp());
+        story.put("expiresAt", new Timestamp(new Date(
+                System.currentTimeMillis() + 23L * 60L * 60L * 1000L + 50L * 60L * 1000L)));
+        if ("video".equals(mediaType)) {
+            story.put("videoBucket", "experience_videos");
+            story.put("videoPath", videoPath);
+            story.put("mediaSizeBytes", size);
+            story.put("durationSeconds", duration);
+        }
+        db.collection("stories").add(story)
+                .addOnSuccessListener(ref -> {
+                    Toast.makeText(this, text("داستان منتشر شد."), Toast.LENGTH_SHORT).show();
+                    loadStories();
+                })
+                .addOnFailureListener(e -> Toast.makeText(this,
+                        text("انتشار داستان ناموفق بود: ") + e.getMessage(), Toast.LENGTH_LONG).show());
+    }
+
+    private interface VideoUploadCallback {
+        void onSuccess(String publicUrl, String path, long size, int durationSeconds);
+        void onError(String error);
+    }
+
+    private void uploadStoryVideo(Uri uri, VideoUploadCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        String selectedMime = getContentResolver().getType(uri);
+        if (selectedMime != null && !"video/mp4".equalsIgnoreCase(selectedMime)) {
+            callback.onError(text("فقط ویدیوی MP4 مجاز است."));
+            return;
+        }
+        if (user == null) {
+            callback.onError(text("برای انتشار داستان ابتدا وارد حساب شوید."));
+            return;
+        }
+
+        long fileSize = -1;
+        try (android.database.Cursor cursor = getContentResolver().query(
+                uri, new String[]{android.provider.OpenableColumns.SIZE}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int index = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE);
+                if (index >= 0 && !cursor.isNull(index)) fileSize = cursor.getLong(index);
+            }
+        } catch (Exception ignored) { }
+
+        if (fileSize <= 0 || fileSize > MAX_STORY_VIDEO_BYTES) {
+            callback.onError(text("حجم ویدیو باید حداکثر ۲۰ مگابایت باشد."));
+            return;
+        }
+
+        int durationSeconds;
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        try {
+            retriever.setDataSource(this, uri);
+            String duration = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_DURATION);
+            long durationMs = duration == null ? 0 : Long.parseLong(duration);
+            durationSeconds = (int) Math.ceil(durationMs / 1000.0);
+        } catch (Exception e) {
+            callback.onError(text("مدت ویدیو قابل تشخیص نیست."));
+            return;
+        } finally {
+            try { retriever.release(); } catch (Exception ignored) { }
+        }
+
+        if (durationSeconds <= 0 || durationSeconds > MAX_STORY_VIDEO_SECONDS) {
+            callback.onError(text("مدت ویدیو باید حداکثر ۶۰ ثانیه باشد."));
+            return;
+        }
+
+        final long checkedSize = fileSize;
+        final int checkedDuration = durationSeconds;
+        user.getIdToken(false).addOnSuccessListener(tokenResult -> {
+            String idToken = tokenResult.getToken();
+            if (idToken == null || idToken.isEmpty()) {
+                callback.onError(text("توکن ورود دریافت نشد"));
+                return;
+            }
+            new Thread(() -> {
+                HttpURLConnection connection = null;
+                try {
+                    JSONObject request = new JSONObject();
+                    request.put("mimeType", "video/mp4");
+                    request.put("fileSize", checkedSize);
+                    request.put("durationSeconds", checkedDuration);
+
+                    URL functionUrl = new URL(VIDEO_UPLOAD_FUNCTION);
+                    connection = (HttpURLConnection) functionUrl.openConnection();
+                    connection.setRequestMethod("POST");
+                    connection.setDoOutput(true);
+                    connection.setConnectTimeout(30000);
+                    connection.setReadTimeout(60000);
+                    connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+                    connection.setRequestProperty("Authorization", "Bearer " + idToken);
+                    connection.setRequestProperty("Content-Type", "application/json");
+                    try (OutputStream out = connection.getOutputStream()) {
+                        out.write(request.toString().getBytes("UTF-8"));
+                    }
+                    int code = connection.getResponseCode();
+                    InputStream response = code >= 200 && code < 300
+                            ? connection.getInputStream() : connection.getErrorStream();
+                    StringBuilder responseText = new StringBuilder();
+                    if (response != null) {
+                        try (BufferedReader reader = new BufferedReader(
+                                new InputStreamReader(response, "UTF-8"))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) responseText.append(line);
+                        }
+                    }
+                    JSONObject result = new JSONObject(responseText.toString());
+                    if (code < 200 || code >= 300 || !result.optBoolean("success", false)) {
+                        throw new Exception(result.optString("error", "ساخت لینک آپلود ناموفق بود"));
+                    }
+
+                    String signedUrl = result.optString("uploadUrl", "");
+                    String path = result.optString("path", "");
+                    String token = result.optString("token", "");
+                    if (signedUrl.isEmpty() || path.isEmpty() || token.isEmpty()) {
+                        throw new Exception("اطلاعات لینک آپلود ناقص است");
+                    }
+
+                    HttpURLConnection upload = (HttpURLConnection) new URL(signedUrl).openConnection();
+                    upload.setRequestMethod("PUT");
+                    upload.setDoOutput(true);
+                    upload.setConnectTimeout(30000);
+                    upload.setReadTimeout(120000);
+                    upload.setRequestProperty("Content-Type", "video/mp4");
+                    upload.setRequestProperty("x-upsert", "false");
+                    upload.setChunkedStreamingMode(8192);
+                    try (InputStream in = getContentResolver().openInputStream(uri);
+                         OutputStream out = upload.getOutputStream()) {
+                        if (in == null) throw new Exception("فایل ویدیو قابل خواندن نیست");
+                        byte[] chunk = new byte[8192];
+                        int count;
+                        long total = 0;
+                        while ((count = in.read(chunk)) != -1) {
+                            total += count;
+                            if (total > MAX_STORY_VIDEO_BYTES) {
+                                throw new Exception("حجم ویدیو بیشتر از ۲۰ مگابایت است");
+                            }
+                            out.write(chunk, 0, count);
+                        }
+                        out.flush();
+                    }
+                    int uploadCode = upload.getResponseCode();
+                    if (uploadCode < 200 || uploadCode >= 300) {
+                        throw new Exception("بارگذاری ویدیو ناموفق بود (HTTP " + uploadCode + ")");
+                    }
+                    upload.disconnect();
+
+                    String publicUrl = SUPABASE_URL
+                            + "/storage/v1/object/public/experience_videos/"
+                            + path.replace(" ", "%20");
+                    runOnUiThread(() ->
+                            callback.onSuccess(publicUrl, path, checkedSize, checkedDuration));
+                } catch (Exception e) {
+                    String message = e.getMessage() == null ? "خطا در آپلود ویدیو" : e.getMessage();
+                    runOnUiThread(() -> callback.onError(message));
+                } finally {
+                    if (connection != null) connection.disconnect();
+                }
+            }).start();
+        }).addOnFailureListener(e -> callback.onError(text("دریافت توکن Firebase ناموفق بود")));
     }
 
     private void publishTextStory(String value) {
@@ -1035,22 +1347,103 @@ public class ExperienceListActivity extends Activity {
             loadStories();
             return;
         }
+
         String uid = story.getString("userId");
+        final String storyOwner = uid == null ? "" : uid;
         String body = firstNonEmpty(story.getString("text"), "");
-        String title = text("داستان");
-        if (uid != null) {
-            db.collection("users").document(uid).get().addOnSuccessListener(user -> {
-                String name = firstNonEmpty(user.getString("name"), user.getString("username"), text("کاربر"));
-                TextView content = new TextView(this);
-                content.setText(body + "\n\n" + text("این داستان پس از ۲۴ ساعت ناپدید می‌شود."));
-                content.setTextSize(18);
-                content.setTextColor(Color.rgb(20, 48, 65));
-                content.setGravity(Gravity.CENTER);
-                content.setPadding(dp(22), dp(28), dp(22), dp(28));
-                new AlertDialog.Builder(this).setTitle(name + " · " + title).setView(content)
-                        .setPositiveButton(text("بستن"), null).show();
+        String mediaType = firstNonEmpty(story.getString("mediaType"), "text");
+        String mediaUrl = firstNonEmpty(story.getString("mediaUrl"), "");
+        String myId = auth.getCurrentUser() == null ? "" : auth.getCurrentUser().getUid();
+
+        LinearLayout viewer = new LinearLayout(this);
+        viewer.setOrientation(LinearLayout.VERTICAL);
+        viewer.setGravity(Gravity.CENTER);
+        viewer.setPadding(dp(12), dp(12), dp(12), dp(12));
+        viewer.setBackgroundColor(Color.rgb(18, 24, 32));
+
+        if ("image".equals(mediaType) && !mediaUrl.isEmpty()) {
+            ImageView image = new ImageView(this);
+            image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            viewer.addView(image, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(390)));
+            loadExperienceImage(mediaUrl, image);
+        } else if ("video".equals(mediaType) && !mediaUrl.isEmpty()) {
+            VideoView video = new VideoView(this);
+            viewer.addView(video, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(390)));
+            video.setVideoURI(Uri.parse(mediaUrl));
+            MediaController controls = new MediaController(this);
+            controls.setAnchorView(video);
+            video.setMediaController(controls);
+            video.setOnPreparedListener(mp -> {
+                mp.setLooping(true);
+                video.start();
+            });
+            video.setOnErrorListener((mp, what, extra) -> {
+                Toast.makeText(this, text("پخش ویدیو ممکن نشد."), Toast.LENGTH_SHORT).show();
+                return true;
             });
         }
+
+        TextView caption = new TextView(this);
+        caption.setText(body.isEmpty() ? "" : body);
+        caption.setTextColor(Color.WHITE);
+        caption.setTextSize(16);
+        caption.setGravity(Gravity.CENTER);
+        caption.setPadding(dp(12), dp(14), dp(12), dp(14));
+        viewer.addView(caption);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle(text("داستان"))
+                .setView(viewer)
+                .setPositiveButton(text("بستن"), null);
+
+        if (!myId.isEmpty() && myId.equals(storyOwner)) {
+            builder.setNeutralButton(text("ویرایش"), (dialog, which) -> editStory(story, body));
+            builder.setNegativeButton(text("حذف"), (dialog, which) -> confirmDeleteStory(story));
+        }
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+        if (!storyOwner.isEmpty()) {
+            db.collection("users").document(storyOwner).get().addOnSuccessListener(user -> {
+                String ownerName = firstNonEmpty(user.getString("name"),
+                        user.getString("username"), user.getString("displayName"), text("کاربر"));
+                dialog.setTitle(ownerName + " · " + text("داستان"));
+            });
+        }
+    }
+
+    private void editStory(DocumentSnapshot story, String oldText) {
+        EditText input = new EditText(this);
+        input.setText(oldText);
+        input.setMinLines(3);
+        input.setMaxLines(7);
+        input.setGravity(Gravity.TOP | Gravity.RIGHT);
+        input.setPadding(dp(14), dp(12), dp(14), dp(12));
+        new AlertDialog.Builder(this).setTitle(text("ویرایش داستان")).setView(input)
+                .setNegativeButton(text("لغو"), null)
+                .setPositiveButton(text("ذخیره"), (d, w) -> {
+                    String value = input.getText().toString().trim();
+                    String mediaType = firstNonEmpty(story.getString("mediaType"), "text");
+                    if (value.isEmpty() || value.length() > 2000) {
+                        Toast.makeText(this, text("متن داستان خالی یا بیش از حد طولانی است."), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    story.getReference().update("text", value)
+                            .addOnSuccessListener(v -> { Toast.makeText(this, text("داستان ویرایش شد."), Toast.LENGTH_SHORT).show(); loadStories(); })
+                            .addOnFailureListener(e -> Toast.makeText(this, text("ویرایش داستان ناموفق بود: ") + e.getMessage(), Toast.LENGTH_LONG).show());
+                }).show();
+    }
+
+    private void confirmDeleteStory(DocumentSnapshot story) {
+        new AlertDialog.Builder(this).setTitle(text("حذف داستان"))
+                .setMessage(text("آیا از حذف این داستان مطمئن هستید؟"))
+                .setNegativeButton(text("لغو"), null)
+                .setPositiveButton(text("حذف"), (d, w) -> story.getReference().delete()
+                        .addOnSuccessListener(v -> { Toast.makeText(this, text("داستان حذف شد."), Toast.LENGTH_SHORT).show(); loadStories(); })
+                        .addOnFailureListener(e -> Toast.makeText(this, text("حذف داستان ناموفق بود: ") + e.getMessage(), Toast.LENGTH_LONG).show()))
+                .show();
     }
 
     private void loadFriends() {
@@ -1106,7 +1499,13 @@ public class ExperienceListActivity extends Activity {
             circle.setStroke(dp(2), Color.rgb(18, 130, 137));
             avatar.setBackground(circle);
             avatar.setClipToOutline(true);
-            item.addView(avatar, new LinearLayout.LayoutParams(dp(54), dp(54)));
+            FrameLayout avatarFrame = new FrameLayout(this);
+            avatarFrame.addView(avatar, new FrameLayout.LayoutParams(dp(54), dp(54), Gravity.CENTER));
+            View onlineDot = makeOnlineDot(false);
+            FrameLayout.LayoutParams friendDotParams = new FrameLayout.LayoutParams(dp(13), dp(13), Gravity.BOTTOM | Gravity.RIGHT);
+            friendDotParams.setMargins(0, 0, dp(1), dp(1));
+            avatarFrame.addView(onlineDot, friendDotParams);
+            item.addView(avatarFrame, new LinearLayout.LayoutParams(dp(58), dp(58)));
             TextView name = new TextView(this);
             name.setText(text("کاربر"));
             name.setTextSize(11);
@@ -1123,6 +1522,8 @@ public class ExperienceListActivity extends Activity {
                 String photo = firstNonEmpty(user.getString("photoUrl"), user.getString("profilePhoto"), user.getString("profilePhotoUrl"), user.getString("photo"), "");
                 name.setText(displayName);
                 if (!photo.isEmpty()) loadProfileImage(photo, avatar);
+                boolean online = Boolean.TRUE.equals(user.getBoolean("isOnline")) || Boolean.TRUE.equals(user.getBoolean("online"));
+                setOnlineDot(onlineDot, online);
                 View.OnClickListener open = v -> showPublicProfile(uid, displayName, photo);
                 item.setOnClickListener(open);
             });
@@ -1158,7 +1559,13 @@ public class ExperienceListActivity extends Activity {
         avatarBackground.setStroke(dp(2), Color.rgb(12, 91, 120));
         avatar.setBackground(avatarBackground);
         avatar.setClipToOutline(true);
-        profileCard.addView(avatar, new LinearLayout.LayoutParams(dp(52), dp(52))); // آواتار بالای صفحه حدود ۱۰٪ کوچک‌تر
+        FrameLayout myAvatarFrame = new FrameLayout(this);
+        myAvatarFrame.addView(avatar, new FrameLayout.LayoutParams(dp(52), dp(52), Gravity.CENTER));
+        View myOnlineDot = makeOnlineDot(false);
+        FrameLayout.LayoutParams myDotParams = new FrameLayout.LayoutParams(dp(13), dp(13),
+                Gravity.BOTTOM | Gravity.RIGHT);
+        myAvatarFrame.addView(myOnlineDot, myDotParams);
+        profileCard.addView(myAvatarFrame, new LinearLayout.LayoutParams(dp(56), dp(56)));
 
         LinearLayout nameColumn = new LinearLayout(this);
         nameColumn.setOrientation(LinearLayout.VERTICAL);
@@ -1220,6 +1627,9 @@ public class ExperienceListActivity extends Activity {
                         if (!photoUrl.isEmpty()) {
                             loadProfileImage(photoUrl, avatar);
                         }
+                        boolean myOnline = Boolean.TRUE.equals(userDocument.getBoolean("isOnline"))
+                                || Boolean.TRUE.equals(userDocument.getBoolean("online"));
+                        setOnlineDot(myOnlineDot, myOnline);
 
                         View.OnClickListener openMyProfile =
                                 v -> showPublicProfile(uid, name, photoUrl);
@@ -1232,10 +1642,58 @@ public class ExperienceListActivity extends Activity {
         return profileCard;
     }
 
+    // دکمه انتشار جدا از فید؛ فرم فقط هنگام انتخاب کاربر باز می‌شود.
+    private View buildPublishEntryButton() {
+        LinearLayout entry = new LinearLayout(this);
+        entry.setOrientation(LinearLayout.HORIZONTAL);
+        entry.setGravity(Gravity.CENTER_VERTICAL);
+        entry.setPadding(dp(14), dp(10), dp(14), dp(10));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.WHITE);
+        bg.setCornerRadius(dp(18));
+        bg.setStroke(dp(1), Color.rgb(211, 229, 234));
+        entry.setBackground(bg);
+        entry.setElevation(dp(2));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMargins(0, 0, 0, dp(10));
+        entry.setLayoutParams(params);
+
+        TextView prompt = new TextView(this);
+        prompt.setText(text("تجربه‌ای برای شریک‌سازی داری؟"));
+        prompt.setTextSize(14);
+        prompt.setTextColor(Color.rgb(83, 105, 116));
+        prompt.setPadding(dp(8), 0, dp(8), 0);
+        entry.addView(prompt, new LinearLayout.LayoutParams(0, dp(44), 1));
+
+        TextView action = new TextView(this);
+        action.setText(text("＋ انتشار تجربه"));
+        action.setTextSize(14);
+        action.setTypeface(Typeface.DEFAULT_BOLD);
+        action.setTextColor(Color.WHITE);
+        action.setGravity(Gravity.CENTER);
+        action.setPadding(dp(14), dp(10), dp(14), dp(10));
+        GradientDrawable actionBg = new GradientDrawable();
+        actionBg.setColor(Color.rgb(12, 91, 120));
+        actionBg.setCornerRadius(dp(14));
+        action.setBackground(actionBg);
+        entry.addView(action);
+        entry.setOnClickListener(v -> {
+            LinearLayout form = buildPublishForm();
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setTitle(text("انتشار تجربه جدید"))
+                    .setView(form)
+                    .setNegativeButton(text("بستن"), null)
+                    .create();
+            dialog.show();
+        });
+        return entry;
+    }
+
     private LinearLayout buildPublishForm() {
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
-        form.setPadding(dp(16), dp(15), dp(16), dp(16));
+        form.setPadding(dp(12), dp(10), dp(12), dp(12));
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(Color.WHITE);
         bg.setCornerRadius(dp(20));
@@ -1278,16 +1736,24 @@ public class ExperienceListActivity extends Activity {
         previewParams.setMargins(0, 0, 0, dp(10));
         form.addView(imagePreview, previewParams);
 
+        chooseImageButton.setText(text("🖼 انتخاب عکس یا ویدیو"));
         chooseImageButton.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("image/*");
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            try {
-                startActivityForResult(Intent.createChooser(intent, text("انتخاب عکس تجربه")),
-                        REQUEST_PICK_EXPERIENCE_IMAGE);
-            } catch (Exception e) {
-                Toast.makeText(this, text("باز کردن گالری ممکن نشد"), Toast.LENGTH_SHORT).show();
-            }
+            new AlertDialog.Builder(this)
+                    .setTitle(text("انتخاب رسانه تجربه"))
+                    .setItems(new String[]{text("انتخاب عکس"), text("انتخاب ویدیوی MP4 (حداکثر ۶۰ ثانیه)")},
+                            (dialog, which) -> {
+                                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                                if (which == 0) {
+                                    intent.setType("image/*");
+                                    startActivityForResult(Intent.createChooser(intent, text("انتخاب عکس تجربه")),
+                                            REQUEST_PICK_EXPERIENCE_IMAGE);
+                                } else {
+                                    intent.setType("video/mp4");
+                                    startActivityForResult(Intent.createChooser(intent, text("انتخاب ویدیوی تجربه")),
+                                            REQUEST_PICK_EXPERIENCE_VIDEO);
+                                }
+                            }).show();
         });
 
         experienceTitleField = new EditText(this);
@@ -1300,11 +1766,11 @@ public class ExperienceListActivity extends Activity {
         experienceTextField = new EditText(this);
         experienceTextField.setTextSize(16);
         experienceTextField.setGravity(Gravity.TOP | Gravity.RIGHT);
-        experienceTextField.setMinLines(5);
+        experienceTextField.setMinLines(4);
         experienceTextField.setHint(text("تجربه خود را با دیگران شریک کنید..."));
         experienceTextField.setPadding(dp(12), dp(12), dp(12), dp(12));
         LinearLayout.LayoutParams bodyParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(150));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(125));
         bodyParams.setMargins(0, dp(10), 0, dp(10));
         form.addView(experienceTextField, bodyParams);
 
@@ -1369,11 +1835,25 @@ public class ExperienceListActivity extends Activity {
 
     private void publishInlineExperience(FirebaseUser user, String titleText,
                                          String experience, String contentKey) {
-        if (selectedImageUri != null) {
+        if (selectedVideoUri != null) {
+            publishButton.setText(text("⏳ در حال بارگذاری ویدیو..."));
+            uploadStoryVideo(selectedVideoUri, new VideoUploadCallback() {
+                @Override public void onSuccess(String videoUrl, String path, long size, int duration) {
+                    saveInlineExperience(user, titleText, experience, contentKey,
+                            null, videoUrl, path, size, duration);
+                }
+                @Override public void onError(String error) {
+                    resetPublishButton();
+                    Toast.makeText(ExperienceListActivity.this,
+                            text("بارگذاری ویدیو ناموفق بود: ") + error, Toast.LENGTH_LONG).show();
+                }
+            });
+        } else if (selectedImageUri != null) {
             publishButton.setText(text("⏳ در حال بارگذاری عکس..."));
             uploadExperienceImage(selectedImageUri, new ImageUploadCallback() {
                 @Override public void onSuccess(String imageUrl) {
-                    saveInlineExperience(user, titleText, experience, contentKey, imageUrl);
+                    saveInlineExperience(user, titleText, experience, contentKey,
+                            imageUrl, null, null, 0L, 0);
                 }
                 @Override public void onError(String error) {
                     resetPublishButton();
@@ -1382,12 +1862,14 @@ public class ExperienceListActivity extends Activity {
                 }
             });
         } else {
-            saveInlineExperience(user, titleText, experience, contentKey, null);
+            saveInlineExperience(user, titleText, experience, contentKey,
+                    null, null, null, 0L, 0);
         }
     }
 
     private void saveInlineExperience(FirebaseUser user, String titleText,
-                                      String experience, String contentKey, String imageUrl) {
+                                      String experience, String contentKey, String imageUrl,
+                                      String videoUrl, String videoPath, long mediaSize, int duration) {
         Map<String, Object> data = new java.util.HashMap<>();
         data.put("title", titleText);
         data.put("text", experience);
@@ -1396,15 +1878,27 @@ public class ExperienceListActivity extends Activity {
         data.put("contentKey", contentKey);
         data.put("likesCount", 0L);
         data.put("timestamp", FieldValue.serverTimestamp());
-        if (imageUrl != null && !imageUrl.trim().isEmpty()) data.put("imageUrl", imageUrl);
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            data.put("imageUrl", imageUrl);
+            data.put("mediaType", "image");
+        }
+        if (videoUrl != null && !videoUrl.trim().isEmpty()) {
+            data.put("videoUrl", videoUrl);
+            data.put("videoPath", videoPath);
+            data.put("videoBucket", "experience_videos");
+            data.put("mediaType", "video");
+            data.put("mediaSizeBytes", mediaSize);
+            data.put("durationSeconds", duration);
+        }
         db.collection("experiences").add(data)
                 .addOnSuccessListener(ref -> {
                     experienceTitleField.setText("");
                     experienceTextField.setText("");
                     selectedImageUri = null;
+                    selectedVideoUri = null;
                     imagePreview.setImageDrawable(null);
                     imagePreview.setVisibility(View.GONE);
-                    imageStatus.setText(text("عکس انتخاب نشده است"));
+                    imageStatus.setText(text("عکس یا ویدیو انتخاب نشده است"));
                     resetPublishButton();
                     Toast.makeText(this, text("تجربه با موفقیت منتشر شد! 🎉"), Toast.LENGTH_LONG).show();
                     loadExperiences();
@@ -1704,11 +2198,31 @@ public class ExperienceListActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
+        if (requestCode == REQUEST_PICK_STORY_MEDIA
+                && resultCode == RESULT_OK
+                && data != null
+                && data.getData() != null) {
+            selectedStoryMediaUri = data.getData();
+            showStoryMediaCaptionDialog(selectedStoryMediaUri, selectedStoryMediaType);
+            return;
+        }
+
+        if (requestCode == REQUEST_PICK_EXPERIENCE_VIDEO
+                && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            selectedVideoUri = data.getData();
+            selectedImageUri = null;
+            imagePreview.setImageDrawable(null);
+            imagePreview.setVisibility(View.GONE);
+            imageStatus.setText(text("ویدیو انتخاب شد؛ حداکثر ۲۰ مگابایت و ۶۰ ثانیه؛ هنگام انتشار بارگذاری می‌شود"));
+            return;
+        }
+
         if (requestCode == REQUEST_PICK_EXPERIENCE_IMAGE
                 && resultCode == RESULT_OK
                 && data != null
                 && data.getData() != null) {
             selectedImageUri = data.getData();
+            selectedVideoUri = null;
             try {
                 imagePreview.setImageURI(selectedImageUri);
                 imagePreview.setVisibility(View.VISIBLE);
@@ -1824,10 +2338,10 @@ public class ExperienceListActivity extends Activity {
         );
 
         card.setPadding(
-                dp(16),
-                dp(15),
-                dp(16),
-                dp(10)
+                dp(12),
+                dp(11),
+                dp(12),
+                dp(8)
         );
 
         GradientDrawable cardBackground =
@@ -1838,7 +2352,7 @@ public class ExperienceListActivity extends Activity {
         );
 
         cardBackground.setCornerRadius(
-                dp(20)
+                dp(16)
         );
 
         cardBackground.setStroke(
@@ -1862,9 +2376,9 @@ public class ExperienceListActivity extends Activity {
 
         cardParams.setMargins(
                 dp(1),
-                dp(3),
+                dp(2),
                 dp(1),
-                dp(15)
+                dp(10)
         );
 
         card.setLayoutParams(cardParams);
@@ -1966,19 +2480,19 @@ public class ExperienceListActivity extends Activity {
                 0
         );
 
-        authorRow.addView(
-                profileImage,
-                new LinearLayout.LayoutParams(
-                        dp(52),
-                        dp(52)
-                )
-        );
+        FrameLayout postAvatarFrame = new FrameLayout(this);
+        postAvatarFrame.addView(profileImage, new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER));
+        View postOnlineDot = makeOnlineDot(false);
+        FrameLayout.LayoutParams postDotParams = new FrameLayout.LayoutParams(dp(12), dp(12), Gravity.BOTTOM | Gravity.RIGHT);
+        postDotParams.setMargins(0, 0, 0, 0);
+        postAvatarFrame.addView(postOnlineDot, postDotParams);
+        authorRow.addView(postAvatarFrame, new LinearLayout.LayoutParams(dp(46), dp(46)));
 
         authorRow.addView(
                 authorName,
                 new LinearLayout.LayoutParams(
                         0,
-                        dp(52),
+                        dp(44),
                         1
                 )
         );
@@ -1998,6 +2512,11 @@ public class ExperienceListActivity extends Activity {
                     profileImage,
                     text("کاربر")
             );
+            db.collection("users").document(userId).get().addOnSuccessListener(userStatus -> {
+                boolean online = Boolean.TRUE.equals(userStatus.getBoolean("isOnline"))
+                        || Boolean.TRUE.equals(userStatus.getBoolean("online"));
+                setOnlineDot(postOnlineDot, online);
+            });
         }
 
         // =====================================================
@@ -2030,7 +2549,7 @@ public class ExperienceListActivity extends Activity {
                 experienceTitle
         );
 
-        experienceTitleView.setTextSize(19);
+        experienceTitleView.setTextSize(17);
 
         experienceTitleView.setTextColor(
                 Color.rgb(7, 60, 82)
@@ -2074,7 +2593,7 @@ public class ExperienceListActivity extends Activity {
                 experienceText
         );
 
-        experience.setTextSize(17);
+        experience.setTextSize(15);
 
         experience.setTextColor(
                 Color.rgb(45, 50, 53)
@@ -2107,6 +2626,38 @@ public class ExperienceListActivity extends Activity {
                 experience
         );
 
+        // ویدیوی پست اصلی تجربه (در صورت وجود)
+        String experienceVideoUrl = document.getString("videoUrl");
+        if (experienceVideoUrl != null && !experienceVideoUrl.trim().isEmpty()) {
+            FrameLayout videoFrame = new FrameLayout(this);
+            LinearLayout.LayoutParams videoFrameParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(285));
+            videoFrameParams.setMargins(dp(8), dp(8), dp(8), dp(14));
+            VideoView experienceVideo = new VideoView(this);
+            experienceVideo.setVideoPath(experienceVideoUrl);
+            videoFrame.addView(experienceVideo, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            MediaController videoController = new MediaController(this);
+            videoController.setAnchorView(experienceVideo);
+            experienceVideo.setMediaController(videoController);
+            TextView playHint = new TextView(this);
+            playHint.setText("▶");
+            playHint.setTextSize(30);
+            playHint.setTextColor(Color.WHITE);
+            playHint.setGravity(Gravity.CENTER);
+            playHint.setBackgroundColor(0x55000000);
+            videoFrame.addView(playHint, new FrameLayout.LayoutParams(
+                    dp(58), dp(58), Gravity.CENTER));
+            playHint.setOnClickListener(v -> {
+                playHint.setVisibility(View.GONE);
+                experienceVideo.start();
+            });
+            experienceVideo.setOnPreparedListener(mp -> {
+                mp.setOnCompletionListener(done -> playHint.setVisibility(View.VISIBLE));
+            });
+            card.addView(videoFrame, videoFrameParams);
+        }
+
         // تصویر تجربه (در صورت وجود)
         if (experienceImageUrl != null && !experienceImageUrl.trim().isEmpty()) {
             ImageView experienceImage = new ImageView(this);
@@ -2115,7 +2666,7 @@ public class ExperienceListActivity extends Activity {
             experienceImage.setAdjustViewBounds(false);
             experienceImage.setBackgroundColor(Color.TRANSPARENT);
             LinearLayout.LayoutParams experienceImageParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(420));
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(285));
             experienceImageParams.setMargins(dp(8), dp(8), dp(8), dp(14));
             card.addView(experienceImage, experienceImageParams);
             loadExperienceImage(experienceImageUrl, experienceImage);
@@ -2350,8 +2901,12 @@ public class ExperienceListActivity extends Activity {
             saveBg.setCornerRadius(dp(14));
             saveImageButton.setBackground(saveBg);
             LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
-            saveParams.setMargins(0, dp(8), 0, dp(8));
+                    ViewGroup.LayoutParams.WRAP_CONTENT, dp(38));
+            saveParams.gravity = Gravity.CENTER_HORIZONTAL;
+            saveParams.setMargins(0, dp(6), 0, dp(6));
+            saveImageButton.setTextSize(12);
+            saveImageButton.setPadding(dp(13), 0, dp(13), 0);
+            saveImageButton.setCompoundDrawablePadding(dp(4));
             box.addView(saveImageButton, saveParams);
             saveImageButton.setOnClickListener(v -> saveExperienceImage(imageUrl));
         }
@@ -3301,16 +3856,20 @@ public class ExperienceListActivity extends Activity {
         return "";
     }
 
-    // پروفایل عمومی؛ فقط اطلاعات قابل نمایش از سند users خوانده می‌شود.
+    // پروفایل عمومی با چیدمان نزدیک به TikTok؛ اطلاعات خصوصی نمایش داده نمی‌شود.
     private void showPublicProfile(String uid, String fallbackName, String photoUrl) {
         if (uid == null || uid.trim().isEmpty()) return;
         db.collection("users").document(uid).get().addOnSuccessListener(d -> {
-            String name = firstNonEmpty(d.getString("name"), d.getString("username"), d.getString("displayName"), fallbackName);
+            String name = firstNonEmpty(d.getString("name"), d.getString("displayName"), d.getString("username"), fallbackName, text("کاربر"));
+            String username = firstNonEmpty(d.getString("username"), d.getString("userName"));
+            if (!username.isEmpty() && !username.startsWith("@")) username = "@" + username;
             String photo = firstNonEmpty(d.getString("photoUrl"), d.getString("profilePhoto"), d.getString("profilePhotoUrl"), d.getString("photo"), photoUrl, "");
+            String myId = auth.getCurrentUser() == null ? "" : auth.getCurrentUser().getUid();
+
             LinearLayout panel = new LinearLayout(this);
             panel.setOrientation(LinearLayout.VERTICAL);
             panel.setGravity(Gravity.CENTER_HORIZONTAL);
-            panel.setPadding(dp(18), dp(14), dp(18), dp(12));
+            panel.setPadding(dp(18), dp(16), dp(18), dp(14));
             ScrollView scroll = new ScrollView(this);
             scroll.addView(panel);
 
@@ -3322,7 +3881,7 @@ public class ExperienceListActivity extends Activity {
             avatarBg.setStroke(dp(2), Color.rgb(12, 91, 120));
             avatar.setBackground(avatarBg);
             avatar.setClipToOutline(true);
-            panel.addView(avatar, new LinearLayout.LayoutParams(dp(150), dp(150)));
+            panel.addView(avatar, new LinearLayout.LayoutParams(dp(112), dp(112)));
             if (!photo.isEmpty()) loadProfileImage(photo, avatar);
             avatar.setOnClickListener(v -> showLargeProfilePhoto(photo, name));
 
@@ -3330,29 +3889,57 @@ public class ExperienceListActivity extends Activity {
             nameView.setText(name);
             nameView.setTextSize(21);
             nameView.setTypeface(null, Typeface.BOLD);
-            nameView.setTextColor(Color.rgb(8, 65, 90));
+            nameView.setTextColor(Color.rgb(8, 35, 45));
             nameView.setGravity(Gravity.CENTER);
-            nameView.setPadding(0, dp(12), 0, dp(8));
+            nameView.setPadding(0, dp(9), 0, dp(2));
             panel.addView(nameView, new LinearLayout.LayoutParams(-1, -2));
 
-            addProfileDetail(panel, text("نام کاربری"), firstNonEmpty(d.getString("username"), d.getString("userName")));
-            addProfileDetail(panel, text("درباره من"), firstNonEmpty(d.getString("bio"), d.getString("about"), d.getString("description")));
-            addProfileDetail(panel, text("شهر"), firstNonEmpty(d.getString("city"), d.getString("location")));
-            addProfileDetail(panel, text("تخصص"), firstNonEmpty(d.getString("profession"), d.getString("job"), d.getString("occupation")));
+            TextView usernameView = new TextView(this);
+            usernameView.setText(username.isEmpty() ? "@" + uid.substring(0, Math.min(8, uid.length())) : username);
+            usernameView.setTextSize(14);
+            usernameView.setTextColor(Color.rgb(125, 130, 135));
+            usernameView.setGravity(Gravity.CENTER);
+            panel.addView(usernameView, new LinearLayout.LayoutParams(-1, -2));
 
-            String myId = auth.getCurrentUser() == null ? "" : auth.getCurrentUser().getUid();
-            if (!uid.equals(myId) && !myId.isEmpty()) {
+            LinearLayout stats = new LinearLayout(this);
+            stats.setOrientation(LinearLayout.HORIZONTAL);
+            stats.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams statsParams = new LinearLayout.LayoutParams(-1, -2);
+            statsParams.setMargins(0, dp(18), 0, dp(14));
+            panel.addView(stats, statsParams);
+            TextView followersStat = createProfileStat(text("دنبال‌کننده"), "…");
+            TextView followingStat = createProfileStat(text("دنبال می‌کند"), "…");
+            stats.addView(followersStat, new LinearLayout.LayoutParams(0, -2, 1));
+            stats.addView(followingStat, new LinearLayout.LayoutParams(0, -2, 1));
+            loadProfileCount(uid, "followers", followersStat);
+            loadProfileCount(uid, "following", followingStat);
+            followersStat.setOnClickListener(v -> showFollowList(uid, "followers", text("دنبال‌کنندگان")));
+            followingStat.setOnClickListener(v -> showFollowList(uid, "following", text("دنبال می‌کند")));
+
+            if (!myId.isEmpty() && !uid.equals(myId)) {
+                Button followButton = new Button(this);
+                followButton.setAllCaps(false);
+                followButton.setText(text("دنبال کردن"));
+                panel.addView(followButton, new LinearLayout.LayoutParams(-1, dp(44)));
+                refreshFollowButton(uid, myId, followButton);
+                followButton.setOnClickListener(v -> toggleFollow(uid, myId, followButton, followersStat));
                 Button friendButton = new Button(this);
                 friendButton.setText(text("🤝 درخواست دوستی"));
-                panel.addView(friendButton, new LinearLayout.LayoutParams(-1, -2));
+                friendButton.setAllCaps(false);
+                panel.addView(friendButton, new LinearLayout.LayoutParams(-1, dp(42)));
                 setFriendButtonState(uid, friendButton);
                 friendButton.setOnClickListener(v -> sendFriendRequest(uid, friendButton));
             } else if (uid.equals(myId)) {
                 Button incoming = new Button(this);
                 incoming.setText(text("📩 درخواست‌های دوستی"));
+                incoming.setAllCaps(false);
                 panel.addView(incoming, new LinearLayout.LayoutParams(-1, -2));
                 incoming.setOnClickListener(v -> showIncomingFriendRequests());
             }
+
+            addProfileDetail(panel, text("درباره من"), firstNonEmpty(d.getString("bio"), d.getString("about"), d.getString("description")));
+            addProfileDetail(panel, text("شهر"), firstNonEmpty(d.getString("city"), d.getString("location")));
+            addProfileDetail(panel, text("تخصص"), firstNonEmpty(d.getString("profession"), d.getString("job"), d.getString("occupation")));
 
             new AlertDialog.Builder(this)
                     .setTitle(text("پروفایل کاربر"))
@@ -3360,6 +3947,96 @@ public class ExperienceListActivity extends Activity {
                     .setPositiveButton(text("بستن"), null)
                     .show();
         }).addOnFailureListener(e -> Toast.makeText(this, text("پروفایل بارگذاری نشد؛ اتصال را بررسی کنید."), Toast.LENGTH_SHORT).show());
+    }
+
+    private TextView createProfileStat(String label, String count) {
+        TextView view = new TextView(this);
+        view.setText(count + "\n" + label);
+        view.setTextSize(13);
+        view.setTextColor(Color.rgb(75, 80, 85));
+        view.setGravity(Gravity.CENTER);
+        view.setPadding(dp(5), dp(5), dp(5), dp(5));
+        return view;
+    }
+
+    private void loadProfileCount(String uid, String collection, TextView target) {
+        db.collection("users").document(uid).collection(collection).get()
+                .addOnSuccessListener(q -> {
+                    String label = collection.equals("followers") ? text("دنبال‌کننده") : text("دنبال می‌کند");
+                    target.setText(q.size() + "\n" + label);
+                });
+    }
+
+    private void refreshFollowButton(String targetUid, String myId, Button button) {
+        db.collection("users").document(myId).collection("following").document(targetUid).get()
+                .addOnSuccessListener(doc -> {
+                    button.setText(doc.exists() ? text("دنبال می‌کنید") : text("دنبال کردن"));
+                    button.setEnabled(true);
+                }).addOnFailureListener(e -> button.setEnabled(true));
+    }
+
+    private void toggleFollow(String targetUid, String myId, Button button, TextView followersStat) {
+        if (targetUid.equals(myId)) return;
+        DocumentReference following = db.collection("users").document(myId).collection("following").document(targetUid);
+        DocumentReference follower = db.collection("users").document(targetUid).collection("followers").document(myId);
+        button.setEnabled(false);
+        following.get().addOnSuccessListener(existing -> {
+            com.google.firebase.firestore.WriteBatch batch = db.batch();
+            if (existing.exists()) {
+                batch.delete(following);
+                batch.delete(follower);
+            } else {
+                Map<String, Object> followingData = new HashMap<>();
+                followingData.put("userId", targetUid);
+                followingData.put("createdAt", FieldValue.serverTimestamp());
+                Map<String, Object> followerData = new HashMap<>();
+                followerData.put("userId", myId);
+                followerData.put("createdAt", FieldValue.serverTimestamp());
+                batch.set(following, followingData);
+                batch.set(follower, followerData);
+            }
+            batch.commit().addOnSuccessListener(v -> {
+                refreshFollowButton(targetUid, myId, button);
+                loadProfileCount(targetUid, "followers", followersStat);
+            }).addOnFailureListener(e -> {
+                button.setEnabled(true);
+                Toast.makeText(this, text("عملیات دنبال‌کردن انجام نشد؛ قوانین فایربیس را بررسی کنید."), Toast.LENGTH_LONG).show();
+            });
+        }).addOnFailureListener(e -> {
+            button.setEnabled(true);
+            Toast.makeText(this, text("وضعیت دنبال‌کردن دریافت نشد."), Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void showFollowList(String profileUid, String collection, String title) {
+        db.collection("users").document(profileUid).collection(collection).get()
+                .addOnSuccessListener(snapshot -> {
+                    LinearLayout rows = new LinearLayout(this);
+                    rows.setOrientation(LinearLayout.VERTICAL);
+                    ScrollView scroll = new ScrollView(this);
+                    scroll.addView(rows);
+                    if (snapshot.isEmpty()) {
+                        TextView empty = new TextView(this);
+                        empty.setText(text("هنوز کسی در این فهرست نیست."));
+                        empty.setPadding(dp(18), dp(18), dp(18), dp(18));
+                        rows.addView(empty);
+                    }
+                    for (DocumentSnapshot item : snapshot.getDocuments()) {
+                        String otherUid = item.getString("userId");
+                        if (otherUid == null || otherUid.trim().isEmpty()) continue;
+                        TextView row = new TextView(this);
+                        row.setText(text("در حال دریافت نام کاربر…"));
+                        row.setTextSize(15);
+                        row.setPadding(dp(14), dp(12), dp(14), dp(12));
+                        rows.addView(row);
+                        db.collection("users").document(otherUid).get().addOnSuccessListener(user -> {
+                            String n = firstNonEmpty(user.getString("name"), user.getString("displayName"), user.getString("username"), text("کاربر"));
+                            row.setText(n);
+                            row.setOnClickListener(v -> showPublicProfile(otherUid, n, firstNonEmpty(user.getString("photoUrl"), user.getString("profilePhoto"))));
+                        });
+                    }
+                    new AlertDialog.Builder(this).setTitle(title).setView(scroll).setPositiveButton(text("بستن"), null).show();
+                }).addOnFailureListener(e -> Toast.makeText(this, text("فهرست بارگذاری نشد."), Toast.LENGTH_SHORT).show());
     }
 
     private void addProfileDetail(LinearLayout panel, String label, String value) {
