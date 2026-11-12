@@ -74,6 +74,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -147,6 +148,32 @@ public class ChatActivity extends Activity {
     private MediaRecorder recorder;
     private MediaPlayer player;
     private String audioPath;
+    private TextView recordingStatusText;
+    private long recordingStartedAt = 0L;
+    private final android.os.Handler voiceUiHandler = new android.os.Handler();
+    private final android.os.Handler audioPlaybackHandler = new android.os.Handler();
+    private TextView activePlaybackStatus;
+    private boolean scrollToBottomOnNextRender = false;
+    private final Runnable recordingTicker = new Runnable() {
+        @Override public void run() {
+            if (!recording || recordingStatusText == null) return;
+            long elapsed = Math.max(0L, System.currentTimeMillis() - recordingStartedAt);
+            recordingStatusText.setText(formatAudioTime(elapsed) );
+            voiceUiHandler.postDelayed(this, 250L);
+        }
+    };
+    private final Runnable playbackTicker = new Runnable() {
+        @Override public void run() {
+            if (player == null || activePlaybackStatus == null) return;
+            try {
+                int position = player.getCurrentPosition();
+                int duration = player.getDuration();
+                activePlaybackStatus.setText(formatAudioTime(position) + " / " + formatAudioTime(duration));
+                if (player.isPlaying()) audioPlaybackHandler.postDelayed(this, 250L);
+            } catch (Exception ignored) {
+            }
+        }
+    };
 
     private boolean incomingInitialSnapshotReady = false;
     private final Set<String> soundedIncomingMessageIds = new HashSet<>();
@@ -1467,7 +1494,7 @@ titleText =
                                                 );
 
                                                 ImageView avatar =
-                                                        avatarView(60);
+                                                        avatarView(52);
 
                                                 if (photo != null &&
                                                         !photo.trim().isEmpty()) {
@@ -2602,6 +2629,20 @@ if (uid.equals(myId)) {
                     ).show()
             );
 }
+    private String formatAudioTime(long millis) {
+        long totalSeconds = Math.max(0L, millis / 1000L);
+        long minutes = totalSeconds / 60L;
+        long seconds = totalSeconds % 60L;
+        return String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds);
+    }
+
+    private void scrollMessagesToBottom() {
+        if (messagesScroll == null) return;
+        messagesScroll.post(() -> {
+            if (messagesScroll != null) messagesScroll.fullScroll(View.FOCUS_DOWN);
+        });
+    }
+
     private void openPrivateChat(
             String uid,
             String name,
@@ -2623,6 +2664,7 @@ receiverPhotoUrl = photoUrl;
         dirtyMessageIds.clear();
 
         insideChat = true;
+        scrollToBottomOnNextRender = true;
         blocked = false;
 
         createChatScreen(photoUrl);
@@ -2655,9 +2697,8 @@ receiverPhotoUrl = photoUrl;
                 LinearLayout.VERTICAL
         );
 
-        root.setBackgroundColor(
-                Color.rgb(235, 248, 250)
-        );
+        // Near-white conversation canvas, matching the requested premium assistant style.
+        root.setBackgroundColor(Color.rgb(248, 251, 253));
 
         LinearLayout header =
                 new LinearLayout(this);
@@ -2673,9 +2714,11 @@ receiverPhotoUrl = photoUrl;
                 dp(6)
         );
 
-        header.setBackgroundColor(
-                themeColor
+        GradientDrawable headerBackground = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{Color.rgb(5, 48, 72), Color.rgb(8, 83, 108)}
         );
+        header.setBackground(headerBackground);
 
         ImageButton back =
                 new ImageButton(this);
@@ -2701,7 +2744,7 @@ receiverPhotoUrl = photoUrl;
         );
 
         headerAvatar =
-                avatarView(68);
+                avatarView(56);
 
         headerAvatar.setClipToOutline(true);
 
@@ -2819,10 +2862,10 @@ header.addView(chatMenu,
         );
 
         messagesContainer.setPadding(
-                dp(8),
-                dp(8),
-                dp(8),
-                dp(8)
+                dp(10),
+                dp(12),
+                dp(10),
+                dp(12)
         );
 
         messagesScroll.addView(
@@ -2846,15 +2889,13 @@ header.addView(chatMenu,
         );
 
         bottom.setPadding(
-                dp(6),
-                dp(5),
-                dp(6),
-                dp(5)
+                dp(10),
+                dp(8),
+                dp(10),
+                dp(8)
         );
-
-        bottom.setBackgroundColor(
-                Color.WHITE
-        );
+        bottom.setBackgroundColor(Color.WHITE);
+        bottom.setElevation(dp(5));
 
         mediaButton =
                 new ImageButton(this);
@@ -2863,9 +2904,10 @@ header.addView(chatMenu,
                 android.R.drawable.ic_menu_gallery
         );
 
-        mediaButton.setBackgroundColor(
-                Color.TRANSPARENT
-        );
+        mediaButton.setBackground(bg(Color.rgb(239, 247, 249), 18));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mediaButton.setImageTintList(android.content.res.ColorStateList.valueOf(Color.rgb(8, 65, 91)));
+        }
 
         mediaButton.setPadding(
                 dp(5),
@@ -2895,6 +2937,12 @@ header.addView(chatMenu,
 
         messageInput.setTextSize(15);
         messageInput.setSingleLine(false);
+        messageInput.setTextColor(Color.rgb(35, 53, 64));
+        messageInput.setHintTextColor(Color.rgb(137, 151, 160));
+        messageInput.setPadding(dp(16), dp(11), dp(16), dp(11));
+        GradientDrawable inputBackground = bg(Color.rgb(249, 252, 253), 28);
+        inputBackground.setStroke(dp(1), Color.rgb(210, 229, 235));
+        messageInput.setBackground(inputBackground);
 
         bottom.addView(
                 messageInput,
@@ -2912,9 +2960,10 @@ header.addView(chatMenu,
                 android.R.drawable.ic_btn_speak_now
         );
 
-        voiceButton.setBackgroundColor(
-                Color.TRANSPARENT
-        );
+        voiceButton.setBackground(bg(Color.rgb(239, 247, 249), 18));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            voiceButton.setImageTintList(android.content.res.ColorStateList.valueOf(Color.rgb(8, 65, 91)));
+        }
 
         voiceButton.setPadding(
                 dp(5),
@@ -2926,6 +2975,14 @@ header.addView(chatMenu,
         voiceButton.setOnClickListener(
                 v -> toggleRecording()
         );
+
+        recordingStatusText = new TextView(this);
+        recordingStatusText.setText("00:00");
+        recordingStatusText.setTextSize(11);
+        recordingStatusText.setTextColor(Color.rgb(8, 65, 91));
+        recordingStatusText.setGravity(Gravity.CENTER);
+        recordingStatusText.setVisibility(View.GONE);
+        bottom.addView(recordingStatusText, new LinearLayout.LayoutParams(dp(42), dp(48)));
 
         bottom.addView(
                 voiceButton,
@@ -2942,9 +2999,15 @@ header.addView(chatMenu,
                 android.R.drawable.ic_menu_send
         );
 
-        sendButton.setBackgroundColor(
-                Color.TRANSPARENT
-        );
+        GradientDrawable sendBackground = new GradientDrawable();
+        sendBackground.setShape(GradientDrawable.OVAL);
+        sendBackground.setColor(Color.rgb(5, 55, 79));
+        sendButton.setBackground(sendBackground);
+        sendButton.setPadding(dp(13), dp(13), dp(13), dp(13));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            sendButton.setImageTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));
+            sendButton.setElevation(dp(3));
+        }
 
         sendButton.setOnClickListener(
                 v -> sendText()
@@ -3331,8 +3394,10 @@ header.addView(chatMenu,
                 });
                 return;
             }
+            final boolean forceBottom = scrollToBottomOnNextRender;
+            scrollToBottomOnNextRender = false;
             messagesScroll.post(() -> {
-                if (wasAtBottom) {
+                if (forceBottom || wasAtBottom) {
                     messagesScroll.fullScroll(View.FOCUS_DOWN);
                 } else {
                     messagesScroll.scrollTo(0, oldScrollY);
@@ -3510,14 +3575,15 @@ header.addView(chatMenu,
                         : Color.DKGRAY
         );
 
-        bubble.setBackground(
-                bg(
-                        mine
-                                ? themeColor
-                                : Color.WHITE,
-                        16
-                )
+        GradientDrawable bubbleBackground = bg(
+                mine ? Color.rgb(8, 65, 91) : Color.WHITE,
+                18
         );
+        if (!mine) {
+            bubbleBackground.setStroke(dp(1), Color.rgb(220, 233, 239));
+        }
+        bubble.setBackground(bubbleBackground);
+        bubble.setElevation(dp(1));
 
         bubble.setPadding(
                 dp(13),
@@ -3678,9 +3744,19 @@ header.addView(chatMenu,
         );
 
         play.setTextSize(14);
+        play.setTextColor(Color.rgb(8, 65, 91));
+        GradientDrawable audioButtonBackground = bg(Color.rgb(239, 247, 249), 16);
+        audioButtonBackground.setStroke(dp(1), Color.rgb(210, 229, 235));
+        play.setBackground(audioButtonBackground);
+        play.setAllCaps(false);
+
+        TextView playbackStatus = new TextView(this);
+        playbackStatus.setText("00:00 / --:--");
+        playbackStatus.setTextSize(11);
+        playbackStatus.setGravity(Gravity.CENTER);
 
         play.setOnClickListener(
-                v -> playAudio(url)
+                v -> playAudio(url, playbackStatus)
         );
 
         boolean mine =
@@ -3708,6 +3784,11 @@ header.addView(chatMenu,
                 play,
                 p
         );
+        LinearLayout.LayoutParams playbackStatusParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        playbackStatusParams.gravity = p.gravity;
+        playbackStatusParams.setMargins(dp(8), 0, dp(8), dp(3));
+        currentMessageContainer.addView(playbackStatus, playbackStatusParams);
 
         if (mine) {
             addReceiptView(read, p.gravity);
@@ -4014,20 +4095,20 @@ header.addView(chatMenu,
                 new ArrayList<>()
         );
 
-        db.collection("messages")
-                .add(data)
-                .addOnSuccessListener(x -> {
-                    messageInput.setText("");
-                    sendChatNotification(x.getId());
-                })
-                .addOnFailureListener(
-                        e ->
-                                Toast.makeText(
-                                        this,
-                                        tr("خطا در ارسال پیام"),
-                                        Toast.LENGTH_SHORT
-                                ).show()
-                );
+        // شناسه از پیش ساخته‌شده مانع ایجاد پیام تکراری در تلاش مجدد می‌شود.
+        final String messageId = UUID.randomUUID().toString();
+        final String textBeingSent = message;
+        messageInput.setText("");
+        scrollMessagesToBottom();
+        db.collection("messages").document(messageId)
+                .set(data)
+                .addOnSuccessListener(x -> sendChatNotification(messageId))
+                .addOnFailureListener(e -> {
+                    if (messageInput != null && messageInput.getText().toString().trim().isEmpty()) {
+                        messageInput.setText(textBeingSent);
+                    }
+                    Toast.makeText(this, tr("خطا در ارسال پیام"), Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void updateTyping(
@@ -4308,6 +4389,8 @@ header.addView(chatMenu,
         }
 
         recording = false;
+        voiceUiHandler.removeCallbacks(recordingTicker);
+        if (recordingStatusText != null) recordingStatusText.setVisibility(View.GONE);
 
         try {
             if (recorder != null) {
@@ -4715,6 +4798,13 @@ header.addView(chatMenu,
             recorder.start();
 
             recording = true;
+            recordingStartedAt = System.currentTimeMillis();
+            if (recordingStatusText != null) {
+                recordingStatusText.setText("00:00");
+                recordingStatusText.setVisibility(View.VISIBLE);
+            }
+            voiceUiHandler.removeCallbacks(recordingTicker);
+            voiceUiHandler.post(recordingTicker);
 
             voiceButton.setImageResource(
                     android.R.drawable.ic_media_pause
@@ -4729,6 +4819,8 @@ header.addView(chatMenu,
         } catch (Exception e) {
 
             recording = false;
+            voiceUiHandler.removeCallbacks(recordingTicker);
+            if (recordingStatusText != null) recordingStatusText.setVisibility(View.GONE);
 
             Toast.makeText(
                     this,
@@ -4743,38 +4835,36 @@ header.addView(chatMenu,
 
     private void stopRecording() {
 
-        if (recorder == null) {
-            return;
-        }
+        if (recorder == null) return;
 
+        final String completedAudioPath = audioPath;
+        boolean stopSucceeded = false;
         try {
-
             recorder.stop();
-
+            stopSucceeded = true;
         } catch (Exception e) {
-
+            Log.w("CHAT_VOICE", "Recorder could not finalize audio", e);
+        } finally {
             recording = false;
-
+            voiceUiHandler.removeCallbacks(recordingTicker);
             releaseRecorder();
+            if (recordingStatusText != null) recordingStatusText.setVisibility(View.GONE);
+            if (voiceButton != null) voiceButton.setImageResource(android.R.drawable.ic_btn_speak_now);
+        }
 
-            Toast.makeText(
-                    this,
-                    tr("ضبط صدا ناموفق بود"),
-                    Toast.LENGTH_SHORT
-            ).show();
-
+        if (!stopSucceeded || completedAudioPath == null) {
+            Toast.makeText(this, tr("ضبط صدا ناموفق بود؛ لطفاً دوباره تلاش کنید"), Toast.LENGTH_SHORT).show();
             return;
         }
 
-        recording = false;
+        File finishedFile = new File(completedAudioPath);
+        if (!finishedFile.isFile() || finishedFile.length() < 128L) {
+            try { if (finishedFile.exists()) finishedFile.delete(); } catch (Exception ignored) {}
+            Toast.makeText(this, tr("فایل صوتی خالی یا ناقص است؛ کمی بیشتر ضبط کنید"), Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        releaseRecorder();
-
-        voiceButton.setImageResource(
-                android.R.drawable.ic_btn_speak_now
-        );
-
-        uploadVoice(audioPath);
+        uploadVoice(completedAudioPath);
     }
 
     private void releaseRecorder() {
@@ -4984,9 +5074,7 @@ header.addView(chatMenu,
                 );
     }
 
-    private void playAudio(
-            String url
-    ) {
+    private void playAudio(String url, TextView statusView) {
         if (url == null || url.trim().isEmpty()) return;
         MEDIA_EXECUTOR.execute(() -> {
             File audio = getCachedMediaFile(url, "audio");
@@ -4999,26 +5087,46 @@ header.addView(chatMenu,
                     Toast.makeText(this, tr("صدا هنوز ذخیره نشده است؛ پس از وصل‌شدن اینترنت دوباره تلاش کنید"), Toast.LENGTH_SHORT).show();
                     return;
                 }
-                playCachedAudio(readyAudio.getAbsolutePath());
+                playCachedAudio(readyAudio.getAbsolutePath(), statusView);
             });
         });
     }
 
-    private void playCachedAudio(String localPath) {
+    private void playCachedAudio(String localPath, TextView statusView) {
         try {
+            audioPlaybackHandler.removeCallbacks(playbackTicker);
             if (player != null) {
+                try { player.stop(); } catch (Exception ignored) {}
                 player.release();
                 player = null;
             }
+            activePlaybackStatus = statusView;
             player = new MediaPlayer();
             player.setDataSource(localPath);
-            player.setOnPreparedListener(MediaPlayer::start);
+            player.setOnPreparedListener(mp -> {
+                int duration = mp.getDuration();
+                if (activePlaybackStatus != null) {
+                    activePlaybackStatus.setText("00:00 / " + formatAudioTime(duration));
+                }
+                mp.start();
+                audioPlaybackHandler.post(playbackTicker);
+            });
             player.setOnCompletionListener(mp -> {
+                audioPlaybackHandler.removeCallbacks(playbackTicker);
+                if (activePlaybackStatus != null) {
+                    try { activePlaybackStatus.setText(formatAudioTime(mp.getDuration()) + " / " + formatAudioTime(mp.getDuration())); }
+                    catch (Exception ignored) {}
+                }
                 mp.release();
                 if (player == mp) player = null;
+                activePlaybackStatus = null;
             });
             player.setOnErrorListener((mp, what, extra) -> {
+                audioPlaybackHandler.removeCallbacks(playbackTicker);
                 Toast.makeText(this, tr("پخش صدا ناموفق بود"), Toast.LENGTH_SHORT).show();
+                mp.release();
+                if (player == mp) player = null;
+                activePlaybackStatus = null;
                 return true;
             });
             player.prepareAsync();
@@ -6202,6 +6310,8 @@ private void showChatCachedImage(File file, ImageView imageView, Object expected
     protected void onDestroy() {
 
         removeChatListeners();
+        voiceUiHandler.removeCallbacks(recordingTicker);
+        audioPlaybackHandler.removeCallbacks(playbackTicker);
         if (unreadMessagesListener != null) {
             unreadMessagesListener.remove();
             unreadMessagesListener = null;
@@ -6684,4 +6794,4 @@ private void blockCurrentUser() {
 
 }
     
-                                     }
+    }
