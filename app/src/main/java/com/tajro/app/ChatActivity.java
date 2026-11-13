@@ -1081,9 +1081,8 @@ public class ChatActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        root.setBackgroundColor(
-                Color.rgb(235, 248, 250)
-        );
+        // تم تیره حرفه‌ای برای فهرست گفتگوها
+        root.setBackgroundColor(Color.rgb(10, 15, 24));
 
         LinearLayout header =
                 new LinearLayout(this);
@@ -1099,9 +1098,7 @@ public class ChatActivity extends Activity {
                 dp(8)
         );
 
-        header.setBackgroundColor(
-                themeColor
-        );
+        header.setBackgroundColor(Color.rgb(18, 29, 45));
 
         myHeaderProfileButton =
                 new ImageButton(this);
@@ -1273,11 +1270,9 @@ titleText =
         );
 
         usersContainer.setPadding(
-                dp(8),
-                dp(4),
-                dp(8),
-                dp(12)
+                dp(10), dp(8), dp(10), dp(16)
         );
+        usersContainer.setBackgroundColor(Color.rgb(10, 15, 24));
 
         scroll.addView(usersContainer);
 
@@ -1957,9 +1952,12 @@ titleText =
                 dp(8)
         );
 
-        card.setBackground(
-                bg(Color.WHITE, 18)
-        );
+        GradientDrawable userCardBackground = new GradientDrawable();
+        userCardBackground.setColor(Color.rgb(24, 35, 51));
+        userCardBackground.setCornerRadius(dp(17));
+        userCardBackground.setStroke(dp(1), Color.rgb(43, 59, 79));
+        card.setBackground(userCardBackground);
+        card.setElevation(dp(2));
 
         LinearLayout.LayoutParams cp =
                 new LinearLayout.LayoutParams(
@@ -1977,7 +1975,7 @@ titleText =
         card.setLayoutParams(cp);
 
         ImageView avatar =
-                avatarView(84);
+                avatarView(58);
 
         if (finalPhotoUrl != null &&
                 !finalPhotoUrl.isEmpty()) {
@@ -2019,10 +2017,8 @@ titleText =
                         17
                 );
 
-        nameText.setTypeface(
-                null,
-                Typeface.BOLD
-        );
+        nameText.setTypeface(null, Typeface.BOLD);
+        nameText.setTextColor(Color.rgb(239, 244, 250));
 
         LinearLayout statusRow =
                 new LinearLayout(this);
@@ -2042,7 +2038,7 @@ titleText =
 
         dot.setTextColor(
                 online != null && online
-                        ? Color.rgb(0, 160, 70)
+                        ? Color.rgb(55, 205, 135)
                         : Color.GRAY
         );
 
@@ -2055,6 +2051,7 @@ titleText =
             userStatusText = " " + formatLastSeen(lastSeen);
         }
         TextView status = text(userStatusText, 12);
+        status.setTextColor(Color.rgb(157, 173, 193));
 
         if (finalBlockedUser) {
             dot.setText("🚫");
@@ -2136,8 +2133,8 @@ private void showUserMenu(
             "حذف از فهرست چت"
     };
 
-    new AlertDialog.Builder(this)
-            .setTitle(name)
+    AlertDialog userActionsDialog = new AlertDialog.Builder(this)
+            .setTitle("مدیریت گفتگو")
             .setItems(
                     items,
                     (d, which) -> {
@@ -2309,7 +2306,24 @@ private void showUserMenu(
                         }
                     }
             )
-            .show();
+            .create();
+    userActionsDialog.setOnShowListener(dialog -> {
+        if (userActionsDialog.getWindow() != null) {
+            userActionsDialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(Color.rgb(20, 31, 47)));
+        }
+        int titleId = getResources().getIdentifier("alertTitle", "id", "android");
+        TextView titleView = userActionsDialog.findViewById(titleId);
+        if (titleView != null) titleView.setTextColor(Color.WHITE);
+        android.widget.ListView list = userActionsDialog.getListView();
+        if (list != null) {
+            list.setBackgroundColor(Color.rgb(20, 31, 47));
+            list.setDivider(new android.graphics.drawable.ColorDrawable(Color.rgb(48, 64, 84)));
+            list.setDividerHeight(dp(1));
+            list.setSelector(android.R.drawable.list_selector_background);
+        }
+    });
+    userActionsDialog.show();
 }
 
     private void showMyProfile() {
@@ -2894,7 +2908,7 @@ header.addView(chatMenu,
                 dp(10),
                 dp(8)
         );
-        bottom.setBackgroundColor(Color.WHITE);
+        bottom.setBackgroundColor(Color.rgb(18, 29, 45));
         bottom.setElevation(dp(5));
 
         mediaButton =
@@ -2904,7 +2918,7 @@ header.addView(chatMenu,
                 android.R.drawable.ic_menu_gallery
         );
 
-        mediaButton.setBackground(bg(Color.rgb(239, 247, 249), 18));
+        mediaButton.setBackground(bg(Color.rgb(31, 45, 63), 18));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             mediaButton.setImageTintList(android.content.res.ColorStateList.valueOf(Color.rgb(8, 65, 91)));
         }
@@ -3576,7 +3590,7 @@ header.addView(chatMenu,
         );
 
         GradientDrawable bubbleBackground = bg(
-                mine ? Color.rgb(8, 65, 91) : Color.WHITE,
+                mine ? Color.rgb(8, 65, 91) : Color.rgb(34, 46, 63),
                 18
         );
         if (!mine) {
@@ -3653,7 +3667,7 @@ header.addView(chatMenu,
         );
 
         image.setBackground(
-                bg(Color.WHITE, 14)
+                bg(Color.rgb(34, 46, 63), 14)
         );
 
         image.setPadding(
@@ -3745,7 +3759,7 @@ header.addView(chatMenu,
 
         play.setTextSize(14);
         play.setTextColor(Color.rgb(8, 65, 91));
-        GradientDrawable audioButtonBackground = bg(Color.rgb(239, 247, 249), 16);
+        GradientDrawable audioButtonBackground = bg(Color.rgb(31, 45, 63), 16);
         audioButtonBackground.setStroke(dp(1), Color.rgb(210, 229, 235));
         play.setBackground(audioButtonBackground);
         play.setAllCaps(false);
@@ -6794,4 +6808,4 @@ private void blockCurrentUser() {
 
 }
     
-    }
+                    }
