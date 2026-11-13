@@ -34,7 +34,11 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 import android.widget.EditText;
 import android.widget.VideoView;
+import android.widget.ProgressBar;
 import android.widget.MediaController;
+import android.widget.SeekBar;
+import android.os.Handler;
+import android.os.Looper;
 import android.media.MediaMetadataRetriever;
 import android.app.Dialog;
 import org.json.JSONObject;
@@ -125,6 +129,7 @@ public class ExperienceListActivity extends Activity {
 
     // فرم انتشار تجربه در همین صفحه
     private boolean isPublishing = false;
+    private Dialog activeOperationDialog;
     private static final int REQUEST_PICK_EXPERIENCE_IMAGE = 7314;
     private static final int REQUEST_PICK_EXPERIENCE_VIDEO = 7316;
     private static final String EXPERIENCE_UPLOAD_FUNCTION =
@@ -715,6 +720,52 @@ public class ExperienceListActivity extends Activity {
         headerParams.setMargins(0, 0, 0, dp(18));
         header.setLayoutParams(headerParams);
 
+        // آیکن کوچک تنظیمات در گوشه بالای راست سربرگ تجربه‌ها
+        LinearLayout headerTopRow = new LinearLayout(this);
+        headerTopRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerTopRow.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        headerTopRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        headerTopRow.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(30)));
+
+        TextView settingsIcon = new TextView(this);
+        settingsIcon.setText("⚙");
+        settingsIcon.setTextSize(19);
+        settingsIcon.setTextColor(Color.argb(225, 255, 255, 255));
+        settingsIcon.setGravity(Gravity.CENTER);
+        settingsIcon.setPadding(0, 0, 0, dp(1));
+        GradientDrawable settingsIconBg = new GradientDrawable();
+        settingsIconBg.setShape(GradientDrawable.OVAL);
+        settingsIconBg.setColor(Color.argb(34, 255, 255, 255));
+        settingsIconBg.setStroke(dp(1), Color.argb(105, 255, 255, 255));
+        settingsIcon.setBackground(settingsIconBg);
+        settingsIcon.setElevation(dp(1));
+        settingsIcon.setContentDescription(text("تنظیمات"));
+        headerTopRow.addView(settingsIcon, new LinearLayout.LayoutParams(dp(32), dp(32)));
+        settingsIcon.setOnClickListener(v -> showExperienceSettingsPanel());
+
+        // دکمه چت خصوصی در کنار تنظیمات، داخل سربرگ تجربه‌ها
+        TextView chatIcon = new TextView(this);
+        chatIcon.setText("💬");
+        chatIcon.setTextSize(16);
+        chatIcon.setGravity(Gravity.CENTER);
+        chatIcon.setTextColor(Color.WHITE);
+        GradientDrawable chatIconBg = new GradientDrawable();
+        chatIconBg.setShape(GradientDrawable.OVAL);
+        chatIconBg.setColor(Color.argb(34, 255, 255, 255));
+        chatIconBg.setStroke(dp(1), Color.argb(105, 255, 255, 255));
+        chatIcon.setBackground(chatIconBg);
+        chatIcon.setElevation(dp(1));
+        chatIcon.setContentDescription(text("چت خصوصی"));
+        LinearLayout.LayoutParams chatIconParams = new LinearLayout.LayoutParams(dp(32), dp(32));
+        chatIconParams.setMargins(dp(8), 0, 0, 0);
+        headerTopRow.addView(chatIcon, chatIconParams);
+        chatIcon.setOnClickListener(v -> {
+            Intent chatIntent = new Intent(ExperienceListActivity.this, ChatActivity.class);
+            startActivity(chatIntent);
+        });
+        header.addView(headerTopRow);
+
         TextView emblem = new TextView(this);
         emblem.setText("📖  💡");
         emblem.setTextSize(7.25f); // آیکن بالای صفحه ۵۰٪ کوچک‌تر
@@ -830,6 +881,109 @@ public class ExperienceListActivity extends Activity {
         loadExperiences();
         loadStories();
         loadFriends();
+    }
+
+    // پنل تنظیمات سبک که بدون ترک صفحه تجربه‌ها باز می‌شود.
+    private void showExperienceSettingsPanel() {
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(18), dp(18), dp(18), dp(14));
+        panel.setBackgroundColor(Color.WHITE);
+
+        TextView heading = new TextView(this);
+        heading.setText("⚙  " + text("تنظیمات تجربه‌ها"));
+        heading.setTextSize(19);
+        heading.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        heading.setTextColor(Color.rgb(14, 55, 82));
+        heading.setGravity(Gravity.CENTER_VERTICAL);
+        heading.setPadding(dp(4), dp(4), dp(4), dp(14));
+        panel.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+
+        AlertDialog settingsDialog = new AlertDialog.Builder(this).setView(panel).create();
+
+        View refreshItem = createSettingsPanelItem("⟳", text("تازه‌سازی تجربه‌ها"),
+                text("بارگذاری دوباره پست‌ها، داستان‌ها و دوستان"));
+        panel.addView(refreshItem, new LinearLayout.LayoutParams(-1, dp(66)));
+        refreshItem.setOnClickListener(v -> {
+            settingsDialog.dismiss();
+            if (!refreshBatchActive) {
+                isPullRefreshing = true;
+                if (pullRefreshIndicator != null) {
+                    pullRefreshIndicator.setVisibility(View.VISIBLE);
+                    pullRefreshIndicator.setText(text("در حال تازه‌سازی..."));
+                }
+                refreshAllSections();
+            }
+        });
+
+        View profileItem = createSettingsPanelItem("◉", text("پروفایل من"),
+                text("مشاهده مشخصات و واکنش‌های دریافتی"));
+        panel.addView(profileItem, new LinearLayout.LayoutParams(-1, dp(66)));
+        profileItem.setOnClickListener(v -> {
+            settingsDialog.dismiss();
+            FirebaseUser user = auth.getCurrentUser();
+            if (user != null) showPublicProfile(user.getUid(),
+                    firstNonEmpty(user.getDisplayName(), text("کاربر")), "");
+        });
+
+        View accountItem = createSettingsPanelItem("☷", text("حساب و تنظیمات حساب"),
+                text("مدیریت حساب کاربری"));
+        panel.addView(accountItem, new LinearLayout.LayoutParams(-1, dp(66)));
+        accountItem.setOnClickListener(v -> {
+            settingsDialog.dismiss();
+            startActivity(new Intent(ExperienceListActivity.this, AccountActivity.class));
+        });
+
+        settingsDialog.setButton(AlertDialog.BUTTON_NEGATIVE, text("بستن"),
+                (dialog, which) -> dialog.dismiss());
+        settingsDialog.show();
+        if (settingsDialog.getWindow() != null) {
+            settingsDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            settingsDialog.getWindow().setLayout(
+                    Math.min(getResources().getDisplayMetrics().widthPixels - dp(36), dp(380)),
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+    }
+
+    private View createSettingsPanelItem(String icon, String title, String subtitle) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), dp(7), dp(12), dp(7));
+        GradientDrawable rowBg = new GradientDrawable();
+        rowBg.setColor(Color.rgb(246, 250, 252));
+        rowBg.setCornerRadius(dp(14));
+        rowBg.setStroke(dp(1), Color.rgb(225, 235, 240));
+        row.setBackground(rowBg);
+
+        TextView iconView = new TextView(this);
+        iconView.setText(icon);
+        iconView.setTextSize(22);
+        iconView.setTextColor(Color.rgb(18, 105, 130));
+        iconView.setGravity(Gravity.CENTER);
+        row.addView(iconView, new LinearLayout.LayoutParams(dp(42), dp(42)));
+
+        LinearLayout labels = new LinearLayout(this);
+        labels.setOrientation(LinearLayout.VERTICAL);
+        labels.setPadding(dp(10), 0, 0, 0);
+        TextView titleView = new TextView(this);
+        titleView.setText(title);
+        titleView.setTextSize(14);
+        titleView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        titleView.setTextColor(Color.rgb(24, 54, 70));
+        labels.addView(titleView);
+        TextView subtitleView = new TextView(this);
+        subtitleView.setText(subtitle);
+        subtitleView.setTextSize(11);
+        subtitleView.setTextColor(Color.rgb(115, 130, 140));
+        labels.addView(subtitleView);
+        row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView arrow = new TextView(this);
+        arrow.setText("‹");
+        arrow.setTextSize(23);
+        arrow.setTextColor(Color.rgb(130, 150, 160));
+        row.addView(arrow);
+        return row;
     }
 
     private View buildSectionHeading(String titleText, String emoji) {
@@ -1012,7 +1166,7 @@ public class ExperienceListActivity extends Activity {
                 String photo = firstNonEmpty(user.getString("photoUrl"), user.getString("profilePhoto"), user.getString("profilePhotoUrl"), user.getString("photo"), "");
                 authorName.setText(name);
                 if (!photo.isEmpty()) { fallback.setVisibility(View.GONE); loadProfileImage(photo, avatar); }
-                boolean online = Boolean.TRUE.equals(user.getBoolean("isOnline")) || Boolean.TRUE.equals(user.getBoolean("online"));
+                boolean online = isUserRecentlyOnline(user);
                 setOnlineDot(onlineDot, online);
                 tile.setContentDescription(name + "، " + storyText);
             });
@@ -1103,8 +1257,10 @@ public class ExperienceListActivity extends Activity {
     }
 
     private void publishMediaStory(Uri uri, String mediaType, String caption) {
+        showOperationProgress(text("در حال آماده‌سازی و انتشار داستان…"));
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
+            dismissOperationProgress();
             Toast.makeText(this, text("برای انتشار داستان ابتدا وارد حساب شوید."), Toast.LENGTH_SHORT).show();
             return;
         }
@@ -1114,6 +1270,7 @@ public class ExperienceListActivity extends Activity {
                     saveMediaStory(user.getUid(), caption, "image", mediaUrl, null, 0, 0);
                 }
                 @Override public void onError(String error) {
+                    dismissOperationProgress();
                     Toast.makeText(ExperienceListActivity.this,
                             text("بارگذاری عکس ناموفق بود: ") + error, Toast.LENGTH_LONG).show();
                 }
@@ -1124,6 +1281,7 @@ public class ExperienceListActivity extends Activity {
                     saveMediaStory(user.getUid(), caption, "video", mediaUrl, path, size, duration);
                 }
                 @Override public void onError(String error) {
+                    dismissOperationProgress();
                     Toast.makeText(ExperienceListActivity.this, error, Toast.LENGTH_LONG).show();
                 }
             });
@@ -1148,11 +1306,12 @@ public class ExperienceListActivity extends Activity {
         }
         db.collection("stories").add(story)
                 .addOnSuccessListener(ref -> {
+                    dismissOperationProgress();
                     Toast.makeText(this, text("داستان منتشر شد."), Toast.LENGTH_SHORT).show();
                     loadStories();
                 })
-                .addOnFailureListener(e -> Toast.makeText(this,
-                        text("انتشار داستان ناموفق بود: ") + e.getMessage(), Toast.LENGTH_LONG).show());
+                .addOnFailureListener(e -> { dismissOperationProgress(); Toast.makeText(this,
+                        text("انتشار داستان ناموفق بود: ") + e.getMessage(), Toast.LENGTH_LONG).show(); });
     }
 
     private interface VideoUploadCallback {
@@ -1329,12 +1488,15 @@ public class ExperienceListActivity extends Activity {
         story.put("createdAt", FieldValue.serverTimestamp());
         story.put("expiresAt", new Timestamp(new Date(safeExpiryMillis)));
 
+        showOperationProgress(text("در حال انتشار داستان…"));
         db.collection("stories").add(story)
                 .addOnSuccessListener(ref -> {
+                    dismissOperationProgress();
                     Toast.makeText(this, text("داستان منتشر شد."), Toast.LENGTH_SHORT).show();
                     loadStories();
                 })
                 .addOnFailureListener(e -> {
+                    dismissOperationProgress();
                     Log.e("TajrobehhaStories", "Story publish failed", e);
                     Toast.makeText(this, text("انتشار داستان ناموفق بود: ") + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
@@ -1440,9 +1602,12 @@ public class ExperienceListActivity extends Activity {
         new AlertDialog.Builder(this).setTitle(text("حذف داستان"))
                 .setMessage(text("آیا از حذف این داستان مطمئن هستید؟"))
                 .setNegativeButton(text("لغو"), null)
-                .setPositiveButton(text("حذف"), (d, w) -> story.getReference().delete()
-                        .addOnSuccessListener(v -> { Toast.makeText(this, text("داستان حذف شد."), Toast.LENGTH_SHORT).show(); loadStories(); })
-                        .addOnFailureListener(e -> Toast.makeText(this, text("حذف داستان ناموفق بود: ") + e.getMessage(), Toast.LENGTH_LONG).show()))
+                .setPositiveButton(text("حذف"), (d, w) -> {
+                    showOperationProgress(text("در حال حذف داستان…"));
+                    story.getReference().delete()
+                        .addOnSuccessListener(v -> { dismissOperationProgress(); Toast.makeText(this, text("داستان حذف شد."), Toast.LENGTH_SHORT).show(); loadStories(); })
+                        .addOnFailureListener(e -> { dismissOperationProgress(); Toast.makeText(this, text("حذف داستان ناموفق بود: ") + e.getMessage(), Toast.LENGTH_LONG).show(); });
+                })
                 .show();
     }
 
@@ -1522,13 +1687,67 @@ public class ExperienceListActivity extends Activity {
                 String photo = firstNonEmpty(user.getString("photoUrl"), user.getString("profilePhoto"), user.getString("profilePhotoUrl"), user.getString("photo"), "");
                 name.setText(displayName);
                 if (!photo.isEmpty()) loadProfileImage(photo, avatar);
-                boolean online = Boolean.TRUE.equals(user.getBoolean("isOnline")) || Boolean.TRUE.equals(user.getBoolean("online"));
+                boolean online = isUserRecentlyOnline(user);
                 setOnlineDot(onlineDot, online);
                 View.OnClickListener open = v -> showPublicProfile(uid, displayName, photo);
                 item.setOnClickListener(open);
             });
         }
         finishRefreshTask();
+    }
+
+    // نشانگر چرخشی مشترک برای عملیات انتشار، بارگذاری و حذف
+    private void showOperationProgress(String message) {
+        dismissOperationProgress();
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.HORIZONTAL);
+        content.setGravity(Gravity.CENTER_VERTICAL);
+        content.setPadding(dp(22), dp(18), dp(22), dp(18));
+        ProgressBar spinner = new ProgressBar(this);
+        content.addView(spinner, new LinearLayout.LayoutParams(dp(34), dp(34)));
+        TextView label = new TextView(this);
+        label.setText(message);
+        label.setTextSize(14);
+        label.setTextColor(Color.rgb(35, 55, 65));
+        label.setPadding(dp(14), 0, 0, 0);
+        content.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
+        activeOperationDialog = new Dialog(this);
+        activeOperationDialog.setContentView(content);
+        activeOperationDialog.setCancelable(false);
+        if (activeOperationDialog.getWindow() != null) {
+            activeOperationDialog.getWindow().setBackgroundDrawableResource(android.R.color.white);
+            activeOperationDialog.getWindow().setLayout(
+                    Math.min(getResources().getDisplayMetrics().widthPixels - dp(48), dp(340)),
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+        activeOperationDialog.show();
+        if (activeOperationDialog.getWindow() != null) {
+            activeOperationDialog.getWindow().setLayout(
+                    Math.min(getResources().getDisplayMetrics().widthPixels - dp(48), dp(340)),
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+    }
+
+    private void dismissOperationProgress() {
+        if (activeOperationDialog != null) {
+            try { if (activeOperationDialog.isShowing()) activeOperationDialog.dismiss(); }
+            catch (Exception ignored) { }
+            activeOperationDialog = null;
+        }
+    }
+
+    // وضعیت آنلاین فقط وقتی سبز می‌شود که پرچم آنلاین و آخرین ضربان تازه باشد.
+    private boolean isUserRecentlyOnline(DocumentSnapshot user) {
+        if (user == null) return false;
+        boolean onlineFlag = Boolean.TRUE.equals(user.getBoolean("isOnline"))
+                || Boolean.TRUE.equals(user.getBoolean("online"));
+        if (!onlineFlag) return false;
+        Timestamp seen = user.getTimestamp("lastSeen");
+        if (seen == null) seen = user.getTimestamp("lastActive");
+        if (seen == null) seen = user.getTimestamp("updatedAt");
+        if (seen == null) return false;
+        long age = System.currentTimeMillis() - seen.toDate().getTime();
+        return age >= -30000L && age <= 120000L;
     }
 
     // نمایش عکس و نام حساب فعلی در بالای فهرست تجربه‌ها
@@ -1627,8 +1846,7 @@ public class ExperienceListActivity extends Activity {
                         if (!photoUrl.isEmpty()) {
                             loadProfileImage(photoUrl, avatar);
                         }
-                        boolean myOnline = Boolean.TRUE.equals(userDocument.getBoolean("isOnline"))
-                                || Boolean.TRUE.equals(userDocument.getBoolean("online"));
+                        boolean myOnline = isUserRecentlyOnline(userDocument);
                         setOnlineDot(myOnlineDot, myOnline);
 
                         View.OnClickListener openMyProfile =
@@ -1814,6 +2032,7 @@ public class ExperienceListActivity extends Activity {
             return;
         }
         isPublishing = true;
+        showOperationProgress(text("در حال انتشار تجربه…"));
         publishButton.setEnabled(false);
         publishButton.setAlpha(0.6f);
         publishButton.setText(text("⏳ در حال بررسی..."));
@@ -1910,6 +2129,7 @@ public class ExperienceListActivity extends Activity {
     }
 
     private void resetPublishButton() {
+        dismissOperationProgress();
         isPublishing = false;
         if (publishButton != null) {
             publishButton.setEnabled(true);
@@ -2513,8 +2733,7 @@ public class ExperienceListActivity extends Activity {
                     text("کاربر")
             );
             db.collection("users").document(userId).get().addOnSuccessListener(userStatus -> {
-                boolean online = Boolean.TRUE.equals(userStatus.getBoolean("isOnline"))
-                        || Boolean.TRUE.equals(userStatus.getBoolean("online"));
+                boolean online = isUserRecentlyOnline(userStatus);
                 setOnlineDot(postOnlineDot, online);
             });
         }
@@ -2634,26 +2853,69 @@ public class ExperienceListActivity extends Activity {
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(285));
             videoFrameParams.setMargins(dp(8), dp(8), dp(8), dp(14));
             VideoView experienceVideo = new VideoView(this);
-            experienceVideo.setVideoPath(experienceVideoUrl);
             videoFrame.addView(experienceVideo, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            MediaController videoController = new MediaController(this);
-            videoController.setAnchorView(experienceVideo);
-            experienceVideo.setMediaController(videoController);
-            TextView playHint = new TextView(this);
-            playHint.setText("▶");
-            playHint.setTextSize(30);
-            playHint.setTextColor(Color.WHITE);
-            playHint.setGravity(Gravity.CENTER);
-            playHint.setBackgroundColor(0x55000000);
-            videoFrame.addView(playHint, new FrameLayout.LayoutParams(
-                    dp(58), dp(58), Gravity.CENTER));
-            playHint.setOnClickListener(v -> {
-                playHint.setVisibility(View.GONE);
-                experienceVideo.start();
+
+            LinearLayout videoControls = new LinearLayout(this);
+            videoControls.setOrientation(LinearLayout.VERTICAL);
+            videoControls.setPadding(dp(10), dp(5), dp(10), dp(5));
+            videoControls.setBackgroundColor(0x99000000);
+            FrameLayout.LayoutParams controlsParams = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                    Gravity.BOTTOM);
+            TextView playPause = new TextView(this);
+            playPause.setText("▶"); playPause.setTextColor(Color.WHITE);
+            playPause.setTextSize(18); playPause.setGravity(Gravity.CENTER);
+            SeekBar videoSeek = new SeekBar(this);
+            TextView videoTime = new TextView(this);
+            videoTime.setTextColor(Color.WHITE); videoTime.setTextSize(11);
+            videoTime.setGravity(Gravity.RIGHT);
+            LinearLayout controlsRow = new LinearLayout(this);
+            controlsRow.setGravity(Gravity.CENTER_VERTICAL);
+            controlsRow.addView(playPause, new LinearLayout.LayoutParams(dp(42), dp(34)));
+            controlsRow.addView(videoTime, new LinearLayout.LayoutParams(0, dp(30), 1));
+            videoControls.addView(videoSeek, new LinearLayout.LayoutParams(-1, dp(28)));
+            videoControls.addView(controlsRow);
+            videoFrame.addView(videoControls, controlsParams);
+
+            Handler videoHandler = new Handler(Looper.getMainLooper());
+            final boolean[] userSeeking = {false};
+            final Runnable[] progressUpdate = new Runnable[1];
+            progressUpdate[0] = () -> {
+                if (!experienceVideo.isPlaying() && experienceVideo.getCurrentPosition() <= 0) return;
+                int duration = experienceVideo.getDuration();
+                int position = experienceVideo.getCurrentPosition();
+                if (duration > 0) {
+                    videoSeek.setMax(duration);
+                    if (!userSeeking[0]) videoSeek.setProgress(position);
+                    videoTime.setText(formatVideoTime(position) + " / " + formatVideoTime(duration));
+                }
+                videoHandler.postDelayed(progressUpdate[0], 500);
+            };
+            videoSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                public void onStartTrackingTouch(SeekBar bar) { userSeeking[0] = true; }
+                public void onStopTrackingTouch(SeekBar bar) {
+                    experienceVideo.seekTo(bar.getProgress()); userSeeking[0] = false;
+                }
+                public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
+                    if (fromUser && experienceVideo.getDuration() > 0)
+                        videoTime.setText(formatVideoTime(value) + " / " + formatVideoTime(experienceVideo.getDuration()));
+                }
+            });
+            playPause.setOnClickListener(v -> {
+                if (experienceVideo.isPlaying()) { experienceVideo.pause(); playPause.setText("▶"); }
+                else { experienceVideo.start(); playPause.setText("Ⅱ"); videoHandler.post(progressUpdate[0]); }
             });
             experienceVideo.setOnPreparedListener(mp -> {
-                mp.setOnCompletionListener(done -> playHint.setVisibility(View.VISIBLE));
+                mp.setLooping(true);
+                videoSeek.setMax(experienceVideo.getDuration());
+                videoTime.setText("00:00 / " + formatVideoTime(experienceVideo.getDuration()));
+                experienceVideo.start(); playPause.setText("Ⅱ");
+                videoHandler.post(progressUpdate[0]);
+            });
+            experienceVideo.setOnErrorListener((mp, what, extra) -> {
+                Toast.makeText(ExperienceListActivity.this, text("پخش ویدیو ممکن نشد؛ آدرس یا فرمت فایل را بررسی کنید."), Toast.LENGTH_LONG).show();
+                playPause.setText("▶"); return true;
             });
             card.addView(videoFrame, videoFrameParams);
         }
@@ -2731,17 +2993,58 @@ public class ExperienceListActivity extends Activity {
             toggleLike(document, currentUserId, likeButton, likeCount);
         });
         likeButton.setOnLongClickListener(v -> {
-            new AlertDialog.Builder(ExperienceListActivity.this)
-                    .setTitle(text("واکنش خود را انتخاب کنید"))
-                    .setItems(new String[]{text("👍 لایک"), text("❤️ قلب")}, (dlg, which) -> {
-                        if (currentUserId == null) {
-                            Toast.makeText(ExperienceListActivity.this, text("برای لایک کردن وارد حساب شوید"), Toast.LENGTH_SHORT).show();
-                        } else if (which == 0) {
-                            toggleLike(document, currentUserId, likeButton, likeCount);
-                        } else {
-                            toggleHeart(document, currentUserId, likeButton, heartCount);
-                        }
-                    }).show();
+            if (currentUserId == null) {
+                Toast.makeText(ExperienceListActivity.this, text("برای لایک کردن وارد حساب شوید"), Toast.LENGTH_SHORT).show();
+                return true;
+            }
+            LinearLayout chooser = new LinearLayout(ExperienceListActivity.this);
+            chooser.setOrientation(LinearLayout.HORIZONTAL);
+            chooser.setGravity(Gravity.CENTER);
+            chooser.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+            chooser.setPadding(dp(16), dp(16), dp(16), dp(16));
+            GradientDrawable chooserBg = new GradientDrawable();
+            chooserBg.setColor(Color.WHITE);
+            chooserBg.setCornerRadius(dp(22));
+            chooserBg.setStroke(dp(1), Color.rgb(225, 233, 240));
+            chooser.setBackground(chooserBg);
+
+            TextView likeChoice = new TextView(ExperienceListActivity.this);
+            likeChoice.setText("👍  " + text("لایک"));
+            likeChoice.setTextSize(15);
+            likeChoice.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            likeChoice.setTextColor(Color.rgb(31, 105, 178));
+            likeChoice.setGravity(Gravity.CENTER);
+            likeChoice.setBackground(createReactionBackground(
+                    Color.rgb(235, 245, 255), Color.rgb(174, 211, 245)));
+
+            TextView heartChoice = new TextView(ExperienceListActivity.this);
+            heartChoice.setText("❤️  " + text("قلب"));
+            heartChoice.setTextSize(15);
+            heartChoice.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+            heartChoice.setTextColor(Color.rgb(190, 45, 72));
+            heartChoice.setGravity(Gravity.CENTER);
+            heartChoice.setBackground(createReactionBackground(
+                    Color.rgb(255, 239, 243), Color.rgb(246, 190, 203)));
+
+            LinearLayout.LayoutParams reactionChoiceParams =
+                    new LinearLayout.LayoutParams(0, dp(48), 1);
+            chooser.addView(likeChoice, reactionChoiceParams);
+            LinearLayout.LayoutParams heartParams =
+                    new LinearLayout.LayoutParams(0, dp(48), 1);
+            heartParams.setMargins(dp(10), 0, 0, 0);
+            chooser.addView(heartChoice, heartParams);
+
+            AlertDialog reactionDialog = new AlertDialog.Builder(ExperienceListActivity.this)
+                    .setView(chooser).create();
+            likeChoice.setOnClickListener(choice -> { reactionDialog.dismiss(); toggleLike(document, currentUserId, likeButton, likeCount); });
+            heartChoice.setOnClickListener(choice -> { reactionDialog.dismiss(); toggleHeart(document, currentUserId, likeButton, heartCount); });
+            reactionDialog.show();
+            if (reactionDialog.getWindow() != null) {
+                reactionDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+                reactionDialog.getWindow().setLayout(
+                        Math.min(getResources().getDisplayMetrics().widthPixels - dp(40), dp(340)),
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+            }
             return true;
         });
 
@@ -2958,15 +3261,21 @@ public class ExperienceListActivity extends Activity {
                             .setMessage(text("مطمئن هستید این تجربه حذف شود؟"))
                             .setNegativeButton(text("لغو"), null)
                             .setPositiveButton(text("حذف"), (confirm, choice) ->
-                                    db.collection("experiences").document(documentId).delete()
+                                    {
+                                        showOperationProgress(text("در حال حذف تجربه…"));
+                                        db.collection("experiences").document(documentId).delete()
                                             .addOnSuccessListener(unused -> {
+                                                dismissOperationProgress();
                                                 Toast.makeText(ExperienceListActivity.this,
                                                         text("تجربه حذف شد 🗑️"), Toast.LENGTH_SHORT).show();
                                                 if (cardToRemove.getParent() == layout) layout.removeView(cardToRemove);
                                             })
-                                            .addOnFailureListener(e -> Toast.makeText(
-                                                    ExperienceListActivity.this,
-                                                    text("خطا در حذف تجربه"), Toast.LENGTH_LONG).show()))
+                                            .addOnFailureListener(e -> {
+                                                dismissOperationProgress();
+                                                Toast.makeText(ExperienceListActivity.this,
+                                                    text("خطا در حذف تجربه"), Toast.LENGTH_LONG).show();
+                                            });
+                                    })
                             .show());
         }
         dialog.show();
@@ -3941,12 +4250,64 @@ public class ExperienceListActivity extends Activity {
             addProfileDetail(panel, text("شهر"), firstNonEmpty(d.getString("city"), d.getString("location")));
             addProfileDetail(panel, text("تخصص"), firstNonEmpty(d.getString("profession"), d.getString("job"), d.getString("occupation")));
 
-            new AlertDialog.Builder(this)
-                    .setTitle(text("پروفایل کاربر"))
-                    .setView(scroll)
-                    .setPositiveButton(text("بستن"), null)
-                    .show();
+            if (uid.equals(myId)) {
+                Button editName = new Button(this);
+                editName.setText(text("✏️ تغییر نام نمایشی")); editName.setAllCaps(false);
+                panel.addView(editName, new LinearLayout.LayoutParams(-1, dp(44)));
+                editName.setOnClickListener(v -> showEditOwnDisplayName(uid, name));
+                Button reactions = new Button(this);
+                reactions.setText(text("❤️ مشاهده واکنش‌ها")); reactions.setAllCaps(false);
+                panel.addView(reactions, new LinearLayout.LayoutParams(-1, dp(44)));
+                reactions.setOnClickListener(v -> showMyReceivedReactions(uid));
+                TextView photoNote = new TextView(this);
+                photoNote.setText(text("برای تغییر عکس پروفایل، بخش عکس حساب را باز کنید."));
+                photoNote.setTextSize(12); photoNote.setTextColor(Color.GRAY);
+                panel.addView(photoNote);
+            }
+            AlertDialog profileDialog = new AlertDialog.Builder(this)
+                    .setView(scroll).setPositiveButton(text("بستن"), null).create();
+            profileDialog.show();
         }).addOnFailureListener(e -> Toast.makeText(this, text("پروفایل بارگذاری نشد؛ اتصال را بررسی کنید."), Toast.LENGTH_SHORT).show());
+    }
+
+    private String formatVideoTime(int milliseconds) {
+        int seconds = Math.max(0, milliseconds / 1000);
+        return String.format(java.util.Locale.US, "%02d:%02d", seconds / 60, seconds % 60);
+    }
+
+    private void showEditOwnDisplayName(String uid, String currentName) {
+        EditText field = new EditText(this); field.setSingleLine(true); field.setText(currentName);
+        field.setSelection(field.getText().length()); field.setHint(text("نام نمایشی"));
+        new AlertDialog.Builder(this).setTitle(text("تغییر نام نمایشی")).setView(field)
+                .setNegativeButton(text("لغو"), null)
+                .setPositiveButton(text("ذخیره"), (dialog, which) -> {
+                    String value = field.getText().toString().trim();
+                    if (value.isEmpty()) { Toast.makeText(this, text("نام نمی‌تواند خالی باشد"), Toast.LENGTH_SHORT).show(); return; }
+                    Map<String,Object> updates = new HashMap<>();
+                    updates.put("name", value); updates.put("displayName", value);
+                    db.collection("users").document(uid).update(updates)
+                            .addOnSuccessListener(v -> Toast.makeText(this, text("نام تغییر کرد"), Toast.LENGTH_SHORT).show())
+                            .addOnFailureListener(e -> Toast.makeText(this, text("تغییر نام ناموفق بود"), Toast.LENGTH_SHORT).show());
+                }).show();
+    }
+
+    private void showMyReceivedReactions(String uid) {
+        db.collection("experiences").whereEqualTo("userId", uid).limit(50).get()
+                .addOnSuccessListener(posts -> {
+                    if (posts.isEmpty()) { Toast.makeText(this, text("هنوز واکنشی دریافت نشده است."), Toast.LENGTH_SHORT).show(); return; }
+                    LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
+                    ScrollView scroll = new ScrollView(this); scroll.addView(root);
+                    AlertDialog dialog = new AlertDialog.Builder(this).setTitle(text("واکنش‌های دریافتی"))
+                            .setView(scroll).setPositiveButton(text("بستن"), null).create();
+                    for (DocumentSnapshot post : posts.getDocuments()) {
+                        TextView item = new TextView(this);
+                        item.setText(firstNonEmpty(post.getString("title"), post.getString("text"), text("تجربه")));
+                        item.setTextSize(14); item.setPadding(dp(12), dp(12), dp(12), dp(12));
+                        root.addView(item);
+                        item.setOnClickListener(v -> showReactors(post.getReference(), "all"));
+                    }
+                    dialog.show();
+                }).addOnFailureListener(e -> Toast.makeText(this, text("بارگذاری واکنش‌ها ناموفق بود"), Toast.LENGTH_SHORT).show());
     }
 
     private TextView createProfileStat(String label, String count) {
@@ -4299,4 +4660,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-                }
+        }
