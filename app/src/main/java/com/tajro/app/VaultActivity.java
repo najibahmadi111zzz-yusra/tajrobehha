@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -140,425 +141,238 @@ public class VaultActivity extends Activity {
 
     private void buildScreen() {
 
-        LinearLayout root =
-                new LinearLayout(this);
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setFillViewport(true);
+        scrollView.setClipToPadding(false);
+        scrollView.setBackgroundColor(getLightThemeColor());
 
-        root.setOrientation(
-                LinearLayout.VERTICAL
-        );
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(16), dp(16), dp(16), dp(24));
+        root.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        root.setPadding(
-                30,
-                30,
-                30,
-                30
-        );
+        // سربرگ مدرن
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setGravity(Gravity.CENTER);
+        header.setPadding(dp(16), dp(18), dp(16), dp(18));
+        header.setBackground(rounded(Color.rgb(16, 48, 70), dp(22)));
 
-        root.setGravity(
-                Gravity.CENTER_HORIZONTAL
-        );
-
-        root.setBackgroundColor(
-                getLightThemeColor()
-        );
-
-        TextView title =
-                new TextView(this);
-
-        title.setText(
-                text(
-                        "🔐 گاوصندوق هوشمند",
-                        "🔐 Smart Vault",
-                        "🔐 هوښیار خوندي صندوق",
-                        "🔐 اسمارٹ سیف",
-                        "🔐 स्मार्ट वॉल्ट"
-                )
-        );
-
-        title.setTextSize(26);
-
-        title.setTextColor(themeColor);
-
+        TextView title = new TextView(this);
+        title.setText(text("🔐 گاوصندوق هوشمند", "🔐 Smart Vault",
+                "🔐 هوښیار خوندي صندوق", "🔐 اسمارٹ سیف", "🔐 स्मार्ट वॉल्ट"));
+        title.setTextSize(23);
+        title.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+        title.setTextColor(Color.WHITE);
         title.setGravity(Gravity.CENTER);
+        header.addView(title);
 
-        title.setPadding(
-                0,
-                10,
-                0,
-                20
-        );
-
-        root.addView(title);
-
-        TextView info =
-                new TextView(this);
-
-        info.setText(
-                text(
-                        "محل امن برای ثبت دارایی‌های صرافی\n" +
-                                "موجودی صرافی و امانت مشتریان کاملاً جدا هستند.",
-
-                        "A secure place to record exchange assets\n" +
-                                "Exchange balance and customer deposits are completely separate.",
-
-                        "د صرافۍ د شتمنیو د ثبت لپاره خوندي ځای\n" +
-                                "د صرافۍ موجودي او د پیرودونکو امانتونه په بشپړه توګه جلا دي.",
-
-                        "صرافی کے اثاثوں کے اندراج کے لیے محفوظ جگہ\n" +
-                                "صرافی کا بیلنس اور صارفین کی امانتیں مکمل طور پر الگ ہیں۔",
-
-                        "एक्सचेंज की संपत्तियों को दर्ज करने के लिए सुरक्षित स्थान\n" +
-                                "एक्सचेंज बैलेंस और ग्राहकों की जमा राशि पूरी तरह अलग हैं।"
-                )
-        );
-
-        info.setTextSize(16);
-
+        TextView info = new TextView(this);
+        info.setText(text(
+                "مدیریت امن دارایی‌ها و امانت مشتریان",
+                "Securely manage assets and customer deposits",
+                "د شتمنیو او د پیرودونکو امانتونو خوندي مدیریت",
+                "اثاثوں اور صارفین کی امانتوں کا محفوظ انتظام",
+                "संपत्ति और ग्राहक जमा का सुरक्षित प्रबंधन"));
+        info.setTextSize(13);
+        info.setTextColor(Color.rgb(211, 226, 235));
         info.setGravity(Gravity.CENTER);
+        info.setPadding(0, dp(7), 0, 0);
+        header.addView(info);
+        root.addView(header, matchWrap());
 
-        info.setPadding(
-                0,
-                0,
-                0,
-                20
-        );
+        // کارت موجودی
+        LinearLayout balanceCard = new LinearLayout(this);
+        balanceCard.setOrientation(LinearLayout.VERTICAL);
+        balanceCard.setPadding(dp(16), dp(12), dp(16), dp(12));
+        balanceCard.setGravity(Gravity.CENTER);
+        balanceCard.setBackground(rounded(Color.WHITE, dp(18)));
+        LinearLayout.LayoutParams balanceParams = matchWrap();
+        balanceParams.setMargins(0, dp(12), 0, dp(12));
+        root.addView(balanceCard, balanceParams);
 
-        root.addView(info);
+        TextView balanceLabel = new TextView(this);
+        balanceLabel.setText(text("موجودی گاوصندوق", "Vault balance",
+                "د خوندي صندوق موجودي", "سیف کا بیلنس", "वॉल्ट बैलेंस"));
+        balanceLabel.setTextSize(13);
+        balanceLabel.setTextColor(Color.DKGRAY);
+        balanceLabel.setGravity(Gravity.CENTER);
+        balanceCard.addView(balanceLabel);
 
-        // ==========================================
-        // ارز گاوصندوق
-        // ==========================================
+        currencySpinner = new Spinner(this);
+        createCurrencyAdapter(currencySpinner);
+        LinearLayout.LayoutParams spinnerParams = wrap();
+        spinnerParams.setMargins(0, dp(4), 0, dp(2));
+        balanceCard.addView(currencySpinner, spinnerParams);
 
-        currencySpinner =
-                new Spinner(this);
-
-        createCurrencyAdapter(
-                currencySpinner
-        );
-
-        root.addView(currencySpinner);
-
-        balanceText =
-                new TextView(this);
-
-        balanceText.setTextSize(22);
-
+        balanceText = new TextView(this);
+        balanceText.setTextSize(23);
+        balanceText.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
         balanceText.setTextColor(themeColor);
-
         balanceText.setGravity(Gravity.CENTER);
+        balanceText.setPadding(0, dp(5), 0, dp(2));
+        balanceCard.addView(balanceText);
 
-        balanceText.setPadding(
-                0,
-                20,
-                0,
-                20
-        );
+        // کارت عملیات اصلی
+        LinearLayout operationCard = sectionCard();
+        addSectionTitle(operationCard,
+                text("مدیریت موجودی", "Balance management", "د موجودۍ مدیریت", "بیلنس مینجمنٹ", "बैलेंस प्रबंधन"));
 
-        root.addView(balanceText);
+        amountInput = makeVaultInput(text("مبلغ", "Amount", "مقدار", "رقم", "राशि"),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        operationCard.addView(amountInput, matchWrap());
 
-        amountInput =
-                new EditText(this);
+        noteInput = makeVaultInput(text("یادداشت / دلیل (اختیاری)", "Note / reason (optional)",
+                "یادښت / دلیل (اختیاري)", "نوٹ / وجہ (اختیاری)", "नोट / कारण (वैकल्पिक)"),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        operationCard.addView(noteInput, matchWrap());
 
-        amountInput.setHint(
-                text(
-                        "مبلغ",
-                        "Amount",
-                        "مقدار",
-                        "رقم",
-                        "राशि"
-                )
-        );
+        LinearLayout actionRow = new LinearLayout(this);
+        actionRow.setOrientation(LinearLayout.HORIZONTAL);
+        actionRow.setGravity(Gravity.CENTER);
+        Button depositButton = compactButton(text("➕ واریز", "➕ Deposit", "➕ جمع", "➕ جمع", "➕ जमा"), Color.rgb(28, 132, 104));
+        Button withdrawButton = compactButton(text("➖ برداشت", "➖ Withdraw", "➖ ایستل", "➖ نکالیں", "➖ निकालें"), Color.rgb(190, 91, 66));
+        LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        half.setMargins(dp(4), dp(8), dp(4), dp(2));
+        actionRow.addView(depositButton, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        actionRow.addView(withdrawButton, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        operationCard.addView(actionRow, matchWrap());
 
-        amountInput.setInputType(
-                InputType.TYPE_CLASS_NUMBER |
-                        InputType.TYPE_NUMBER_FLAG_DECIMAL
-        );
+        Button historyButton = compactButton(text("📋 تاریخچه گاوصندوق", "📋 Vault history",
+                "📋 د خوندي صندوق تاریخچه", "📋 سیف کی تاریخ", "📋 वॉल्ट इतिहास"), themeColor);
+        operationCard.addView(historyButton, matchWrap());
+        root.addView(operationCard, matchWrap());
 
-        root.addView(amountInput);
-
-        noteInput =
-                new EditText(this);
-
-        noteInput.setHint(
-                text(
-                        "یادداشت / دلیل",
-                        "Note / Reason",
-                        "یادښت / دلیل",
-                        "نوٹ / وجہ",
-                        "नोट / कारण"
-                )
-        );
-
-        root.addView(noteInput);
-
-        Button depositButton =
-                new Button(this);
-
-        depositButton.setText(
-                text(
-                        "➕ گذاشتن در گاوصندوق",
-                        "➕ Deposit into Vault",
-                        "➕ په خوندي صندوق کې ایښودل",
-                        "➕ سیف میں جمع کریں",
-                        "➕ वॉल्ट में जमा करें"
-                )
-        );
-
-        styleButton(depositButton);
-
-        root.addView(depositButton);
-
-        Button withdrawButton =
-                new Button(this);
-
-        withdrawButton.setText(
-                text(
-                        "➖ برداشت از گاوصندوق",
-                        "➖ Withdraw from Vault",
-                        "➖ له خوندي صندوق څخه ایستل",
-                        "➖ سیف سے نکالیں",
-                        "➖ वॉल्ट से निकालें"
-                )
-        );
-
-        styleButton(withdrawButton);
-
-        root.addView(withdrawButton);
-
-        Button historyButton =
-                new Button(this);
-
-        historyButton.setText(
-                text(
-                        "📋 تاریخچه گاوصندوق",
-                        "📋 Vault History",
-                        "📋 د خوندي صندوق تاریخچه",
-                        "📋 سیف کی تاریخچہ",
-                        "📋 वॉल्ट इतिहास"
-                )
-        );
-
-        styleButton(historyButton);
-
-        root.addView(historyButton);
-
-        // ==========================================
-        // امانت مشتریان
-        // ==========================================
-
-        TextView custodyTitle =
-                new TextView(this);
-
-        custodyTitle.setText(
-                text(
-                        "🔐 امانت مشتریان",
-                        "🔐 Customer Deposits",
-                        "🔐 د پیرودونکو امانتونه",
-                        "🔐 صارفین کی امانتیں",
-                        "🔐 ग्राहकों की जमा राशि"
-                )
-        );
-
-        custodyTitle.setTextSize(22);
-
-        custodyTitle.setTextColor(themeColor);
-
-        custodyTitle.setGravity(Gravity.CENTER);
-
-        custodyTitle.setPadding(
-                0,
-                30,
-                0,
-                10
-        );
-
-        root.addView(custodyTitle);
-
-        TextView custodyInfo =
-                new TextView(this);
-
-        custodyInfo.setText(
-                text(
-                        "امانت مشتری از دارایی صرافی جداست.\n" +
-                                "ثبت امانت هیچ تغییری در موجودی خود صرافی ایجاد نمی‌کند.",
-
-                        "Customer deposits are separate from exchange assets.\n" +
-                                "Recording a deposit does not change the exchange's own balance.",
-
-                        "د پیرودونکي امانت د صرافۍ له شتمنیو څخه جلا دی.\n" +
-                                "د امانت ثبتول د صرافۍ په خپل موجودي کې هېڅ بدلون نه راولي.",
-
-                        "صارف کی امانت صرافی کے اثاثوں سے الگ ہے۔\n" +
-                                "امانت درج کرنے سے صرافی کے اپنے بیلنس میں کوئی تبدیلی نہیں ہوتی۔",
-
-                        "ग्राहक की जमा राशि एक्सचेंज की संपत्ति से अलग है।\n" +
-                                "जमा दर्ज करने से एक्सचेंज के अपने बैलेंस में कोई बदलाव नहीं होता।"
-                )
-        );
-
-        custodyInfo.setTextSize(15);
-
+        // کارت امانت مشتریان
+        LinearLayout custodyCard = sectionCard();
+        addSectionTitle(custodyCard, text("امانت مشتریان", "Customer deposits",
+                "د پیرودونکو امانتونه", "صارفین کی امانتیں", "ग्राहक जमा"));
+        TextView custodyInfo = new TextView(this);
+        custodyInfo.setText(text(
+                "امانت مشتریان از دارایی صرافی جدا نگهداری می‌شود.",
+                "Customer deposits are kept separate from exchange assets.",
+                "د پیرودونکو امانتونه د صرافۍ له شتمنیو جلا ساتل کېږي.",
+                "صارفین کی امانتیں صرافی کے اثاثوں سے الگ رکھی جاتی ہیں۔",
+                "ग्राहक जमा राशि एक्सचेंज की संपत्ति से अलग रखी जाती है।"));
+        custodyInfo.setTextSize(12);
+        custodyInfo.setTextColor(Color.DKGRAY);
         custodyInfo.setGravity(Gravity.CENTER);
+        custodyInfo.setPadding(dp(4), 0, dp(4), dp(8));
+        custodyCard.addView(custodyInfo, matchWrap());
 
-        custodyInfo.setPadding(
-                0,
-                0,
-                0,
-                15
-        );
+        Button addCustodyButton = compactButton(text("🔐 ثبت امانت جدید", "🔐 Add deposit",
+                "🔐 نوې امانت ثبت", "🔐 نئی امانت درج کریں", "🔐 नई जमा दर्ज करें"), themeColor);
+        Button custodyHistoryButton = compactButton(text("📋 امانت‌های مشتریان", "📋 Customer deposits",
+                "📋 د پیرودونکو امانتونه", "📋 صارفین کی امانتیں", "📋 ग्राहक जमा"), themeColor);
+        Button searchCustodyButton = compactButton(text("🔍 جستجوی مشتری و امانت", "🔍 Search customer/deposit",
+                "🔍 د پیرودونکي او امانت لټون", "🔍 صارف اور امانت تلاش", "🔍 ग्राहक/जमा खोजें"), themeColor);
+        Button receiptsButton = compactButton(text("🧾 رسیدهای امانت", "🧾 Deposit receipts",
+                "🧾 د امانت رسیدونه", "🧾 امانت کی رسیدیں", "🧾 जमा रसीदें"), themeColor);
+        custodyCard.addView(addCustodyButton, matchWrap());
+        custodyCard.addView(custodyHistoryButton, matchWrap());
+        custodyCard.addView(searchCustodyButton, matchWrap());
+        custodyCard.addView(receiptsButton, matchWrap());
+        root.addView(custodyCard, matchWrap());
 
-        root.addView(custodyInfo);
+        Button backButton = compactButton(text("⬅️ بازگشت", "⬅️ Back", "⬅️ شاته", "⬅️ واپس", "⬅️ वापस"), Color.rgb(91, 105, 116));
+        LinearLayout.LayoutParams backParams = matchWrap();
+        backParams.setMargins(0, dp(12), 0, 0);
+        root.addView(backButton, backParams);
 
-        Button addCustodyButton =
-                new Button(this);
+        // رویدادها؛ منطق مالی قبلی بدون تغییر حفظ شده است
+        currencySpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) { updateBalance(); }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+        depositButton.setOnClickListener(v -> deposit());
+        withdrawButton.setOnClickListener(v -> withdraw());
+        historyButton.setOnClickListener(v -> showHistory());
+        addCustodyButton.setOnClickListener(v -> showAddCustodyDialog());
+        custodyHistoryButton.setOnClickListener(v -> showCustodyHistory());
+        searchCustodyButton.setOnClickListener(v -> showCustomerSearch());
+        receiptsButton.setOnClickListener(v -> showReceiptHistory());
+        backButton.setOnClickListener(v -> finish());
 
-        addCustodyButton.setText(
-                text(
-                        "🔐 ثبت امانت جدید",
-                        "🔐 Add New Deposit",
-                        "🔐 نوی امانت ثبت کړئ",
-                        "🔐 نئی امانت درج کریں",
-                        "🔐 नई जमा दर्ज करें"
-                )
-        );
-
-        styleButton(addCustodyButton);
-
-        root.addView(addCustodyButton);
-
-        Button custodyHistoryButton =
-                new Button(this);
-
-        custodyHistoryButton.setText(
-                text(
-                        "📋 امانت‌های مشتریان",
-                        "📋 Customer Deposits",
-                        "📋 د پیرودونکو امانتونه",
-                        "📋 صارفین کی امانتیں",
-                        "📋 ग्राहकों की जमा राशि"
-                )
-        );
-
-        styleButton(custodyHistoryButton);
-
-        root.addView(custodyHistoryButton);
-
-        // جستجوی مشتری
-        Button searchCustodyButton =
-                new Button(this);
-
-        searchCustodyButton.setText(
-                text(
-                        "🔍 جستجوی مشتری و امانت",
-                        "🔍 Search Customer & Deposit",
-                        "🔍 د پیرودونکي او امانت لټون",
-                        "🔍 صارف اور امانت تلاش کریں",
-                        "🔍 ग्राहक और जमा खोजें"
-                )
-        );
-
-        styleButton(searchCustodyButton);
-
-        root.addView(searchCustodyButton);
-
-        // رسیدها
-        Button receiptsButton =
-                new Button(this);
-
-        receiptsButton.setText(
-                text(
-                        "🧾 رسیدهای امانت",
-                        "🧾 Deposit Receipts",
-                        "🧾 د امانت رسیدونه",
-                        "🧾 امانت کی رسیدیں",
-                        "🧾 जमा रसीदें"
-                )
-        );
-
-        styleButton(receiptsButton);
-
-        root.addView(receiptsButton);
-
-        // ==========================================
-        // بازگشت
-        // ==========================================
-
-        Button backButton =
-                new Button(this);
-
-        backButton.setText(
-                text(
-                        "⬅️ بازگشت",
-                        "⬅️ Back",
-                        "⬅️ شاته",
-                        "⬅️ واپس",
-                        "⬅️ वापस"
-                )
-        );
-
-        styleButton(backButton);
-
-        root.addView(backButton);
-
-        // ==========================================
-        // رویدادها
-        // ==========================================
-
-        currencySpinner.setOnItemSelectedListener(
-                new android.widget.AdapterView.OnItemSelectedListener() {
-
-                    @Override
-                    public void onItemSelected(
-                            android.widget.AdapterView<?> parent,
-                            View view,
-                            int position,
-                            long id
-                    ) {
-                        updateBalance();
-                    }
-
-                    @Override
-                    public void onNothingSelected(
-                            android.widget.AdapterView<?> parent
-                    ) {
-                    }
-                }
-        );
-
-        depositButton.setOnClickListener(
-                v -> deposit()
-        );
-
-        withdrawButton.setOnClickListener(
-                v -> withdraw()
-        );
-
-        historyButton.setOnClickListener(
-                v -> showHistory()
-        );
-
-        addCustodyButton.setOnClickListener(
-                v -> showAddCustodyDialog()
-        );
-
-        custodyHistoryButton.setOnClickListener(
-                v -> showCustodyHistory()
-        );
-
-        searchCustodyButton.setOnClickListener(
-                v -> showCustomerSearch()
-        );
-
-        receiptsButton.setOnClickListener(
-                v -> showReceiptHistory()
-        );
-
-        backButton.setOnClickListener(
-                v -> finish()
-        );
-
-        setContentView(root);
+        scrollView.addView(root);
+        setContentView(scrollView);
     }
+
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private LinearLayout.LayoutParams matchWrap() {
+        return new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+    }
+
+    private LinearLayout.LayoutParams wrap() {
+        return new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+    }
+
+    private GradientDrawable rounded(int color, int radius) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(color);
+        drawable.setCornerRadius(radius);
+        return drawable;
+    }
+
+    private LinearLayout sectionCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(14), dp(12), dp(14), dp(12));
+        card.setBackground(rounded(Color.WHITE, dp(18)));
+        LinearLayout.LayoutParams params = matchWrap();
+        params.setMargins(0, dp(5), 0, dp(8));
+        card.setLayoutParams(params);
+        return card;
+    }
+
+    private void addSectionTitle(LinearLayout parent, String value) {
+        TextView label = new TextView(this);
+        label.setText(value);
+        label.setTextSize(17);
+        label.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+        label.setTextColor(themeColor);
+        label.setGravity(Gravity.CENTER);
+        label.setPadding(0, 0, 0, dp(8));
+        parent.addView(label, matchWrap());
+    }
+
+    private EditText makeVaultInput(String hint, int inputType) {
+        EditText input = new EditText(this);
+        input.setHint(hint);
+        input.setInputType(inputType);
+        input.setTextSize(14);
+        input.setSingleLine(inputType != (InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES));
+        input.setPadding(dp(12), dp(7), dp(12), dp(7));
+        input.setBackground(rounded(Color.rgb(246, 248, 250), dp(11)));
+        LinearLayout.LayoutParams params = matchWrap();
+        params.setMargins(0, dp(4), 0, dp(5));
+        input.setLayoutParams(params);
+        return input;
+    }
+
+    private Button compactButton(String label, int color) {
+        Button button = new Button(this);
+        button.setText(label);
+        button.setTextSize(13);
+        button.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+        button.setTextColor(Color.WHITE);
+        button.setAllCaps(false);
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
+        button.setPadding(dp(8), 0, dp(8), 0);
+        button.setBackground(rounded(color, dp(12)));
+        LinearLayout.LayoutParams params = matchWrap();
+        params.setMargins(0, dp(4), 0, dp(4));
+        button.setLayoutParams(params);
+        return button;
+    }
+
 
     // ==================================================
     // ارز + پرچم
@@ -3896,4 +3710,4 @@ public class VaultActivity extends Activity {
                 blue
         );
     }
-            }
+                       }
