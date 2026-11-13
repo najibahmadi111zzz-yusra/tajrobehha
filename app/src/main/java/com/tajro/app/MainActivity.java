@@ -160,14 +160,16 @@ public class MainActivity extends Activity {
         GradientDrawable background =
                 new GradientDrawable();
 
-        background.setColor(
-                ThemeManager.getThemeColor(this)
-        );
-
-        background.setCornerRadius(dp(18));
+        int baseColor = ThemeManager.getThemeColor(this);
+        background.setColor(baseColor);
+        background.setCornerRadius(dp(22));
+        background.setStroke(dp(1), 0x33FFFFFF);
 
         button.setBackground(background);
         button.setTextColor(Color.WHITE);
+        button.setElevation(dp(5));
+        button.setAllCaps(false);
+        button.setLetterSpacing(0.01f);
     }
 
     // تصویر پس‌زمینه
@@ -277,7 +279,7 @@ public class MainActivity extends Activity {
 
         mainLayout.setPadding(
                 dp(20),
-                dp(35),
+                dp(27),
                 dp(20),
                 dp(25)
         );
@@ -298,9 +300,22 @@ public class MainActivity extends Activity {
         TextView logo =
                 new TextView(this);
 
-        logo.setText("📖💡");
-        logo.setTextSize(52);
+        logo.setText("📖   💡");
+        logo.setTextSize(54);
         logo.setGravity(Gravity.CENTER);
+        logo.setIncludeFontPadding(false);
+        logo.setShadowLayer(
+                dp(5),
+                0,
+                dp(2),
+                0x55708FA8
+        );
+        logo.setPadding(
+                dp(8),
+                dp(2),
+                dp(8),
+                dp(4)
+        );
 
         // عنوان
         title =
@@ -317,7 +332,7 @@ public class MainActivity extends Activity {
                 )
         );
 
-        title.setTextSize(34);
+        title.setTextSize(35);
 
         title.setTypeface(
                 Typeface.DEFAULT,
@@ -341,23 +356,23 @@ public class MainActivity extends Activity {
 
         welcome.setText(
                 text(
-                        "تجربه‌های خود را ثبت کنید و با دیگران شریک شوید",
-                        "Share your experiences and learn from others",
-                        "خپلې تجربې ثبت کړئ او له نورو سره یې شریکې کړئ",
-                        "اپنے تجربات درج کریں اور دوسروں کے ساتھ شیئر کریں",
-                        "अपने अनुभव दर्ज करें और दूसरों के साथ साझा करें",
-                        "سجّل تجاربك وشاركها مع الآخرين"
+                        "به دنیای تجربه‌ها خوش آمدید",
+                        "Welcome to the world of Experiences",
+                        "د تجربو نړۍ ته ښه راغلاست",
+                        "تجربات کی دنیا میں خوش آمدید",
+                        "अनुभवों की दुनिया में आपका स्वागत है",
+                        "مرحباً بك في عالم التجارب"
                 )
         );
 
-        welcome.setTextSize(17);
+        welcome.setTextSize(19);
         welcome.setGravity(Gravity.CENTER);
 
         welcome.setPadding(
                 dp(10),
                 dp(5),
                 dp(10),
-                dp(30)
+                dp(25)
         );
 
         mainLayout.addView(logo);
@@ -385,6 +400,13 @@ public class MainActivity extends Activity {
                         )
                 );
 
+        LinearLayout.LayoutParams listParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(68)
+                );
+        listParams.setMargins(dp(6), dp(6), dp(6), dp(6));
+        listButton.setLayoutParams(listParams);
         row1.addView(listButton);
 
         // ردیف دوم
