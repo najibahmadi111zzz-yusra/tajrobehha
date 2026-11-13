@@ -2436,6 +2436,7 @@ private void showUserMenu(
         change.setText(
                 tr("📷 تغییر عکس پروفایل")
         );
+        styleProfileActionButton(change);
 
         if (!uid.equals(myId)) {
 
@@ -2458,6 +2459,7 @@ if (uid.equals(myId)) {
     privacy.setText(
             tr("🔒 تنظیمات حریم خصوصی")
     );
+    styleProfileActionButton(privacy);
 
     privacy.setOnClickListener(
             v -> showChatPrivacySettings()
@@ -2472,6 +2474,7 @@ if (uid.equals(myId)) {
     blocked.setText(
             tr("🚫 فهرست مسدودشده‌ها")
     );
+    styleProfileActionButton(blocked);
 
     blocked.setOnClickListener(
             v -> showBlockedUsers()
@@ -2481,7 +2484,9 @@ if (uid.equals(myId)) {
 }
         AlertDialog dialog =
                 new AlertDialog.Builder(this)
-                        .setTitle(tr("پروفایل"))
+                        .setTitle(tr(uid != null && uid.equals(myId)
+                                ? "پروفایل من"
+                                : "پروفایل"))
                         .setView(box)
                         .setPositiveButton(
                                 tr("بستن"),
@@ -2490,6 +2495,21 @@ if (uid.equals(myId)) {
                         .create();
 
         dialog.show();
+        styleChatDialog(dialog);
+    }
+
+    private void styleProfileActionButton(Button button) {
+        if (button == null) return;
+        android.graphics.drawable.GradientDrawable background =
+                new android.graphics.drawable.GradientDrawable();
+        background.setColor(Color.rgb(34, 70, 94));
+        background.setCornerRadius(dp(12));
+        background.setStroke(dp(1), Color.rgb(62, 105, 132));
+        button.setBackground(background);
+        button.setTextColor(Color.WHITE);
+        button.setAllCaps(false);
+        button.setPadding(dp(14), dp(10), dp(14), dp(10));
+        button.setElevation(dp(2));
     }
 
     private void showBlockedUsers() {
@@ -3583,11 +3603,9 @@ header.addView(chatMenu,
             );
         }
 
-        bubble.setTextColor(
-                mine
-                        ? Color.WHITE
-                        : Color.DKGRAY
-        );
+        // هر دو نوع پیام در زمینه تیره چت باید خوانا باشند.
+        // فقط رنگ متن پیام دریافتی از تیره به سفید تغییر کرده است.
+        bubble.setTextColor(Color.WHITE);
 
         GradientDrawable bubbleBackground = bg(
                 mine ? Color.rgb(8, 65, 91) : Color.rgb(34, 46, 63),
@@ -6411,7 +6429,7 @@ private void showChatMenu() {
             tr("🚫 مسدود کردن")
     };
 
-    new AlertDialog.Builder(this)
+    AlertDialog.Builder builder = new AlertDialog.Builder(this)
             .setTitle(tr("تنظیمات چت"))
             .setItems(
                     options,
@@ -6498,8 +6516,12 @@ private void showChatMenu() {
                                     .show();
                         }
                     }
-            )
-            .show();
+            );
+
+    // ظاهر پنجره تنظیمات چت؛ منطق و ترتیب عملکرد گزینه‌ها بدون تغییر می‌ماند.
+    AlertDialog menuDialog = builder.create();
+    menuDialog.show();
+    styleChatDialog(menuDialog);
 }
 
 private void showChatPrivacySettings() {
@@ -6518,7 +6540,7 @@ private void showChatPrivacySettings() {
             true
     };
 
-    new AlertDialog.Builder(this)
+    AlertDialog privacyDialog = new AlertDialog.Builder(this)
             .setTitle(tr("🔒 تنظیمات حریم خصوصی"))
             .setMultiChoiceItems(
                     items,
@@ -6581,7 +6603,59 @@ private void showChatPrivacySettings() {
                                 );
                     }
             )
-            .show();
+            .create();
+
+    privacyDialog.show();
+    styleChatDialog(privacyDialog);
+}
+
+private void styleChatDialog(AlertDialog dialog) {
+    if (dialog == null) return;
+
+    android.graphics.drawable.GradientDrawable panel =
+            new android.graphics.drawable.GradientDrawable();
+    panel.setColor(Color.rgb(18, 35, 53));
+    panel.setCornerRadius(dp(20));
+    panel.setStroke(dp(1), Color.rgb(48, 83, 108));
+
+    if (dialog.getWindow() != null) {
+        dialog.getWindow().setBackgroundDrawable(panel);
+    }
+
+    TextView title = dialog.findViewById(android.R.id.alertTitle);
+    if (title != null) {
+        title.setTextColor(Color.WHITE);
+        title.setTypeface(null, Typeface.BOLD);
+        title.setPadding(dp(20), dp(12), dp(20), dp(8));
+    }
+
+    android.widget.ListView list = dialog.getListView();
+    if (list != null) {
+        list.setBackgroundColor(Color.rgb(18, 35, 53));
+        list.setDivider(new android.graphics.drawable.ColorDrawable(Color.rgb(43, 68, 88)));
+        list.setDividerHeight(dp(1));
+        for (int i = 0; i < list.getChildCount(); i++) {
+            View child = list.getChildAt(i);
+            if (child instanceof android.widget.CheckedTextView) {
+                ((android.widget.CheckedTextView) child).setTextColor(Color.WHITE);
+            } else if (child instanceof android.widget.TextView) {
+                ((android.widget.TextView) child).setTextColor(Color.WHITE);
+            }
+        }
+    }
+
+    int[] buttonIds = {
+            android.R.id.button1,
+            android.R.id.button2,
+            android.R.id.button3
+    };
+    for (int id : buttonIds) {
+        Button button = dialog.findViewById(id);
+        if (button != null) {
+            button.setTextColor(Color.rgb(245, 211, 132));
+            button.setAllCaps(false);
+        }
+    }
 }
 
 private void reportCurrentUser() {
@@ -6808,4 +6882,4 @@ private void blockCurrentUser() {
 
 }
     
-                    }
+                                             }
