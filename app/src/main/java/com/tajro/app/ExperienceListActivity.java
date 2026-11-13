@@ -136,6 +136,8 @@ public class ExperienceListActivity extends Activity {
             SUPABASE_URL + "/functions/v1/upload-experience-image";
     private static final String VIDEO_UPLOAD_FUNCTION =
             SUPABASE_URL + "/functions/v1/upload-experience-video";
+    private static final String VIDEO_SIGNED_URL_FUNCTION =
+            SUPABASE_URL + "/functions/v1/experience-video-url";
     private static final int REQUEST_PICK_STORY_MEDIA = 7315;
     private static final long MAX_STORY_VIDEO_BYTES = 20L * 1024L * 1024L;
     private static final int MAX_STORY_VIDEO_SECONDS = 60;
@@ -723,42 +725,47 @@ public class ExperienceListActivity extends Activity {
         // آیکن کوچک تنظیمات در گوشه بالای راست سربرگ تجربه‌ها
         LinearLayout headerTopRow = new LinearLayout(this);
         headerTopRow.setOrientation(LinearLayout.HORIZONTAL);
-        headerTopRow.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        headerTopRow.setGravity(Gravity.CENTER_VERTICAL);
         headerTopRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         headerTopRow.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(30)));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(36)));
 
         TextView settingsIcon = new TextView(this);
         settingsIcon.setText("⚙");
-        settingsIcon.setTextSize(19);
-        settingsIcon.setTextColor(Color.argb(225, 255, 255, 255));
+        settingsIcon.setTextSize(20);
+        settingsIcon.setTextColor(Color.argb(242, 255, 255, 255));
         settingsIcon.setGravity(Gravity.CENTER);
         settingsIcon.setPadding(0, 0, 0, dp(1));
         GradientDrawable settingsIconBg = new GradientDrawable();
         settingsIconBg.setShape(GradientDrawable.OVAL);
-        settingsIconBg.setColor(Color.argb(34, 255, 255, 255));
-        settingsIconBg.setStroke(dp(1), Color.argb(105, 255, 255, 255));
+        settingsIconBg.setColor(Color.argb(42, 255, 255, 255));
+        settingsIconBg.setStroke(dp(1), Color.argb(135, 255, 255, 255));
         settingsIcon.setBackground(settingsIconBg);
         settingsIcon.setElevation(dp(1));
         settingsIcon.setContentDescription(text("تنظیمات"));
-        headerTopRow.addView(settingsIcon, new LinearLayout.LayoutParams(dp(32), dp(32)));
+        headerTopRow.addView(settingsIcon, new LinearLayout.LayoutParams(dp(34), dp(34)));
         settingsIcon.setOnClickListener(v -> showExperienceSettingsPanel());
 
-        // دکمه چت خصوصی در کنار تنظیمات، داخل سربرگ تجربه‌ها
+        // فاصله‌گذار برای قرار گرفتن تنظیمات در راست و چت در چپ سربرگ
+        View headerTopSpacer = new View(this);
+        headerTopRow.addView(headerTopSpacer, new LinearLayout.LayoutParams(
+                0, 1, 1f));
+
+        // دکمه چت خصوصی در سمت چپ سربرگ تجربه‌ها
         TextView chatIcon = new TextView(this);
         chatIcon.setText("💬");
-        chatIcon.setTextSize(16);
+        chatIcon.setTextSize(17);
         chatIcon.setGravity(Gravity.CENTER);
-        chatIcon.setTextColor(Color.WHITE);
+        chatIcon.setTextColor(Color.argb(242, 255, 255, 255));
         GradientDrawable chatIconBg = new GradientDrawable();
         chatIconBg.setShape(GradientDrawable.OVAL);
-        chatIconBg.setColor(Color.argb(34, 255, 255, 255));
-        chatIconBg.setStroke(dp(1), Color.argb(105, 255, 255, 255));
+        chatIconBg.setColor(Color.argb(42, 255, 255, 255));
+        chatIconBg.setStroke(dp(1), Color.argb(135, 255, 255, 255));
         chatIcon.setBackground(chatIconBg);
         chatIcon.setElevation(dp(1));
         chatIcon.setContentDescription(text("چت خصوصی"));
-        LinearLayout.LayoutParams chatIconParams = new LinearLayout.LayoutParams(dp(32), dp(32));
-        chatIconParams.setMargins(dp(8), 0, 0, 0);
+        LinearLayout.LayoutParams chatIconParams = new LinearLayout.LayoutParams(dp(34), dp(34));
+        chatIconParams.setMargins(0, 0, dp(8), 0);
         headerTopRow.addView(chatIcon, chatIconParams);
         chatIcon.setOnClickListener(v -> {
             Intent chatIntent = new Intent(ExperienceListActivity.this, ChatActivity.class);
@@ -903,7 +910,9 @@ public class ExperienceListActivity extends Activity {
 
         View refreshItem = createSettingsPanelItem("⟳", text("تازه‌سازی تجربه‌ها"),
                 text("بارگذاری دوباره پست‌ها، داستان‌ها و دوستان"));
-        panel.addView(refreshItem, new LinearLayout.LayoutParams(-1, dp(66)));
+        LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(-1, dp(70));
+        refreshParams.bottomMargin = dp(10);
+        panel.addView(refreshItem, refreshParams);
         refreshItem.setOnClickListener(v -> {
             settingsDialog.dismiss();
             if (!refreshBatchActive) {
@@ -916,19 +925,10 @@ public class ExperienceListActivity extends Activity {
             }
         });
 
-        View profileItem = createSettingsPanelItem("◉", text("پروفایل من"),
-                text("مشاهده مشخصات و واکنش‌های دریافتی"));
-        panel.addView(profileItem, new LinearLayout.LayoutParams(-1, dp(66)));
-        profileItem.setOnClickListener(v -> {
-            settingsDialog.dismiss();
-            FirebaseUser user = auth.getCurrentUser();
-            if (user != null) showPublicProfile(user.getUid(),
-                    firstNonEmpty(user.getDisplayName(), text("کاربر")), "");
-        });
-
-        View accountItem = createSettingsPanelItem("☷", text("حساب و تنظیمات حساب"),
-                text("مدیریت حساب کاربری"));
-        panel.addView(accountItem, new LinearLayout.LayoutParams(-1, dp(66)));
+        // پروفایل از این پنل حذف شده؛ دسترسی آن در خود صفحه تجربه‌ها موجود است.
+        View accountItem = createSettingsPanelItem("⚙", text("حساب و تنظیمات حساب"),
+                text("مدیریت اطلاعات، ورود و تنظیمات حساب کاربری"));
+        panel.addView(accountItem, new LinearLayout.LayoutParams(-1, dp(70)));
         accountItem.setOnClickListener(v -> {
             settingsDialog.dismiss();
             startActivity(new Intent(ExperienceListActivity.this, AccountActivity.class));
@@ -949,19 +949,28 @@ public class ExperienceListActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(12), dp(7), dp(12), dp(7));
-        GradientDrawable rowBg = new GradientDrawable();
-        rowBg.setColor(Color.rgb(246, 250, 252));
-        rowBg.setCornerRadius(dp(14));
-        rowBg.setStroke(dp(1), Color.rgb(225, 235, 240));
+        row.setPadding(dp(13), dp(9), dp(13), dp(9));
+        GradientDrawable rowBg = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{Color.rgb(250, 253, 255), Color.rgb(239, 247, 250)});
+        rowBg.setCornerRadius(dp(17));
+        rowBg.setStroke(dp(1), Color.rgb(215, 231, 237));
         row.setBackground(rowBg);
+        row.setElevation(dp(1));
+        row.setClickable(true);
+        row.setFocusable(true);
 
         TextView iconView = new TextView(this);
         iconView.setText(icon);
-        iconView.setTextSize(22);
-        iconView.setTextColor(Color.rgb(18, 105, 130));
+        iconView.setTextSize(21);
+        iconView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        iconView.setTextColor(Color.rgb(13, 105, 132));
         iconView.setGravity(Gravity.CENTER);
-        row.addView(iconView, new LinearLayout.LayoutParams(dp(42), dp(42)));
+        GradientDrawable iconBg = new GradientDrawable();
+        iconBg.setColor(Color.rgb(224, 241, 247));
+        iconBg.setCornerRadius(dp(13));
+        iconView.setBackground(iconBg);
+        row.addView(iconView, new LinearLayout.LayoutParams(dp(44), dp(44)));
 
         LinearLayout labels = new LinearLayout(this);
         labels.setOrientation(LinearLayout.VERTICAL);
@@ -970,19 +979,22 @@ public class ExperienceListActivity extends Activity {
         titleView.setText(title);
         titleView.setTextSize(14);
         titleView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        titleView.setTextColor(Color.rgb(24, 54, 70));
+        titleView.setTextColor(Color.rgb(20, 51, 68));
         labels.addView(titleView);
         TextView subtitleView = new TextView(this);
         subtitleView.setText(subtitle);
         subtitleView.setTextSize(11);
-        subtitleView.setTextColor(Color.rgb(115, 130, 140));
+        subtitleView.setTextColor(Color.rgb(103, 123, 135));
+        subtitleView.setPadding(0, dp(2), 0, 0);
         labels.addView(subtitleView);
         row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
         TextView arrow = new TextView(this);
-        arrow.setText("‹");
-        arrow.setTextSize(23);
-        arrow.setTextColor(Color.rgb(130, 150, 160));
-        row.addView(arrow);
+        arrow.setText("›");
+        arrow.setTextSize(25);
+        arrow.setTypeface(Typeface.DEFAULT_BOLD);
+        arrow.setTextColor(Color.rgb(91, 132, 148));
+        arrow.setGravity(Gravity.CENTER);
+        row.addView(arrow, new LinearLayout.LayoutParams(dp(26), dp(42)));
         return row;
     }
 
@@ -1460,6 +1472,72 @@ public class ExperienceListActivity extends Activity {
         }).addOnFailureListener(e -> callback.onError(text("دریافت توکن Firebase ناموفق بود")));
     }
 
+    /** دریافت لینک موقت برای فایل ویدیویی خصوصی؛ فایل دوباره آپلود نمی‌شود. */
+    private void loadPrivateExperienceVideo(String videoPath, VideoView videoView) {
+        if (videoPath == null || videoPath.trim().isEmpty()) {
+            Toast.makeText(this, text("مسیر ویدیو در اطلاعات پست موجود نیست."), Toast.LENGTH_LONG).show();
+            return;
+        }
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, text("برای دیدن ویدیو وارد حساب شوید."), Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        currentUser.getIdToken(false).addOnSuccessListener(tokenResult -> {
+            String idToken = tokenResult.getToken();
+            if (idToken == null || idToken.trim().isEmpty()) {
+                Toast.makeText(this, text("توکن ورود دریافت نشد."), Toast.LENGTH_LONG).show();
+                return;
+            }
+            new Thread(() -> {
+                HttpURLConnection connection = null;
+                try {
+                    JSONObject request = new JSONObject();
+                    request.put("path", videoPath);
+                    connection = (HttpURLConnection) new URL(VIDEO_SIGNED_URL_FUNCTION).openConnection();
+                    connection.setRequestMethod("POST");
+                    connection.setDoOutput(true);
+                    connection.setConnectTimeout(20000);
+                    connection.setReadTimeout(30000);
+                    connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+                    connection.setRequestProperty("Authorization", "Bearer " + idToken);
+                    connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                    try (OutputStream out = connection.getOutputStream()) {
+                        out.write(request.toString().getBytes(StandardCharsets.UTF_8));
+                    }
+                    int code = connection.getResponseCode();
+                    InputStream response = code >= 200 && code < 300
+                            ? connection.getInputStream() : connection.getErrorStream();
+                    StringBuilder responseText = new StringBuilder();
+                    if (response != null) {
+                        try (BufferedReader reader = new BufferedReader(
+                                new InputStreamReader(response, StandardCharsets.UTF_8))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) responseText.append(line);
+                        }
+                    }
+                    JSONObject result = new JSONObject(responseText.toString());
+                    String signedUrl = result.optString("url", "");
+                    if (code < 200 || code >= 300 || !result.optBoolean("success", false)
+                            || signedUrl.trim().isEmpty()) {
+                        throw new Exception(result.optString("error", "دریافت لینک امن پخش ناموفق بود")
+                                + " (HTTP " + code + ")");
+                    }
+                    runOnUiThread(() -> videoView.setVideoURI(Uri.parse(signedUrl)));
+                } catch (Exception e) {
+                    String message = e.getMessage() == null
+                            ? "دریافت لینک موقت ویدیو ناموفق بود" : e.getMessage();
+                    runOnUiThread(() -> Toast.makeText(ExperienceListActivity.this,
+                            text("پخش ویدیو ممکن نشد: ") + message, Toast.LENGTH_LONG).show());
+                } finally {
+                    if (connection != null) connection.disconnect();
+                }
+            }).start();
+        }).addOnFailureListener(e -> Toast.makeText(this,
+                text("دریافت توکن Firebase ناموفق بود."), Toast.LENGTH_LONG).show());
+    }
+
     private void publishTextStory(String value) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
@@ -1911,11 +1989,12 @@ public class ExperienceListActivity extends Activity {
     private LinearLayout buildPublishForm() {
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
-        form.setPadding(dp(12), dp(10), dp(12), dp(12));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(Color.WHITE);
+        form.setPadding(dp(14), dp(13), dp(14), dp(14));
+        GradientDrawable bg = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{Color.rgb(255, 255, 255), Color.rgb(246, 251, 253)});
         bg.setCornerRadius(dp(20));
-        bg.setStroke(dp(1), Color.rgb(210, 230, 235));
+        bg.setStroke(dp(1), Color.rgb(214, 231, 237));
         form.setBackground(bg);
         form.setElevation(dp(2));
         LinearLayout.LayoutParams formParams = new LinearLayout.LayoutParams(
@@ -1925,25 +2004,56 @@ public class ExperienceListActivity extends Activity {
 
         TextView formTitle = new TextView(this);
         formTitle.setText(text("✍️ ثبت تجربه جدید"));
-        formTitle.setTextSize(20);
+        formTitle.setTextSize(19);
         formTitle.setTextColor(Color.rgb(12, 73, 101));
         formTitle.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         formTitle.setGravity(Gravity.CENTER);
-        formTitle.setPadding(0, 0, 0, dp(12));
+        formTitle.setPadding(0, 0, 0, dp(13));
         form.addView(formTitle);
 
+        TextView mediaHint = new TextView(this);
+        mediaHint.setText(text("افزودن عکس یا ویدیو به تجربه"));
+        mediaHint.setTextSize(12);
+        mediaHint.setTextColor(Color.rgb(94, 116, 128));
+        mediaHint.setGravity(Gravity.CENTER);
+        mediaHint.setPadding(0, 0, 0, dp(8));
+        form.addView(mediaHint);
+
+        LinearLayout mediaRow = new LinearLayout(this);
+        mediaRow.setOrientation(LinearLayout.HORIZONTAL);
+        mediaRow.setGravity(Gravity.CENTER_VERTICAL);
+        mediaRow.setWeightSum(2f);
+        form.addView(mediaRow, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+
         Button chooseImageButton = new Button(this);
-        chooseImageButton.setText(text("🖼 انتخاب عکس"));
-        chooseImageButton.setTextSize(14);
-        stylePublishButton(chooseImageButton);
-        form.addView(chooseImageButton);
+        chooseImageButton.setText(text("▧  انتخاب عکس"));
+        chooseImageButton.setTextSize(13);
+        chooseImageButton.setAllCaps(false);
+        styleMediaChoiceButton(chooseImageButton, false);
+        LinearLayout.LayoutParams imageButtonParams = new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.MATCH_PARENT, 1f);
+        imageButtonParams.setMargins(0, 0, dp(6), 0);
+        mediaRow.addView(chooseImageButton, imageButtonParams);
+        chooseImageButton.setOnClickListener(v -> launchExperienceMediaPicker(false));
+
+        Button chooseVideoButton = new Button(this);
+        chooseVideoButton.setText(text("▶  ویدیو ۶۰ ثانیه‌ای"));
+        chooseVideoButton.setTextSize(13);
+        chooseVideoButton.setAllCaps(false);
+        styleMediaChoiceButton(chooseVideoButton, true);
+        LinearLayout.LayoutParams videoButtonParams = new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.MATCH_PARENT, 1f);
+        videoButtonParams.setMargins(dp(6), 0, 0, 0);
+        mediaRow.addView(chooseVideoButton, videoButtonParams);
+        chooseVideoButton.setOnClickListener(v -> launchExperienceMediaPicker(true));
 
         imageStatus = new TextView(this);
         imageStatus.setText(text("عکس انتخاب نشده است"));
         imageStatus.setTextSize(12);
         imageStatus.setTextColor(Color.rgb(80, 100, 110));
         imageStatus.setGravity(Gravity.CENTER);
-        imageStatus.setPadding(0, 0, 0, dp(7));
+        imageStatus.setPadding(dp(4), dp(8), dp(4), dp(8));
         form.addView(imageStatus);
 
         imagePreview = new ImageView(this);
@@ -1954,60 +2064,84 @@ public class ExperienceListActivity extends Activity {
         previewParams.setMargins(0, 0, 0, dp(10));
         form.addView(imagePreview, previewParams);
 
-        chooseImageButton.setText(text("🖼 انتخاب عکس یا ویدیو"));
-        chooseImageButton.setOnClickListener(v -> {
-            new AlertDialog.Builder(this)
-                    .setTitle(text("انتخاب رسانه تجربه"))
-                    .setItems(new String[]{text("انتخاب عکس"), text("انتخاب ویدیوی MP4 (حداکثر ۶۰ ثانیه)")},
-                            (dialog, which) -> {
-                                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                                if (which == 0) {
-                                    intent.setType("image/*");
-                                    startActivityForResult(Intent.createChooser(intent, text("انتخاب عکس تجربه")),
-                                            REQUEST_PICK_EXPERIENCE_IMAGE);
-                                } else {
-                                    intent.setType("video/mp4");
-                                    startActivityForResult(Intent.createChooser(intent, text("انتخاب ویدیوی تجربه")),
-                                            REQUEST_PICK_EXPERIENCE_VIDEO);
-                                }
-                            }).show();
-        });
-
         experienceTitleField = new EditText(this);
         experienceTitleField.setSingleLine(true);
-        experienceTitleField.setTextSize(16);
+        experienceTitleField.setTextSize(15);
         experienceTitleField.setHint(text("عنوان تجربه را بنویسید"));
-        experienceTitleField.setPadding(dp(12), dp(10), dp(12), dp(10));
-        form.addView(experienceTitleField);
+        experienceTitleField.setPadding(dp(13), dp(11), dp(13), dp(11));
+        experienceTitleField.setBackground(createPublishFieldBackground());
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(50));
+        titleParams.setMargins(0, dp(5), 0, 0);
+        form.addView(experienceTitleField, titleParams);
 
         experienceTextField = new EditText(this);
-        experienceTextField.setTextSize(16);
+        experienceTextField.setTextSize(15);
         experienceTextField.setGravity(Gravity.TOP | Gravity.RIGHT);
         experienceTextField.setMinLines(4);
         experienceTextField.setHint(text("تجربه خود را با دیگران شریک کنید..."));
-        experienceTextField.setPadding(dp(12), dp(12), dp(12), dp(12));
+        experienceTextField.setPadding(dp(13), dp(12), dp(13), dp(12));
+        experienceTextField.setBackground(createPublishFieldBackground());
         LinearLayout.LayoutParams bodyParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(125));
-        bodyParams.setMargins(0, dp(10), 0, dp(10));
+        bodyParams.setMargins(0, dp(10), 0, dp(12));
         form.addView(experienceTextField, bodyParams);
 
         publishButton = new Button(this);
-        publishButton.setText(text("🚀 انتشار تجربه"));
+        publishButton.setText(text("🚀  انتشار تجربه"));
         publishButton.setTextSize(15);
+        publishButton.setAllCaps(false);
         stylePublishButton(publishButton);
-        form.addView(publishButton);
+        LinearLayout.LayoutParams publishParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
+        publishParams.setMargins(0, dp(2), 0, 0);
+        form.addView(publishButton, publishParams);
         publishButton.setOnClickListener(v -> publishFromInlineForm());
         return form;
     }
 
+    private void launchExperienceMediaPicker(boolean video) {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType(video ? "video/mp4" : "image/*");
+        String chooserTitle = video ? text("انتخاب ویدیوی تجربه") : text("انتخاب عکس تجربه");
+        int requestCode = video ? REQUEST_PICK_EXPERIENCE_VIDEO : REQUEST_PICK_EXPERIENCE_IMAGE;
+        startActivityForResult(Intent.createChooser(intent, chooserTitle), requestCode);
+    }
+
+    private GradientDrawable createPublishFieldBackground() {
+        GradientDrawable fieldBg = new GradientDrawable();
+        fieldBg.setColor(Color.rgb(255, 255, 255));
+        fieldBg.setCornerRadius(dp(13));
+        fieldBg.setStroke(dp(1), Color.rgb(220, 232, 237));
+        return fieldBg;
+    }
+
+    private void styleMediaChoiceButton(Button button, boolean video) {
+        int top = video ? Color.rgb(225, 242, 248) : Color.rgb(239, 247, 250);
+        int bottom = video ? Color.rgb(210, 234, 243) : Color.rgb(229, 241, 246);
+        GradientDrawable shape = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM, new int[]{top, bottom});
+        shape.setCornerRadius(dp(14));
+        shape.setStroke(dp(1), video ? Color.rgb(171, 211, 225) : Color.rgb(196, 220, 230));
+        button.setBackground(shape);
+        button.setTextColor(Color.rgb(20, 82, 105));
+        button.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        button.setPadding(dp(5), 0, dp(5), 0);
+        button.setMinHeight(dp(48));
+        button.setElevation(dp(1));
+    }
+
     private void stylePublishButton(Button button) {
-        GradientDrawable shape = new GradientDrawable();
-        shape.setColor(Color.rgb(12, 73, 101));
-        shape.setCornerRadius(dp(18));
+        GradientDrawable shape = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{Color.rgb(10, 105, 133), Color.rgb(12, 73, 101)});
+        shape.setCornerRadius(dp(16));
         button.setBackground(shape);
         button.setTextColor(Color.WHITE);
         button.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        button.setPadding(dp(14), dp(8), dp(14), dp(8));
+        button.setElevation(dp(3));
     }
 
     private void publishFromInlineForm() {
@@ -2433,7 +2567,7 @@ public class ExperienceListActivity extends Activity {
             selectedImageUri = null;
             imagePreview.setImageDrawable(null);
             imagePreview.setVisibility(View.GONE);
-            imageStatus.setText(text("ویدیو انتخاب شد؛ حداکثر ۲۰ مگابایت و ۶۰ ثانیه؛ هنگام انتشار بارگذاری می‌شود"));
+            imageStatus.setText(text("ویدیو انتخاب شد؛ هنگام انتشار بارگذاری می‌شود"));
             return;
         }
 
@@ -2846,8 +2980,10 @@ public class ExperienceListActivity extends Activity {
         );
 
         // ویدیوی پست اصلی تجربه (در صورت وجود)
-        String experienceVideoUrl = document.getString("videoUrl");
-        if (experienceVideoUrl != null && !experienceVideoUrl.trim().isEmpty()) {
+        String experienceVideoUrl = document.getString("videoUrl"); // سازگاری با پست‌های قدیمی
+        String experienceVideoPath = document.getString("videoPath");
+        if ((experienceVideoPath != null && !experienceVideoPath.trim().isEmpty())
+                || (experienceVideoUrl != null && !experienceVideoUrl.trim().isEmpty())) {
             FrameLayout videoFrame = new FrameLayout(this);
             LinearLayout.LayoutParams videoFrameParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(285));
@@ -2913,6 +3049,12 @@ public class ExperienceListActivity extends Activity {
                 experienceVideo.start(); playPause.setText("Ⅱ");
                 videoHandler.post(progressUpdate[0]);
             });
+            if (experienceVideoPath != null && !experienceVideoPath.trim().isEmpty()) {
+                loadPrivateExperienceVideo(experienceVideoPath, experienceVideo);
+            } else if (experienceVideoUrl != null && !experienceVideoUrl.trim().isEmpty()) {
+                // فقط برای پست‌های قدیمی که مسیر فایل ذخیره نشده است.
+                experienceVideo.setVideoURI(Uri.parse(experienceVideoUrl));
+            }
             experienceVideo.setOnErrorListener((mp, what, extra) -> {
                 Toast.makeText(ExperienceListActivity.this, text("پخش ویدیو ممکن نشد؛ آدرس یا فرمت فایل را بررسی کنید."), Toast.LENGTH_LONG).show();
                 playPause.setText("▶"); return true;
@@ -4660,4 +4802,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-        }
+                }
