@@ -41,7 +41,6 @@ public class MainActivity extends Activity {
     private Button chatButton;
     private Button aiButton;
     private Button exchangeButton;
-    private Button settingsButton;
     private Button rewardedButton;
     private Button gameButton;
 
@@ -443,20 +442,8 @@ public class MainActivity extends Activity {
                         )
                 );
 
-        settingsButton =
-                createButton(
-                        text(
-                                "⚙️ تنظیمات",
-                                "⚙️ Settings",
-                                "⚙️ ترتیبات",
-                                "⚙️ ترتیبات",
-                                "⚙️ सेटिंग्स",
-                                "⚙️ الإعدادات"
-                        )
-                );
-
+        // تنظیمات از صفحه اصلی برداشته شده و از داخل تجربه‌ها باز می‌شود.
         row3.addView(exchangeButton);
-        row3.addView(settingsButton);
 
         // بازی‌ها: ورود به صفحه انتخاب هر دو بازی
         gameButton =
@@ -627,18 +614,6 @@ public class MainActivity extends Activity {
                     new Intent(
                             MainActivity.this,
                             ExchangeActivity.class
-                    );
-
-            startActivity(intent);
-        });
-
-        // تنظیمات
-        settingsButton.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            MainActivity.this,
-                            SettingsActivity.class
                     );
 
             startActivity(intent);
@@ -832,7 +807,6 @@ requestNotificationPermission();
         styleButton(chatButton);
         styleButton(aiButton);
         styleButton(exchangeButton);
-        styleButton(settingsButton);
         styleButton(gameButton);
         styleButton(rewardedButton);
     }
