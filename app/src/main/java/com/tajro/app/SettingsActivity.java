@@ -480,38 +480,6 @@ public class SettingsActivity extends Activity {
         );
 
         // ==================================
-        // اکانت من
-        // ==================================
-
-        Button accountButton =
-                createSettingButton(
-                        text(
-                                "👤 اکانت من",
-                                "👤 My Account",
-                                "👤 زما اکاونټ",
-                                "👤 میرا اکاؤنٹ",
-                                "👤 मेरा अकाउंट"
-                        )
-                );
-
-        mainLayout.addView(
-                accountButton
-        );
-
-        accountButton.setOnClickListener(
-                v -> {
-
-                    Intent intent =
-                            new Intent(
-                                    SettingsActivity.this,
-                                    AccountActivity.class
-                            );
-
-                    startActivity(intent);
-                }
-        );
-
-        // ==================================
         // حریم خصوصی
         // ==================================
 
