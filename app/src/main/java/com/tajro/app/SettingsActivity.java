@@ -191,45 +191,34 @@ public class SettingsActivity extends Activity {
                 new Button(this);
 
         button.setText(text);
-        button.setTextSize(17);
-        button.setTextColor(Color.WHITE);
-
-        button.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
+        button.setTextSize(16);
+        button.setTextColor(
+                ThemeManager.getTextColor(this)
         );
+        button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        button.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        button.setPadding(dp(18), 0, dp(18), 0);
+        button.setAllCaps(false);
+        button.setMinHeight(dp(66));
+        button.setElevation(dp(2));
 
-        button.setGravity(
-                Gravity.CENTER
-        );
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(nightMode
+                ? Color.rgb(37, 43, 52)
+                : Color.rgb(247, 249, 252));
+        background.setCornerRadius(dp(18));
+        background.setStroke(dp(1), nightMode
+                ? Color.rgb(65, 76, 89)
+                : Color.rgb(226, 232, 240));
 
-        GradientDrawable background =
-                new GradientDrawable();
-
-        background.setColor(
-                selectedColor
-        );
-
-        background.setCornerRadius(
-                dp(18)
-        );
-
-        button.setBackground(
-                background
-        );
+        button.setBackground(background);
 
         LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
-                        dp(62)
+                        dp(66)
                 );
-
-        params.setMargins(
-                0,
-                dp(7),
-                0,
-                dp(7)
-        );
+        params.setMargins(0, dp(6), 0, dp(6));
 
         button.setLayoutParams(params);
 
@@ -308,9 +297,9 @@ public class SettingsActivity extends Activity {
         );
 
         mainLayout.setPadding(
-                dp(20),
-                dp(25),
-                dp(20),
+                dp(18),
+                dp(22),
+                dp(18),
                 dp(30)
         );
 
@@ -348,16 +337,23 @@ public class SettingsActivity extends Activity {
                 Gravity.CENTER
         );
 
-        title.setPadding(
-                0,
-                0,
-                0,
-                dp(20)
-        );
-
+        title.setPadding(0, dp(4), 0, dp(8));
         updateTextColor(title);
-
         mainLayout.addView(title);
+
+        TextView subtitle = new TextView(this);
+        subtitle.setText(text(
+                "همه تنظیمات برنامه در یک‌جا",
+                "Manage your app in one place",
+                "د پروګرام ټول ترتیبات په یوه ځای کې",
+                "ایپ کی تمام ترتیبات ایک جگہ",
+                "ऐप की सभी सेटिंग्स एक जगह"
+        ));
+        subtitle.setTextSize(13);
+        subtitle.setGravity(Gravity.CENTER);
+        subtitle.setPadding(0, 0, 0, dp(18));
+        subtitle.setTextColor(ThemeManager.getNormalTextColor(this));
+        mainLayout.addView(subtitle);
 
         // ==================================
         // طرح و رنگ
@@ -406,13 +402,18 @@ public class SettingsActivity extends Activity {
         );
 
         nightSwitch.setPadding(
-                dp(5),
-                dp(12),
-                dp(5),
-                dp(12)
+                dp(16), dp(12), dp(16), dp(12)
         );
-
-        updateTextColor(nightSwitch);
+        nightSwitch.setTextColor(ThemeManager.getTextColor(this));
+        GradientDrawable nightBackground = new GradientDrawable();
+        nightBackground.setColor(nightMode
+                ? Color.rgb(37, 43, 52)
+                : Color.rgb(247, 249, 252));
+        nightBackground.setCornerRadius(dp(18));
+        nightBackground.setStroke(dp(1), nightMode
+                ? Color.rgb(65, 76, 89)
+                : Color.rgb(226, 232, 240));
+        nightSwitch.setBackground(nightBackground);
 
         mainLayout.addView(
                 nightSwitch
