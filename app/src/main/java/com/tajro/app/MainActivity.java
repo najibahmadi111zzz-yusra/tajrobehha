@@ -38,9 +38,9 @@ public class MainActivity extends Activity {
     private String appliedLanguage;
 
     private Button listButton;
-    private Button chatButton;
     private Button aiButton;
     private Button exchangeButton;
+    private Button settingsButton;
     private Button rewardedButton;
     private Button gameButton;
 
@@ -395,18 +395,6 @@ public class MainActivity extends Activity {
                 LinearLayout.HORIZONTAL
         );
 
-        chatButton =
-                createButton(
-                        text(
-                                "💬 چت",
-                                "💬 Chat",
-                                "💬 خبرې",
-                                "💬 چیٹ",
-                                "💬 चैट",
-                                "💬 الدردشة"
-                        )
-                );
-
         aiButton =
                 createButton(
                         text(
@@ -419,7 +407,20 @@ public class MainActivity extends Activity {
                         )
                 );
 
-        row2.addView(chatButton);
+        LinearLayout.LayoutParams aiParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(65)
+                );
+
+        aiParams.setMargins(
+                dp(6),
+                dp(6),
+                dp(6),
+                dp(6)
+        );
+
+        aiButton.setLayoutParams(aiParams);
         row2.addView(aiButton);
 
         // ردیف سوم
@@ -442,8 +443,20 @@ public class MainActivity extends Activity {
                         )
                 );
 
-        // تنظیمات از صفحه اصلی برداشته شده و از داخل تجربه‌ها باز می‌شود.
+        settingsButton =
+                createButton(
+                        text(
+                                "⚙️ تنظیمات",
+                                "⚙️ Settings",
+                                "⚙️ ترتیبات",
+                                "⚙️ ترتیبات",
+                                "⚙️ सेटिंग्स",
+                                "⚙️ الإعدادات"
+                        )
+                );
+
         row3.addView(exchangeButton);
+        row3.addView(settingsButton);
 
         // بازی‌ها: ورود به صفحه انتخاب هر دو بازی
         gameButton =
@@ -580,18 +593,6 @@ public class MainActivity extends Activity {
             startActivity(intent);
         });
 
-        // چت
-        chatButton.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            MainActivity.this,
-                            ChatActivity.class
-                    );
-
-            startActivity(intent);
-        });
-
         // دستیار هوشمند
         aiButton.setOnClickListener(v -> {
 
@@ -614,6 +615,18 @@ public class MainActivity extends Activity {
                     new Intent(
                             MainActivity.this,
                             ExchangeActivity.class
+                    );
+
+            startActivity(intent);
+        });
+
+        // تنظیمات
+        settingsButton.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            SettingsActivity.class
                     );
 
             startActivity(intent);
@@ -804,9 +817,9 @@ requestNotificationPermission();
         }
 
         styleButton(listButton);
-        styleButton(chatButton);
         styleButton(aiButton);
         styleButton(exchangeButton);
+        styleButton(settingsButton);
         styleButton(gameButton);
         styleButton(rewardedButton);
     }
