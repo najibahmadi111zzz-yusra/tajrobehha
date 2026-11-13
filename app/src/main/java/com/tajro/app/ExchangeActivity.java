@@ -7,6 +7,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -657,495 +658,268 @@ public class ExchangeActivity extends Activity {
     // صفحه اصلی
     // =========================================================
 
+    // رنگ‌ها و اجزای ظاهری صفحه صرافی
+    private static final int EX_BG = Color.rgb(244, 247, 250);
+    private static final int EX_NAVY = Color.rgb(16, 43, 67);
+    private static final int EX_TEAL = Color.rgb(15, 105, 125);
+    private static final int EX_TEXT = Color.rgb(39, 55, 68);
+    private static final int EX_MUTED = Color.rgb(111, 127, 140);
+
+    private GradientDrawable rounded(int color, int radiusDp, int strokeColor) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(color);
+        drawable.setCornerRadius(dp(radiusDp));
+        if (strokeColor != Color.TRANSPARENT) drawable.setStroke(dp(1), strokeColor);
+        return drawable;
+    }
+
+    private LinearLayout makeCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(14), dp(10), dp(14), dp(10));
+        card.setBackground(rounded(Color.WHITE, 18, Color.rgb(230, 235, 240)));
+        card.setElevation(dp(2));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(10);
+        return card;
+    }
+
+    private void addCard(LinearLayout parent, LinearLayout card) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(10);
+        parent.addView(card, lp);
+    }
+
+    private TextView sectionLabel(String value) {
+        TextView label = new TextView(this);
+        label.setText(value);
+        label.setTextSize(13);
+        label.setTextColor(EX_MUTED);
+        label.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        label.setPadding(dp(3), dp(5), dp(3), dp(3));
+        return label;
+    }
+
+    private void styleField(EditText field) {
+        field.setTextSize(14);
+        field.setSingleLine(true);
+        field.setTextColor(EX_TEXT);
+        field.setHintTextColor(Color.rgb(145, 157, 168));
+        field.setPadding(dp(12), dp(7), dp(12), dp(7));
+        field.setBackground(rounded(Color.rgb(247, 249, 251), 11, Color.rgb(226, 232, 237)));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(46));
+        lp.bottomMargin = dp(5);
+        field.setLayoutParams(lp);
+    }
+
+    private void styleSpinner(Spinner spinner) {
+        spinner.setBackground(rounded(Color.rgb(247, 249, 251), 11, Color.rgb(226, 232, 237)));
+        spinner.setPadding(dp(7), dp(2), dp(7), dp(2));
+        spinner.setMinimumHeight(dp(44));
+    }
+
+    private Button actionButton(String value, boolean primary) {
+        Button button = new Button(this);
+        button.setText(value);
+        button.setTextSize(13);
+        button.setAllCaps(false);
+        button.setTextColor(primary ? Color.WHITE : EX_NAVY);
+        button.setBackground(rounded(primary ? EX_TEAL : Color.rgb(232, 239, 243), 13,
+                primary ? EX_TEAL : Color.rgb(220, 229, 235)));
+        button.setElevation(dp(1));
+        button.setPadding(dp(7), 0, dp(7), 0);
+        button.setMinHeight(dp(46));
+        button.setMinimumHeight(dp(46));
+        return button;
+    }
+
     private void createScreen() {
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setFillViewport(true);
+        scrollView.setBackgroundColor(EX_BG);
+        scrollView.setClipToPadding(false);
 
-        ScrollView scrollView =
-                new ScrollView(this);
-
-        LinearLayout main =
-                new LinearLayout(this);
-
-        main.setOrientation(
-                LinearLayout.VERTICAL
-        );
-
-        main.setPadding(
-                dp(12),
-                dp(12),
-                dp(12),
-                dp(25)
-        );
-
+        LinearLayout main = new LinearLayout(this);
+        main.setOrientation(LinearLayout.VERTICAL);
+        main.setPadding(dp(14), dp(12), dp(14), dp(22));
         scrollView.addView(main);
 
-        TextView title =
-                makeText(
-                        text(
-                                "💱 صرافی تجربه‌ها",
-                                "💱 Tajro Exchange",
-                                "💱 د تجربو صرافي",
-                                "💱 تجربہ ایکسچینج",
-                                "💱 तजरो एक्सचेंज"
-                        ),
-                        25
-                );
-
+        // سربرگ جمع‌وجور و حرفه‌ای
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setGravity(Gravity.CENTER);
+        header.setPadding(dp(16), dp(15), dp(16), dp(15));
+        header.setBackground(rounded(EX_NAVY, 20, Color.TRANSPARENT));
+        header.setElevation(dp(3));
+        TextView title = new TextView(this);
+        title.setText(text("💱 صرافی تجربه‌ها", "💱 Tajro Exchange", "💱 د تجربو صرافي", "💱 تجربہ ایکسچینج", "💱 तजरो एक्सचेंज"));
+        title.setTextSize(22);
+        title.setTextColor(Color.WHITE);
         title.setGravity(Gravity.CENTER);
-
-        main.addView(title);
-
-        TextView subtitle =
-                makeText(
-                        text(
-                                "ثبت و مدیریت خرید و فروش ارز",
-                                "Register and manage currency buying and selling",
-                                "د اسعارو پېر او پلور ثبت او مدیریت",
-                                "کرنسی کی خرید و فروخت کا اندراج اور انتظام",
-                                "मुद्रा खरीद और बिक्री का प्रबंधन"
-                        ),
-                        17
-                );
-
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        TextView subtitle = new TextView(this);
+        subtitle.setText(text("مدیریت آسان خرید و فروش ارز", "Simple currency exchange management", "د اسعارو د پېر او پلور اسانه مدیریت", "کرنسی کی خرید و فروخت کا آسان انتظام", "मुद्रा विनिमय का आसान प्रबंधन"));
+        subtitle.setTextSize(12);
+        subtitle.setTextColor(Color.rgb(207, 224, 235));
         subtitle.setGravity(Gravity.CENTER);
+        subtitle.setPadding(0, dp(3), 0, 0);
+        header.addView(title);
+        header.addView(subtitle);
+        LinearLayout.LayoutParams headerLp = new LinearLayout.LayoutParams(-1, -2);
+        headerLp.bottomMargin = dp(12);
+        main.addView(header, headerLp);
 
-        main.addView(subtitle);
+        // کارت مشخصات مشتری
+        LinearLayout customerCard = makeCard();
+        customerCard.addView(sectionLabel(text("اطلاعات مشتری", "Customer details", "د پېرودونکي معلومات", "صارف کی معلومات", "ग्राहक विवरण")));
+        customerNameInput = makeInput(text("نام مشتری", "Customer name", "د پېرودونکي نوم", "صارف کا نام", "ग्राहक का नाम"));
+        styleField(customerNameInput);
+        customerCard.addView(customerNameInput);
+        phoneInput = makeInput(text("شماره تلفن", "Phone number", "د ټیلیفون شمېره", "فون نمبر", "फ़ोन नंबर"));
+        phoneInput.setInputType(InputType.TYPE_CLASS_PHONE);
+        styleField(phoneInput);
+        customerCard.addView(phoneInput);
+        addCard(main, customerCard);
 
-        customerNameInput =
-                makeInput(
-                        text(
-                                "نام مشتری",
-                                "Customer name",
-                                "د پېرودونکي نوم",
-                                "صارف کا نام",
-                                "ग्राहक का नाम"
-                        )
-                );
+        // کارت جزئیات معامله
+        LinearLayout tradeCard = makeCard();
+        tradeCard.addView(sectionLabel(text("جزئیات معامله", "Transaction details", "د معاملې جزئیات", "معاملے کی تفصیلات", "लेन-देन विवरण")));
 
-        main.addView(customerNameInput);
-
-        phoneInput =
-                makeInput(
-                        text(
-                                "شماره تلفن",
-                                "Phone number",
-                                "د ټیلیفون شمېره",
-                                "فون نمبر",
-                                "फ़ोन नंबर"
-                        )
-                );
-
-        phoneInput.setInputType(
-                InputType.TYPE_CLASS_PHONE
-        );
-
-        main.addView(phoneInput);
-
-        main.addView(
-                makeText(
-                        text(
-                                "انتخاب ارز",
-                                "Select currency",
-                                "اسعار وټاکئ",
-                                "کرنسی منتخب کریں",
-                                "मुद्रा चुनें"
-                        ),
-                        16
-                )
-        );
-
-        currencySpinner =
-                new Spinner(this);
-
-        ArrayAdapter<String> currencyAdapter =
-                createCurrencyAdapter(currencies);
-
-        currencyAdapter.setDropDownViewResource(
-                android.R.layout.simple_spinner_dropdown_item
-        );
-
-        currencySpinner.setAdapter(
-                currencyAdapter
-        );
-
-        // ارز پیش‌فرض محلی فقط برای انتخاب اولیه؛ منطق نرخ و معاملات دست‌نخورده می‌ماند.
-        String preferredCurrency =
-                LocalCurrencyManager.getSelectedOrDetectedCurrency(this);
-
+        tradeCard.addView(sectionLabel(text("انتخاب ارز", "Select currency", "اسعار وټاکئ", "کرنسی منتخب کریں", "मुद्रा चुनें")));
+        currencySpinner = new Spinner(this);
+        ArrayAdapter<String> currencyAdapter = createCurrencyAdapter(currencies);
+        currencyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        currencySpinner.setAdapter(currencyAdapter);
+        String preferredCurrency = LocalCurrencyManager.getSelectedOrDetectedCurrency(this);
         for (int i = 0; i < currencies.length; i++) {
-            if (preferredCurrency.equals(currencies[i])) {
-                currencySpinner.setSelection(i);
-                break;
-            }
+            if (preferredCurrency.equals(currencies[i])) { currencySpinner.setSelection(i); break; }
         }
+        styleSpinner(currencySpinner);
+        tradeCard.addView(currencySpinner, new LinearLayout.LayoutParams(-1, dp(44)));
 
-        main.addView(currencySpinner);
-
-        main.addView(
-                makeText(
-                        text(
-                                "نوع معامله",
-                                "Transaction type",
-                                "د معاملې ډول",
-                                "معاملے کی قسم",
-                                "लेन-देन का प्रकार"
-                        ),
-                        16
-                )
-        );
-
-        typeSpinner =
-                new Spinner(this);
-
-        String[] types = {
-                "خرید",
-                "فروش"
-        };
-
-        String[] displayedTypes = {
-                getDisplayedTransactionType("خرید"),
-                getDisplayedTransactionType("فروش")
-        };
-
-        ArrayAdapter<String> typeAdapter =
-                new ArrayAdapter<>(
-                        this,
-                        android.R.layout.simple_spinner_item,
-                        displayedTypes
-                );
-
-        typeAdapter.setDropDownViewResource(
-                android.R.layout.simple_spinner_dropdown_item
-        );
-
+        tradeCard.addView(sectionLabel(text("نوع معامله", "Transaction type", "د معاملې ډول", "معاملے کی قسم", "लेन-देन का प्रकार")));
+        typeSpinner = new Spinner(this);
+        String[] displayedTypes = {getDisplayedTransactionType("خرید"), getDisplayedTransactionType("فروش")};
+        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, displayedTypes);
+        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         typeSpinner.setAdapter(typeAdapter);
         typeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) { updateRate(); }
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+        });
+        styleSpinner(typeSpinner);
+        LinearLayout.LayoutParams spinnerLp = new LinearLayout.LayoutParams(-1, dp(44));
+        spinnerLp.bottomMargin = dp(5);
+        tradeCard.addView(typeSpinner, spinnerLp);
+
+        amountInput = makeInput(text("مقدار ارز", "Currency amount", "د اسعارو اندازه", "کرنسی کی مقدار", "मुद्रा की मात्रा"));
+        amountInput.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        styleField(amountInput);
+        tradeCard.addView(sectionLabel(text("مقدار ارز", "Amount", "اندازه", "مقدار", "मात्रा")));
+        tradeCard.addView(amountInput);
+
+        rateInput = makeInput(text("نرخ هر واحد به افغانی", "Rate per unit in Afghani", "د هر واحد نرخ په افغانۍ", "فی یونٹ افغانی نرخ", "प्रति इकाई अफ़गानी दर"));
+        rateInput.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        styleField(rateInput);
+        tradeCard.addView(sectionLabel(text("نرخ هر واحد به افغانی", "Rate per unit in Afghani", "د هر واحد نرخ په افغانۍ", "فی یونٹ افغانی نرخ", "प्रति इकाई अफ़गानी दर")));
+        tradeCard.addView(rateInput);
+
+        ratesInfoText = makeText("", 12);
+        ratesInfoText.setTextColor(EX_MUTED);
+        ratesInfoText.setPadding(dp(4), dp(3), dp(4), dp(5));
+        tradeCard.addView(ratesInfoText);
+
+        noteInput = makeInput(text("یادداشت / توضیحات", "Note / description", "یادښت / توضیحات", "نوٹ / وضاحت", "नोट / विवरण"));
+        styleField(noteInput);
+        tradeCard.addView(noteInput);
+        addCard(main, tradeCard);
+
+        // کارت نتیجه و موجودی
+        LinearLayout summaryCard = makeCard();
+        summaryCard.setBackground(rounded(Color.rgb(230, 242, 245), 17, Color.rgb(211, 230, 235)));
+        totalText = makeText(text("مجموع: 0 افغانی", "Total: 0 Afghani", "ټول: ۰ افغانۍ", "کل: 0 افغانی", "कुल: 0 अफ़गानी"), 17);
+        totalText.setTextColor(EX_NAVY);
+        totalText.setTypeface(null, android.graphics.Typeface.BOLD);
+        totalText.setGravity(Gravity.CENTER);
+        balanceText = makeText(text("موجودی: 0", "Balance: 0", "موجودي: ۰", "بیلنس: 0", "शेष: 0"), 14);
+        balanceText.setTextColor(EX_TEAL);
+        balanceText.setGravity(Gravity.CENTER);
+        summaryCard.addView(totalText);
+        summaryCard.addView(balanceText);
+        addCard(main, summaryCard);
+
+        // دکمه‌های اصلی کوچک‌تر و مرتب‌تر
+        Button calculateButton = actionButton(text("🧮 محاسبه", "🧮 Calculate", "🧮 حساب", "🧮 حساب کریں", "🧮 गणना"), false);
+        LinearLayout.LayoutParams calcLp = new LinearLayout.LayoutParams(-1, dp(45));
+        calcLp.bottomMargin = dp(7);
+        main.addView(calculateButton, calcLp);
+        calculateButton.setOnClickListener(v -> calculateTotal());
+
+        Button saveButton = actionButton(text("💾 ثبت معامله", "💾 Save transaction", "💾 معامله ثبت کړئ", "💾 معاملہ محفوظ کریں", "💾 लेन-देन सहेजें"), true);
+        LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(-1, dp(48));
+        saveLp.bottomMargin = dp(12);
+        main.addView(saveButton, saveLp);
+        saveButton.setOnClickListener(v -> saveTransaction());
+
+        // ابزارهای جانبی در چیدمان دو ستونه
+        LinearLayout toolsCard = makeCard();
+        toolsCard.addView(sectionLabel(text("ابزارهای صرافی", "Exchange tools", "د صرافۍ وسایل", "ایکسچینج ٹولز", "एक्सचेंज टूल्स")));
+        addToolRow(toolsCard,
+                text("📜 تاریخچه معاملات", "📜 History", "📜 تاریخچه", "📜 تاریخ", "📜 इतिहास"),
+                text("👤 مشتریان", "👤 Customers", "👤 پېرودونکي", "👤 صارفین", "👤 ग्राहक"),
+                v -> showHistory(), v -> showCustomers());
+        addToolRow(toolsCard,
+                text("📊 گزارش صرافی", "📊 Reports", "📊 راپور", "📊 رپورٹ", "📊 रिपोर्ट"),
+                text("💰 مدیریت موجودی", "💰 Manage balance", "💰 موجودي", "💰 بیلنس", "💰 शेष"),
+                v -> showReport(), v -> showBalanceManager());
+        addToolRow(toolsCard,
+                text("💱 موجودی همه ارزها", "💱 All balances", "💱 ټولې موجودۍ", "💱 تمام بیلنس", "💱 सभी शेष"),
+                text("🔄 تبدیل ارز", "🔄 Converter", "🔄 بدلول", "🔄 کنورٹر", "🔄 परिवर्तक"),
+                v -> showBalances(), v -> showConverter());
+        addToolRow(toolsCard,
+                text("🔐 گاوصندوق", "🔐 Smart vault", "🔐 خزانه", "🔐 والٹ", "🔐 तिजोरी"),
+                text("⚙️ تنظیمات", "⚙️ Settings", "⚙️ تنظیمات", "⚙️ ترتیبات", "⚙️ सेटिंग्स"),
+                v -> {
+                    try { startActivity(new Intent(this, VaultActivity.class)); }
+                    catch (Exception e) { Toast.makeText(this, text("گاوصندوق در دسترس نیست", "Vault is not available", "خزانه شتون نه لري", "والٹ دستیاب نہیں ہے", "तिजोरी उपलब्ध नहीं है"), Toast.LENGTH_SHORT).show(); }
+                }, v -> showSettings());
+        addCard(main, toolsCard);
+
+        currencySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateBalance();
                 updateRate();
+                if (position >= 0 && position < currencies.length) {
+                    LocalCurrencyManager.saveSelectedCurrency(ExchangeActivity.this, currencies[position]);
+                }
             }
             @Override public void onNothingSelected(AdapterView<?> parent) { }
         });
 
-        main.addView(typeSpinner);
-
-        amountInput =
-                makeInput(
-                        text(
-                                "مقدار ارز",
-                                "Currency amount",
-                                "د اسعارو اندازه",
-                                "کرنسی کی مقدار",
-                                "मुद्रा की मात्रा"
-                        )
-                );
-
-        amountInput.setInputType(
-                InputType.TYPE_CLASS_NUMBER |
-                        InputType.TYPE_NUMBER_FLAG_DECIMAL
-        );
-
-        main.addView(amountInput);
-
-        rateInput =
-                makeInput(
-                        text(
-                                "نرخ هر واحد به افغانی",
-                                "Rate per unit in Afghani",
-                                "د هر واحد نرخ په افغانۍ",
-                                "فی یونٹ افغانی نرخ",
-                                "प्रति इकाई अफ़गानी दर"
-                        )
-                );
-
-        rateInput.setInputType(
-                InputType.TYPE_CLASS_NUMBER |
-                        InputType.TYPE_NUMBER_FLAG_DECIMAL
-        );
-
-        main.addView(rateInput);
-
-        ratesInfoText = makeText("", 14);
-        ratesInfoText.setTextColor(Color.DKGRAY);
-        main.addView(ratesInfoText);
-
-        noteInput =
-                makeInput(
-                        text(
-                                "یادداشت / توضیحات",
-                                "Note / description",
-                                "یادښت / توضیحات",
-                                "نوٹ / وضاحت",
-                                "नोट / विवरण"
-                        )
-                );
-
-        main.addView(noteInput);
-
-        totalText =
-                makeText(
-                        text(
-                                "مجموع: 0 افغانی",
-                                "Total: 0 Afghani",
-                                "ټول: ۰ افغانۍ",
-                                "کل: 0 افغانی",
-                                "कुल: 0 अफ़गानी"
-                        ),
-                        18
-                );
-
-        totalText.setGravity(Gravity.CENTER);
-
-        main.addView(totalText);
-
-        balanceText =
-                makeText(
-                        text(
-                                "موجودی: 0",
-                                "Balance: 0",
-                                "موجودي: ۰",
-                                "بیلنس: 0",
-                                "शेष: 0"
-                        ),
-                        17
-                );
-
-        balanceText.setGravity(Gravity.CENTER);
-
-        main.addView(balanceText);
-
-        Button calculateButton =
-                makeButton(
-                        text(
-                                "🧮 محاسبه",
-                                "🧮 Calculate",
-                                "🧮 حساب",
-                                "🧮 حساب کریں",
-                                "🧮 गणना"
-                        )
-                );
-
-        main.addView(calculateButton);
-
-        calculateButton.setOnClickListener(
-                v -> calculateTotal()
-        );
-
-        Button saveButton =
-                makeButton(
-                        text(
-                                "💾 ثبت معامله",
-                                "💾 Save transaction",
-                                "💾 معامله ثبت کړئ",
-                                "💾 معاملہ محفوظ کریں",
-                                "💾 लेन-देन सहेजें"
-                        )
-                );
-
-        main.addView(saveButton);
-
-        saveButton.setOnClickListener(
-                v -> saveTransaction()
-        );
-
-        Button historyButton =
-                makeButton(
-                        text(
-                                "📜 تاریخچه معاملات",
-                                "📜 Transaction history",
-                                "📜 د معاملو تاریخچه",
-                                "📜 معاملات کی تاریخ",
-                                "📜 लेन-देन इतिहास"
-                        )
-                );
-
-        main.addView(historyButton);
-
-        historyButton.setOnClickListener(
-                v -> showHistory()
-        );
-
-        Button customersButton =
-                makeButton(
-                        text(
-                                "👤 مشتریان",
-                                "👤 Customers",
-                                "👤 پېرودونکي",
-                                "👤 صارفین",
-                                "👤 ग्राहक"
-                        )
-                );
-
-        main.addView(customersButton);
-
-        customersButton.setOnClickListener(
-                v -> showCustomers()
-        );
-
-        Button reportButton =
-                makeButton(
-                        text(
-                                "📊 گزارش صرافی",
-                                "📊 Exchange report",
-                                "📊 د صرافۍ راپور",
-                                "📊 ایکسچینج رپورٹ",
-                                "📊 एक्सचेंज रिपोर्ट"
-                        )
-                );
-
-        main.addView(reportButton);
-
-        reportButton.setOnClickListener(
-                v -> showReport()
-        );
-
-        // =====================================================
-        // مدیریت موجودی
-        // =====================================================
-
-        Button manageBalanceButton =
-                makeButton(
-                        text(
-                                "💰 مدیریت موجودی",
-                                "💰 Balance management",
-                                "💰 د موجودۍ مدیریت",
-                                "💰 بیلنس کا انتظام",
-                                "💰 शेष प्रबंधन"
-                        )
-                );
-
-        main.addView(manageBalanceButton);
-
-        manageBalanceButton.setOnClickListener(
-                v -> showBalanceManager()
-        );
-
-        Button balancesButton =
-                makeButton(
-                        text(
-                                "💰 موجودی همه ارزها",
-                                "💰 All currency balances",
-                                "💰 د ټولو اسعارو موجودي",
-                                "💰 تمام کرنسیوں کا بیلنس",
-                                "💰 सभी मुद्राओं का शेष"
-                        )
-                );
-
-        main.addView(balancesButton);
-
-        balancesButton.setOnClickListener(
-                v -> showBalances()
-        );
-
-        Button converterButton =
-                makeButton(
-                        text(
-                                "🔄 تبدیل ارز",
-                                "🔄 Currency converter",
-                                "🔄 د اسعارو بدلول",
-                                "🔄 کرنسی تبدیل کریں",
-                                "🔄 मुद्रा परिवर्तक"
-                        )
-                );
-
-        main.addView(converterButton);
-
-        converterButton.setOnClickListener(
-                v -> showConverter()
-        );
-
-        Button vaultButton =
-                makeButton(
-                        text(
-                                "🔐 گاوصندوق هوشمند",
-                                "🔐 Smart vault",
-                                "🔐 سمارټ خزانه",
-                                "🔐 اسمارٹ والٹ",
-                                "🔐 स्मार्ट तिजोरी"
-                        )
-                );
-
-        main.addView(vaultButton);
-
-        vaultButton.setOnClickListener(
-                v -> {
-
-                    try {
-
-                        startActivity(
-                                new Intent(
-                                        this,
-                                        VaultActivity.class
-                                )
-                        );
-
-                    } catch (Exception e) {
-
-                        Toast.makeText(
-                                this,
-                                text(
-                                        "گاوصندوق در دسترس نیست",
-                                        "Vault is not available",
-                                        "خزانه شتون نه لري",
-                                        "والٹ دستیاب نہیں ہے",
-                                        "तिजोरी उपलब्ध नहीं है"
-                                ),
-                                Toast.LENGTH_SHORT
-                        ).show();
-                    }
-                }
-        );
-
-        Button settingsButton =
-                makeButton(
-                        text(
-                                "⚙️ تنظیمات",
-                                "⚙️ Settings",
-                                "⚙️ تنظیمات",
-                                "⚙️ ترتیبات",
-                                "⚙️ सेटिंग्स"
-                        )
-                );
-
-        main.addView(settingsButton);
-
-        settingsButton.setOnClickListener(
-                v -> showSettings()
-        );
-
-        currencySpinner.setOnItemSelectedListener(
-                new AdapterView.OnItemSelectedListener() {
-
-                    @Override
-                    public void onItemSelected(
-                            AdapterView<?> parent,
-                            View view,
-                            int position,
-                            long id
-                    ) {
-
-                        updateBalance();
-                        updateRate();
-
-                        // انتخاب دستی کاربر برای دفعات بعد ذخیره می‌شود.
-                        if (position >= 0 && position < currencies.length) {
-                            LocalCurrencyManager.saveSelectedCurrency(
-                                    ExchangeActivity.this,
-                                    currencies[position]
-                            );
-                        }
-                    }
-
-                    @Override
-                    public void onNothingSelected(
-                            AdapterView<?> parent
-                    ) {
-                    }
-                }
-        );
-
         setContentView(scrollView);
-
         updateBalance();
         updateRate();
+    }
+
+    private void addToolRow(LinearLayout parent, String firstText, String secondText,
+                            View.OnClickListener firstAction, View.OnClickListener secondAction) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        Button first = actionButton(firstText, false);
+        Button second = actionButton(secondText, false);
+        LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(0, dp(43), 1f);
+        cell.setMargins(dp(3), dp(4), dp(3), dp(4));
+        row.addView(first, cell);
+        LinearLayout.LayoutParams cell2 = new LinearLayout.LayoutParams(0, dp(43), 1f);
+        cell2.setMargins(dp(3), dp(4), dp(3), dp(4));
+        row.addView(second, cell2);
+        first.setOnClickListener(firstAction);
+        second.setOnClickListener(secondAction);
+        parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
     }
 
     // =========================================================
@@ -3943,4 +3717,4 @@ public class ExchangeActivity extends Activity {
         rateRefreshHandler.removeCallbacks(rateRefreshRunnable);
         super.onPause();
     }
-}
+            }
