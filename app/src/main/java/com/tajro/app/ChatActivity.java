@@ -6622,7 +6622,8 @@ private void styleChatDialog(AlertDialog dialog) {
         dialog.getWindow().setBackgroundDrawable(panel);
     }
 
-    TextView title = dialog.findViewById(android.R.id.alertTitle);
+    int titleId = getResources().getIdentifier("alertTitle", "id", "android");
+    TextView title = titleId != 0 ? dialog.findViewById(titleId) : null;
     if (title != null) {
         title.setTextColor(Color.WHITE);
         title.setTypeface(null, Typeface.BOLD);
@@ -6882,4 +6883,4 @@ private void blockCurrentUser() {
 
 }
     
-                                             }
+    }
