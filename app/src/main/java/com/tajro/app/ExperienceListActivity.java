@@ -93,6 +93,7 @@ public class ExperienceListActivity extends Activity {
     private TextView pullRefreshIndicator;
     private LinearLayout storiesLayout;
     private LinearLayout friendsLayout;
+    private TextView friendsCountView;
     private boolean refreshBatchActive = false;
     private int refreshTasksRemaining = 0;
     private boolean isPullRefreshing = false;
@@ -664,156 +665,93 @@ public class ExperienceListActivity extends Activity {
 
         db = FirebaseFirestore.getInstance();
 
-        ScrollView scrollView =
-                new ScrollView(this);
-
-        scrollView.setFillViewport(true);
-
-        layout =
-                new LinearLayout(this);
-
-        layout.setOrientation(
-                LinearLayout.VERTICAL
-        );
-
-        layout.setPadding(
-                dp(14),
-                dp(18),
-                dp(14),
-                dp(30)
-        );
-
-        layout.setBackgroundColor(
-                Color.rgb(238, 248, 250)
-        );
-
-        scrollView.addView(
-                layout,
-                new ScrollView.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-        );
-
-        // ================================
-        // سربرگ اختصاصی صفحه «تجربه‌ها»
-        // ================================
+        // نوار بالایی ثابت؛ فقط این بخش هنگام پیمایش در جای خود می‌ماند.
+        LinearLayout pageRoot = new LinearLayout(this);
+        pageRoot.setOrientation(LinearLayout.VERTICAL);
+        pageRoot.setBackgroundColor(Color.rgb(238, 248, 250));
 
         LinearLayout header = new LinearLayout(this);
-        header.setOrientation(LinearLayout.VERTICAL);
-        header.setGravity(Gravity.CENTER);
-        header.setPadding(dp(18), dp(18), dp(18), dp(18));
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        header.setPadding(dp(12), dp(5), dp(12), dp(5));
 
         GradientDrawable headerBackground = new GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
+                GradientDrawable.Orientation.LEFT_RIGHT,
                 new int[]{
                         Color.rgb(10, 28, 72),
                         Color.rgb(17, 52, 105),
                         Color.rgb(12, 73, 101)
                 });
-        headerBackground.setCornerRadius(dp(24));
+        headerBackground.setCornerRadius(dp(18));
         headerBackground.setStroke(dp(1), Color.rgb(190, 159, 82));
         header.setBackground(headerBackground);
-        header.setElevation(dp(4));
+        header.setElevation(dp(3));
 
         LinearLayout.LayoutParams headerParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        headerParams.setMargins(0, 0, 0, dp(18));
-        header.setLayoutParams(headerParams);
-
-        // آیکن کوچک تنظیمات در گوشه بالای راست سربرگ تجربه‌ها
-        LinearLayout headerTopRow = new LinearLayout(this);
-        headerTopRow.setOrientation(LinearLayout.HORIZONTAL);
-        headerTopRow.setGravity(Gravity.CENTER_VERTICAL);
-        headerTopRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        headerTopRow.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(36)));
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(62));
+        headerParams.setMargins(dp(12), dp(8), dp(12), dp(2));
+        pageRoot.addView(header, headerParams);
 
         TextView settingsIcon = new TextView(this);
         settingsIcon.setText("⚙");
-        settingsIcon.setTextSize(20);
-        settingsIcon.setTextColor(Color.argb(242, 255, 255, 255));
+        settingsIcon.setTextSize(19);
+        settingsIcon.setTextColor(Color.WHITE);
         settingsIcon.setGravity(Gravity.CENTER);
-        settingsIcon.setPadding(0, 0, 0, dp(1));
         GradientDrawable settingsIconBg = new GradientDrawable();
         settingsIconBg.setShape(GradientDrawable.OVAL);
-        settingsIconBg.setColor(Color.argb(42, 255, 255, 255));
-        settingsIconBg.setStroke(dp(1), Color.argb(135, 255, 255, 255));
+        settingsIconBg.setColor(Color.argb(48, 255, 255, 255));
+        settingsIconBg.setStroke(dp(1), Color.argb(145, 255, 255, 255));
         settingsIcon.setBackground(settingsIconBg);
-        settingsIcon.setElevation(dp(1));
         settingsIcon.setContentDescription(text("تنظیمات"));
-        headerTopRow.addView(settingsIcon, new LinearLayout.LayoutParams(dp(34), dp(34)));
+        header.addView(settingsIcon, new LinearLayout.LayoutParams(dp(42), dp(42)));
         settingsIcon.setOnClickListener(v -> showExperienceSettingsPanel());
 
-        // فاصله‌گذار برای قرار گرفتن تنظیمات در راست و چت در چپ سربرگ
-        View headerTopSpacer = new View(this);
-        headerTopRow.addView(headerTopSpacer, new LinearLayout.LayoutParams(
-                0, 1, 1f));
+        TextView title = new TextView(this);
+        title.setText(text("تجربه‌ها"));
+        title.setTextSize(21);
+        title.setTextColor(Color.WHITE);
+        title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        title.setGravity(Gravity.CENTER);
+        title.setSingleLine(true);
+        title.setLetterSpacing(0.01f);
+        header.addView(title, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.MATCH_PARENT, 1f));
 
-        // دکمه چت خصوصی در سمت چپ سربرگ تجربه‌ها
         TextView chatIcon = new TextView(this);
         chatIcon.setText("💬");
-        chatIcon.setTextSize(17);
+        chatIcon.setTextSize(18);
         chatIcon.setGravity(Gravity.CENTER);
-        chatIcon.setTextColor(Color.argb(242, 255, 255, 255));
+        chatIcon.setTextColor(Color.WHITE);
         GradientDrawable chatIconBg = new GradientDrawable();
         chatIconBg.setShape(GradientDrawable.OVAL);
-        chatIconBg.setColor(Color.argb(42, 255, 255, 255));
-        chatIconBg.setStroke(dp(1), Color.argb(135, 255, 255, 255));
+        chatIconBg.setColor(Color.argb(48, 255, 255, 255));
+        chatIconBg.setStroke(dp(1), Color.argb(145, 255, 255, 255));
         chatIcon.setBackground(chatIconBg);
-        chatIcon.setElevation(dp(1));
         chatIcon.setContentDescription(text("چت خصوصی"));
-        LinearLayout.LayoutParams chatIconParams = new LinearLayout.LayoutParams(dp(34), dp(34));
-        chatIconParams.setMargins(0, 0, dp(8), 0);
-        headerTopRow.addView(chatIcon, chatIconParams);
+        header.addView(chatIcon, new LinearLayout.LayoutParams(dp(42), dp(42)));
         chatIcon.setOnClickListener(v -> {
             Intent chatIntent = new Intent(ExperienceListActivity.this, ChatActivity.class);
             startActivity(chatIntent);
         });
-        header.addView(headerTopRow);
 
-        TextView emblem = new TextView(this);
-        emblem.setText("📖  💡");
-        emblem.setTextSize(7.25f); // آیکن بالای صفحه ۵۰٪ کوچک‌تر
-        emblem.setGravity(Gravity.CENTER);
-        emblem.setPadding(dp(8), 0, dp(8), dp(5));
-        header.addView(emblem);
+        // همه محتوای زیر سربرگ در یک ناحیه پیمایش قرار می‌گیرد.
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setFillViewport(true);
+        scrollView.setClipToPadding(false);
+        layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(dp(14), dp(10), dp(14), dp(30));
+        layout.setBackgroundColor(Color.rgb(238, 248, 250));
+        scrollView.addView(layout, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        pageRoot.addView(scrollView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        TextView title = new TextView(this);
-        title.setText(text("تجربه‌ها"));
-        title.setTextSize(29);
-        title.setTextColor(Color.WHITE);
-        title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-        title.setGravity(Gravity.CENTER);
-        title.setLetterSpacing(0.02f);
-        title.setPadding(dp(4), dp(2), dp(4), dp(5));
-        header.addView(title);
-
-        View goldAccent = new View(this);
-        GradientDrawable accentBackground = new GradientDrawable();
-        accentBackground.setColor(Color.rgb(220, 184, 91));
-        accentBackground.setCornerRadius(dp(3));
-        goldAccent.setBackground(accentBackground);
-        LinearLayout.LayoutParams accentParams = new LinearLayout.LayoutParams(dp(58), dp(3));
-        accentParams.setMargins(0, dp(3), 0, dp(9));
-        header.addView(goldAccent, accentParams);
-
-        TextView subtitle = new TextView(this);
-        subtitle.setText(text("هر تجربه یک درس و هر داستان چراغیست"));
-        subtitle.setTextSize(14);
-        subtitle.setTextColor(Color.rgb(221, 239, 247));
-        subtitle.setGravity(Gravity.CENTER);
-        subtitle.setPadding(dp(4), 0, dp(4), dp(2));
-        header.addView(subtitle);
-
-        layout.addView(header);
+        // دکمه انتشار، داستان‌ها و فهرست دوستان همگی داخل بخش پیمایشی هستند.
         layout.addView(buildPublishEntryButton());
 
-        // پروفایل حساب واردشده؛ در جای عنوان «تجربه‌های کاربران»
-        layout.addView(buildMyProfileHeader());
-
-        // بخش داستان‌های ۲۴ ساعته و فهرست دوستان؛ مستقل از فید تجربه‌ها
         layout.addView(buildSectionHeading("داستان‌ها", "✨"));
         HorizontalScrollView storiesScroller = new HorizontalScrollView(this);
         storiesScroller.setHorizontalScrollBarEnabled(false);
@@ -823,6 +761,7 @@ public class ExperienceListActivity extends Activity {
         storiesScroller.addView(storiesLayout);
         layout.addView(storiesScroller);
 
+        // شمار دوستان دقیقاً پس از داستان‌ها نمایش داده می‌شود.
         layout.addView(buildSectionHeading("دوستان", "👥"));
         HorizontalScrollView friendsScroller = new HorizontalScrollView(this);
         friendsScroller.setHorizontalScrollBarEnabled(false);
@@ -831,6 +770,9 @@ public class ExperienceListActivity extends Activity {
         friendsLayout.setPadding(0, dp(4), 0, dp(8));
         friendsScroller.addView(friendsLayout);
         layout.addView(friendsScroller);
+
+        // پروفایل من از نوار بالایی جداست و همراه فید پایین صفحه حرکت می‌کند.
+        layout.addView(buildMyProfileHeader());
 
         // نشانگر کوچک تازه‌سازی با کشیدن صفحه به پایین
         pullRefreshIndicator = new TextView(this);
@@ -847,7 +789,7 @@ public class ExperienceListActivity extends Activity {
         feedLayout.setOrientation(LinearLayout.VERTICAL);
         layout.addView(feedLayout);
 
-        setContentView(scrollView);
+        setContentView(pageRoot);
 
         // Pull-to-refresh: فقط وقتی فهرست در بالاترین نقطه است و کاربر رو به پایین می‌کشد.
         scrollView.setOnTouchListener((view, event) -> {
@@ -1009,6 +951,14 @@ public class ExperienceListActivity extends Activity {
         title.setTextColor(Color.rgb(13, 53, 82));
         title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         heading.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        if ("دوستان".equals(titleText)) {
+            friendsCountView = new TextView(this);
+            friendsCountView.setText("(0)");
+            friendsCountView.setTextSize(13);
+            friendsCountView.setTextColor(Color.rgb(91, 132, 148));
+            friendsCountView.setGravity(Gravity.CENTER);
+            heading.addView(friendsCountView);
+        }
         return heading;
     }
 
@@ -1306,9 +1256,7 @@ public class ExperienceListActivity extends Activity {
         story.put("userId", uid);
         story.put("text", caption == null ? "" : caption);
         story.put("mediaType", mediaType);
-        if ("image".equals(mediaType)) {
-    story.put("mediaUrl", mediaUrl);
-}
+        story.put("mediaUrl", mediaUrl);
         story.put("createdAt", FieldValue.serverTimestamp());
         story.put("expiresAt", new Timestamp(new Date(
                 System.currentTimeMillis() + 23L * 60L * 60L * 1000L + 50L * 60L * 1000L)));
@@ -1721,6 +1669,9 @@ public class ExperienceListActivity extends Activity {
     private void displayFriends(Set<String> friendIds) {
         if (friendsLayout == null) return;
         friendsLayout.removeAllViews();
+        if (friendsCountView != null) {
+            friendsCountView.setText("(" + friendIds.size() + ")");
+        }
         if (friendIds.isEmpty()) {
             TextView empty = new TextView(this);
             empty.setText(text("هنوز دوستی اضافه نشده است."));
@@ -1941,11 +1892,13 @@ public class ExperienceListActivity extends Activity {
     }
 
     // دکمه انتشار جدا از فید؛ فرم فقط هنگام انتخاب کاربر باز می‌شود.
+    // دکمه انتشار کوچک و دایره‌ای در سمت راست نوار انتشار.
     private View buildPublishEntryButton() {
         LinearLayout entry = new LinearLayout(this);
         entry.setOrientation(LinearLayout.HORIZONTAL);
         entry.setGravity(Gravity.CENTER_VERTICAL);
-        entry.setPadding(dp(14), dp(10), dp(14), dp(10));
+        entry.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        entry.setPadding(dp(12), dp(8), dp(12), dp(8));
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(Color.WHITE);
         bg.setCornerRadius(dp(18));
@@ -1957,25 +1910,28 @@ public class ExperienceListActivity extends Activity {
         params.setMargins(0, 0, 0, dp(10));
         entry.setLayoutParams(params);
 
+        TextView action = new TextView(this);
+        action.setText("＋");
+        action.setTextSize(27);
+        action.setTypeface(Typeface.DEFAULT_BOLD);
+        action.setTextColor(Color.WHITE);
+        action.setGravity(Gravity.CENTER);
+        GradientDrawable actionBg = new GradientDrawable();
+        actionBg.setShape(GradientDrawable.OVAL);
+        actionBg.setColor(Color.rgb(12, 91, 120));
+        actionBg.setStroke(dp(1), Color.rgb(18, 130, 137));
+        action.setBackground(actionBg);
+        action.setContentDescription(text("انتشار تجربه"));
+        entry.addView(action, new LinearLayout.LayoutParams(dp(46), dp(46)));
+
         TextView prompt = new TextView(this);
         prompt.setText(text("تجربه‌ای برای شریک‌سازی داری؟"));
         prompt.setTextSize(14);
         prompt.setTextColor(Color.rgb(83, 105, 116));
-        prompt.setPadding(dp(8), 0, dp(8), 0);
-        entry.addView(prompt, new LinearLayout.LayoutParams(0, dp(44), 1));
+        prompt.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
+        prompt.setPadding(dp(12), 0, dp(8), 0);
+        entry.addView(prompt, new LinearLayout.LayoutParams(0, dp(46), 1f));
 
-        TextView action = new TextView(this);
-        action.setText(text("＋ انتشار تجربه"));
-        action.setTextSize(14);
-        action.setTypeface(Typeface.DEFAULT_BOLD);
-        action.setTextColor(Color.WHITE);
-        action.setGravity(Gravity.CENTER);
-        action.setPadding(dp(14), dp(10), dp(14), dp(10));
-        GradientDrawable actionBg = new GradientDrawable();
-        actionBg.setColor(Color.rgb(12, 91, 120));
-        actionBg.setCornerRadius(dp(14));
-        action.setBackground(actionBg);
-        entry.addView(action);
         entry.setOnClickListener(v -> {
             LinearLayout form = buildPublishForm();
             AlertDialog dialog = new AlertDialog.Builder(this)
@@ -4804,4 +4760,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-                }
+        }
