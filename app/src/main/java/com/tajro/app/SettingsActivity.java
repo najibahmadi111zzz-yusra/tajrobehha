@@ -20,7 +20,6 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.firebase.auth.FirebaseAuth;
 
 public class SettingsActivity extends Activity {
 
@@ -500,29 +499,6 @@ public class SettingsActivity extends Activity {
 
         privacyButton.setOnClickListener(
                 v -> showPrivacyDialog()
-        );
-
-        // ==================================
-        // خروج از حساب
-        // ==================================
-
-        Button logoutButton =
-                createSettingButton(
-                        text(
-                                "🚪 خروج از حساب",
-                                "🚪 Log Out",
-                                "🚪 له اکاونټ څخه وتل",
-                                "🚪 اکاؤنٹ سے لاگ آؤٹ",
-                                "🚪 लॉग आउट"
-                        )
-                );
-
-        mainLayout.addView(
-                logoutButton
-        );
-
-        logoutButton.setOnClickListener(
-                v -> showLogoutDialog()
         );
 
         // ==================================
@@ -1667,77 +1643,6 @@ public class SettingsActivity extends Activity {
         input.setLayoutParams(params);
 
         return input;
-    }
-
-    // ==================================
-    // خروج از حساب
-    // ==================================
-
-    private void showLogoutDialog() {
-
-        new AlertDialog.Builder(this)
-                .setTitle(
-                        "🚪 " +
-                        text(
-                                "خروج از حساب",
-                                "Log Out",
-                                "له اکاونټ څخه وتل",
-                                "اکاؤنٹ سے لاگ آؤٹ",
-                                "लॉग आउट"
-                        )
-                )
-                .setMessage(
-                        text(
-                                "آیا مطمئن هستید که می‌خواهید " +
-                                "از حساب خود خارج شوید؟",
-                                "Are you sure you want to log out?",
-                                "ایا ډاډه یاست چې غواړئ له خپل اکاونټ څخه ووځئ؟",
-                                "کیا آپ واقعی اپنے اکاؤنٹ سے لاگ آؤٹ کرنا چاہتے ہیں؟",
-                                "क्या आप वाकई अपने अकाउंट से लॉग आउट करना चाहते हैं?"
-                        )
-                )
-                .setNegativeButton(
-                        text(
-                                "انصراف",
-                                "Cancel",
-                                "لغوه",
-                                "منسوخ",
-                                "रद्द करें"
-                        ),
-                        null
-                )
-                .setPositiveButton(
-                        text(
-                                "خروج",
-                                "Log Out",
-                                "وتل",
-                                "لاگ آؤٹ",
-                                "लॉग आउट"
-                        ),
-                        (dialog, which) -> {
-
-                            FirebaseAuth
-                                    .getInstance()
-                                    .signOut();
-
-                            AppLockManager.lockSession(this);
-
-                            Toast.makeText(
-                                    this,
-                                    text(
-                                            "از حساب خارج شدید",
-                                            "You have logged out",
-                                            "له اکاونټ څخه ووتل",
-                                            "آپ لاگ آؤٹ ہوگئے ہیں",
-                                            "आप लॉग आउट हो गए हैं"
-                                    ),
-                                    Toast.LENGTH_SHORT
-                            ).show();
-
-                            finish();
-                        }
-                )
-                .show();
     }
 
     // ==================================
