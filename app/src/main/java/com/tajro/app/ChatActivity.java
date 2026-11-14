@@ -153,6 +153,9 @@ public class ChatActivity extends Activity {
     private final android.os.Handler voiceUiHandler = new android.os.Handler();
     private final android.os.Handler audioPlaybackHandler = new android.os.Handler();
     private TextView activePlaybackStatus;
+    private Button activePlaybackButton;
+    private String activePlaybackPath;
+    private boolean audioPreparing = false;
     private boolean scrollToBottomOnNextRender = false;
     private final Runnable recordingTicker = new Runnable() {
         @Override public void run() {
@@ -169,7 +172,12 @@ public class ChatActivity extends Activity {
                 int position = player.getCurrentPosition();
                 int duration = player.getDuration();
                 activePlaybackStatus.setText(formatAudioTime(position) + " / " + formatAudioTime(duration));
-                if (player.isPlaying()) audioPlaybackHandler.postDelayed(this, 250L);
+                if (player.isPlaying()) {
+                    if (activePlaybackButton != null) {
+                        activePlaybackButton.setText(tr("⏸ مکث پیام صوتی"));
+                    }
+                    audioPlaybackHandler.postDelayed(this, 250L);
+                }
             } catch (Exception ignored) {
             }
         }
@@ -304,6 +312,9 @@ public class ChatActivity extends Activity {
                 case "پیام خود را بنویسید...": return "اكتب رسالتك...";
                 case "پیام حذف شد": return "تم حذف الرسالة";
                 case "▶️ پخش پیام صوتی": return "▶️ تشغيل الرسالة الصوتية";
+                case "⏸ مکث پیام صوتی": return "⏸ إيقاف مؤقت للصوت";
+                case "▶ ادامه پخش پیام صوتی": return "▶ متابعة تشغيل الصوت";
+                case "در حال آماده‌سازی صدا...": return "جارٍ تجهيز الصوت...";
                 case "حذف برای من": return "حذف لديّ";
                 case "حذف برای همه": return "حذف لدى الجميع";
                 case "حذف پیام ناموفق بود": return "فشل حذف الرسالة";
@@ -359,6 +370,8 @@ public class ChatActivity extends Activity {
                 case "تأیید نهایی حذف": return "التأكيد النهائي للحذف";
                 case "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟": return "سيؤدي هذا إلى حذف جميع رسائل المحادثة نهائياً. هل تريد المتابعة؟";
                 case "حذف کامل": return "حذف الكل";
+                case "تأیید نهایی مسدودسازی": return "تأكيد الحظر النهائي";
+                case "با تأیید نهایی، این کاربر مسدود می‌شود و دیگر نمی‌توانید برای او پیام بفرستید.": return "بالتأكيد النهائي، سيتم حظر هذا المستخدم ولن تتمكن من مراسلته بعد ذلك.";
                 case "مسدود کردن کاربر": return "حظر المستخدم";
                 case "آیا می‌خواهید این کاربر را مسدود کنید؟": return "هل تريد حظر هذا المستخدم؟";
                 case "مسدود کردن": return "حظر";
@@ -427,6 +440,9 @@ public class ChatActivity extends Activity {
                 case "پیام خود را بنویسید...": return "Write your message...";
                 case "پیام حذف شد": return "Message deleted";
                 case "▶️ پخش پیام صوتی": return "▶️ Play voice message";
+                case "⏸ مکث پیام صوتی": return "⏸ Pause voice message";
+                case "▶ ادامه پخش پیام صوتی": return "▶ Resume voice message";
+                case "در حال آماده‌سازی صدا...": return "Preparing audio...";
                 case "حذف برای من": return "Delete for me";
                 case "حذف برای همه": return "Delete for everyone";
                 case "حذف پیام ناموفق بود": return "Failed to delete message";
@@ -482,6 +498,8 @@ public class ChatActivity extends Activity {
                 case "تأیید نهایی حذف": return "Final deletion confirmation";
                 case "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟": return "This will delete all messages in this conversation and cannot be undone. Continue?";
                 case "حذف کامل": return "Delete all";
+                case "تأیید نهایی مسدودسازی": return "Final block confirmation";
+                case "با تأیید نهایی، این کاربر مسدود می‌شود و دیگر نمی‌توانید برای او پیام بفرستید.": return "After final confirmation, this user will be blocked and you will no longer be able to message them.";
                 case "مسدود کردن کاربر": return "Block user";
                 case "آیا می‌خواهید این کاربر را مسدود کنید؟": return "Do you want to block this user?";
                 case "مسدود کردن": return "Block";
@@ -550,6 +568,9 @@ public class ChatActivity extends Activity {
                 case "پیام خود را بنویسید...": return "خپل پیغام ولیکئ...";
                 case "پیام حذف شد": return "پیغام ړنګ شو";
                 case "▶️ پخش پیام صوتی": return "▶️ غږیز پیغام غږول";
+                case "⏸ مکث پیام صوتی": return "⏸ غږیز پیغام ودرول";
+                case "▶ ادامه پخش پیام صوتی": return "▶ غږیز پیغام بیا غږول";
+                case "در حال آماده‌سازی صدا...": return "غږ چمتو کېږي...";
                 case "حذف برای من": return "یوازې زما لپاره ړنګول";
                 case "حذف برای همه": return "د ټولو لپاره ړنګول";
                 case "حذف پیام ناموفق بود": return "د پیغام ړنګول ناکام شول";
@@ -605,6 +626,8 @@ public class ChatActivity extends Activity {
                 case "تأیید نهایی حذف": return "د ړنګولو وروستۍ تایید";
                 case "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟": return "دا به د دې خبرو ټول پیغامونه ړنګ کړي او بېرته نه راګرځي. دوام ورکړئ؟";
                 case "حذف کامل": return "ټول ړنګول";
+                case "تأیید نهایی مسدودسازی": return "د بندولو وروستۍ تایید";
+                case "با تأیید نهایی، این کاربر مسدود می‌شود و دیگر نمی‌توانید برای او پیام بفرستید.": return "د وروستي تایید وروسته به دا کاروونکی بند شي او تاسو به نور ورته پیغام نه شئ لېږلی.";
                 case "مسدود کردن کاربر": return "کاروونکی بندول";
                 case "آیا می‌خواهید این کاربر را مسدود کنید؟": return "ایا غواړئ دا کاروونکی بند کړئ؟";
                 case "مسدود کردن": return "بندول";
@@ -673,6 +696,9 @@ public class ChatActivity extends Activity {
                 case "پیام خود را بنویسید...": return "اپنا پیغام لکھیں...";
                 case "پیام حذف شد": return "پیغام حذف کر دیا گیا";
                 case "▶️ پخش پیام صوتی": return "▶️ صوتی پیغام چلائیں";
+                case "⏸ مکث پیام صوتی": return "⏸ صوتی پیغام روکیں";
+                case "▶ ادامه پخش پیام صوتی": return "▶ صوتی پیغام دوبارہ چلائیں";
+                case "در حال آماده‌سازی صدا...": return "آواز تیار ہو رہی ہے...";
                 case "حذف برای من": return "میرے لیے حذف کریں";
                 case "حذف برای همه": return "سب کے لیے حذف کریں";
                 case "حذف پیام ناموفق بود": return "پیغام حذف نہیں ہو سکا";
@@ -728,6 +754,8 @@ public class ChatActivity extends Activity {
                 case "تأیید نهایی حذف": return "حذف کی آخری تصدیق";
                 case "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟": return "یہ اس گفتگو کے تمام پیغامات حذف کر دے گا اور واپس نہیں ہو سکتا۔ جاری رکھیں؟";
                 case "حذف کامل": return "مکمل حذف";
+                case "تأیید نهایی مسدودسازی": return "بلاک کرنے کی آخری تصدیق";
+                case "با تأیید نهایی، این کاربر مسدود می‌شود و دیگر نمی‌توانید برای او پیام بفرستید.": return "آخری تصدیق کے بعد یہ صارف بلاک ہو جائے گا اور آپ اسے پیغام نہیں بھیج سکیں گے۔";
                 case "مسدود کردن کاربر": return "صارف کو بلاک کریں";
                 case "آیا می‌خواهید این کاربر را مسدود کنید؟": return "کیا آپ اس صارف کو بلاک کرنا چاہتے ہیں؟";
                 case "مسدود کردن": return "بلاک کریں";
@@ -796,6 +824,9 @@ public class ChatActivity extends Activity {
                 case "پیام خود را بنویسید...": return "अपना संदेश लिखें...";
                 case "پیام حذف شد": return "संदेश हटा दिया गया";
                 case "▶️ پخش پیام صوتی": return "▶️ वॉइस संदेश चलाएँ";
+                case "⏸ مکث پیام صوتی": return "⏸ वॉइस संदेश रोकें";
+                case "▶ ادامه پخش پیام صوتی": return "▶ वॉइस संदेश फिर चलाएँ";
+                case "در حال آماده‌سازی صدا...": return "ऑडियो तैयार हो रहा है...";
                 case "حذف برای من": return "मेरे लिए हटाएँ";
                 case "حذف برای همه": return "सबके लिए हटाएँ";
                 case "حذف پیام ناموفق بود": return "संदेश हटाया नहीं जा सका";
@@ -851,6 +882,8 @@ public class ChatActivity extends Activity {
                 case "تأیید نهایی حذف": return "हटाने की अंतिम पुष्टि";
                 case "این کار تمام پیام‌های این گفتگو را حذف می‌کند و قابل برگشت نیست. ادامه می‌دهید؟": return "यह इस बातचीत के सभी संदेश हटा देगा और इसे वापस नहीं किया जा सकता। जारी रखें?";
                 case "حذف کامل": return "सब हटाएँ";
+                case "تأیید نهایی مسدودسازی": return "ब्लॉक करने की अंतिम पुष्टि";
+                case "با تأیید نهایی، این کاربر مسدود می‌شود و دیگر نمی‌توانید برای او پیام بفرستید.": return "अंतिम पुष्टि के बाद यह उपयोगकर्ता ब्लॉक हो जाएगा और आप उसे संदेश नहीं भेज पाएँगे।";
                 case "مسدود کردن کاربر": return "उपयोगकर्ता को ब्लॉक करें";
                 case "آیا می‌خواهید این کاربر را مسدود کنید؟": return "क्या आप इस उपयोगकर्ता को ब्लॉक करना चाहते हैं?";
                 case "مسدود کردن": return "ब्लॉक करें";
@@ -3777,7 +3810,14 @@ header.addView(chatMenu,
 
         play.setTextSize(14);
         play.setTextColor(Color.rgb(8, 65, 91));
-        GradientDrawable audioButtonBackground = bg(Color.rgb(31, 45, 63), 16);
+        boolean mine =
+                myId.equals(sender);
+
+        // پیام ارسالی دقیقاً رنگ فعلی را نگه می‌دارد؛ دریافتی فقط کمی روشن‌تر است.
+        int audioBubbleColor = mine
+                ? Color.rgb(31, 45, 63)
+                : Color.rgb(43, 57, 73);
+        GradientDrawable audioButtonBackground = bg(audioBubbleColor, 16);
         audioButtonBackground.setStroke(dp(1), Color.rgb(210, 229, 235));
         play.setBackground(audioButtonBackground);
         play.setAllCaps(false);
@@ -3788,11 +3828,8 @@ header.addView(chatMenu,
         playbackStatus.setGravity(Gravity.CENTER);
 
         play.setOnClickListener(
-                v -> playAudio(url, playbackStatus)
+                v -> playAudio(url, playbackStatus, play)
         );
-
-        boolean mine =
-                myId.equals(sender);
 
         LinearLayout.LayoutParams p =
                 new LinearLayout.LayoutParams(
@@ -4822,6 +4859,18 @@ header.addView(chatMenu,
                     MediaRecorder.AudioEncoder.AMR_NB
             );
 
+            // سقف ضبط دو دقیقه است؛ ضبط نباید پس از ۲۰ ثانیه خودکار قطع شود.
+            recorder.setMaxDuration(120000);
+            recorder.setOnInfoListener((mediaRecorder, what, extra) -> {
+                if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+                    runOnUiThread(() -> {
+                        if (recording && recorder == mediaRecorder) {
+                            stopRecording();
+                        }
+                    });
+                }
+            });
+
             recorder.setOutputFile(
                     audioPath
             );
@@ -4867,7 +4916,7 @@ header.addView(chatMenu,
 
     private void stopRecording() {
 
-        if (recorder == null) return;
+        if (recorder == null || !recording) return;
 
         final String completedAudioPath = audioPath;
         boolean stopSucceeded = false;
@@ -4890,9 +4939,12 @@ header.addView(chatMenu,
         }
 
         File finishedFile = new File(completedAudioPath);
-        if (!finishedFile.isFile() || finishedFile.length() < 128L) {
+        long finishedLength = finishedFile.isFile() ? finishedFile.length() : 0L;
+        Log.d("CHAT_VOICE", "Finalized recording: path=" + completedAudioPath +
+                ", bytes=" + finishedLength);
+        if (!finishedFile.isFile() || finishedLength <= 0L) {
             try { if (finishedFile.exists()) finishedFile.delete(); } catch (Exception ignored) {}
-            Toast.makeText(this, tr("فایل صوتی خالی یا ناقص است؛ کمی بیشتر ضبط کنید"), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, tr("فایل صوتی خالی است"), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -4958,8 +5010,9 @@ header.addView(chatMenu,
         File file =
                 new File(path);
 
-        if (!file.exists() ||
-                file.length() <= 0) {
+        if (!file.isFile() ||
+                file.length() <= 0L) {
+            Log.e("CHAT_VOICE", "Upload rejected empty/missing audio file: " + path);
 
             Toast.makeText(
                     this,
@@ -5106,8 +5159,33 @@ header.addView(chatMenu,
                 );
     }
 
-    private void playAudio(String url, TextView statusView) {
+    private void playAudio(String url, TextView statusView, Button playbackButton) {
         if (url == null || url.trim().isEmpty()) return;
+
+        // اگر همین فایل قبلاً باز شده، همان پخش‌کننده را مکث/ادامه می‌کنیم.
+        if (player != null && url.equals(activePlaybackUrl)) {
+            try {
+                if (audioPreparing) return;
+                if (player.isPlaying()) {
+                    player.pause();
+                    audioPlaybackHandler.removeCallbacks(playbackTicker);
+                    if (playbackButton != null) {
+                        playbackButton.setText(tr("▶ ادامه پخش پیام صوتی"));
+                    }
+                } else {
+                    player.start();
+                    if (playbackButton != null) {
+                        playbackButton.setText(tr("⏸ مکث پیام صوتی"));
+                    }
+                    audioPlaybackHandler.removeCallbacks(playbackTicker);
+                    audioPlaybackHandler.post(playbackTicker);
+                }
+                return;
+            } catch (Exception e) {
+                Log.w("ChatMediaCache", "Could not pause/resume audio; reloading it", e);
+            }
+        }
+
         MEDIA_EXECUTOR.execute(() -> {
             File audio = getCachedMediaFile(url, "audio");
             if (audio == null) {
@@ -5115,55 +5193,129 @@ header.addView(chatMenu,
             }
             final File readyAudio = audio;
             runOnUiThread(() -> {
-                if (readyAudio == null || !readyAudio.isFile()) {
+                if (isFinishing() || isDestroyed()) return;
+                if (readyAudio == null || !readyAudio.isFile() || readyAudio.length() <= 0L) {
                     Toast.makeText(this, tr("صدا هنوز ذخیره نشده است؛ پس از وصل‌شدن اینترنت دوباره تلاش کنید"), Toast.LENGTH_SHORT).show();
                     return;
                 }
-                playCachedAudio(readyAudio.getAbsolutePath(), statusView);
+                playCachedAudio(readyAudio.getAbsolutePath(), url, statusView, playbackButton);
             });
         });
     }
 
-    private void playCachedAudio(String localPath, TextView statusView) {
+    // URL اصلی را نیز نگه می‌داریم تا لمس دوباره همان پیام، مکث/ادامه باشد.
+    private String activePlaybackUrl;
+
+    private void playCachedAudio(
+            String localPath,
+            String sourceUrl,
+            TextView statusView,
+            Button playbackButton
+    ) {
         try {
             audioPlaybackHandler.removeCallbacks(playbackTicker);
+
             if (player != null) {
-                try { player.stop(); } catch (Exception ignored) {}
-                player.release();
+                try { if (player.isPlaying()) player.stop(); } catch (Exception ignored) {}
+                try { player.release(); } catch (Exception ignored) {}
                 player = null;
             }
+
+            if (activePlaybackButton != null) {
+                activePlaybackButton.setText(tr("▶️ پخش پیام صوتی"));
+            }
+
             activePlaybackStatus = statusView;
+            activePlaybackButton = playbackButton;
+            activePlaybackPath = localPath;
+            activePlaybackUrl = sourceUrl;
+            audioPreparing = true;
+
+            if (playbackButton != null) {
+                playbackButton.setText(tr("در حال آماده‌سازی صدا..."));
+                playbackButton.setEnabled(false);
+            }
+
             player = new MediaPlayer();
-            player.setDataSource(localPath);
-            player.setOnPreparedListener(mp -> {
+            MediaPlayer newPlayer = player;
+            newPlayer.setDataSource(localPath);
+
+            newPlayer.setOnPreparedListener(mp -> {
+                if (player != mp || isFinishing() || isDestroyed()) {
+                    try { mp.release(); } catch (Exception ignored) {}
+                    return;
+                }
+                audioPreparing = false;
                 int duration = mp.getDuration();
                 if (activePlaybackStatus != null) {
                     activePlaybackStatus.setText("00:00 / " + formatAudioTime(duration));
                 }
+                if (activePlaybackButton != null) {
+                    activePlaybackButton.setEnabled(true);
+                    activePlaybackButton.setText(tr("⏸ مکث پیام صوتی"));
+                }
                 mp.start();
+                audioPlaybackHandler.removeCallbacks(playbackTicker);
                 audioPlaybackHandler.post(playbackTicker);
             });
-            player.setOnCompletionListener(mp -> {
+
+            newPlayer.setOnCompletionListener(mp -> {
+                audioPreparing = false;
                 audioPlaybackHandler.removeCallbacks(playbackTicker);
                 if (activePlaybackStatus != null) {
-                    try { activePlaybackStatus.setText(formatAudioTime(mp.getDuration()) + " / " + formatAudioTime(mp.getDuration())); }
-                    catch (Exception ignored) {}
+                    try {
+                        activePlaybackStatus.setText(
+                                formatAudioTime(mp.getDuration()) + " / " +
+                                formatAudioTime(mp.getDuration())
+                        );
+                    } catch (Exception ignored) {}
                 }
-                mp.release();
+                if (activePlaybackButton != null) {
+                    activePlaybackButton.setEnabled(true);
+                    activePlaybackButton.setText(tr("▶️ پخش پیام صوتی"));
+                }
+                try { mp.release(); } catch (Exception ignored) {}
                 if (player == mp) player = null;
                 activePlaybackStatus = null;
+                activePlaybackButton = null;
+                activePlaybackPath = null;
+                activePlaybackUrl = null;
             });
-            player.setOnErrorListener((mp, what, extra) -> {
+
+            newPlayer.setOnErrorListener((mp, what, extra) -> {
+                audioPreparing = false;
                 audioPlaybackHandler.removeCallbacks(playbackTicker);
                 Toast.makeText(this, tr("پخش صدا ناموفق بود"), Toast.LENGTH_SHORT).show();
-                mp.release();
+                if (activePlaybackButton != null) {
+                    activePlaybackButton.setEnabled(true);
+                    activePlaybackButton.setText(tr("▶️ پخش پیام صوتی"));
+                }
+                try { mp.release(); } catch (Exception ignored) {}
                 if (player == mp) player = null;
                 activePlaybackStatus = null;
+                activePlaybackButton = null;
+                activePlaybackPath = null;
+                activePlaybackUrl = null;
                 return true;
             });
-            player.prepareAsync();
+
+            newPlayer.prepareAsync();
         } catch (Exception e) {
+            audioPreparing = false;
+            audioPlaybackHandler.removeCallbacks(playbackTicker);
             Log.e("ChatMediaCache", "Audio playback failed", e);
+            if (playbackButton != null) {
+                playbackButton.setEnabled(true);
+                playbackButton.setText(tr("▶️ پخش پیام صوتی"));
+            }
+            if (player != null) {
+                try { player.release(); } catch (Exception ignored) {}
+                player = null;
+            }
+            activePlaybackStatus = null;
+            activePlaybackButton = null;
+            activePlaybackPath = null;
+            activePlaybackUrl = null;
             Toast.makeText(this, tr("خطا در پخش صدا"), Toast.LENGTH_SHORT).show();
         }
     }
@@ -6370,6 +6522,14 @@ private void showChatCachedImage(File file, ImageView imageView, Object expected
         }
 
         player = null;
+        audioPreparing = false;
+        if (activePlaybackButton != null) {
+            activePlaybackButton.setEnabled(true);
+        }
+        activePlaybackButton = null;
+        activePlaybackStatus = null;
+        activePlaybackPath = null;
+        activePlaybackUrl = null;
 
         super.onDestroy();
     }
@@ -6497,23 +6657,17 @@ private void showChatMenu() {
 
                         } else if (which == 4) {
 
-                            new AlertDialog.Builder(
-                                    ChatActivity.this
-                            )
-                                    .setTitle(tr("مسدود کردن کاربر"))
-                                    .setMessage(
-                                            tr("آیا می‌خواهید این کاربر را مسدود کنید؟")
-                                    )
-                                    .setNegativeButton(
-                                            tr("لغو"),
-                                            null
-                                    )
-                                    .setPositiveButton(
-                                            tr("مسدود کردن"),
-                                            (d, w) ->
-                                                    blockCurrentUser()
-                                    )
-                                    .show();
+                            // لمس گزینه، فقط پنجره تأیید را باز می‌کند؛ بلاک با لمس دوم انجام می‌شود.
+                            AlertDialog blockConfirmation =
+                                    new AlertDialog.Builder(ChatActivity.this)
+                                            .setTitle(tr("مسدود کردن کاربر"))
+                                            .setMessage(tr("آیا می‌خواهید این کاربر را مسدود کنید؟"))
+                                            .setNegativeButton(tr("لغو"), null)
+                                            .setPositiveButton(tr("مسدود کردن"), (d, w) ->
+                                                    blockCurrentUser())
+                                            .create();
+                            blockConfirmation.show();
+                            styleChatDialog(blockConfirmation);
                         }
                     }
             );
@@ -6883,4 +7037,4 @@ private void blockCurrentUser() {
 
 }
     
-    }
+        }
