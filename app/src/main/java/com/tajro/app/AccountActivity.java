@@ -802,35 +802,63 @@ public class AccountActivity extends Activity {
 
         logoutButton.setOnClickListener(v -> {
 
-            FirebaseUser user =
-                    auth.getCurrentUser();
+            // خروج فقط پس از تأیید صریح کاربر انجام می‌شود.
+            new AlertDialog.Builder(AccountActivity.this)
+                    .setTitle(text(
+                            "تأیید خروج از حساب",
+                            "Confirm logout",
+                            "له حساب څخه د وتلو تایید",
+                            "اکاؤنٹ سے لاگ آؤٹ کی تصدیق",
+                            "लॉग आउट की पुष्टि"
+                    ))
+                    .setMessage(text(
+                            "آیا مطمئن هستید که می‌خواهید از حساب خارج شوید؟",
+                            "Are you sure you want to log out?",
+                            "ایا ډاډه یاست چې له حساب څخه وتل غواړئ؟",
+                            "کیا آپ واقعی اپنے اکاؤنٹ سے لاگ آؤٹ کرنا چاہتے ہیں؟",
+                            "क्या आप वाकई लॉग आउट करना चाहते हैं?"
+                    ))
+                    .setNegativeButton(text(
+                            "لغو",
+                            "Cancel",
+                            "لغوه",
+                            "منسوخ",
+                            "रद्द करें"
+                    ), (dialog, which) -> dialog.dismiss())
+                    .setPositiveButton(text(
+                            "تأیید خروج",
+                            "Log out",
+                            "وتل",
+                            "لاگ آؤٹ",
+                            "लॉग आउट"
+                    ), (dialog, which) -> {
 
-            if (user != null) {
+                        FirebaseUser user = auth.getCurrentUser();
+                        if (user != null) {
+                            // ثبت وضعیت آفلاین آغاز می‌شود؛ خروج محلی منتظر شبکه نمی‌ماند.
+                            setUserOffline(user.getUid());
+                        }
 
-                setUserOffline(
-                        user.getUid()
-                );
-            }
+                        auth.signOut();
+                        AppLockManager.lockSession(AccountActivity.this);
+                        clearLoginFields();
 
-            auth.signOut();
+                        Toast.makeText(
+                                AccountActivity.this,
+                                text(
+                                        "از حساب خارج شدید 🔒",
+                                        "You have logged out 🔒",
+                                        "تاسو له حساب څخه ووتل 🔒",
+                                        "آپ اکاؤنٹ سے لاگ آؤٹ ہو گئے ہیں 🔒",
+                                        "आप लॉग आउट हो गए हैं 🔒"
+                                ),
+                                Toast.LENGTH_SHORT
+                        ).show();
 
-            AppLockManager.lockSession(this);
-
-            clearLoginFields();
-
-            showCurrentUser();
-
-            Toast.makeText(
-                    AccountActivity.this,
-                    text(
-                            "از حساب خارج شدید 🔒",
-                            "You have logged out 🔒",
-                            "تاسو له حساب څخه ووتل 🔒",
-                            "آپ اکاؤنٹ سے لاگ آؤٹ ہو گئے ہیں 🔒",
-                            "आप लॉग आउट हो गए हैं 🔒"
-                    ),
-                    Toast.LENGTH_SHORT
-            ).show();
+                        // صفحه حساب فوراً بسته می‌شود و کاربر به صفحه قبلی برمی‌گردد.
+                        finish();
+                    })
+                    .show();
         });
 
         // ==========================================
