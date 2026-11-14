@@ -420,46 +420,19 @@ public class ColorSortActivity extends Activity {
 
                                 else if (kind == 2) {
 
-                                    float raw =
-                                            random.nextFloat() * 2f - 1f;
-
-                                    filteredNoise +=
-                                            (raw - filteredNoise)
-                                                    * 0.075f;
-
-                                    phase1 +=
-                                            (float) (
-                                                    2.0 *
-                                                            Math.PI *
-                                                            175 /
-                                                            sampleRate
-                                            );
-
-                                    phase2 +=
-                                            (float) (
-                                                    2.0 *
-                                                            Math.PI *
-                                                            365 /
-                                                            sampleRate
-                                            );
-
-                                    float envelope =
-                                            (float) Math.sin(
-                                                    Math.PI * q
-                                            );
-
-                                    value =
-                                            (
-                                                    filteredNoise * 0.70f
-                                                            +
-                                                            (float) Math.sin(phase1)
-                                                                    * 0.13f
-                                                            +
-                                                            (float) Math.sin(phase2)
-                                                                    * 0.07f
-                                            )
-                                                    * envelope
-                                                    * 0.82f;
+                                    // Water stream: soft low-passed flow, rounded glugs and tiny droplets.
+                                    float raw = random.nextFloat() * 2f - 1f;
+                                    filteredNoise += (raw - filteredNoise) * 0.012f;
+                                    phase1 += (float)(2.0 * Math.PI * 238.0 / sampleRate);
+                                    phase2 += (float)(2.0 * Math.PI * 391.0 / sampleRate);
+                                    phase3 += (float)(2.0 * Math.PI * 2.7 / sampleRate);
+                                    float envelope = (float)Math.pow(Math.sin(Math.PI * q), 0.72);
+                                    float gentlePulse = 0.72f + 0.28f * (float)Math.sin(phase3);
+                                    float glug = (float)Math.sin(phase1)
+                                            * (0.10f + 0.035f * (float)Math.sin(phase2 * 0.31f));
+                                    float stream = filteredNoise * 0.12f;
+                                    float droplets = (float)Math.sin(phase2 * 1.37f) * 0.025f;
+                                    value = (glug + stream + droplets) * envelope * gentlePulse * 0.72f;
                                 }
 
                                 /* ---------------------------------
@@ -737,7 +710,7 @@ public class ColorSortActivity extends Activity {
         }
 
         /* =========================================================
-           SOFT AMBIENT MUSIC + WATER DROPS
+           ORIGINAL PIANO-ONLY AMBIENT MUSIC
            ========================================================= */
 
         private synchronized void startAmbientMusic() {
@@ -747,88 +720,86 @@ public class ColorSortActivity extends Activity {
             ambientThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    // Original, locally synthesized gentle night rain ambience.
-                    // No downloaded music, network access, or extra permissions.
+                    // Original piano-only lullaby. No rain, hiss, noise, or other instruments.
                     final int sampleRate = 22050;
                     final int framesPerBlock = 1024;
                     final byte[] buffer = new byte[framesPerBlock * 2];
                     final double twoPi = Math.PI * 2.0;
-                    final Random rainRandom = new Random();
+                    // A gentle 32-second phrase in C major / A minor, then a seamless reprise.
+                    final double[] melody = {
+                            523.25, 659.25, 783.99, 659.25, 587.33, 523.25,
+                            440.00, 523.25, 587.33, 659.25, 587.33, 523.25,
+                            392.00, 493.88, 587.33, 493.88, 440.00, 392.00,
+                            349.23, 440.00, 523.25, 587.33, 523.25, 440.00,
+                            392.00, 440.00, 523.25, 659.25, 587.33, 523.25,
+                            493.88, 392.00
+                    };
+                    final double[] bass = {
+                            130.81, 164.81, 196.00, 146.83,
+                            110.00, 146.83, 174.61, 130.81
+                    };
+                    // Short delay taps create a warm room-like piano tail without a hiss bed.
+                    final double[] delayA = new double[(int)(sampleRate * 0.115)];
+                    final double[] delayB = new double[(int)(sampleRate * 0.173)];
+                    final double[] delayC = new double[(int)(sampleRate * 0.247)];
+                    final double[] chordRatios = {1.0, 1.25, 1.5, 2.0};
                     AudioTrack track = null;
                     long sample = 0L;
-                    double filteredRain = 0.0;
-                    final double[] pianoNotes = {
-                            261.63, 329.63, 392.00, 523.25,
-                            392.00, 329.63, 293.66, 349.23,
-                            440.00, 587.33, 440.00, 349.23
-                    };
                     try {
-                        int min = AudioTrack.getMinBufferSize(
-                                sampleRate,
+                        int min = AudioTrack.getMinBufferSize(sampleRate,
                                 AudioFormat.CHANNEL_OUT_MONO,
-                                AudioFormat.ENCODING_PCM_16BIT
-                        );
+                                AudioFormat.ENCODING_PCM_16BIT);
                         if (min <= 0) min = 4096;
-                        track = new AudioTrack(
-                                AudioManager.STREAM_MUSIC,
-                                sampleRate,
+                        track = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate,
                                 AudioFormat.CHANNEL_OUT_MONO,
                                 AudioFormat.ENCODING_PCM_16BIT,
-                                Math.max(min, buffer.length * 4),
-                                AudioTrack.MODE_STREAM
-                        );
+                                Math.max(min, buffer.length * 4), AudioTrack.MODE_STREAM);
                         ambientAudioTrack = track;
                         track.play();
-
-                        while (ambientRunning && soundEnabled && running
-                                && ambientAudioTrack == track) {
+                        int ia = 0, ib = 0, ic = 0;
+                        while (ambientRunning && soundEnabled && running && ambientAudioTrack == track) {
                             for (int i = 0; i < framesPerBlock; i++, sample++) {
-                                double seconds = sample / (double) sampleRate;
-                                double raw = rainRandom.nextDouble() * 2.0 - 1.0;
-                                // Soft low-pass noise gives a distant, steady rainfall texture.
-                                filteredRain += (raw - filteredRain) * 0.035;
-                                double rain = filteredRain * 0.078;
-                                double distantWash = Math.sin(twoPi * 73.4 * seconds)
-                                        * Math.sin(twoPi * 0.075 * seconds) * 0.003;
+                                double t = sample / (double) sampleRate;
+                                double phrase = t % 32.0;
+                                int noteIndex = (int)(phrase / 1.0) % melody.length;
+                                double noteTime = phrase - noteStart;
+                                double f = melody[noteIndex];
+                                double env = (1.0 - Math.exp(-noteTime * 90.0))
+                                        * Math.exp(-noteTime * 1.55);
+                                // Inharmonic partials and a soft hammer transient make each note piano-like.
+                                double fundamental = Math.sin(twoPi * f * noteTime);
+                                double partial2 = Math.sin(twoPi * f * 2.003 * noteTime) * 0.34;
+                                double partial3 = Math.sin(twoPi * f * 3.009 * noteTime) * 0.13;
+                                double partial4 = Math.sin(twoPi * f * 4.018 * noteTime) * 0.055;
+                                double hammer = Math.sin(twoPi * f * 7.1 * noteTime)
+                                        * Math.exp(-noteTime * 34.0) * 0.035;
+                                double lead = (fundamental + partial2 + partial3 + partial4) * env * 0.105 + hammer;
 
-                                // A few rounded water drops, spaced irregularly and kept quiet.
-                                double drop = 0.0;
-                                double cycle = seconds % 4.7;
-                                if (cycle < 0.42) {
-                                    double envelope = Math.exp(-cycle * 10.0)
-                                            * Math.min(1.0, cycle * 32.0);
-                                    double frequency = 1180.0 - 430.0 * cycle;
-                                    drop = Math.sin(twoPi * frequency * cycle)
-                                            * envelope * 0.022;
-                                }
-                                // Soft original piano phrase: slow notes with a natural plucked decay.
-                                // It is synthesized locally, so no audio file or network permission is needed.
-                                double pianoCycle = seconds % 28.8;
-                                int pianoIndex = (int) (pianoCycle / 2.4);
-                                double noteTime = pianoCycle - pianoIndex * 2.4;
-                                double noteFrequency = pianoNotes[pianoIndex % pianoNotes.length];
-                                double pianoEnvelope = (1.0 - Math.exp(-noteTime * 13.0))
-                                        * Math.exp(-noteTime * 1.18);
-                                double piano = Math.sin(twoPi * noteFrequency * noteTime)
-                                        * 0.105
-                                        + Math.sin(twoPi * noteFrequency * 2.002 * noteTime)
-                                        * 0.018
-                                        + Math.sin(twoPi * noteFrequency * 0.5 * noteTime)
-                                        * 0.025;
-                                piano *= pianoEnvelope;
+                                // Quiet broken-chord accompaniment, still played by the same piano timbre.
+                                double bassStep = phrase % 4.0;
+                                int chordIndex = ((int)(phrase / 4.0)) % bass.length;
+                                int arpIndex = ((int)(bassStep / 0.5)) % 4;
+                                double bassFreq = bass[chordIndex] * chordRatios[arpIndex];
+                                double arpTime = bassStep - Math.floor(bassStep / 0.5) * 0.5;
+                                double arpEnv = (1.0 - Math.exp(-arpTime * 75.0)) * Math.exp(-arpTime * 3.0);
+                                double accompaniment = (Math.sin(twoPi * bassFreq * arpTime)
+                                        + 0.22 * Math.sin(twoPi * bassFreq * 2.01 * arpTime))
+                                        * arpEnv * 0.035;
 
-                                // A very quiet sustained chord underneath the melody adds warmth.
-                                double chord = Math.sin(twoPi * 130.81 * seconds) * 0.010
-                                        + Math.sin(twoPi * 164.81 * seconds) * 0.008
-                                        + Math.sin(twoPi * 196.00 * seconds) * 0.007;
-
-                                double slowBreath = 0.82 + 0.18 * Math.sin(twoPi * seconds / 17.0);
-                                double value = (rain + distantWash + drop) * slowBreath
-                                        + piano + chord;
-                                value = Math.tanh(value * 1.65) * 0.58;
-                                int pcm = (int) (Math.max(-1.0, Math.min(1.0, value)) * 32700.0);
-                                buffer[i * 2] = (byte) (pcm & 255);
-                                buffer[i * 2 + 1] = (byte) ((pcm >> 8) & 255);
+                                double dry = lead + accompaniment;
+                                double wet = dry + delayA[ia] * 0.27 + delayB[ib] * 0.19 + delayC[ic] * 0.13;
+                                delayA[ia] = dry + delayA[ia] * 0.18;
+                                delayB[ib] = dry * 0.72 + delayB[ib] * 0.16;
+                                delayC[ic] = dry * 0.48 + delayC[ic] * 0.12;
+                                ia = (ia + 1) % delayA.length;
+                                ib = (ib + 1) % delayB.length;
+                                ic = (ic + 1) % delayC.length;
+                                // Gentle fade at phrase boundary avoids an audible loop seam.
+                                double fade = phrase > 31.75 ? (32.0 - phrase) / 0.25 : 1.0;
+                                double value = Math.tanh(wet * 2.15) * 0.72 * Math.max(0.0, fade);
+                                int pcm = (int)(Math.max(-1.0, Math.min(1.0, value)) * 32700.0);
+                                buffer[i * 2] = (byte)(pcm & 255);
+                                buffer[i * 2 + 1] = (byte)((pcm >> 8) & 255);
                             }
                             int written = track.write(buffer, 0, buffer.length);
                             if (written < 0) break;
@@ -844,7 +815,7 @@ public class ColorSortActivity extends Activity {
                         ambientRunning = false;
                     }
                 }
-            }, "ColorSort-Gentle-Rain");
+            }, "ColorSort-Original-Piano");
             ambientThread.setDaemon(true);
             ambientThread.start();
         }
@@ -3001,16 +2972,8 @@ public class ColorSortActivity extends Activity {
                             y,
                             0,
                             y + capH,
-                            Color.rgb(
-                                    255,
-                                    222,
-                                    132
-                            ),
-                            Color.rgb(
-                                    139,
-                                    69,
-                                    18
-                            ),
+                            Color.rgb(190, 126, 67),
+                            Color.rgb(91, 48, 28),
                             Shader.TileMode.CLAMP
                     )
             );
@@ -3043,12 +3006,12 @@ public class ColorSortActivity extends Activity {
 
             p.setShader(null);
 
-            // Raised metallic crown and rolled lower rim give the cap depth.
+            // Rounded wooden cork crown with a warm natural timber highlight.
             p.setShader(new LinearGradient(
                     cx - capW / 2f, y - 3f,
                     cx + capW / 2f, y + 5f,
-                    Color.rgb(255, 248, 218),
-                    Color.rgb(184, 119, 42),
+                    Color.rgb(222, 170, 112),
+                    Color.rgb(126, 72, 42),
                     Shader.TileMode.CLAMP
             ));
             c.drawOval(
@@ -3057,7 +3020,7 @@ public class ColorSortActivity extends Activity {
                     p
             );
             p.setShader(null);
-            p.setColor(Color.argb(175, 255, 235, 174));
+            p.setColor(Color.argb(150, 231, 183, 128));
             c.drawRoundRect(
                     new RectF(cx - capW / 2f + 1f, y + capH - 5f,
                             cx + capW / 2f - 1f, y + capH),
@@ -3066,10 +3029,10 @@ public class ColorSortActivity extends Activity {
 
             p.setColor(
                     Color.argb(
-                            100,
-                            96,
-                            48,
-                            15
+                            115,
+                            65,
+                            35,
+                            22
                     )
             );
 
@@ -3092,10 +3055,10 @@ public class ColorSortActivity extends Activity {
 
             p.setColor(
                     Color.argb(
-                            100,
+                            95,
                             255,
-                            244,
-                            190
+                            218,
+                            169
                     )
             );
 
@@ -3118,11 +3081,7 @@ public class ColorSortActivity extends Activity {
             stroke.setStrokeWidth(2.2f);
 
             stroke.setColor(
-                    Color.rgb(
-                            255,
-                            239,
-                            174
-                    )
+                    Color.rgb(190, 132, 88)
             );
 
             c.drawRoundRect(
@@ -3222,24 +3181,11 @@ public class ColorSortActivity extends Activity {
                     "↶"
             );
 
-            drawCircleButton(
-                    c,
-                    w / 2f - 105,
-                    y,
-                    52,
-                    Color.rgb(
-                            244,
-                            126,
-                            72
-                    ),
-                    "↻"
-            );
-
             drawRoundPanel(
                     c,
-                    w / 2f - 45,
+                    w / 2f - 88,
                     y - 32,
-                    w / 2f + 145,
+                    w / 2f + 88,
                     y + 32,
                     Color.rgb(
                             0,
@@ -3267,7 +3213,7 @@ public class ColorSortActivity extends Activity {
 
             c.drawText(
                     tr("حرکت‌ها", "Moves", "حرکتونه", "چالیں", "चालें", "الحركات"),
-                    w / 2f + 50,
+                    w / 2f,
                     y - 4,
                     text
             );
@@ -3276,7 +3222,7 @@ public class ColorSortActivity extends Activity {
 
             c.drawText(
                     String.valueOf(moves),
-                    w / 2f + 50,
+                    w / 2f,
                     y + 23,
                     text
             );
@@ -3309,13 +3255,6 @@ public class ColorSortActivity extends Activity {
             c.drawText(
                     tr("بازگشت", "Undo", "بېرته", "واپس", "वापस", "تراجع"),
                     75,
-                    y + 78,
-                    text
-            );
-
-            c.drawText(
-                    tr("شروع دوباره", "Restart", "بیا پیل", "دوبارہ شروع", "फिर शुरू करें", "إعادة البدء"),
-                    w / 2f - 105,
                     y + 78,
                     text
             );
@@ -4642,19 +4581,6 @@ public class ColorSortActivity extends Activity {
                     distance(
                             x,
                             y,
-                            w / 2f - 105,
-                            controlY
-                    ) < 65
-            ) {
-                playGameSound(1);
-                resetLevel();
-                return true;
-            }
-
-            if (
-                    distance(
-                            x,
-                            y,
                             w - 75,
                             controlY
                     ) < 65
@@ -5375,4 +5301,4 @@ public class ColorSortActivity extends Activity {
             }
         }
     }
-        }
+                    }
