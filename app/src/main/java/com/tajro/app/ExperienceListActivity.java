@@ -1306,7 +1306,9 @@ public class ExperienceListActivity extends Activity {
         story.put("userId", uid);
         story.put("text", caption == null ? "" : caption);
         story.put("mediaType", mediaType);
-        story.put("mediaUrl", mediaUrl);
+        if ("image".equals(mediaType)) {
+    story.put("mediaUrl", mediaUrl);
+}
         story.put("createdAt", FieldValue.serverTimestamp());
         story.put("expiresAt", new Timestamp(new Date(
                 System.currentTimeMillis() + 23L * 60L * 60L * 1000L + 50L * 60L * 1000L)));
