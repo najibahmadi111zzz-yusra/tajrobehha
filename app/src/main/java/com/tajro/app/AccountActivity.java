@@ -15,6 +15,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -228,14 +229,14 @@ public class AccountActivity extends Activity {
         );
 
         layout.setPadding(
-                35,
-                45,
-                35,
-                35
+                dp(20),
+                dp(28),
+                dp(20),
+                dp(28)
         );
 
         layout.setBackgroundColor(
-                getLightThemeColor()
+                ThemeManager.getBackgroundColor(this)
         );
 
         TextView title =
@@ -251,7 +252,7 @@ public class AccountActivity extends Activity {
                 )
         );
 
-        title.setTextSize(28);
+        title.setTextSize(27);
         title.setTextColor(themeColor);
         title.setTypeface(
                 Typeface.DEFAULT,
@@ -264,7 +265,7 @@ public class AccountActivity extends Activity {
                 0,
                 0,
                 0,
-                20
+                dp(22)
         );
 
         layout.addView(title);
@@ -347,9 +348,9 @@ public class AccountActivity extends Activity {
 
         modeTitle.setPadding(
                 0,
-                20,
+                dp(18),
                 0,
-                10
+                dp(12)
         );
 
         layout.addView(modeTitle);
@@ -431,6 +432,7 @@ public class AccountActivity extends Activity {
         nameInput.setSingleLine(true);
 
         layout.addView(nameInput);
+        styleInputField(nameInput);
 
         // ==========================================
         // ایمیل یا شماره تلفن
@@ -456,6 +458,7 @@ public class AccountActivity extends Activity {
         );
 
         layout.addView(loginInput);
+        styleInputField(loginInput);
 
         // ==========================================
         // رمز ورود
@@ -486,6 +489,7 @@ public class AccountActivity extends Activity {
         );
 
         layout.addView(passwordInput);
+        styleInputField(passwordInput);
 
         // ==========================================
         // کد SMS
@@ -517,6 +521,7 @@ public class AccountActivity extends Activity {
         layout.addView(
                 verificationCodeInput
         );
+        styleInputField(verificationCodeInput);
 
         // ==========================================
         // دکمه ثبت نام
@@ -654,22 +659,36 @@ public class AccountActivity extends Activity {
         statusText =
                 new TextView(this);
 
-        statusText.setTextSize(17);
+        statusText.setTextSize(16);
+        statusText.setTextColor(ThemeManager.getNormalTextColor(this));
+        statusText.setBackground(createCardBackground());
+        statusText.setElevation(dp(2));
 
         statusText.setGravity(
                 Gravity.CENTER
         );
 
         statusText.setPadding(
-                0,
-                25,
-                0,
-                20
+                dp(16),
+                dp(18),
+                dp(16),
+                dp(18)
         );
 
         layout.addView(statusText);
 
-        setContentView(layout);
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setFillViewport(true);
+        scrollView.setClipToPadding(false);
+        scrollView.setBackgroundColor(ThemeManager.getBackgroundColor(this));
+        scrollView.addView(
+                layout,
+                new ScrollView.LayoutParams(
+                        ScrollView.LayoutParams.MATCH_PARENT,
+                        ScrollView.LayoutParams.WRAP_CONTENT
+                )
+        );
+        setContentView(scrollView);
 
         // حالت اولیه: ورود با ایمیل
         accountMode = 0;
@@ -2257,25 +2276,46 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
             Button button
     ) {
 
-        GradientDrawable background =
-                new GradientDrawable();
-
-        background.setColor(
-                themeColor
-        );
-
-        background.setCornerRadius(
-                24
-        );
-
-        button.setBackground(
-                background
-        );
-
-        button.setTextColor(
-                Color.WHITE
-        );
+        button.setAllCaps(false);
+        button.setTextColor(ThemeManager.getTextColor(this));
+        button.setTextSize(16);
+        button.setMinHeight(dp(66));
+        button.setPadding(dp(14), dp(12), dp(14), dp(12));
+        button.setBackground(createCardBackground());
+        button.setElevation(dp(2));
+        button.setStateListAnimator(null);
     }
+
+    // کارت سفید/تیره هماهنگ با حالت روز و شب
+    private GradientDrawable createCardBackground() {
+        GradientDrawable background = new GradientDrawable();
+        int cardColor = ThemeManager.isNightMode(this)
+                ? Color.rgb(45, 52, 60)
+                : Color.rgb(248, 249, 252);
+        background.setColor(cardColor);
+        background.setCornerRadius(dp(22));
+        background.setStroke(dp(1), ThemeManager.isNightMode(this)
+                ? Color.rgb(65, 74, 84)
+                : Color.rgb(225, 230, 236));
+        return background;
+    }
+
+    private void styleInputField(EditText field) {
+        field.setTextColor(ThemeManager.getNormalTextColor(this));
+        field.setHintTextColor(ThemeManager.isNightMode(this)
+                ? Color.rgb(175, 184, 192)
+                : Color.rgb(115, 124, 134));
+        field.setTextSize(16);
+        field.setSingleLine(true);
+        field.setPadding(dp(16), dp(14), dp(16), dp(14));
+        field.setBackground(createCardBackground());
+        field.setElevation(dp(1));
+    }
+
+    private int dp(float value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
 
     // ==========================================
     // رنگ پس‌زمینه
