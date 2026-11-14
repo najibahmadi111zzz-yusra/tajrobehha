@@ -13,7 +13,7 @@
     <application
         android:name=".TajroApplication"
         android:theme="@style/AppTheme"
-        android:label="iNtaj"
+        android:label="N TAJ"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:roundIcon="@drawable/ic_launcher">
