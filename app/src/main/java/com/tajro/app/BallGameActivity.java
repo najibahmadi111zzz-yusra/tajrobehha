@@ -263,7 +263,8 @@ public class BallGameActivity extends Activity {
             }
 
             if (level == 2) {
-                worldWidth = 65000f;
+                // مرحله دوم ۵۰ درصد کوتاه‌تر شده تا ریتم بازی خسته‌کننده نباشد.
+                worldWidth = 32500f;
             }
 
             // مرحله سوم برای جلوگیری از طولانی‌شدن، نصف مسیر قبلی است.
@@ -1758,21 +1759,26 @@ public class BallGameActivity extends Activity {
 
         private void createFinishParticles() {
 
-            for (int i = 0; i < 65; i++) {
+            // جشن پایان مرحله: فوران رنگی و پرانرژی، بدون بار گرافیکی سنگین.
+            final int[] colors = {
+                    0xFFFFD54F, 0xFF4FC3F7, 0xFFFF6E9B,
+                    0xFF69F0AE, 0xFFB388FF, 0xFFFFFFFF
+            };
 
-                Particle q =
-                        new Particle(
-                                ballX,
-                                ballY,
-                                random.nextFloat() *
-                                        800 - 400,
-                                random.nextFloat() *
-                                        700 - 500
-                        );
+            for (int i = 0; i < 115; i++) {
 
-                q.life = 1.5f;
-                q.size += 1;
+                double angle = random.nextDouble() * Math.PI * 2.0;
+                float speed = 180f + random.nextFloat() * 520f;
+                Particle q = new Particle(
+                        ballX,
+                        ballY,
+                        (float) Math.cos(angle) * speed,
+                        (float) Math.sin(angle) * speed - 120f
+                );
 
+                q.life = 1.15f + random.nextFloat() * 1.0f;
+                q.size += 1.5f + random.nextFloat() * 2.5f;
+                q.color = colors[random.nextInt(colors.length)];
                 particles.add(q);
             }
         }
@@ -1792,6 +1798,10 @@ public class BallGameActivity extends Activity {
                         );
 
                 q.life = 0.8f;
+                q.color = new int[]{
+                        0xFFFFD54F, 0xFF4FC3F7, 0xFFFF6E9B,
+                        0xFF69F0AE, 0xFFB388FF
+                }[random.nextInt(5)];
 
                 particles.add(q);
             }
@@ -1812,10 +1822,34 @@ public class BallGameActivity extends Activity {
         }
 
         private void playFinishSound() {
-            playTone(
-                    ToneGenerator.TONE_PROP_ACK,
-                    350
-            );
+            // ملودی کوتاه جشن؛ الگوی آن در هر مرحله تغییر می‌کند.
+            final int[][] celebrationTunes = {
+                    {
+                            ToneGenerator.TONE_DTMF_2,
+                            ToneGenerator.TONE_DTMF_5,
+                            ToneGenerator.TONE_DTMF_8,
+                            ToneGenerator.TONE_PROP_ACK
+                    },
+                    {
+                            ToneGenerator.TONE_DTMF_3,
+                            ToneGenerator.TONE_DTMF_6,
+                            ToneGenerator.TONE_DTMF_9,
+                            ToneGenerator.TONE_PROP_BEEP2
+                    },
+                    {
+                            ToneGenerator.TONE_DTMF_1,
+                            ToneGenerator.TONE_DTMF_4,
+                            ToneGenerator.TONE_DTMF_7,
+                            ToneGenerator.TONE_PROP_ACK
+                    }
+            };
+
+            final int[] tune = celebrationTunes[(Math.max(1, level) - 1) % celebrationTunes.length];
+            for (int i = 0; i < tune.length; i++) {
+                final int note = tune[i];
+                final int duration = (i == tune.length - 1) ? 220 : 125;
+                postDelayed(() -> playTone(note, duration), i * 165L);
+            }
         }
 
         private void playRingSound() {
@@ -2483,9 +2517,7 @@ public class BallGameActivity extends Activity {
                                 )
                 );
 
-                p.setColor(
-                        Color.WHITE
-                );
+                p.setColor(q.color);
 
                 canvas.drawCircle(
                         sx,
@@ -4140,6 +4172,7 @@ public class BallGameActivity extends Activity {
             float vy;
             float size;
             float life;
+            int color = Color.WHITE;
 
             Particle(
                     float x,
@@ -4259,4 +4292,4 @@ public class BallGameActivity extends Activity {
             }
         }
     }
-      }
+            }
