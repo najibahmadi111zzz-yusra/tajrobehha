@@ -8,7 +8,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -25,7 +24,7 @@ public class GamesActivity extends Activity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setPadding(30, 45, 30, 35);
+        root.setPadding(dp(22), dp(28), dp(22), dp(24));
         root.setBackgroundColor(getLightThemeColor());
 
         TextView title = new TextView(this);
@@ -41,93 +40,190 @@ public class GamesActivity extends Activity {
         title.setTextColor(themeColor);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setGravity(Gravity.CENTER);
-        title.setPadding(0, 0, 0, 40);
+        title.setPadding(0, dp(4), 0, dp(30));
+        root.addView(title, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
 
-        root.addView(
-                title,
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                )
+        LinearLayout ballGame = createGameCard(
+                "⚽",
+                tr("توپ در خانه‌ها", "Ball Game", "د توپ لوبه",
+                        "گیند کا کھیل", "गेंद का खेल", "لعبة الكرة"),
+                tr("توپ را با ◀️ ⬆️ ▶️ به خانه پایان برسان", "Guide the ball to the finish using ◀️ ⬆️ ▶️",
+                        "توپ د ◀️ ⬆️ ▶️ په وسیله تر پای پورې ورسوه", "گیند کو ◀️ ⬆️ ▶️ سے اختتام تک پہنچائیں",
+                        "◀️ ⬆️ ▶️ से गेंद को अंतिम स्थान तक पहुँचाएँ", "وجّه الكرة إلى نقطة النهاية باستخدام ◀️ ⬆️ ▶️")
         );
+        root.addView(ballGame, createCardParams());
 
-        Button ballGame = createGameButton(
-                tr("🎮 توپ در خانه‌ها", "🎮 Ball Game", "🎮 د توپ لوبه",
-                        "🎮 گیند کا کھیل", "🎮 गेंद का खेल", "🎮 لعبة الكرة"),
-                tr("توپ را با ◀️ ⬆️ ▶️ به خانه پایان برسان",
-                        "Guide the ball to the finish using ◀️ ⬆️ ▶️",
-                        "توپ د ◀️ ⬆️ ▶️ په وسیله تر پای پورې ورسوه",
-                        "گیند کو ◀️ ⬆️ ▶️ سے اختتام تک پہنچائیں",
-                        "◀️ ⬆️ ▶️ से गेंद को अंतिम स्थान तक पहुँचाएँ",
-                        "وجّه الكرة إلى نقطة النهاية باستخدام ◀️ ⬆️ ▶️")
+        LinearLayout colorSortGame = createGameCard(
+                "🎨",
+                tr("مرتب‌سازی رنگ‌ها", "Color Sort", "د رنګونو ترتیب",
+                        "رنگوں کی ترتیب", "रंगों को सजाएँ", "ترتيب الألوان"),
+                tr("رنگ‌ها را در شیشه‌ها مرتب کن", "Sort the colors into the bottles",
+                        "رنګونه په بوتلونو کې منظم کړه", "رنگوں کو بوتلوں میں ترتیب دیں",
+                        "रंगों को बोतलों में क्रम से सजाएँ", "رتّب الألوان داخل القوارير")
         );
+        root.addView(colorSortGame, createCardParams());
 
-        root.addView(
-                ballGame,
-                createButtonParams()
-        );
-
-        Button colorSortGame = createGameButton(
-                tr("🎨 مرتب‌سازی رنگ‌ها", "🎨 Color Sort", "🎨 د رنګونو ترتیب",
-                        "🎨 رنگوں کی ترتیب", "🎨 रंगों को सजाएँ", "🎨 ترتيب الألوان"),
-                tr("رنگ‌ها را در شیشه‌ها مرتب کن",
-                        "Sort the colors into the bottles",
-                        "رنګونه په بوتلونو کې منظم کړه",
-                        "رنگوں کو بوتلوں میں ترتیب دیں",
-                        "रंगों को बोतलों में क्रम से सजाएँ",
-                        "رتّب الألوان داخل القوارير")
-        );
-
-        root.addView(
-                colorSortGame,
-                createButtonParams()
-        );
+        TextView divider = new TextView(this);
+        divider.setText("──────────  ★  ──────────");
+        divider.setTextColor(themeColor);
+        divider.setTextSize(18);
+        divider.setGravity(Gravity.CENTER);
+        divider.setPadding(0, dp(12), 0, dp(10));
+        root.addView(divider, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
 
         TextView info = new TextView(this);
         info.setText(tr(
-                "بازی‌ها برای سرگرمی طراحی شده‌اند\\nو می‌توانیم مراحل بیشتری به آنها اضافه کنیم.",
-                "These games are made for fun.\\nMore levels can be added in the future.",
-                "دا لوبې د ساتېرۍ لپاره جوړې شوې دي.\\nپه راتلونکي کې نور پړاوونه هم ورزیاتېدای شي.",
-                "یہ کھیل تفریح کے لیے بنائے گئے ہیں۔\\nآئندہ مزید مراحل شامل کیے جا سکتے ہیں۔",
-                "ये खेल मनोरंजन के लिए बनाए गए हैं।\\nभविष्य में और स्तर जोड़े जा सकते हैं।",
-                "صُممت هذه الألعاب للترفيه.\\nيمكن إضافة المزيد من المراحل مستقبلًا."
+                "بازی‌ها برای سرگرمی طراحی شده‌اند\nو می‌توانیم مراحل بیشتری به آن‌ها اضافه کنیم.",
+                "These games are made for fun.\nMore levels can be added in the future.",
+                "دا لوبې د ساتېرۍ لپاره جوړې شوې دي.\nپه راتلونکي کې نور پړاوونه هم ورزیاتېدای شي.",
+                "یہ کھیل تفریح کے لیے بنائے گئے ہیں۔\nآئندہ مزید مراحل شامل کیے جا سکتے ہیں۔",
+                "ये खेल मनोरंजन के लिए बनाए गए हैं।\nभविष्य में और स्तर जोड़े जा सकते हैं।",
+                "صُممت هذه الألعاب للترفيه.\nيمكن إضافة المزيد من المراحل مستقبلًا."
         ));
         info.setTextSize(16);
-        info.setTextColor(Color.DKGRAY);
+        info.setTextColor(Color.rgb(48, 66, 76));
         info.setGravity(Gravity.CENTER);
-        info.setPadding(0, 35, 0, 0);
+        info.setLineSpacing(dp(5), 1.0f);
+        info.setPadding(dp(4), dp(8), dp(4), 0);
+        root.addView(info, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
 
-        root.addView(
-                info,
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-        );
+        TextView gameDecoration = new TextView(this);
+        gameDecoration.setText("🏆   🎮   ⭐");
+        gameDecoration.setTextSize(42);
+        gameDecoration.setGravity(Gravity.CENTER);
+        gameDecoration.setPadding(0, dp(55), 0, 0);
+        root.addView(gameDecoration, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
 
         setContentView(root);
 
         ballGame.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            GamesActivity.this,
-                            BallGameActivity.class
-                    );
-
+            Intent intent = new Intent(GamesActivity.this, BallGameActivity.class);
             startActivity(intent);
         });
 
         colorSortGame.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            GamesActivity.this,
-                            ColorSortActivity.class
-                    );
-
+            Intent intent = new Intent(GamesActivity.this, ColorSortActivity.class);
             startActivity(intent);
         });
+    }
+
+    private LinearLayout createGameCard(
+            String icon,
+            String title,
+            String description
+    ) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(16), dp(12), dp(16), dp(12));
+        card.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        card.setBackground(createCardBackground());
+        card.setElevation(dp(5));
+        card.setClickable(true);
+        card.setFocusable(true);
+
+        TextView iconView = new TextView(this);
+        iconView.setText(icon);
+        iconView.setTextSize(34);
+        iconView.setGravity(Gravity.CENTER);
+        iconView.setBackground(createIconBackground());
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(62), dp(62));
+        iconParams.setMargins(0, 0, dp(12), 0);
+        card.addView(iconView, iconParams);
+
+        LinearLayout textArea = new LinearLayout(this);
+        textArea.setOrientation(LinearLayout.VERTICAL);
+        textArea.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView titleView = new TextView(this);
+        titleView.setText(title);
+        titleView.setTextSize(20);
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        titleView.setGravity(Gravity.CENTER_VERTICAL);
+        textArea.addView(titleView);
+
+        TextView descriptionView = new TextView(this);
+        descriptionView.setText(description);
+        descriptionView.setTextSize(12);
+        descriptionView.setTextColor(Color.rgb(225, 246, 250));
+        descriptionView.setGravity(Gravity.CENTER_VERTICAL);
+        descriptionView.setPadding(0, dp(5), 0, 0);
+        textArea.addView(descriptionView);
+
+        card.addView(textArea, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1
+        ));
+
+        TextView arrow = new TextView(this);
+        arrow.setText("‹");
+        arrow.setTextSize(34);
+        arrow.setTextColor(Color.WHITE);
+        arrow.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams arrowParams = new LinearLayout.LayoutParams(dp(28), dp(48));
+        arrowParams.setMargins(dp(8), 0, 0, 0);
+        card.addView(arrow, arrowParams);
+
+        return card;
+    }
+
+    private GradientDrawable createCardBackground() {
+        GradientDrawable background = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{
+                        lighten(themeColor, 18),
+                        themeColor,
+                        darken(themeColor, 18)
+                }
+        );
+        background.setCornerRadius(dp(25));
+        background.setStroke(dp(2), Color.rgb(104, 218, 235));
+        return background;
+    }
+
+    private GradientDrawable createIconBackground() {
+        GradientDrawable background = new GradientDrawable();
+        background.setShape(GradientDrawable.OVAL);
+        background.setColor(Color.rgb(235, 250, 252));
+        background.setStroke(dp(2), Color.rgb(95, 211, 230));
+        return background;
+    }
+
+    private LinearLayout.LayoutParams createCardParams() {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(112)
+        );
+        params.setMargins(0, 0, 0, dp(20));
+        return params;
+    }
+
+    private int lighten(int color, int amount) {
+        return Color.rgb(
+                Math.min(255, Color.red(color) + amount),
+                Math.min(255, Color.green(color) + amount),
+                Math.min(255, Color.blue(color) + amount)
+        );
+    }
+
+    private int darken(int color, int amount) {
+        return Color.rgb(
+                Math.max(0, Color.red(color) - amount),
+                Math.max(0, Color.green(color) - amount),
+                Math.max(0, Color.blue(color) - amount)
+        );
     }
 
     // دریافت متن مطابق زبان انتخاب‌شده در برنامه
@@ -152,55 +248,11 @@ public class GamesActivity extends Activity {
         }
     }
 
-    private Button createGameButton(
-            String title,
-            String description
-    ) {
-
-        Button button = new Button(this);
-
-        button.setText(
-                title +
-                        "\n" +
-                        description
-        );
-
-        button.setTextSize(18);
-        button.setTextColor(Color.WHITE);
-        button.setGravity(Gravity.CENTER);
-        button.setAllCaps(false);
-
-        GradientDrawable background =
-                new GradientDrawable();
-
-        background.setColor(themeColor);
-        background.setCornerRadius(28);
-
-        button.setBackground(background);
-
-        return button;
-    }
-
-    private LinearLayout.LayoutParams createButtonParams() {
-
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        120
-                );
-
-        params.setMargins(
-                0,
-                0,
-                0,
-                25
-        );
-
-        return params;
+    private int dp(float value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     private int getLightThemeColor() {
-
         int red = Color.red(themeColor);
         int green = Color.green(themeColor);
         int blue = Color.blue(themeColor);
@@ -209,10 +261,6 @@ public class GamesActivity extends Activity {
         green = green + (255 - green) * 92 / 100;
         blue = blue + (255 - blue) * 92 / 100;
 
-        return Color.rgb(
-                red,
-                green,
-                blue
-        );
+        return Color.rgb(red, green, blue);
     }
 }
