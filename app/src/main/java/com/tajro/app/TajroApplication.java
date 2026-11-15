@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
+import android.content.Intent;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.appcheck.FirebaseAppCheck;
@@ -41,6 +42,7 @@ public class TajroApplication extends Application {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private int startedActivities = 0;
+    private boolean pendingBackgroundLock = false;
     private boolean appInForeground = false;
     private String activeUid = null;
     private String presenceUid = null;
@@ -124,32 +126,78 @@ public class TajroApplication extends Application {
     }
 
     private void registerActivityLifecycle() {
-        registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
-            @Override public void onActivityCreated(Activity activity, Bundle state) {}
-            @Override public void onActivityResumed(Activity activity) {}
-            @Override public void onActivityPaused(Activity activity) {}
-            @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) {}
-            @Override public void onActivityDestroyed(Activity activity) {}
+    registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
+        @Override
+        public void onActivityCreated(Activity activity, Bundle state) {}
 
-            @Override
-            public void onActivityStarted(Activity activity) {
-                startedActivities++;
-                if (startedActivities == 1) {
-                    appInForeground = true;
-                    if (activeUid != null) startPresence(activeUid);
-                }
+        @Override
+        public void onActivityResumed(Activity activity) {
+            if (!pendingBackgroundLock) {
+                return;
             }
 
-            @Override
-            public void onActivityStopped(Activity activity) {
-                startedActivities = Math.max(0, startedActivities - 1);
-                if (startedActivities == 0) {
-                    appInForeground = false;
-                    if (activeUid != null) stopPresence(activeUid);
+            pendingBackgroundLock = false;
+
+            if (activity instanceof AppLockActivity) {
+                return;
+            }
+
+            if (AppLockManager.hasPassword(activity)
+                    && AppLockManager.isLockEnabled(activity)
+                    && !AppLockManager.isSessionUnlocked(activity)) {
+
+                activity.startActivity(
+                        new Intent(activity, AppLockActivity.class)
+                );
+            }
+        }
+
+        @Override public void onActivityPaused(Activity activity) {}
+
+        @Override
+        public void onActivitySaveInstanceState(
+                Activity activity,
+                Bundle state
+        ) {}
+
+        @Override public void onActivityDestroyed(Activity activity) {}
+
+        @Override
+        public void onActivityStarted(Activity activity) {
+            startedActivities++;
+
+            if (startedActivities == 1) {
+                appInForeground = true;
+
+                if (activeUid != null) {
+                    startPresence(activeUid);
                 }
             }
-        });
-    }
+        }
+
+        @Override
+        public void onActivityStopped(Activity activity) {
+            startedActivities = Math.max(
+                    0,
+                    startedActivities - 1
+            );
+
+            if (startedActivities == 0) {
+                appInForeground = false;
+
+                AppLockManager.lockSession(
+                        getApplicationContext()
+                );
+
+                pendingBackgroundLock = true;
+
+                if (activeUid != null) {
+                    stopPresence(activeUid);
+                }
+            }
+        }
+    });
+}
 
     private void startPresence(String uid) {
         if (uid == null || uid.isEmpty()) return;
