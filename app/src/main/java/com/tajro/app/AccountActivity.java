@@ -89,6 +89,27 @@ public class AccountActivity extends Activity {
     }
 
     private String arabicText(String fa) {
+        // نصوص حالة الحساب تحتوي على معلومات متغيرة مثل البريد أو رقم الهاتف.
+        if (fa.startsWith("✅ وارد شده\u200cاید\n\n")) {
+            if (fa.contains("اطلاعات شخصی شما مخفی است")) {
+                return "✅ تم تسجيل الدخول\n\n" +
+                        "🟢 متصل الآن\n\n" +
+                        "👁️ معلوماتك الشخصية مخفية";
+            }
+            if (fa.contains("ایمیل:\n")) {
+                return "✅ تم تسجيل الدخول\n\n" +
+                        "🟢 متصل الآن\n\n" +
+                        "البريد الإلكتروني:\n" +
+                        fa.substring(fa.indexOf("ایمیل:\n") + "ایمیل:\n".length());
+            }
+            if (fa.contains("شماره تلفن:\n")) {
+                return "✅ تم تسجيل الدخول\n\n" +
+                        "🟢 متصل الآن\n\n" +
+                        "رقم الهاتف:\n" +
+                        fa.substring(fa.indexOf("شماره تلفن:\n") + "شماره تلفن:\n".length());
+            }
+        }
+
         switch (fa) {
             case "👤 اکانت من": return "👤 حسابي";
             case "🔐 ورود": return "🔐 تسجيل الدخول";
@@ -134,6 +155,16 @@ public class AccountActivity extends Activity {
             case "نام شما ذخیره شد ✅": return "تم حفظ اسمك ✅";
             case "خطا در ذخیره نام: ": return "خطأ في حفظ الاسم: ";
             case "🔒 وارد حساب نشده‌اید": return "🔒 لم يتم تسجيل الدخول إلى الحساب";
+            case "تأیید خروج از حساب": return "تأكيد تسجيل الخروج من الحساب";
+            case "آیا مطمئن هستید که می‌خواهید از حساب خارج شوید؟": return "هل أنت متأكد أنك تريد تسجيل الخروج؟";
+            case "لغو": return "إلغاء";
+            case "تأیید خروج": return "تسجيل الخروج";
+            case "نام خود را وارد کنید": return "أدخل اسمك";
+            case "توکن ورود دریافت نشد.": return "تعذر الحصول على رمز تسجيل الدخول.";
+            case "پاک‌سازی فایل‌ها موفق نشد.": return "تعذر تنظيف الملفات.";
+            case "حساب حذف شد.": return "تم حذف الحساب.";
+            case "فایل‌ها پاک شدند؛ حذف حساب ناموفق بود. دوباره وارد شوید و تلاش کنید.": return "تم تنظيف الملفات، لكن تعذر حذف الحساب. سجّل الدخول مرة أخرى وحاول.";
+            case "پاک‌سازی انجام نشد؛ حساب حذف نشد. ": return "تعذرت عملية التنظيف؛ لم يتم حذف الحساب. ";
             default: return fa;
         }
     }
@@ -2010,7 +2041,13 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
                     deleteAccountButton.setEnabled(true);
                     Toast.makeText(
                             this,
-                            "توکن ورود دریافت نشد.",
+                            text(
+                                    "توکن ورود دریافت نشد.",
+                                    "Could not retrieve the login token.",
+                                    "د ننوتلو ټوکن ترلاسه نه شو.",
+                                    "لاگ اِن ٹوکن حاصل نہیں ہو سکا۔",
+                                    "लॉगिन टोकन प्राप्त नहीं हो सका।"
+                            ),
                             Toast.LENGTH_LONG
                     ).show();
                     return;
@@ -2083,7 +2120,13 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
                                 || !result.optBoolean("success", false)
                                 || result.optBoolean("dryRun", true)) {
                             throw new Exception(
-                                    "پاک‌سازی فایل‌ها موفق نشد."
+                                    text(
+                                            "پاک‌سازی فایل‌ها موفق نشد.",
+                                            "Could not clean up the files.",
+                                            "د فایلونو پاکول بریالي نه شول.",
+                                            "فائلوں کی صفائی کامیاب نہیں ہوئی۔",
+                                            "फ़ाइलों की सफ़ाई सफल नहीं हुई।"
+                                    )
                             );
                         }
 
@@ -2103,7 +2146,13 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
                                                     .addOnCompleteListener(task -> {
                                                         Toast.makeText(
                                                                 AccountActivity.this,
-                                                                "حساب حذف شد.",
+                                                                text(
+                                                                        "حساب حذف شد.",
+                                                                        "Account deleted.",
+                                                                        "حساب ړنګ شو.",
+                                                                        "اکاؤنٹ حذف ہو گیا۔",
+                                                                        "खाता हटा दिया गया।"
+                                                                ),
                                                                 Toast.LENGTH_LONG
                                                         ).show();
                                                         finish();
@@ -2113,7 +2162,13 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
                                             deleteAccountButton.setEnabled(true);
                                             Toast.makeText(
                                                     AccountActivity.this,
-                                                    "فایل‌ها پاک شدند؛ حذف حساب ناموفق بود. دوباره وارد شوید و تلاش کنید.",
+                                                    text(
+                                                            "فایل‌ها پاک شدند؛ حذف حساب ناموفق بود. دوباره وارد شوید و تلاش کنید.",
+                                                            "Files were cleaned up, but the account could not be deleted. Sign in again and try.",
+                                                            "فایلونه پاک شول، خو حساب ړنګ نه شو. بیا ننوتل وکړئ او هڅه وکړئ.",
+                                                            "فائلیں صاف ہو گئیں، لیکن اکاؤنٹ حذف نہیں ہو سکا۔ دوبارہ لاگ اِن کر کے کوشش کریں۔",
+                                                            "फ़ाइलें साफ़ हो गईं, लेकिन खाता हटाया नहीं जा सका। फिर से लॉग इन करके प्रयास करें।"
+                                                    ),
                                                     Toast.LENGTH_LONG
                                             ).show();
                                         })
@@ -2124,8 +2179,13 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
                             deleteAccountButton.setEnabled(true);
                             Toast.makeText(
                                     AccountActivity.this,
-                                    "پاک‌سازی انجام نشد؛ حساب حذف نشد. " +
-                                            e.getMessage(),
+                                    text(
+                                            "پاک‌سازی انجام نشد؛ حساب حذف نشد. ",
+                                            "Cleanup failed; the account was not deleted. ",
+                                            "پاکول ترسره نه شو؛ حساب ړنګ نه شو. ",
+                                            "صفائی نہیں ہو سکی؛ اکاؤنٹ حذف نہیں ہوا۔ ",
+                                            "सफ़ाई नहीं हो सकी; खाता नहीं हटाया गया। "
+                                    ) + e.getMessage(),
                                     Toast.LENGTH_LONG
                             ).show();
                         });
@@ -2140,7 +2200,13 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
                 deleteAccountButton.setEnabled(true);
                 Toast.makeText(
                         this,
-                        "توکن ورود دریافت نشد.",
+                        text(
+                                "توکن ورود دریافت نشد.",
+                                "Could not retrieve the login token.",
+                                "د ننوتلو ټوکن ترلاسه نه شو.",
+                                "لاگ اِن ٹوکن حاصل نہیں ہو سکا۔",
+                                "लॉगिन टोकन प्राप्त नहीं हो सका।"
+                        ),
                         Toast.LENGTH_LONG
                 ).show();
             });
