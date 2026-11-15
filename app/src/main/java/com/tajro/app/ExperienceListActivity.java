@@ -100,6 +100,12 @@ public class ExperienceListActivity extends Activity {
     private float pullStartY = 0f;
     private boolean pullGestureStarted = false;
 
+    // فقط یک ویدیوی فید در هر لحظه پخش می‌شود.
+    private VideoView activeExperienceVideo;
+    private TextView activeExperienceVideoControl;
+    private final Set<String> autoStartedExperienceVideos = new HashSet<>();
+    private boolean firstFeedVideoAutoStarted = false;
+
     // اشتراک‌گذاری درخواست پروفایل بین کارت‌های یک کاربر؛ جلوگیری از خواندن تکراری Firestore
     private final Map<String, UserProfileData> userProfileCache = new HashMap<>();
     private final Map<String, List<ProfileViewTarget>> pendingProfileTargets = new HashMap<>();
@@ -107,6 +113,9 @@ public class ExperienceListActivity extends Activity {
 
     // تعداد محدود کارگرها برای دانلود عکس‌ها؛ جلوگیری از ساخت ده‌ها Thread هم‌زمان
     private static final ExecutorService IMAGE_EXECUTOR = Executors.newFixedThreadPool(3);
+    // جلوگیری از شروع چند دانلود آفلاین برای یک ویدیو
+    private final Set<String> videosBeingCached = Collections.synchronizedSet(new HashSet<>());
+    private static final long MAX_OFFLINE_VIDEO_CACHE_BYTES = 150L * 1024L * 1024L;
 
     private static class UserProfileData {
         final String name;
@@ -1404,15 +1413,16 @@ public class ExperienceListActivity extends Activity {
                     HttpURLConnection upload = (HttpURLConnection) new URL(signedUrl).openConnection();
                     upload.setRequestMethod("PUT");
                     upload.setDoOutput(true);
-                    upload.setConnectTimeout(30000);
-                    upload.setReadTimeout(120000);
+                    upload.setConnectTimeout(45000);
+                    upload.setReadTimeout(180000);
                     upload.setRequestProperty("Content-Type", "video/mp4");
                     upload.setRequestProperty("x-upsert", "false");
-                    upload.setChunkedStreamingMode(8192);
+                    // بافر بزرگ‌تر، سربار رفت‌وبرگشت و کپی داده را در آپلود کم می‌کند.
+                    upload.setChunkedStreamingMode(64 * 1024);
                     try (InputStream in = getContentResolver().openInputStream(uri);
                          OutputStream out = upload.getOutputStream()) {
                         if (in == null) throw new Exception("فایل ویدیو قابل خواندن نیست");
-                        byte[] chunk = new byte[8192];
+                        byte[] chunk = new byte[64 * 1024];
                         int count;
                         long total = 0;
                         while ((count = in.read(chunk)) != -1) {
@@ -1449,6 +1459,14 @@ public class ExperienceListActivity extends Activity {
             Toast.makeText(this, text("مسیر ویدیو در اطلاعات پست موجود نیست."), Toast.LENGTH_LONG).show();
             return;
         }
+
+        // اگر ویدیو قبلاً کامل دیده/دریافت شده باشد، بدون اینترنت و بدون لینک موقت پخش می‌شود.
+        File offlineVideo = getCachedPrivateVideo(videoPath);
+        if (offlineVideo != null) {
+            videoView.setVideoPath(offlineVideo.getAbsolutePath());
+            return;
+        }
+
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser == null) {
             Toast.makeText(this, text("برای دیدن ویدیو وارد حساب شوید."), Toast.LENGTH_LONG).show();
@@ -1495,7 +1513,14 @@ public class ExperienceListActivity extends Activity {
                         throw new Exception(result.optString("error", "دریافت لینک امن پخش ناموفق بود")
                                 + " (HTTP " + code + ")");
                     }
-                    runOnUiThread(() -> videoView.setVideoURI(Uri.parse(signedUrl)));
+                    runOnUiThread(() -> {
+                        if (!isFinishing() && videoView.getParent() != null) {
+                            videoView.setVideoURI(Uri.parse(signedUrl));
+                        }
+                    });
+                    // پس از اولین بازشدن، نسخه کامل ویدیو در حافظه خصوصی برنامه ذخیره می‌شود.
+                    // این دانلود در پس‌زمینه انجام می‌شود و لینک موقت را برای دفعات بعد لازم نمی‌سازد.
+                    cachePrivateVideoFromUrl(signedUrl, videoPath);
                 } catch (Exception e) {
                     String message = e.getMessage() == null
                             ? "دریافت لینک موقت ویدیو ناموفق بود" : e.getMessage();
@@ -2439,7 +2464,7 @@ public class ExperienceListActivity extends Activity {
                                     throw new Exception(text("فایل عکس قابل خواندن نیست"));
                                 }
 
-                                byte[] chunk = new byte[8192];
+                                byte[] chunk = new byte[64 * 1024];
                                 int count;
                                 int total = 0;
                                 final int maxBytes = 4 * 1024 * 1024;
@@ -2967,86 +2992,177 @@ public class ExperienceListActivity extends Activity {
                 experience
         );
 
-        // ویدیوی پست اصلی تجربه (در صورت وجود)
+        // پخش‌کننده ویدیوی فید: بدون حاشیه، کنترل مرکزی، صدای قابل کنترل و نوار ظریف پایین.
         String experienceVideoUrl = document.getString("videoUrl"); // سازگاری با پست‌های قدیمی
         String experienceVideoPath = document.getString("videoPath");
         if ((experienceVideoPath != null && !experienceVideoPath.trim().isEmpty())
                 || (experienceVideoUrl != null && !experienceVideoUrl.trim().isEmpty())) {
+            final String stableVideoPath = experienceVideoPath == null ? "" : experienceVideoPath.trim();
+            final String stableVideoUrl = experienceVideoUrl == null ? "" : experienceVideoUrl.trim();
+            final String videoKey = document.getId();
+
             FrameLayout videoFrame = new FrameLayout(this);
+            GradientDrawable videoFrameBackground = new GradientDrawable();
+            videoFrameBackground.setColor(Color.BLACK);
+            videoFrameBackground.setCornerRadius(dp(12));
+            videoFrame.setBackground(videoFrameBackground);
+            videoFrame.setClipToOutline(true);
             LinearLayout.LayoutParams videoFrameParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(285));
-            videoFrameParams.setMargins(dp(8), dp(8), dp(8), dp(14));
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(330));
+            videoFrameParams.setMargins(-dp(12), dp(8), -dp(12), dp(12));
+
             VideoView experienceVideo = new VideoView(this);
+            experienceVideo.setBackgroundColor(Color.BLACK);
             videoFrame.addView(experienceVideo, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-            LinearLayout videoControls = new LinearLayout(this);
-            videoControls.setOrientation(LinearLayout.VERTICAL);
-            videoControls.setPadding(dp(10), dp(5), dp(10), dp(5));
-            videoControls.setBackgroundColor(0x99000000);
-            FrameLayout.LayoutParams controlsParams = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                    Gravity.BOTTOM);
-            TextView playPause = new TextView(this);
-            playPause.setText("▶"); playPause.setTextColor(Color.WHITE);
-            playPause.setTextSize(18); playPause.setGravity(Gravity.CENTER);
+            // لایه مرکزی فقط هنگام توقف/بارگذاری دیده می‌شود.
+            TextView centerPlay = new TextView(this);
+            centerPlay.setText("▶");
+            centerPlay.setTextColor(Color.WHITE);
+            centerPlay.setTextSize(30);
+            centerPlay.setGravity(Gravity.CENTER);
+            centerPlay.setBackground(createVideoControlCircle());
+            FrameLayout.LayoutParams centerParams = new FrameLayout.LayoutParams(dp(66), dp(66), Gravity.CENTER);
+            videoFrame.addView(centerPlay, centerParams);
+
+            // نوار پایین: ذخیره، صدا و پیشرفت باریک.
+            LinearLayout bottomPanel = new LinearLayout(this);
+            bottomPanel.setOrientation(LinearLayout.VERTICAL);
+            bottomPanel.setPadding(dp(10), dp(3), dp(10), dp(4));
+            bottomPanel.setBackgroundColor(0x66000000);
+            FrameLayout.LayoutParams bottomParams = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+            videoFrame.addView(bottomPanel, bottomParams);
+
             SeekBar videoSeek = new SeekBar(this);
+            videoSeek.setMax(1000);
+            videoSeek.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.rgb(20, 190, 164)));
+            videoSeek.setThumbTintList(android.content.res.ColorStateList.valueOf(Color.rgb(20, 190, 164)));
+            videoSeek.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0x88FFFFFF));
+            LinearLayout.LayoutParams seekParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(20));
+            bottomPanel.addView(videoSeek, seekParams);
+
+            LinearLayout actionRow = new LinearLayout(this);
+            actionRow.setGravity(Gravity.CENTER_VERTICAL);
+            actionRow.setOrientation(LinearLayout.HORIZONTAL);
+            TextView saveVideo = new TextView(this);
+            saveVideo.setText("⇩"); saveVideo.setTextColor(Color.WHITE); saveVideo.setTextSize(23);
+            saveVideo.setGravity(Gravity.CENTER); saveVideo.setContentDescription(text("ذخیره ویدیو"));
+            actionRow.addView(saveVideo, new LinearLayout.LayoutParams(dp(42), dp(34)));
+            TextView muteButton = new TextView(this);
+            muteButton.setText("🔊"); muteButton.setTextColor(Color.WHITE); muteButton.setTextSize(17);
+            muteButton.setGravity(Gravity.CENTER); muteButton.setContentDescription(text("روشن یا خاموش کردن صدا"));
+            actionRow.addView(muteButton, new LinearLayout.LayoutParams(dp(42), dp(34)));
             TextView videoTime = new TextView(this);
             videoTime.setTextColor(Color.WHITE); videoTime.setTextSize(11);
-            videoTime.setGravity(Gravity.RIGHT);
-            LinearLayout controlsRow = new LinearLayout(this);
-            controlsRow.setGravity(Gravity.CENTER_VERTICAL);
-            controlsRow.addView(playPause, new LinearLayout.LayoutParams(dp(42), dp(34)));
-            controlsRow.addView(videoTime, new LinearLayout.LayoutParams(0, dp(30), 1));
-            videoControls.addView(videoSeek, new LinearLayout.LayoutParams(-1, dp(28)));
-            videoControls.addView(controlsRow);
-            videoFrame.addView(videoControls, controlsParams);
+            videoTime.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
+            actionRow.addView(videoTime, new LinearLayout.LayoutParams(0, dp(30), 1));
+            bottomPanel.addView(actionRow);
 
+            final boolean[] seeking = {false};
+            final boolean[] muted = {false};
+            final boolean[] prepared = {false};
+            final boolean[] completed = {false};
+            final Runnable[] progressTask = new Runnable[1];
             Handler videoHandler = new Handler(Looper.getMainLooper());
-            final boolean[] userSeeking = {false};
-            final Runnable[] progressUpdate = new Runnable[1];
-            progressUpdate[0] = () -> {
-                if (!experienceVideo.isPlaying() && experienceVideo.getCurrentPosition() <= 0) return;
+            progressTask[0] = () -> {
+                if (!prepared[0]) return;
                 int duration = experienceVideo.getDuration();
                 int position = experienceVideo.getCurrentPosition();
                 if (duration > 0) {
-                    videoSeek.setMax(duration);
-                    if (!userSeeking[0]) videoSeek.setProgress(position);
+                    if (!seeking[0]) videoSeek.setProgress((int) (position * 1000L / duration));
                     videoTime.setText(formatVideoTime(position) + " / " + formatVideoTime(duration));
                 }
-                videoHandler.postDelayed(progressUpdate[0], 500);
+                if (experienceVideo.isPlaying()) videoHandler.postDelayed(progressTask[0], 350);
             };
             videoSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                public void onStartTrackingTouch(SeekBar bar) { userSeeking[0] = true; }
+                public void onStartTrackingTouch(SeekBar bar) { seeking[0] = true; }
                 public void onStopTrackingTouch(SeekBar bar) {
-                    experienceVideo.seekTo(bar.getProgress()); userSeeking[0] = false;
+                    if (prepared[0] && experienceVideo.getDuration() > 0)
+                        experienceVideo.seekTo((int) (bar.getProgress() * (long) experienceVideo.getDuration() / 1000L));
+                    seeking[0] = false;
                 }
                 public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
-                    if (fromUser && experienceVideo.getDuration() > 0)
-                        videoTime.setText(formatVideoTime(value) + " / " + formatVideoTime(experienceVideo.getDuration()));
+                    if (fromUser && prepared[0] && experienceVideo.getDuration() > 0)
+                        videoTime.setText(formatVideoTime((int)(value * (long)experienceVideo.getDuration() / 1000L))
+                                + " / " + formatVideoTime(experienceVideo.getDuration()));
                 }
             });
-            playPause.setOnClickListener(v -> {
-                if (experienceVideo.isPlaying()) { experienceVideo.pause(); playPause.setText("▶"); }
-                else { experienceVideo.start(); playPause.setText("Ⅱ"); videoHandler.post(progressUpdate[0]); }
+
+            Runnable togglePlayback = () -> {
+                toggleFeedVideo(experienceVideo, centerPlay, videoKey);
+                if (experienceVideo.isPlaying()) videoHandler.post(progressTask[0]);
+            };
+            centerPlay.setOnClickListener(v -> togglePlayback.run());
+            experienceVideo.setOnClickListener(v -> togglePlayback.run());
+            saveVideo.setOnClickListener(v -> new AlertDialog.Builder(ExperienceListActivity.this)
+                    .setTitle(text("ذخیره ویدیو"))
+                    .setMessage(text("آیا می‌خواهید این ویدیو در گوشی ذخیره شود؟"))
+                    .setNegativeButton(text("لغو"), null)
+                    .setPositiveButton(text("ذخیره کن"), (dialog, which) -> {
+                        if (stableVideoPath.isEmpty()) {
+                            Toast.makeText(ExperienceListActivity.this,
+                                    text("ذخیره این ویدیوی قدیمی پشتیبانی نمی‌شود"), Toast.LENGTH_LONG).show();
+                        } else saveExperienceVideo(stableVideoPath);
+                    }).show());
+            muteButton.setOnClickListener(v -> {
+                muted[0] = !muted[0];
+                if (prepared[0]) {
+                    try {
+                        android.media.MediaPlayer mp = (android.media.MediaPlayer) experienceVideo.getTag();
+                        if (mp != null) mp.setVolume(muted[0] ? 0f : 1f, muted[0] ? 0f : 1f);
+                    } catch (Exception ignored) { }
+                }
+                muteButton.setText(muted[0] ? "🔇" : "🔊");
             });
+
             experienceVideo.setOnPreparedListener(mp -> {
-                mp.setLooping(true);
-                videoSeek.setMax(experienceVideo.getDuration());
+                prepared[0] = true;
+                completed[0] = false;
+                experienceVideo.setTag(mp);
+                // نسبت قاب با نسبت واقعی فایل هماهنگ می‌شود تا تصویر کامل و بدون برش دیده شود.
+                int sourceW = mp.getVideoWidth();
+                int sourceH = mp.getVideoHeight();
+                if (sourceW > 0 && sourceH > 0) {
+                    int availableW = getResources().getDisplayMetrics().widthPixels - dp(4);
+                    int targetH = (int) (availableW * (sourceH / (float) sourceW));
+                    targetH = Math.max(dp(220), Math.min(dp(520), targetH));
+                    ViewGroup.LayoutParams frameLp = videoFrame.getLayoutParams();
+                    if (frameLp != null) { frameLp.height = targetH; videoFrame.setLayoutParams(frameLp); }
+                }
+                videoSeek.setProgress(0);
                 videoTime.setText("00:00 / " + formatVideoTime(experienceVideo.getDuration()));
-                experienceVideo.start(); playPause.setText("Ⅱ");
-                videoHandler.post(progressUpdate[0]);
+                mp.setLooping(false);
+                mp.setVolume(muted[0] ? 0f : 1f, muted[0] ? 0f : 1f);
+                // فقط نخستین ویدیوی فید یک بار خودکار آغاز می‌شود؛ بقیه با انتخاب کاربر.
+                if (!firstFeedVideoAutoStarted) {
+                    firstFeedVideoAutoStarted = true;
+                    autoStartedExperienceVideos.add(videoKey);
+                    startFeedVideo(experienceVideo, centerPlay, videoKey);
+                } else {
+                    centerPlay.setVisibility(View.VISIBLE);
+                    centerPlay.setText("▶");
+                }
             });
-            if (experienceVideoPath != null && !experienceVideoPath.trim().isEmpty()) {
-                loadPrivateExperienceVideo(experienceVideoPath, experienceVideo);
-            } else if (experienceVideoUrl != null && !experienceVideoUrl.trim().isEmpty()) {
-                // فقط برای پست‌های قدیمی که مسیر فایل ذخیره نشده است.
-                experienceVideo.setVideoURI(Uri.parse(experienceVideoUrl));
-            }
+            experienceVideo.setOnCompletionListener(mp -> {
+                completed[0] = true;
+                centerPlay.setVisibility(View.VISIBLE);
+                centerPlay.setText("▶");
+                videoSeek.setProgress(1000);
+                videoHandler.removeCallbacks(progressTask[0]);
+                if (activeExperienceVideo == experienceVideo) activeExperienceVideo = null;
+            });
             experienceVideo.setOnErrorListener((mp, what, extra) -> {
-                Toast.makeText(ExperienceListActivity.this, text("پخش ویدیو ممکن نشد؛ آدرس یا فرمت فایل را بررسی کنید."), Toast.LENGTH_LONG).show();
-                playPause.setText("▶"); return true;
+                centerPlay.setVisibility(View.VISIBLE);
+                centerPlay.setText("▶");
+                Toast.makeText(ExperienceListActivity.this,
+                        text("پخش ویدیو ممکن نشد؛ اتصال یا فرمت فایل را بررسی کنید."), Toast.LENGTH_LONG).show();
+                return true;
             });
+            if (!stableVideoPath.isEmpty()) loadPrivateExperienceVideo(stableVideoPath, experienceVideo);
+            else experienceVideo.setVideoURI(Uri.parse(stableVideoUrl));
             card.addView(videoFrame, videoFrameParams);
         }
 
@@ -3398,7 +3514,9 @@ public class ExperienceListActivity extends Activity {
                                                 dismissOperationProgress();
                                                 Toast.makeText(ExperienceListActivity.this,
                                                         text("تجربه حذف شد 🗑️"), Toast.LENGTH_SHORT).show();
-                                                if (cardToRemove.getParent() == layout) layout.removeView(cardToRemove);
+                                                if (cardToRemove.getParent() instanceof ViewGroup) {
+                                                    ((ViewGroup) cardToRemove.getParent()).removeView(cardToRemove);
+                                                }
                                             })
                                             .addOnFailureListener(e -> {
                                                 dismissOperationProgress();
@@ -3529,6 +3647,73 @@ public class ExperienceListActivity extends Activity {
         }
         if (!dir.exists()) dir.mkdirs();
         return dir;
+    }
+
+    // فایل ویدیوی مشاهده‌شده در حافظه خصوصی برنامه نگهداری می‌شود؛ به گالری منتقل نمی‌شود.
+    private File getCachedPrivateVideo(String videoPath) {
+        File dir = experienceCacheDir("videos");
+        File file = new File(dir, experienceCacheKey(videoPath) + ".mp4");
+        if (file.isFile() && file.length() > 0
+                && file.length() <= MAX_STORY_VIDEO_BYTES) {
+            file.setLastModified(System.currentTimeMillis());
+            return file;
+        }
+        return null;
+    }
+
+    // دانلود پس‌زمینه برای تماشای آفلاین در دفعات بعد؛ فایل ناقص هرگز به‌عنوان ویدیوی کامل استفاده نمی‌شود.
+    private void cachePrivateVideoFromUrl(String signedUrl, String videoPath) {
+        if (signedUrl == null || signedUrl.trim().isEmpty()
+                || videoPath == null || videoPath.trim().isEmpty()) return;
+        File existing = getCachedPrivateVideo(videoPath);
+        if (existing != null) return;
+        final String cacheKey = experienceCacheKey(videoPath);
+        if (!videosBeingCached.add(cacheKey)) return;
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            File dir = experienceCacheDir("videos");
+            File target = new File(dir, cacheKey + ".mp4");
+            File temp = new File(dir, cacheKey + ".mp4.part");
+            try {
+                connection = (HttpURLConnection) new URL(signedUrl).openConnection();
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(90000);
+                connection.setInstanceFollowRedirects(true);
+                connection.setRequestProperty("Accept-Encoding", "identity");
+                int code = connection.getResponseCode();
+                if (code < 200 || code >= 300) throw new IOException("HTTP " + code);
+                long declared = connection.getContentLengthLong();
+                if (declared > MAX_STORY_VIDEO_BYTES) throw new IOException("Video cache limit exceeded");
+                long total = 0L;
+                try (InputStream in = connection.getInputStream();
+                     FileOutputStream out = new FileOutputStream(temp, false)) {
+                    byte[] buffer = new byte[64 * 1024];
+                    int count;
+                    while ((count = in.read(buffer)) != -1) {
+                        total += count;
+                        if (total > MAX_STORY_VIDEO_BYTES) throw new IOException("Video cache limit exceeded");
+                        out.write(buffer, 0, count);
+                    }
+                    out.flush();
+                    out.getFD().sync();
+                }
+                if (total <= 0 || (declared > 0 && total != declared)) {
+                    throw new IOException("Incomplete video cache");
+                }
+                if (target.exists()) target.delete();
+                if (!temp.renameTo(target)) throw new IOException("Could not finalize video cache");
+                trimExperienceCache(dir, MAX_OFFLINE_VIDEO_CACHE_BYTES);
+                Log.i("ExperiencesOffline", "Video cached for offline playback: " + cacheKey);
+            } catch (Exception e) {
+                // لینک امضاشده ممکن است منقضی شود؛ فایل ناقص پاک می‌شود و دفعه بعد دوباره دریافت خواهد شد.
+                //noinspection ResultOfMethodCallIgnored
+                temp.delete();
+                Log.w("ExperiencesOffline", "Video could not be cached for offline playback", e);
+            } finally {
+                if (connection != null) connection.disconnect();
+                videosBeingCached.remove(cacheKey);
+            }
+        }, "intaj-video-cache").start();
     }
 
     // ذخیره دائمی عکس؛ دانلود نیمه‌تمام با Range در تلاش بعدی ادامه می‌یابد.
@@ -4398,6 +4583,125 @@ public class ExperienceListActivity extends Activity {
                     .setView(scroll).setPositiveButton(text("بستن"), null).create();
             profileDialog.show();
         }).addOnFailureListener(e -> Toast.makeText(this, text("پروفایل بارگذاری نشد؛ اتصال را بررسی کنید."), Toast.LENGTH_SHORT).show());
+    }
+
+    @Override
+    protected void onPause() {
+        if (activeExperienceVideo != null) {
+            try { activeExperienceVideo.pause(); } catch (Exception ignored) { }
+            if (activeExperienceVideoControl != null) {
+                activeExperienceVideoControl.setText("▶");
+                activeExperienceVideoControl.setVisibility(View.VISIBLE);
+            }
+            activeExperienceVideo = null;
+            activeExperienceVideoControl = null;
+        }
+        super.onPause();
+    }
+
+    private GradientDrawable createVideoControlCircle() {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(0x77000000);
+        bg.setStroke(dp(1), 0x99FFFFFF);
+        return bg;
+    }
+
+    private void startFeedVideo(VideoView video, TextView control, String key) {
+        if (activeExperienceVideo != null && activeExperienceVideo != video) {
+            try { activeExperienceVideo.pause(); } catch (Exception ignored) { }
+            if (activeExperienceVideoControl != null) {
+                activeExperienceVideoControl.setText("▶");
+                activeExperienceVideoControl.setVisibility(View.VISIBLE);
+            }
+        }
+        activeExperienceVideo = video;
+        activeExperienceVideoControl = control;
+        try {
+            if (video.getCurrentPosition() >= video.getDuration() && video.getDuration() > 0) video.seekTo(0);
+            video.start();
+            control.setText("Ⅱ");
+            control.setVisibility(View.VISIBLE);
+        } catch (Exception e) {
+            control.setText("▶"); control.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void toggleFeedVideo(VideoView video, TextView control, String key) {
+        if (video == null) return;
+        try {
+            if (video.isPlaying()) {
+                video.pause();
+                control.setText("▶");
+                control.setVisibility(View.VISIBLE);
+                if (activeExperienceVideo == video) {
+                    activeExperienceVideo = null;
+                    activeExperienceVideoControl = null;
+                }
+            } else {
+                startFeedVideo(video, control, key);
+            }
+        } catch (Exception ignored) { control.setVisibility(View.VISIBLE); }
+    }
+
+    /** لینک امضاشده تازه می‌گیرد و ویدیو را فقط با تأیید کاربر در Movies ذخیره می‌کند. */
+    private void saveExperienceVideo(String videoPath) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            Toast.makeText(this, text("برای ذخیره ویدیو وارد حساب شوید"), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Toast.makeText(this, text("در حال آماده‌سازی ذخیره ویدیو…"), Toast.LENGTH_SHORT).show();
+        user.getIdToken(false).addOnSuccessListener(token -> new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                JSONObject body = new JSONObject(); body.put("path", videoPath);
+                conn = (HttpURLConnection) new URL(VIDEO_SIGNED_URL_FUNCTION).openConnection();
+                conn.setRequestMethod("POST"); conn.setDoOutput(true);
+                conn.setConnectTimeout(20000); conn.setReadTimeout(30000);
+                conn.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY);
+                conn.setRequestProperty("Authorization", "Bearer " + token.getToken());
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                try (OutputStream out = conn.getOutputStream()) {
+                    out.write(body.toString().getBytes(StandardCharsets.UTF_8));
+                }
+                int code = conn.getResponseCode();
+                InputStream response = code >= 200 && code < 300 ? conn.getInputStream() : conn.getErrorStream();
+                StringBuilder json = new StringBuilder();
+                if (response != null) try (BufferedReader br = new BufferedReader(new InputStreamReader(response, StandardCharsets.UTF_8))) {
+                    String line; while ((line = br.readLine()) != null) json.append(line);
+                }
+                JSONObject result = new JSONObject(json.toString());
+                String signedUrl = result.optString("url", "");
+                if (code < 200 || code >= 300 || signedUrl.isEmpty())
+                    throw new IOException(result.optString("error", "لینک ویدیو دریافت نشد"));
+                HttpURLConnection download = (HttpURLConnection) new URL(signedUrl).openConnection();
+                download.setConnectTimeout(20000); download.setReadTimeout(60000);
+                String name = "iNtaj_" + System.currentTimeMillis() + ".mp4";
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Video.Media.DISPLAY_NAME, name);
+                values.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4");
+                values.put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/iNtaj");
+                values.put(MediaStore.Video.Media.IS_PENDING, 1);
+                android.net.Uri target = getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values);
+                if (target == null) throw new IOException("ذخیره‌سازی شروع نشد");
+                try (InputStream in = download.getInputStream(); OutputStream out = getContentResolver().openOutputStream(target)) {
+                    if (out == null) throw new IOException("فایل مقصد باز نشد");
+                    byte[] buffer = new byte[8192]; int count;
+                    while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
+                    out.flush();
+                } catch (Exception e) {
+                    getContentResolver().delete(target, null, null); throw e;
+                } finally { download.disconnect(); }
+                ContentValues done = new ContentValues(); done.put(MediaStore.Video.Media.IS_PENDING, 0);
+                getContentResolver().update(target, done, null, null);
+                runOnUiThread(() -> Toast.makeText(this, text("ویدیو در پوشه Movies/iNtaj ذخیره شد"), Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                String message = e.getMessage() == null ? "ذخیره ویدیو ناموفق بود" : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this, text(message), Toast.LENGTH_LONG).show());
+            } finally { if (conn != null) conn.disconnect(); }
+        }).start()).addOnFailureListener(e -> Toast.makeText(this,
+                text("دریافت توکن برای ذخیره ویدیو ناموفق بود"), Toast.LENGTH_LONG).show());
     }
 
     private String formatVideoTime(int milliseconds) {
