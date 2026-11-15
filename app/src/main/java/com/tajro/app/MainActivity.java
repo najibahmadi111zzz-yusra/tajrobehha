@@ -182,7 +182,7 @@ public class MainActivity extends Activity {
         brand.setOrientation(LinearLayout.VERTICAL);
         brand.setGravity(Gravity.CENTER_VERTICAL);
 
-        title = makeText("iNtaj", 30, NAVY, true);
+        title = makeText("N TAJ", 30, NAVY, true);
         title.setLetterSpacing(0.015f);
         welcome = makeText(
                 text("به دنیای تجربه‌ها خوش آمدید",
