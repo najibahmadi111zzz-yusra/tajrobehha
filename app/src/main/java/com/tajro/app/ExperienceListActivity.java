@@ -1250,13 +1250,32 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
+    /** جزئیات دقیق خطای Firestore را برای عیب‌یابی ثبت و نمایش می‌دهد. */
+    private String describeFirestoreFailure(String operation, Exception error) {
+        String details = error == null || error.getMessage() == null
+                ? "خطای نامشخص" : error.getMessage();
+        if (error instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
+            com.google.firebase.firestore.FirebaseFirestoreException firestoreError =
+                    (com.google.firebase.firestore.FirebaseFirestoreException) error;
+            details = "کد Firestore: " + firestoreError.getCode().name()
+                    + " | " + details;
+        } else if (error != null) {
+            details = error.getClass().getSimpleName() + " | " + details;
+        }
+        Log.e("ExperiencePublish", operation + " failed: " + details, error);
+        return details;
+    }
+
     private void saveMediaStory(String uid, String caption, String mediaType,
                                 String mediaUrl, String videoPath, long size, int duration) {
         Map<String, Object> story = new HashMap<>();
         story.put("userId", uid);
         story.put("text", caption == null ? "" : caption);
         story.put("mediaType", mediaType);
-        story.put("mediaUrl", mediaUrl);
+        // طبق Firestore Rules، mediaUrl فقط برای عکس مجاز است؛ ویدیوی خصوصی فقط path دارد.
+        if ("image".equals(mediaType) && mediaUrl != null && !mediaUrl.trim().isEmpty()) {
+            story.put("mediaUrl", mediaUrl);
+        }
         story.put("createdAt", FieldValue.serverTimestamp());
         story.put("expiresAt", new Timestamp(new Date(
                 System.currentTimeMillis() + 23L * 60L * 60L * 1000L + 50L * 60L * 1000L)));
@@ -1272,8 +1291,12 @@ public class ExperienceListActivity extends Activity {
                     Toast.makeText(this, text("داستان منتشر شد."), Toast.LENGTH_SHORT).show();
                     loadStories();
                 })
-                .addOnFailureListener(e -> { dismissOperationProgress(); Toast.makeText(this,
-                        text("انتشار داستان ناموفق بود: ") + e.getMessage(), Toast.LENGTH_LONG).show(); });
+                .addOnFailureListener(e -> {
+                    dismissOperationProgress();
+                    String details = describeFirestoreFailure("Story publish", e);
+                    Toast.makeText(this, text("انتشار داستان ناموفق بود: ") + details,
+                            Toast.LENGTH_LONG).show();
+                });
     }
 
     private interface VideoUploadCallback {
@@ -1407,11 +1430,9 @@ public class ExperienceListActivity extends Activity {
                     }
                     upload.disconnect();
 
-                    String publicUrl = SUPABASE_URL
-                            + "/storage/v1/object/public/experience_videos/"
-                            + path.replace(" ", "%20");
+                    // باکت خصوصی است؛ URL عمومی نساز. برای پخش، لینک موقت از Edge Function گرفته می‌شود.
                     runOnUiThread(() ->
-                            callback.onSuccess(publicUrl, path, checkedSize, checkedDuration));
+                            callback.onSuccess("", path, checkedSize, checkedDuration));
                 } catch (Exception e) {
                     String message = e.getMessage() == null ? "خطا در آپلود ویدیو" : e.getMessage();
                     runOnUiThread(() -> callback.onError(message));
@@ -1543,6 +1564,7 @@ public class ExperienceListActivity extends Activity {
         String body = firstNonEmpty(story.getString("text"), "");
         String mediaType = firstNonEmpty(story.getString("mediaType"), "text");
         String mediaUrl = firstNonEmpty(story.getString("mediaUrl"), "");
+        String videoPath = firstNonEmpty(story.getString("videoPath"), "");
         String myId = auth.getCurrentUser() == null ? "" : auth.getCurrentUser().getUid();
 
         LinearLayout viewer = new LinearLayout(this);
@@ -1557,11 +1579,17 @@ public class ExperienceListActivity extends Activity {
             viewer.addView(image, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(390)));
             loadExperienceImage(mediaUrl, image);
-        } else if ("video".equals(mediaType) && !mediaUrl.isEmpty()) {
+        } else if ("video".equals(mediaType)
+                && (!videoPath.isEmpty() || !mediaUrl.isEmpty())) {
             VideoView video = new VideoView(this);
             viewer.addView(video, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(390)));
-            video.setVideoURI(Uri.parse(mediaUrl));
+            // ویدیوهای جدید از باکت خصوصی با لینک موقت پخش می‌شوند؛ URL قدیمی حفظ شده است.
+            if (!videoPath.isEmpty()) {
+                loadPrivateExperienceVideo(videoPath, video);
+            } else {
+                video.setVideoURI(Uri.parse(mediaUrl)); // سازگاری با داستان‌های قدیمی
+            }
             MediaController controls = new MediaController(this);
             controls.setAnchorView(video);
             video.setMediaController(controls);
@@ -2193,8 +2221,8 @@ public class ExperienceListActivity extends Activity {
             data.put("imageUrl", imageUrl);
             data.put("mediaType", "image");
         }
-        if (videoUrl != null && !videoUrl.trim().isEmpty()) {
-            data.put("videoUrl", videoUrl);
+        if (videoPath != null && !videoPath.trim().isEmpty()) {
+            // طبق Rules، videoUrl برای ویدیوی خصوصی ممنوع است؛ فقط مسیر ذخیره می‌شود.
             data.put("videoPath", videoPath);
             data.put("videoBucket", "experience_videos");
             data.put("mediaType", "video");
@@ -2216,7 +2244,9 @@ public class ExperienceListActivity extends Activity {
                 })
                 .addOnFailureListener(e -> {
                     resetPublishButton();
-                    Toast.makeText(this, text("خطا در انتشار تجربه: ") + e.getMessage(), Toast.LENGTH_LONG).show();
+                    String details = describeFirestoreFailure("Experience publish", e);
+                    Toast.makeText(this, text("خطا در انتشار تجربه: ") + details,
+                            Toast.LENGTH_LONG).show();
                 });
     }
 
@@ -4760,4 +4790,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-        }
+    }
