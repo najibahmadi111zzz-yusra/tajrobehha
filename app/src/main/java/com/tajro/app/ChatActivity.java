@@ -403,6 +403,37 @@ public class ChatActivity extends Activity {
                 case "این کار تمام پیامهای این گفتگو را حذف میکند و قابل برگشت نیست. ادامه میدهید؟": return "سيؤدي هذا إلى حذف جميع رسائل المحادثة نهائياً. هل تريد المتابعة؟";
                 case "آیا میخواهید این کاربر را مسدود کنید؟": return "هل تريد حظر هذا المستخدم؟";
                 case "دسترسی به پیامهای چت ناموفق بود": return "تعذر الوصول إلى رسائل المحادثة";
+                case "انصراف": return "إلغاء";
+                case "حذف": return "حذف";
+                case "خواندن عکس قبلی ناموفق بود": return "فشلت قراءة الصورة السابقة";
+                case "در حال آماده‌سازی ویدیو...": return "جارٍ تجهيز الفيديو...";
+                case "ذخیره عکس در حساب ناموفق بود": return "فشل حفظ الصورة في الحساب";
+                case "صدا هنوز ذخیره نشده است؛ پس از وصل‌شدن اینترنت دوباره تلاش کنید": return "لم يتم حفظ الصوت بعد؛ حاول مرة أخرى بعد الاتصال بالإنترنت";
+                case "ضبط صدا ناموفق بود؛ لطفاً دوباره تلاش کنید": return "فشل تسجيل الصوت؛ يرجى المحاولة مرة أخرى";
+                case "قالب این ویدیو در گوشی پشتیبانی نمی‌شود یا فایل ناقص است": return "تنسيق هذا الفيديو غير مدعوم على الهاتف أو أن الملف غير مكتمل";
+                case "ویدیو": return "فيديو";
+                case "ویدیو دریافت نشد؛ اینترنت یا دسترسی فایل را بررسی کنید": return "لم يتم تنزيل الفيديو؛ تحقق من الإنترنت أو إذن الوصول إلى الملف";
+                case "جستجوی کاربران": return "البحث عن المستخدمين";
+                case "نام کاربر را جستجو کنید": return "ابحث عن اسم المستخدم";
+                case "کاربری با این مشخصات پیدا نشد": return "لم يتم العثور على مستخدم بهذه البيانات";
+                case "● فعال": return "● نشط";
+                case "○ غیرفعال": return "○ غير نشط";
+                case "جستجوی کاربران ناموفق بود": return "فشل البحث عن المستخدمين";
+                case "آخرین بازدید: امروز، ": return "آخر ظهور: اليوم، ";
+                case "آخرین بازدید: دیروز، ": return "آخر ظهور: أمس، ";
+                case "آخرین بازدید: ": return "آخر ظهور: ";
+                case "امروز": return "اليوم";
+                case "دیروز": return "أمس";
+                case "حذف از فهرست چت": return "إزالة من قائمة المحادثات";
+                case "مدیریت گفتگو": return "إدارة المحادثة";
+                case "این کار فقط کاربر را از فهرست این دستگاه پنهان می‌کند؛ حساب و پیام‌ها حذف نمی‌شوند.": return "سيؤدي هذا فقط إلى إخفاء المستخدم من قائمة هذا الجهاز؛ لن يتم حذف الحساب أو الرسائل.";
+                case "پروفایل من": return "ملفي الشخصي";
+                case "آدرس عکس خالی است": return "عنوان الصورة فارغ";
+                case "مسیر عکس پروفایل در آدرس پیدا نشد": return "لم يتم العثور على مسار صورة الملف الشخصي في الرابط";
+                case "برای دریافت عکس باید وارد حساب شوید": return "يرجى تسجيل الدخول لتنزيل الصورة";
+                case "توکن ورود Firebase دریافت نشد": return "تعذر الحصول على رمز تسجيل الدخول من Firebase";
+                case "خطا در دریافت لینک عکس: ": return "خطأ في الحصول على رابط الصورة: ";
+                case "لینک امن عکس دریافت نشد: ": return "لم يتم استلام رابط الصورة الآمن: ";
             }
         }
 
@@ -531,6 +562,37 @@ public class ChatActivity extends Activity {
                 case "این کار تمام پیامهای این گفتگو را حذف میکند و قابل برگشت نیست. ادامه میدهید؟": return "This will delete all messages in this conversation and cannot be undone. Continue?";
                 case "آیا میخواهید این کاربر را مسدود کنید؟": return "Do you want to block this user?";
                 case "دسترسی به پیامهای چت ناموفق بود": return "Failed to access chat messages";
+                case "انصراف": return "Cancel";
+                case "حذف": return "Delete";
+                case "خواندن عکس قبلی ناموفق بود": return "Failed to read the previous image";
+                case "در حال آماده‌سازی ویدیو...": return "Preparing video...";
+                case "ذخیره عکس در حساب ناموفق بود": return "Failed to save the photo to your account";
+                case "صدا هنوز ذخیره نشده است؛ پس از وصل‌شدن اینترنت دوباره تلاش کنید": return "Audio has not been saved yet; try again when the internet is connected";
+                case "ضبط صدا ناموفق بود؛ لطفاً دوباره تلاش کنید": return "Voice recording failed; please try again";
+                case "قالب این ویدیو در گوشی پشتیبانی نمی‌شود یا فایل ناقص است": return "This video format is not supported on this phone, or the file is incomplete";
+                case "ویدیو": return "Video";
+                case "ویدیو دریافت نشد؛ اینترنت یا دسترسی فایل را بررسی کنید": return "Video could not be downloaded; check your internet connection or file access";
+                case "جستجوی کاربران": return "Search users";
+                case "نام کاربر را جستجو کنید": return "Search for a user's name";
+                case "کاربری با این مشخصات پیدا نشد": return "No user matching these details was found";
+                case "● فعال": return "● Active";
+                case "○ غیرفعال": return "○ Inactive";
+                case "جستجوی کاربران ناموفق بود": return "User search failed";
+                case "آخرین بازدید: امروز، ": return "Last seen: today, ";
+                case "آخرین بازدید: دیروز، ": return "Last seen: yesterday, ";
+                case "آخرین بازدید: ": return "Last seen: ";
+                case "امروز": return "Today";
+                case "دیروز": return "Yesterday";
+                case "حذف از فهرست چت": return "Remove from chat list";
+                case "مدیریت گفتگو": return "Manage conversation";
+                case "این کار فقط کاربر را از فهرست این دستگاه پنهان می‌کند؛ حساب و پیام‌ها حذف نمی‌شوند.": return "This only hides the user from this device's list; the account and messages will not be deleted.";
+                case "پروفایل من": return "My profile";
+                case "آدرس عکس خالی است": return "Image address is empty";
+                case "مسیر عکس پروفایل در آدرس پیدا نشد": return "Profile photo path was not found in the URL";
+                case "برای دریافت عکس باید وارد حساب شوید": return "Please sign in to download the image";
+                case "توکن ورود Firebase دریافت نشد": return "Could not obtain the Firebase sign-in token";
+                case "خطا در دریافت لینک عکس: ": return "Failed to obtain image link: ";
+                case "لینک امن عکس دریافت نشد: ": return "Secure image link was not returned: ";
             }
         }
 
@@ -659,6 +721,37 @@ public class ChatActivity extends Activity {
                 case "این کار تمام پیامهای این گفتگو را حذف میکند و قابل برگشت نیست. ادامه میدهید؟": return "دا به د دې خبرو ټول پیغامونه ړنګ کړي او بېرته نه راګرځي. دوام ورکړئ؟";
                 case "آیا میخواهید این کاربر را مسدود کنید؟": return "ایا غواړئ دا کاروونکی بند کړئ؟";
                 case "دسترسی به پیامهای چت ناموفق بود": return "د چټ پیغامونو ته لاسرسی ناکام شو";
+                case "انصراف": return "لغوه";
+                case "حذف": return "ړنګول";
+                case "خواندن عکس قبلی ناموفق بود": return "د پخواني انځور لوستل ناکام شول";
+                case "در حال آماده‌سازی ویدیو...": return "ویډیو چمتو کېږي...";
+                case "ذخیره عکس در حساب ناموفق بود": return "په حساب کې د انځور خوندي کول ناکام شول";
+                case "صدا هنوز ذخیره نشده است؛ پس از وصل‌شدن اینترنت دوباره تلاش کنید": return "غږ لا نه دی خوندي شوی؛ د انټرنېټ له نښلېدو وروسته بیا هڅه وکړئ";
+                case "ضبط صدا ناموفق بود؛ لطفاً دوباره تلاش کنید": return "د غږ ثبتول ناکام شول؛ مهرباني وکړئ بیا هڅه وکړئ";
+                case "قالب این ویدیو در گوشی پشتیبانی نمی‌شود یا فایل ناقص است": return "دا ویډیو بڼه په موبایل کې نه ملاتړ کېږي یا فایل نیمګړی دی";
+                case "ویدیو": return "ویډیو";
+                case "ویدیو دریافت نشد؛ اینترنت یا دسترسی فایل را بررسی کنید": return "ویډیو ترلاسه نه شوه؛ انټرنېټ یا فایل ته لاسرسی وګورئ";
+                case "جستجوی کاربران": return "د کاروونکو لټون";
+                case "نام کاربر را جستجو کنید": return "د کاروونکي نوم ولټوئ";
+                case "کاربری با این مشخصات پیدا نشد": return "د دې معلوماتو له مخې کاروونکی ونه موندل شو";
+                case "● فعال": return "● فعال";
+                case "○ غیرفعال": return "○ غیرفعال";
+                case "جستجوی کاربران ناموفق بود": return "د کاروونکو لټون ناکام شو";
+                case "آخرین بازدید: امروز، ": return "وروستی لیدل: نن، ";
+                case "آخرین بازدید: دیروز، ": return "وروستی لیدل: پرون، ";
+                case "آخرین بازدید: ": return "وروستی لیدل: ";
+                case "امروز": return "نن";
+                case "دیروز": return "پرون";
+                case "حذف از فهرست چت": return "د چټ له لېست څخه لرې کول";
+                case "مدیریت گفتگو": return "د خبرو اترو اداره";
+                case "این کار فقط کاربر را از فهرست این دستگاه پنهان می‌کند؛ حساب و پیام‌ها حذف نمی‌شوند.": return "دا کار یوازې کاروونکی د دې وسیلې له لېست څخه پټوي؛ حساب او پیغامونه نه ړنګېږي.";
+                case "پروفایل من": return "زما پروفایل";
+                case "آدرس عکس خالی است": return "د انځور پته تشه ده";
+                case "مسیر عکس پروفایل در آدرس پیدا نشد": return "په لینک کې د پروفایل انځور لاره ونه موندل شوه";
+                case "برای دریافت عکس باید وارد حساب شوید": return "د انځور ترلاسه کولو لپاره حساب ته ننوځئ";
+                case "توکن ورود Firebase دریافت نشد": return "د Firebase د ننوتلو نښه ترلاسه نه شوه";
+                case "خطا در دریافت لینک عکس: ": return "د انځور لینک ترلاسه کولو کې تېروتنه: ";
+                case "لینک امن عکس دریافت نشد: ": return "د انځور خوندي لینک ترلاسه نه شو: ";
             }
         }
 
@@ -787,6 +880,37 @@ public class ChatActivity extends Activity {
                 case "این کار تمام پیامهای این گفتگو را حذف میکند و قابل برگشت نیست. ادامه میدهید؟": return "یہ اس گفتگو کے تمام پیغامات حذف کر دے گا اور واپس نہیں ہو سکتا۔ جاری رکھیں؟";
                 case "آیا میخواهید این کاربر را مسدود کنید؟": return "کیا آپ اس صارف کو بلاک کرنا چاہتے ہیں؟";
                 case "دسترسی به پیامهای چت ناموفق بود": return "چیٹ پیغامات تک رسائی ناکام رہی";
+                case "انصراف": return "منسوخ کریں";
+                case "حذف": return "حذف کریں";
+                case "خواندن عکس قبلی ناموفق بود": return "پچھلی تصویر پڑھنے میں ناکامی ہوئی";
+                case "در حال آماده‌سازی ویدیو...": return "ویڈیو تیار ہو رہی ہے...";
+                case "ذخیره عکس در حساب ناموفق بود": return "اکاؤنٹ میں تصویر محفوظ نہیں ہو سکی";
+                case "صدا هنوز ذخیره نشده است؛ پس از وصل‌شدن اینترنت دوباره تلاش کنید": return "آواز ابھی محفوظ نہیں ہوئی؛ انٹرنیٹ سے منسلک ہونے کے بعد دوبارہ کوشش کریں";
+                case "ضبط صدا ناموفق بود؛ لطفاً دوباره تلاش کنید": return "آواز ریکارڈ نہیں ہو سکی؛ براہِ کرم دوبارہ کوشش کریں";
+                case "قالب این ویدیو در گوشی پشتیبانی نمی‌شود یا فایل ناقص است": return "یہ ویڈیو فارمیٹ فون پر سپورٹ نہیں ہوتا یا فائل نامکمل ہے";
+                case "ویدیو": return "ویڈیو";
+                case "ویدیو دریافت نشد؛ اینترنت یا دسترسی فایل را بررسی کنید": return "ویڈیو ڈاؤن لوڈ نہیں ہوئی؛ انٹرنیٹ یا فائل تک رسائی چیک کریں";
+                case "جستجوی کاربران": return "صارفین تلاش کریں";
+                case "نام کاربر را جستجو کنید": return "صارف کا نام تلاش کریں";
+                case "کاربری با این مشخصات پیدا نشد": return "ان معلومات کے مطابق کوئی صارف نہیں ملا";
+                case "● فعال": return "● فعال";
+                case "○ غیرفعال": return "○ غیر فعال";
+                case "جستجوی کاربران ناموفق بود": return "صارفین کی تلاش ناکام ہوئی";
+                case "آخرین بازدید: امروز، ": return "آخری بار دیکھا: آج، ";
+                case "آخرین بازدید: دیروز، ": return "آخری بار دیکھا: کل، ";
+                case "آخرین بازدید: ": return "آخری بار دیکھا: ";
+                case "امروز": return "آج";
+                case "دیروز": return "کل";
+                case "حذف از فهرست چت": return "چیٹ کی فہرست سے ہٹائیں";
+                case "مدیریت گفتگو": return "گفتگو کا انتظام";
+                case "این کار فقط کاربر را از فهرست این دستگاه پنهان می‌کند؛ حساب و پیام‌ها حذف نمی‌شوند.": return "اس سے صارف صرف اس ڈیوائس کی فہرست سے چھپے گا؛ اکاؤنٹ اور پیغامات حذف نہیں ہوں گے۔";
+                case "پروفایل من": return "میری پروفائل";
+                case "آدرس عکس خالی است": return "تصویر کا پتہ خالی ہے";
+                case "مسیر عکس پروفایل در آدرس پیدا نشد": return "لنک میں پروفائل تصویر کا راستہ نہیں ملا";
+                case "برای دریافت عکس باید وارد حساب شوید": return "تصویر حاصل کرنے کے لیے اکاؤنٹ میں لاگ اِن کریں";
+                case "توکن ورود Firebase دریافت نشد": return "Firebase لاگ اِن ٹوکن حاصل نہیں ہو سکا";
+                case "خطا در دریافت لینک عکس: ": return "تصویر کا لنک حاصل کرنے میں خرابی: ";
+                case "لینک امن عکس دریافت نشد: ": return "محفوظ تصویر کا لنک موصول نہیں ہوا: ";
             }
         }
 
@@ -915,6 +1039,37 @@ public class ChatActivity extends Activity {
                 case "این کار تمام پیامهای این گفتگو را حذف میکند و قابل برگشت نیست. ادامه میدهید؟": return "यह इस बातचीत के सभी संदेश हटा देगा और इसे वापस नहीं किया जा सकता। जारी रखें?";
                 case "آیا میخواهید این کاربر را مسدود کنید؟": return "क्या आप इस उपयोगकर्ता को ब्लॉक करना चाहते हैं?";
                 case "دسترسی به پیامهای چت ناموفق بود": return "चैट संदेशों तक पहुँच विफल हुई";
+                case "انصراف": return "रद्द करें";
+                case "حذف": return "हटाएँ";
+                case "خواندن عکس قبلی ناموفق بود": return "पिछली तस्वीर पढ़ने में विफल";
+                case "در حال آماده‌سازی ویدیو...": return "वीडियो तैयार हो रहा है...";
+                case "ذخیره عکس در حساب ناموفق بود": return "खाते में तस्वीर सहेजने में विफल";
+                case "صدا هنوز ذخیره نشده است؛ پس از وصل‌شدن اینترنت دوباره تلاش کنید": return "ऑडियो अभी सहेजा नहीं गया है; इंटरनेट जुड़ने के बाद फिर कोशिश करें";
+                case "ضبط صدا ناموفق بود؛ لطفاً دوباره تلاش کنید": return "आवाज़ रिकॉर्ड नहीं हो सकी; कृपया फिर कोशिश करें";
+                case "قالب این ویدیو در گوشی پشتیبانی نمی‌شود یا فایل ناقص است": return "यह वीडियो फ़ॉर्मेट फ़ोन पर समर्थित नहीं है या फ़ाइल अधूरी है";
+                case "ویدیو": return "वीडियो";
+                case "ویدیو دریافت نشد؛ اینترنت یا دسترسی فایل را بررسی کنید": return "वीडियो डाउनलोड नहीं हुआ; इंटरनेट या फ़ाइल की पहुँच जाँचें";
+                case "جستجوی کاربران": return "उपयोगकर्ताओं को खोजें";
+                case "نام کاربر را جستجو کنید": return "उपयोगकर्ता का नाम खोजें";
+                case "کاربری با این مشخصات پیدا نشد": return "इन विवरणों वाला कोई उपयोगकर्ता नहीं मिला";
+                case "● فعال": return "● सक्रिय";
+                case "○ غیرفعال": return "○ निष्क्रिय";
+                case "جستجوی کاربران ناموفق بود": return "उपयोगकर्ता खोज विफल रही";
+                case "آخرین بازدید: امروز، ": return "अंतिम बार देखा: आज, ";
+                case "آخرین بازدید: دیروز، ": return "अंतिम बार देखा: कल, ";
+                case "آخرین بازدید: ": return "अंतिम बार देखा: ";
+                case "امروز": return "आज";
+                case "دیروز": return "कल";
+                case "حذف از فهرست چت": return "चैट सूची से हटाएँ";
+                case "مدیریت گفتگو": return "बातचीत प्रबंधित करें";
+                case "این کار فقط کاربر را از فهرست این دستگاه پنهان می‌کند؛ حساب و پیام‌ها حذف نمی‌شوند.": return "इससे उपयोगकर्ता केवल इस डिवाइस की सूची से छिपेगा; खाता और संदेश हटाए नहीं जाएँगे।";
+                case "پروفایل من": return "मेरी प्रोफ़ाइल";
+                case "آدرس عکس خالی است": return "चित्र का पता खाली है";
+                case "مسیر عکس پروفایل در آدرس پیدا نشد": return "URL में प्रोफ़ाइल तस्वीर का पथ नहीं मिला";
+                case "برای دریافت عکس باید وارد حساب شوید": return "चित्र प्राप्त करने के लिए खाते में लॉग इन करें";
+                case "توکن ورود Firebase دریافت نشد": return "Firebase लॉगिन टोकन प्राप्त नहीं हुआ";
+                case "خطا در دریافت لینک عکس: ": return "चित्र लिंक प्राप्त करने में त्रुटि: ";
+                case "لینک امن عکس دریافت نشد: ": return "सुरक्षित चित्र लिंक प्राप्त नहीं हुआ: ";
             }
         }
 
@@ -1228,7 +1383,7 @@ public class ChatActivity extends Activity {
         );
 
         searchUsersButton.setContentDescription(
-                "جستجوی کاربران"
+                tr("جستجوی کاربران")
         );
 
         searchUsersButton.setOnClickListener(
@@ -1342,7 +1497,7 @@ titleText =
 
         searchInput.setSingleLine(true);
         searchInput.setHint(
-                "نام نمایشی، ایمیل یا شماره تلفن"
+                tr("نام کاربر را جستجو کنید")
         );
 
         box.addView(
@@ -1376,9 +1531,9 @@ titleText =
 
         final AlertDialog dialog =
                 new AlertDialog.Builder(this)
-                        .setTitle("🔎 جستجوی کاربران")
+                        .setTitle("🔎 " + tr("جستجوی کاربران"))
                         .setView(box)
-                        .setNegativeButton("بستن", null)
+                        .setNegativeButton(tr("بستن"), null)
                         .create();
 
         db.collection("users")
@@ -1426,7 +1581,7 @@ titleText =
 
                                                 TextView hint =
                                                         text(
-                                                                "نام کاربر را جستجو کنید",
+                                                                tr("نام کاربر را جستجو کنید"),
                                                                 15
                                                         );
 
@@ -1475,7 +1630,7 @@ titleText =
 
                                                 TextView empty =
                                                         text(
-                                                                "کاربری با این مشخصات پیدا نشد",
+                                                                tr("کاربری با این مشخصات پیدا نشد"),
                                                                 15
                                                         );
 
@@ -1547,7 +1702,7 @@ titleText =
 
                                                 TextView statusView =
                                                         text(
-                                                                online ? "● فعال" : "○ غیرفعال",
+                                                                online ? tr("● فعال") : tr("○ غیرفعال"),
                                                                 12
                                                         );
 
@@ -1595,7 +1750,7 @@ titleText =
                 .addOnFailureListener(
                         e -> Toast.makeText(
                                 this,
-                                "جستجوی کاربران ناموفق بود",
+                                tr("جستجوی کاربران ناموفق بود"),
                                 Toast.LENGTH_SHORT
                         ).show()
                 );
@@ -1799,6 +1954,7 @@ titleText =
                                                 tr("هنوز کاربر دیگری پیدا نشد."),
                                                 16
                                         );
+                                empty.setTextColor(Color.WHITE);
 
                                 empty.setGravity(
                                         Gravity.CENTER
@@ -1841,17 +1997,17 @@ titleText =
         String time = timeFormat.format(date);
         if (now.get(java.util.Calendar.YEAR) == seen.get(java.util.Calendar.YEAR)
                 && now.get(java.util.Calendar.DAY_OF_YEAR) == seen.get(java.util.Calendar.DAY_OF_YEAR)) {
-            return "آخرین بازدید: امروز، " + time;
+            return tr("آخرین بازدید: امروز، ") + time;
         }
         java.util.Calendar yesterday = (java.util.Calendar) now.clone();
         yesterday.add(java.util.Calendar.DAY_OF_YEAR, -1);
         if (yesterday.get(java.util.Calendar.YEAR) == seen.get(java.util.Calendar.YEAR)
                 && yesterday.get(java.util.Calendar.DAY_OF_YEAR) == seen.get(java.util.Calendar.DAY_OF_YEAR)) {
-            return "آخرین بازدید: دیروز، " + time;
+            return tr("آخرین بازدید: دیروز، ") + time;
         }
         java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat(
                 "yyyy/MM/dd", java.util.Locale.getDefault());
-        return "آخرین بازدید: " + dateFormat.format(date) + "، " + time;
+        return tr("آخرین بازدید: ") + dateFormat.format(date) + "، " + time;
     }
 
     private boolean isSameMessageDay(com.google.firebase.Timestamp first,
@@ -1873,13 +2029,13 @@ titleText =
         messageDay.setTime(date);
         if (now.get(java.util.Calendar.YEAR) == messageDay.get(java.util.Calendar.YEAR)
                 && now.get(java.util.Calendar.DAY_OF_YEAR) == messageDay.get(java.util.Calendar.DAY_OF_YEAR)) {
-            return "امروز";
+            return tr("امروز");
         }
         java.util.Calendar yesterday = (java.util.Calendar) now.clone();
         yesterday.add(java.util.Calendar.DAY_OF_YEAR, -1);
         if (yesterday.get(java.util.Calendar.YEAR) == messageDay.get(java.util.Calendar.YEAR)
                 && yesterday.get(java.util.Calendar.DAY_OF_YEAR) == messageDay.get(java.util.Calendar.DAY_OF_YEAR)) {
-            return "دیروز";
+            return tr("دیروز");
         }
         return new java.text.SimpleDateFormat("yyyy/MM/dd", java.util.Locale.getDefault()).format(date);
     }
@@ -2119,6 +2275,7 @@ titleText =
 
         TextView menu =
                 text("⋮", 26);
+        menu.setTextColor(Color.WHITE);
 
         menu.setGravity(
                 Gravity.CENTER
@@ -2163,11 +2320,11 @@ private void showUserMenu(
     String[] items = {
             tr("👁 مخفی کردن / رفع مخفی"),
             tr("🚫 بلاک / رفع مسدودیت"),
-            "حذف از فهرست چت"
+            tr("حذف از فهرست چت")
     };
 
     AlertDialog userActionsDialog = new AlertDialog.Builder(this)
-            .setTitle("مدیریت گفتگو")
+            .setTitle(tr("مدیریت گفتگو"))
             .setItems(
                     items,
                     (d, which) -> {
@@ -2240,8 +2397,8 @@ private void showUserMenu(
                         } else if (which == 2) {
 
                             new AlertDialog.Builder(this)
-                                    .setTitle("حذف از فهرست چت")
-                                    .setMessage("این کار فقط کاربر را از فهرست این دستگاه پنهان می‌کند؛ حساب و پیام‌ها حذف نمی‌شوند.")
+                                    .setTitle(tr("حذف از فهرست چت"))
+                                    .setMessage(tr("این کار فقط کاربر را از فهرست این دستگاه پنهان می‌کند؛ حساب و پیام‌ها حذف نمی‌شوند."))
                                     .setNegativeButton(tr("انصراف"), null)
                                     .setPositiveButton(tr("حذف"), (confirm, result) -> {
                                         removedChatUserIds.add(uid);
@@ -2290,50 +2447,8 @@ private void showUserMenu(
                                             loadUsers();
 
                                         } else {
-
-                                            // بلاک کردن
-                                            Map<String, Object> data =
-                                                    new HashMap<>();
-
-                                            data.put(
-                                                    "ownerId",
-                                                    myId
-                                            );
-
-                                            data.put(
-                                                    "blockedUserId",
-                                                    uid
-                                            );
-
-                                            data.put(
-                                                    "blockedUserName",
-                                                    name
-                                            );
-
-                                            db.collection("blocks")
-                                                    .document(
-                                                            myId + "_" + uid
-                                                    )
-                                                    .set(data)
-                                                    .addOnSuccessListener(
-                                                            x -> {
-                                                                if (receiverId != null &&
-                                                                        receiverId.equals(uid)) {
-                                                                    blockedByMe = true;
-                                                                    blocked = true;
-                                                                    blockChecksReady = 2;
-                                                                    updateBlockStateAfterCheck();
-                                                                }
-
-                                                                Toast.makeText(
-                                                                        this,
-                                                                        tr("کاربر بلاک شد؛ ارسال پیام و صدا متوقف شد"),
-                                                                        Toast.LENGTH_SHORT
-                                                                ).show();
-
-                                                                loadUsers();
-                                                            }
-                                                    );
+                                            // کاربر هنوز بلاک نیست؛ قبل از ثبت، دو تأیید جداگانه گرفته می‌شود.
+                                            confirmBlockUserFromList(uid, name);
                                         }
                                     });
                         }
@@ -2358,6 +2473,54 @@ private void showUserMenu(
     });
     userActionsDialog.show();
 }
+
+    private void confirmBlockUserFromList(String uid, String name) {
+        AlertDialog firstConfirmation = new AlertDialog.Builder(this)
+                .setTitle(tr("مسدود کردن کاربر"))
+                .setMessage(tr("آیا می‌خواهید این کاربر را مسدود کنید؟"))
+                .setNegativeButton(tr("لغو"), null)
+                .setPositiveButton(tr("مرحله اول"), (dialog, which) -> {
+                    AlertDialog finalConfirmation = new AlertDialog.Builder(this)
+                            .setTitle(tr("تأیید نهایی مسدودسازی"))
+                            .setMessage(tr("با تأیید نهایی، این کاربر مسدود می‌شود و دیگر نمی‌توانید برای او پیام بفرستید."))
+                            .setNegativeButton(tr("لغو"), null)
+                            .setPositiveButton(tr("مسدود کردن"), (finalDialog, finalWhich) ->
+                                    blockUserFromList(uid, name))
+                            .create();
+                    finalConfirmation.show();
+                    styleChatDialog(finalConfirmation);
+                })
+                .create();
+        firstConfirmation.show();
+        styleChatDialog(firstConfirmation);
+    }
+
+    private void blockUserFromList(String uid, String name) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("ownerId", myId);
+        data.put("blockedUserId", uid);
+        data.put("blockedUserName", name == null || name.trim().isEmpty()
+                ? tr("کاربر") : name);
+
+        db.collection("blocks")
+                .document(myId + "_" + uid)
+                .set(data)
+                .addOnSuccessListener(result -> {
+                    if (receiverId != null && receiverId.equals(uid)) {
+                        blockedByMe = true;
+                        blocked = true;
+                        blockChecksReady = 2;
+                        updateBlockStateAfterCheck();
+                    }
+
+                    Toast.makeText(
+                            this,
+                            tr("کاربر بلاک شد؛ ارسال پیام و صدا متوقف شد"),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                    loadUsers();
+                });
+    }
 
     private void showMyProfile() {
 
@@ -2517,9 +2680,9 @@ if (uid.equals(myId)) {
 }
         AlertDialog dialog =
                 new AlertDialog.Builder(this)
-                        .setTitle(tr(uid != null && uid.equals(myId)
-                                ? "پروفایل من"
-                                : "پروفایل"))
+                        .setTitle(uid != null && uid.equals(myId)
+                                ? tr("پروفایل من")
+                                : tr("پروفایل"))
                         .setView(box)
                         .setPositiveButton(
                                 tr("بستن"),
@@ -3809,7 +3972,7 @@ header.addView(chatMenu,
         );
 
         play.setTextSize(14);
-        play.setTextColor(Color.rgb(8, 65, 91));
+        play.setTextColor(Color.WHITE);
         boolean mine =
                 myId.equals(sender);
 
@@ -3825,6 +3988,7 @@ header.addView(chatMenu,
         TextView playbackStatus = new TextView(this);
         playbackStatus.setText("00:00 / --:--");
         playbackStatus.setTextSize(11);
+        playbackStatus.setTextColor(Color.WHITE);
         playbackStatus.setGravity(Gravity.CENTER);
 
         play.setOnClickListener(
@@ -6241,7 +6405,7 @@ private void showChatCachedImage(File file, ImageView imageView, Object expected
             Uri imageUri = null;
             try {
                 if (url == null || url.trim().isEmpty()) {
-                    throw new Exception("آدرس عکس خالی است");
+                    throw new Exception(tr("آدرس عکس خالی است"));
                 }
 
                 String downloadUrl = url.trim();
@@ -6252,7 +6416,7 @@ private void showChatCachedImage(File file, ImageView imageView, Object expected
                     String marker = "/" + PROFILE_BUCKET + "/";
                     int markerIndex = downloadUrl.indexOf(marker);
                     if (markerIndex < 0) {
-                        throw new Exception("مسیر عکس پروفایل در آدرس پیدا نشد");
+                        throw new Exception(tr("مسیر عکس پروفایل در آدرس پیدا نشد"));
                     }
 
                     String objectPath = downloadUrl.substring(markerIndex + marker.length());
@@ -6262,13 +6426,13 @@ private void showChatCachedImage(File file, ImageView imageView, Object expected
 
                     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                     if (currentUser == null) {
-                        throw new Exception("برای دریافت عکس باید وارد حساب شوید");
+                        throw new Exception(tr("برای دریافت عکس باید وارد حساب شوید"));
                     }
 
                     String idToken = com.google.android.gms.tasks.Tasks.await(
                             currentUser.getIdToken(false)).getToken();
                     if (idToken == null || idToken.trim().isEmpty()) {
-                        throw new Exception("توکن ورود Firebase دریافت نشد");
+                        throw new Exception(tr("توکن ورود Firebase دریافت نشد"));
                     }
 
                     HttpURLConnection functionConnection = null;
@@ -6303,13 +6467,13 @@ private void showChatCachedImage(File file, ImageView imageView, Object expected
                             }
                         }
                         if (functionCode < 200 || functionCode >= 300) {
-                            throw new Exception("HTTP " + functionCode + " از تابع عکس: " + responseText);
+                            throw new Exception(tr("خطا در دریافت لینک عکس: ") + functionCode + ": " + responseText);
                         }
 
                         JSONObject response = new JSONObject(responseText);
                         downloadUrl = response.optString("url", "");
                         if (downloadUrl.isEmpty()) {
-                            throw new Exception("تابع عکس لینک امضاشده برنگرداند: " + responseText);
+                            throw new Exception(tr("لینک امن عکس دریافت نشد: ") + responseText);
                         }
                     } finally {
                         if (functionConnection != null) functionConnection.disconnect();
@@ -6657,17 +6821,28 @@ private void showChatMenu() {
 
                         } else if (which == 4) {
 
-                            // لمس گزینه، فقط پنجره تأیید را باز می‌کند؛ بلاک با لمس دوم انجام می‌شود.
-                            AlertDialog blockConfirmation =
+                            // مرحله اول: فقط درخواست مسدودسازی را تأیید می‌کند.
+                            AlertDialog firstBlockConfirmation =
                                     new AlertDialog.Builder(ChatActivity.this)
                                             .setTitle(tr("مسدود کردن کاربر"))
                                             .setMessage(tr("آیا می‌خواهید این کاربر را مسدود کنید؟"))
                                             .setNegativeButton(tr("لغو"), null)
-                                            .setPositiveButton(tr("مسدود کردن"), (d, w) ->
-                                                    blockCurrentUser())
+                                            .setPositiveButton(tr("مرحله اول"), (d, w) -> {
+                                                // مرحله دوم: مسدودسازی فقط پس از تأیید نهایی انجام می‌شود.
+                                                AlertDialog finalBlockConfirmation =
+                                                        new AlertDialog.Builder(ChatActivity.this)
+                                                                .setTitle(tr("تأیید نهایی مسدودسازی"))
+                                                                .setMessage(tr("با تأیید نهایی، این کاربر مسدود می‌شود و دیگر نمی‌توانید برای او پیام بفرستید."))
+                                                                .setNegativeButton(tr("لغو"), null)
+                                                                .setPositiveButton(tr("مسدود کردن"), (d2, w2) ->
+                                                                        blockCurrentUser())
+                                                                .create();
+                                                finalBlockConfirmation.show();
+                                                styleChatDialog(finalBlockConfirmation);
+                                            })
                                             .create();
-                            blockConfirmation.show();
-                            styleChatDialog(blockConfirmation);
+                            firstBlockConfirmation.show();
+                            styleChatDialog(firstBlockConfirmation);
                         }
                     }
             );
@@ -7037,4 +7212,4 @@ private void blockCurrentUser() {
 
 }
     
-        }
+    }
