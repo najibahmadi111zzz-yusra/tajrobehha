@@ -1035,7 +1035,7 @@ public class ExperienceListActivity extends Activity {
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER);
-        tile.setPadding(dp(5), dp(4), dp(5), dp(4));
+        tile.setPadding(dp(4), dp(4), dp(4), dp(4));
 
         FrameLayout circleFrame = new FrameLayout(this);
         GradientDrawable ring = new GradientDrawable();
@@ -1077,8 +1077,8 @@ public class ExperienceListActivity extends Activity {
         tile.addView(label);
 
         tile.setOnClickListener(v -> showCreateStoryDialog());
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(82), dp(94));
-        lp.setMargins(0, 0, dp(5), 0);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(80), dp(94));
+        lp.setMargins(dp(3), 0, dp(3), 0);
         storiesLayout.addView(tile, lp);
     }
 
@@ -1089,7 +1089,7 @@ public class ExperienceListActivity extends Activity {
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER);
-        tile.setPadding(dp(5), dp(4), dp(5), dp(4));
+        tile.setPadding(dp(4), dp(4), dp(4), dp(4));
 
         FrameLayout avatarFrame = new FrameLayout(this);
         GradientDrawable ring = new GradientDrawable();
@@ -1117,7 +1117,7 @@ public class ExperienceListActivity extends Activity {
         FrameLayout.LayoutParams dotParams = new FrameLayout.LayoutParams(dp(13), dp(13), Gravity.BOTTOM | Gravity.RIGHT);
         dotParams.setMargins(0, 0, dp(1), dp(1));
         avatarFrame.addView(onlineDot, dotParams);
-        tile.addView(avatarFrame, new LinearLayout.LayoutParams(dp(70), dp(70)));
+        tile.addView(avatarFrame, new LinearLayout.LayoutParams(dp(68), dp(68)));
 
         TextView authorName = new TextView(this);
         authorName.setText(text("کاربر"));
@@ -1128,8 +1128,8 @@ public class ExperienceListActivity extends Activity {
         authorName.setMaxWidth(dp(76));
         tile.addView(authorName);
         tile.setOnClickListener(v -> showStory(story));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(82), dp(94));
-        lp.setMargins(0, 0, dp(5), 0);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(80), dp(94));
+        lp.setMargins(dp(3), 0, dp(3), 0);
         storiesLayout.addView(tile, lp);
         if (uid != null && !uid.isEmpty()) {
             db.collection("users").document(uid).get().addOnSuccessListener(user -> {
@@ -1463,7 +1463,12 @@ public class ExperienceListActivity extends Activity {
         // اگر ویدیو قبلاً کامل دیده/دریافت شده باشد، بدون اینترنت و بدون لینک موقت پخش می‌شود.
         File offlineVideo = getCachedPrivateVideo(videoPath);
         if (offlineVideo != null) {
-            videoView.setVideoPath(offlineVideo.getAbsolutePath());
+            videoView.post(() -> {
+                if (!isFinishing() && videoView.getParent() != null) {
+                    videoView.setVideoPath(offlineVideo.getAbsolutePath());
+                    videoView.requestFocus();
+                }
+            });
             return;
         }
 
@@ -1515,7 +1520,13 @@ public class ExperienceListActivity extends Activity {
                     }
                     runOnUiThread(() -> {
                         if (!isFinishing() && videoView.getParent() != null) {
-                            videoView.setVideoURI(Uri.parse(signedUrl));
+                            // URI را پس از اتصال View به پنجره تنظیم می‌کنیم تا Surface آماده باشد.
+                            videoView.post(() -> {
+                                if (!isFinishing() && videoView.getParent() != null) {
+                                    videoView.setVideoURI(Uri.parse(signedUrl));
+                                    videoView.requestFocus();
+                                }
+                            });
                         }
                     });
                     // پس از اولین بازشدن، نسخه کامل ویدیو در حافظه خصوصی برنامه ذخیره می‌شود.
@@ -1609,12 +1620,7 @@ public class ExperienceListActivity extends Activity {
             VideoView video = new VideoView(this);
             viewer.addView(video, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(390)));
-            // ویدیوهای جدید از باکت خصوصی با لینک موقت پخش می‌شوند؛ URL قدیمی حفظ شده است.
-            if (!videoPath.isEmpty()) {
-                loadPrivateExperienceVideo(videoPath, video);
-            } else {
-                video.setVideoURI(Uri.parse(mediaUrl)); // سازگاری با داستان‌های قدیمی
-            }
+            // کنترل‌ها پیش از درخواست لینک ثبت می‌شوند تا رویداد آماده‌شدن از دست نرود.
             MediaController controls = new MediaController(this);
             controls.setAnchorView(video);
             video.setMediaController(controls);
@@ -1623,10 +1629,42 @@ public class ExperienceListActivity extends Activity {
                 video.start();
             });
             video.setOnErrorListener((mp, what, extra) -> {
+                Log.e("iNtajStoryVideo", "Story video playback error: " + what + "/" + extra);
                 Toast.makeText(this, text("پخش ویدیو ممکن نشد."), Toast.LENGTH_SHORT).show();
                 return true;
             });
+            // ویدیوهای جدید از باکت خصوصی با لینک موقت پخش می‌شوند؛ URL قدیمی حفظ شده است.
+            if (!videoPath.isEmpty()) {
+                loadPrivateExperienceVideo(videoPath, video);
+            } else {
+                video.setVideoURI(Uri.parse(mediaUrl)); // سازگاری با داستان‌های قدیمی
+            }
         }
+
+        // واکنش‌های سریع داستان: فقط ظاهر کوچک‌تر و بدون حاشیه؛ عملکرد قبلی حفظ شده است.
+        LinearLayout storyReactionRow = new LinearLayout(this);
+        storyReactionRow.setOrientation(LinearLayout.HORIZONTAL);
+        storyReactionRow.setGravity(Gravity.CENTER);
+        storyReactionRow.setPadding(0, dp(4), 0, 0);
+        String[] storyReactionTypes = {"heart", "like", "sad"};
+        String[] storyReactionEmojis = {"❤️", "👍", "😥"};
+        for (int i = 0; i < storyReactionTypes.length; i++) {
+            final String reactionType = storyReactionTypes[i];
+            TextView reaction = new TextView(this);
+            reaction.setText(storyReactionEmojis[i]);
+            reaction.setTextSize(20);
+            reaction.setGravity(Gravity.CENTER);
+            reaction.setContentDescription(
+                    reactionType.equals("heart") ? text("قلب") :
+                    reactionType.equals("like") ? text("لایک") : text("همدردی"));
+            reaction.setBackgroundColor(Color.TRANSPARENT);
+            LinearLayout.LayoutParams reactionParams =
+                    new LinearLayout.LayoutParams(dp(40), dp(38));
+            reactionParams.setMargins(dp(4), 0, dp(4), 0);
+            storyReactionRow.addView(reaction, reactionParams);
+            reaction.setOnClickListener(v -> sendStoryReaction(story, reactionType));
+        }
+        viewer.addView(storyReactionRow);
 
         TextView caption = new TextView(this);
         caption.setText(body.isEmpty() ? "" : body);
@@ -1655,6 +1693,28 @@ public class ExperienceListActivity extends Activity {
                 dialog.setTitle(ownerName + " · " + text("داستان"));
             });
         }
+    }
+
+    private void sendStoryReaction(DocumentSnapshot story, String reactionType) {
+        FirebaseUser current = auth.getCurrentUser();
+        if (current == null) {
+            Toast.makeText(this, text("برای واکنش دادن ابتدا وارد حساب شوید."), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (story == null || story.getId() == null || story.getId().trim().isEmpty()) return;
+        Map<String, Object> reactionData = new HashMap<>();
+        reactionData.put("userId", current.getUid());
+        reactionData.put("type", reactionType);
+        reactionData.put("createdAt", FieldValue.serverTimestamp());
+        story.getReference().collection("reactions").document(current.getUid())
+                .set(reactionData)
+                .addOnSuccessListener(unused -> Toast.makeText(this,
+                        text(reactionType.equals("heart") ? "قلب فرستاده شد ❤️" :
+                                reactionType.equals("like") ? "لایک فرستاده شد 👍" : "همدردی فرستاده شد 😥"),
+                        Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(error -> Toast.makeText(this,
+                        text("ارسال واکنش انجام نشد؛ دسترسی داستان را بررسی کنید."),
+                        Toast.LENGTH_LONG).show());
     }
 
     private void editStory(DocumentSnapshot story, String oldText) {
@@ -3008,12 +3068,14 @@ public class ExperienceListActivity extends Activity {
             videoFrame.setBackground(videoFrameBackground);
             // VideoView uses a separate Surface; clipping its parent outline can hide the video
             // image on some Android devices while audio continues. Keep the frame unclipped.
+            // قاب ویدیو با اندازه متوسط و نسبت نزدیک به 4:5؛ بدون بیرون‌زدگی از کارت.
             LinearLayout.LayoutParams videoFrameParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(330));
-            videoFrameParams.setMargins(-dp(12), dp(8), -dp(12), dp(12));
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(420));
+            videoFrameParams.setMargins(dp(4), dp(8), dp(4), dp(12));
 
             VideoView experienceVideo = new VideoView(this);
-            experienceVideo.setBackgroundColor(Color.BLACK);
+            // از پوشاندن Surface ویدیو با پس‌زمینه خود VideoView جلوگیری می‌کنیم.
+            experienceVideo.setBackgroundColor(Color.TRANSPARENT);
             videoFrame.addView(experienceVideo, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -3143,15 +3205,11 @@ public class ExperienceListActivity extends Activity {
                 prepared[0] = true;
                 completed[0] = false;
                 experienceVideo.setTag(mp);
-                // نسبت قاب با نسبت واقعی فایل هماهنگ می‌شود تا تصویر کامل و بدون برش دیده شود.
-                int sourceW = mp.getVideoWidth();
-                int sourceH = mp.getVideoHeight();
-                if (sourceW > 0 && sourceH > 0) {
-                    int availableW = getResources().getDisplayMetrics().widthPixels - dp(4);
-                    int targetH = (int) (availableW * (sourceH / (float) sourceW));
-                    targetH = Math.max(dp(220), Math.min(dp(520), targetH));
-                    ViewGroup.LayoutParams frameLp = videoFrame.getLayoutParams();
-                    if (frameLp != null) { frameLp.height = targetH; videoFrame.setLayoutParams(frameLp); }
+                // حفظ نسبت تصویر اصلی داخل قاب 4:5؛ از کشیده‌شدن یا تغییر ناگهانی اندازه جلوگیری می‌شود.
+                try { mp.setVideoScalingMode(android.media.MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT); }
+                catch (Exception ignored) { }
+                if (mp.getVideoWidth() <= 0 || mp.getVideoHeight() <= 0) {
+                    Log.e("iNtajVideo", "Prepared media has no decoded video dimensions: " + videoKey);
                 }
                 videoSeek.setProgress(0);
                 videoTime.setText("00:00 / " + formatVideoTime(experienceVideo.getDuration()));
@@ -5118,4 +5176,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-        }
+    }
