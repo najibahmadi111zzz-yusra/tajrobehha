@@ -1392,9 +1392,23 @@ public class BallGameActivity extends Activity {
         private void updateGuardianDrones(float dt) {
             for (GuardianDrone drone : guardianDrones) {
                 drone.phase += dt * drone.speed;
-                drone.currentX = drone.baseX + (float) Math.sin(drone.phase) * tile() * 1.25f;
-                drone.currentY = drone.baseY + (float) Math.cos(drone.phase * 1.35f) * tile() * 0.62f;
-                if (drone.hitCooldown > 0) drone.hitCooldown = Math.max(0, drone.hitCooldown - dt);
+
+                // مسیر بیضیِ گسترده‌تر؛ پهپاد در فضای اطراف مانع گشت‌زنی می‌کند.
+                drone.currentX = drone.baseX
+                        + (float) Math.sin(drone.phase) * tile() * 1.85f;
+                drone.currentY = drone.baseY
+                        + (float) Math.sin(drone.phase * 1.42f + 0.7f) * tile() * 0.92f;
+
+                // هدف‌گیری فقط نمایشی است؛ پرتو به توپ آسیب تازه‌ای وارد نمی‌کند.
+                float dx = ballX - drone.currentX;
+                float dy = ballY - drone.currentY;
+                drone.laserAngle = (float) Math.atan2(dy, dx);
+                drone.laserPhase += dt;
+                float cycle = drone.laserPhase % 2.6f;
+                drone.laserActive = cycle > 1.35f && cycle < 1.88f;
+                if (drone.hitCooldown > 0) {
+                    drone.hitCooldown = Math.max(0, drone.hitCooldown - dt);
+                }
             }
         }
 
@@ -2561,6 +2575,9 @@ public class BallGameActivity extends Activity {
                     -cameraY + sy
             );
 
+            // سقف مکانیکی تزئینی در تمام مرحله‌ها؛ نسبت به دوربین ثابت می‌ماند.
+            drawMechanicalCeiling(canvas);
+
             for (RectF platform :
                     platforms) {
 
@@ -2637,6 +2654,148 @@ public class BallGameActivity extends Activity {
             );
 
             canvas.restore();
+        }
+
+
+        /**
+         * سقف مکانیکی پیشرفته برای تمام مرحله‌ها.
+         * این بخش فقط نمایشی است و با مسیر حرکت توپ یا برخوردها تداخل ندارد.
+         */
+        private void drawMechanicalCeiling(Canvas canvas) {
+            if (getWidth() <= 0 || getHeight() <= 0) return;
+
+            float t = tile();
+            float left = cameraX - t * 1.5f;
+            float right = cameraX + getWidth() + t * 1.5f;
+            float top = cameraY + getHeight() * 0.105f;
+            float height = Math.max(t * 1.45f, getHeight() * 0.105f);
+            float bottom = top + height;
+
+            // بدنه اصلی با گرادیان فلزی تیره و لبه‌های چندلایه
+            p.setShader(new LinearGradient(
+                    0, top, 0, bottom,
+                    new int[]{0xFF182A3A, 0xFF344B5C, 0xFF172536, 0xFF101B2A},
+                    new float[]{0f, 0.28f, 0.72f, 1f},
+                    Shader.TileMode.CLAMP));
+            canvas.drawRect(left, top, right, bottom, p);
+            p.setShader(null);
+
+            // لبه فلزی و نوار نورانی ممتد
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(Math.max(2f, t * 0.075f));
+            p.setColor(0xFF71899A);
+            canvas.drawLine(left, top + 2, right, top + 2, p);
+            p.setStrokeWidth(Math.max(2f, t * 0.045f));
+            p.setColor(0xFF0B111C);
+            canvas.drawLine(left, bottom, right, bottom, p);
+            p.setStyle(Paint.Style.FILL);
+
+            p.setShader(new LinearGradient(
+                    0, top + height * 0.18f, 0, top + height * 0.30f,
+                    0xFF55E9FF, 0x0055E9FF, Shader.TileMode.CLAMP));
+            canvas.drawRect(left, top + height * 0.18f, right, top + height * 0.30f, p);
+            p.setShader(null);
+
+            // پنل‌های تکرارشونده، پیچ‌ها و شیارهای تهویه؛ الگو با دوربین حرکت می‌کند.
+            int firstPanel = (int) Math.floor(left / (t * 3.2f));
+            int lastPanel = (int) Math.ceil(right / (t * 3.2f));
+            for (int i = firstPanel; i <= lastPanel; i++) {
+                float x = i * t * 3.2f;
+                RectF panel = new RectF(x + t * 0.12f, top + height * 0.36f,
+                        x + t * 3.05f, bottom - height * 0.12f);
+                p.setColor((i & 1) == 0 ? 0xFF263C4D : 0xFF30485A);
+                canvas.drawRoundRect(panel, t * 0.12f, t * 0.12f, p);
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(Math.max(1f, t * 0.025f));
+                p.setColor(0xFF607889);
+                canvas.drawRoundRect(panel, t * 0.12f, t * 0.12f, p);
+                p.setStyle(Paint.Style.FILL);
+
+                // شیارهای تهویه در هر پنل
+                for (int vent = 0; vent < 5; vent++) {
+                    float vx = x + t * (0.72f + vent * 0.25f);
+                    RectF slot = new RectF(vx, top + height * 0.49f,
+                            vx + t * 0.11f, top + height * 0.77f);
+                    p.setColor(0xFF101B27);
+                    canvas.drawRoundRect(slot, t * 0.035f, t * 0.035f, p);
+                    p.setColor(0xFF71899A);
+                    canvas.drawRect(slot.left + 1, slot.top + 1,
+                            slot.right - 1, slot.top + 3, p);
+                }
+
+                // پیچ‌های گوشه پنل
+                float screwY = top + height * 0.43f;
+                p.setColor(0xFF9BAFBA);
+                canvas.drawCircle(x + t * 0.27f, screwY, t * 0.045f, p);
+                canvas.drawCircle(x + t * 2.88f, screwY, t * 0.045f, p);
+                p.setColor(0xFF263746);
+                canvas.drawCircle(x + t * 0.27f, screwY, t * 0.018f, p);
+                canvas.drawCircle(x + t * 2.88f, screwY, t * 0.018f, p);
+
+                // چراغ‌های وضعیت چشمک‌زن با فازهای متفاوت
+                float pulse = 0.55f + 0.45f * (float) Math.sin(time * 3.2f + i * 0.9f);
+                p.setColor(Color.argb((int) (100 + 155 * pulse), 55, 220, 255));
+                canvas.drawCircle(x + t * 1.48f, top + height * 0.40f, t * 0.075f, p);
+                p.setColor(0x5538DFFF);
+                canvas.drawCircle(x + t * 1.48f, top + height * 0.40f, t * 0.16f, p);
+            }
+
+            // لوله‌های تأسیسات و کابل‌های سقفی
+            p.setColor(0xFF8297A5);
+            p.setStrokeWidth(t * 0.10f);
+            p.setStrokeCap(Paint.Cap.ROUND);
+            canvas.drawLine(left, top + height * 0.88f, right, top + height * 0.88f, p);
+            p.setColor(0xFF0D1824);
+            p.setStrokeWidth(t * 0.035f);
+            canvas.drawLine(left, top + height * 0.94f, right, top + height * 0.94f, p);
+            p.setStrokeCap(Paint.Cap.BUTT);
+
+            // توربین‌های کوچک سقفی با پره‌های چرخان
+            int firstFan = (int) Math.floor(left / (t * 6.4f));
+            int lastFan = (int) Math.ceil(right / (t * 6.4f));
+            for (int i = firstFan; i <= lastFan; i++) {
+                float cx = i * t * 6.4f + t * 3.2f;
+                float cy = top + height * 0.64f;
+                float r = t * 0.31f;
+                p.setColor(0xFF101B28);
+                canvas.drawCircle(cx, cy, r * 1.22f, p);
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(t * 0.055f);
+                p.setColor(0xFF8AA1AF);
+                canvas.drawCircle(cx, cy, r, p);
+                p.setStyle(Paint.Style.FILL);
+                canvas.save();
+                canvas.rotate(time * 95f + i * 23f, cx, cy);
+                for (int blade = 0; blade < 4; blade++) {
+                    canvas.save();
+                    canvas.rotate(blade * 90f, cx, cy);
+                    Path fanBlade = new Path();
+                    fanBlade.moveTo(cx, cy - r * 0.12f);
+                    fanBlade.quadTo(cx + r * 0.72f, cy - r * 0.78f,
+                            cx + r * 0.22f, cy - r * 0.90f);
+                    fanBlade.quadTo(cx + r * 0.06f, cy - r * 0.45f, cx, cy - r * 0.12f);
+                    fanBlade.close();
+                    p.setColor(0xFF8BA4B4);
+                    canvas.drawPath(fanBlade, p);
+                    canvas.restore();
+                }
+                canvas.restore();
+                p.setColor(0xFF42DDF4);
+                canvas.drawCircle(cx, cy, r * 0.16f, p);
+            }
+
+            // پنل هشدار زرد-نارنجی در امتداد سقف
+            float warningY = bottom - height * 0.08f;
+            p.setColor(0xFFFFB52E);
+            for (float x = left + t * 0.2f; x < right; x += t * 0.42f) {
+                Path stripe = new Path();
+                stripe.moveTo(x, warningY);
+                stripe.lineTo(x + t * 0.18f, warningY);
+                stripe.lineTo(x + t * 0.30f, warningY + height * 0.055f);
+                stripe.lineTo(x + t * 0.12f, warningY + height * 0.055f);
+                stripe.close();
+                canvas.drawPath(stripe, p);
+            }
         }
 
         private void drawPlatform(
@@ -3129,35 +3288,96 @@ public class BallGameActivity extends Activity {
             float y = drone.currentY;
             float r = drone.radius;
             float rotor = (float) Math.sin(time * 24f) * r * 0.18f;
+
             canvas.save();
-            // هاله نور آبی و بدنه فلزی کوچک پهپاد
+
+            // هاله‌ی انرژی و حلقه‌ی اسکنر زیر پهپاد
+            glow.setStyle(Paint.Style.STROKE);
+            glow.setStrokeWidth(Math.max(2f, r * 0.10f));
+            glow.setColor(0x5538DFFF);
+            canvas.drawOval(x - r * 1.9f, y + r * 0.62f,
+                    x + r * 1.9f, y + r * 1.08f, glow);
             glow.setStyle(Paint.Style.FILL);
             glow.setColor(0x4438DFFF);
-            canvas.drawCircle(x, y, r * 2.05f, glow);
-            p.setShader(new LinearGradient(x - r, y - r, x + r, y + r,
-                    0xFFEAFBFF, 0xFF2788C7, Shader.TileMode.CLAMP));
-            canvas.drawRoundRect(x - r * 1.25f, y - r * 0.48f,
-                    x + r * 1.25f, y + r * 0.48f, r * 0.42f, r * 0.42f, p);
+            canvas.drawCircle(x, y, r * 2.15f, glow);
+
+            // بازوها و پروانه‌های محافظت‌شده
             p.setShader(null);
-            p.setColor(0xFF163C61);
-            canvas.drawCircle(x, y, r * 0.28f, p);
-            p.setColor(0xFF9CF5FF);
-            canvas.drawCircle(x + r * 0.12f, y - r * 0.05f, r * 0.10f, p);
-            p.setStrokeWidth(Math.max(2f, r * 0.13f));
-            p.setColor(0xFFB9EFFF);
+            p.setStrokeCap(Paint.Cap.ROUND);
+            p.setStrokeWidth(Math.max(2f, r * 0.16f));
+            p.setColor(0xFF9ED7F0);
             for (int side = -1; side <= 1; side += 2) {
-                float armX = x + side * r * 0.82f;
-                canvas.drawLine(x + side * r * 0.55f, y, armX, y - r * 0.68f, p);
-                canvas.drawOval(armX - r * 0.58f, y - r * 0.82f - rotor,
-                        armX + r * 0.58f, y - r * 0.60f + rotor, p);
-                canvas.drawCircle(armX, y - r * 0.70f, r * 0.12f, p);
+                float armX = x + side * r * 0.88f;
+                canvas.drawLine(x + side * r * 0.48f, y - r * 0.05f,
+                        armX, y - r * 0.72f, p);
+                p.setColor(0xAA9DEBFF);
+                canvas.drawOval(armX - r * 0.67f, y - r * 0.91f - rotor,
+                        armX + r * 0.67f, y - r * 0.61f + rotor, p);
+                p.setColor(0xFFBCEEFF);
+                canvas.drawCircle(armX, y - r * 0.76f, r * 0.14f, p);
+                p.setColor(0xFF9ED7F0);
             }
-            // چراغ قرمز/سبز وضعیت پرواز
+
+            // بدنه‌ی زرهی چندلایه
+            p.setShader(new LinearGradient(x - r, y - r * 0.55f,
+                    x + r, y + r * 0.55f,
+                    new int[]{0xFFF3FCFF, 0xFF62B8E5, 0xFF174A78},
+                    null, Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(x - r * 1.35f, y - r * 0.52f,
+                    x + r * 1.35f, y + r * 0.52f,
+                    r * 0.42f, r * 0.42f, p);
+            p.setShader(null);
+
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(Math.max(1.5f, r * 0.07f));
+            p.setColor(0xFFBDEBFF);
+            canvas.drawRoundRect(x - r * 1.18f, y - r * 0.39f,
+                    x + r * 1.18f, y + r * 0.39f,
+                    r * 0.30f, r * 0.30f, p);
+            p.setStyle(Paint.Style.FILL);
+
+            // هسته‌ی مرکزی و لنز لیزر
+            p.setColor(0xFF12385C);
+            canvas.drawCircle(x, y, r * 0.34f, p);
+            p.setColor(0xFF9CF5FF);
+            canvas.drawCircle(x, y, r * 0.19f, p);
+            p.setColor(0xFFFFFFFF);
+            canvas.drawCircle(x - r * 0.055f, y - r * 0.07f, r * 0.065f, p);
+
+            // چراغ‌های وضعیت دو طرف
             p.setColor(0xFFFF5268);
-            canvas.drawCircle(x - r * 1.08f, y + r * 0.18f, r * 0.10f, p);
+            canvas.drawCircle(x - r * 1.12f, y + r * 0.18f, r * 0.12f, p);
             p.setColor(0xFF63FFB0);
-            canvas.drawCircle(x + r * 1.08f, y + r * 0.18f, r * 0.10f, p);
+            canvas.drawCircle(x + r * 1.12f, y + r * 0.18f, r * 0.12f, p);
+
+            // پرتو اسکن کم‌نور؛ هنگام شلیک نمایشی، پرتو روشن‌تر و درخشان می‌شود.
+            float beamLength = tile() * 5.2f;
+            float endX = x + (float) Math.cos(drone.laserAngle) * beamLength;
+            float endY = y + (float) Math.sin(drone.laserAngle) * beamLength;
+            p.setStrokeCap(Paint.Cap.ROUND);
+            if (drone.laserActive) {
+                glow.setStyle(Paint.Style.STROKE);
+                glow.setStrokeWidth(Math.max(7f, r * 0.42f));
+                glow.setColor(0x66FF315A);
+                canvas.drawLine(x + r * 0.22f, y, endX, endY, glow);
+                p.setStrokeWidth(Math.max(2.5f, r * 0.13f));
+                p.setColor(0xFFFF4568);
+                canvas.drawLine(x + r * 0.22f, y, endX, endY, p);
+                p.setColor(0xFFFFDCE4);
+                canvas.drawCircle(x + r * 0.22f, y, r * 0.16f, p);
+            } else {
+                p.setStrokeWidth(Math.max(1.2f, r * 0.055f));
+                p.setColor(0x6679E9FF);
+                canvas.drawLine(x + r * 0.22f, y, endX * 0.72f + x * 0.28f,
+                        endY * 0.72f + y * 0.28f, p);
+            }
+
             canvas.restore();
+            p.setShader(null);
+            p.setStyle(Paint.Style.FILL);
+            p.setAlpha(255);
+            glow.setStyle(Paint.Style.FILL);
+            glow.setAlpha(255);
         }
 
         private void drawMovingObstacle(
@@ -4248,6 +4468,8 @@ public class BallGameActivity extends Activity {
         private class GuardianDrone {
             float baseX, baseY, currentX, currentY, radius, speed, phase;
             float hitCooldown;
+            float laserAngle, laserPhase;
+            boolean laserActive;
 
             GuardianDrone(float x, float y, float radius, float speed, float phase) {
                 this.baseX = x;
@@ -4258,6 +4480,9 @@ public class BallGameActivity extends Activity {
                 this.speed = speed;
                 this.phase = phase;
                 this.hitCooldown = 0;
+                this.laserAngle = 0f;
+                this.laserPhase = phase;
+                this.laserActive = false;
             }
 
             RectF getRect() {
@@ -4292,4 +4517,4 @@ public class BallGameActivity extends Activity {
             }
         }
     }
-            }
+                             }
