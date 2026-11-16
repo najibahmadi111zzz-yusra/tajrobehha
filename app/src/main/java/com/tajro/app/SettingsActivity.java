@@ -1641,8 +1641,78 @@ public class SettingsActivity extends Activity {
         );
 
         input.setLayoutParams(params);
+        attachPasswordEye(input);
 
         return input;
+    }
+
+
+    // آیکن چشم برای نمایش/مخفی‌کردن رمز
+    private static class PasswordEyeDrawable extends android.graphics.drawable.Drawable {
+        private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final boolean visible;
+
+        PasswordEyeDrawable(boolean visible) {
+            this.visible = visible;
+            paint.setColor(android.graphics.Color.GRAY);
+            paint.setStyle(android.graphics.Paint.Style.STROKE);
+            paint.setStrokeWidth(2.0f);
+            paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+            paint.setStrokeJoin(android.graphics.Paint.Join.ROUND);
+        }
+
+        @Override
+        public void draw(android.graphics.Canvas canvas) {
+            android.graphics.Rect b = getBounds();
+            float w = b.width(), h = b.height();
+            float cx = b.left + w / 2f, cy = b.top + h / 2f;
+            android.graphics.Path eye = new android.graphics.Path();
+            eye.moveTo(b.left + 2, cy);
+            eye.cubicTo(b.left + w * .28f, b.top + h * .18f, b.left + w * .72f, b.top + h * .18f, b.right - 2, cy);
+            eye.cubicTo(b.left + w * .72f, b.bottom - h * .18f, b.left + w * .28f, b.bottom - h * .18f, b.left + 2, cy);
+            canvas.drawPath(eye, paint);
+            paint.setStyle(android.graphics.Paint.Style.FILL);
+            canvas.drawCircle(cx, cy, w * .12f, paint);
+            paint.setStyle(android.graphics.Paint.Style.STROKE);
+            if (!visible) {
+                canvas.drawLine(b.left + 3, b.bottom - 3, b.right - 3, b.top + 3, paint);
+            }
+        }
+
+        @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); invalidateSelf(); }
+        @Override public void setColorFilter(android.graphics.ColorFilter colorFilter) { paint.setColorFilter(colorFilter); invalidateSelf(); }
+        @Override public int getOpacity() { return android.graphics.PixelFormat.TRANSLUCENT; }
+        @Override public int getIntrinsicWidth() { return 24; }
+        @Override public int getIntrinsicHeight() { return 24; }
+    }
+
+    private void attachPasswordEye(EditText field) {
+        final boolean[] visible = {false};
+        final int hiddenInputType = field.getInputType();
+        field.setCompoundDrawablePadding(dp(8));
+        field.setCompoundDrawablesWithIntrinsicBounds(null, null, new PasswordEyeDrawable(false), null);
+        field.setOnTouchListener((view, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+                android.graphics.drawable.Drawable eye = field.getCompoundDrawables()[2];
+                if (eye != null && event.getX() >= field.getWidth() - field.getPaddingRight() - eye.getBounds().width() - dp(8)) {
+                    int cursor = field.getSelectionStart();
+                    visible[0] = !visible[0];
+                    if (visible[0]) {
+                        field.setTransformationMethod(null);
+                    } else {
+                        field.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
+                    }
+                    field.setInputType(hiddenInputType);
+                    if (visible[0]) field.setTransformationMethod(null);
+                    else field.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
+                    field.setSelection(Math.max(0, Math.min(cursor, field.length())));
+                    field.setCompoundDrawablesWithIntrinsicBounds(null, null, new PasswordEyeDrawable(visible[0]), null);
+                    field.performClick();
+                    return true;
+                }
+            }
+            return false;
+        });
     }
 
     // ==================================
