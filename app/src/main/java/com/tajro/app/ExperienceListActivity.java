@@ -63,6 +63,7 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.Source;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.net.URL;
 import java.util.Calendar;
@@ -1609,17 +1610,24 @@ public class ExperienceListActivity extends Activity {
         viewer.setPadding(dp(12), dp(12), dp(12), dp(12));
         viewer.setBackgroundColor(Color.rgb(18, 24, 32));
 
+        boolean hasMedia = ("image".equals(mediaType) && !mediaUrl.isEmpty())
+                || ("video".equals(mediaType) && (!videoPath.isEmpty() || !mediaUrl.isEmpty()));
+        FrameLayout mediaFrame = new FrameLayout(this);
+        LinearLayout.LayoutParams mediaFrameParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(390));
+        mediaFrameParams.bottomMargin = dp(6);
+
         if ("image".equals(mediaType) && !mediaUrl.isEmpty()) {
             ImageView image = new ImageView(this);
             image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            viewer.addView(image, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(390)));
+            mediaFrame.addView(image, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             loadExperienceImage(mediaUrl, image);
         } else if ("video".equals(mediaType)
                 && (!videoPath.isEmpty() || !mediaUrl.isEmpty())) {
             VideoView video = new VideoView(this);
-            viewer.addView(video, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(390)));
+            mediaFrame.addView(video, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             // کنترل‌ها پیش از درخواست لینک ثبت می‌شوند تا رویداد آماده‌شدن از دست نرود.
             MediaController controls = new MediaController(this);
             controls.setAnchorView(video);
@@ -1641,30 +1649,65 @@ public class ExperienceListActivity extends Activity {
             }
         }
 
-        // واکنش‌های سریع داستان: فقط ظاهر کوچک‌تر و بدون حاشیه؛ عملکرد قبلی حفظ شده است.
-        LinearLayout storyReactionRow = new LinearLayout(this);
-        storyReactionRow.setOrientation(LinearLayout.HORIZONTAL);
-        storyReactionRow.setGravity(Gravity.CENTER);
-        storyReactionRow.setPadding(0, dp(4), 0, 0);
-        String[] storyReactionTypes = {"heart", "like", "sad"};
-        String[] storyReactionEmojis = {"❤️", "👍", "😥"};
-        for (int i = 0; i < storyReactionTypes.length; i++) {
-            final String reactionType = storyReactionTypes[i];
-            TextView reaction = new TextView(this);
-            reaction.setText(storyReactionEmojis[i]);
-            reaction.setTextSize(20);
-            reaction.setGravity(Gravity.CENTER);
-            reaction.setContentDescription(
-                    reactionType.equals("heart") ? text("قلب") :
-                    reactionType.equals("like") ? text("لایک") : text("همدردی"));
-            reaction.setBackgroundColor(Color.TRANSPARENT);
-            LinearLayout.LayoutParams reactionParams =
-                    new LinearLayout.LayoutParams(dp(40), dp(38));
-            reactionParams.setMargins(dp(4), 0, dp(4), 0);
-            storyReactionRow.addView(reaction, reactionParams);
-            reaction.setOnClickListener(v -> sendStoryReaction(story, reactionType));
+        // نوار واکنش‌ها در سمت راست رسانه؛ عددها زنده از Firestore به‌روز می‌شوند.
+        LinearLayout reactionRail = new LinearLayout(this);
+        reactionRail.setOrientation(LinearLayout.VERTICAL);
+        reactionRail.setGravity(Gravity.CENTER);
+        reactionRail.setPadding(dp(5), dp(8), dp(5), dp(8));
+        GradientDrawable railBackground = new GradientDrawable();
+        railBackground.setColor(0x990B1720);
+        railBackground.setCornerRadius(dp(22));
+        reactionRail.setBackground(railBackground);
+        FrameLayout.LayoutParams railParams = new FrameLayout.LayoutParams(
+                dp(58), ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        railParams.setMargins(0, 0, dp(7), 0);
+
+        String[] reactionTypes = {"heart", "like", "sad"};
+        String[] reactionEmojis = {"❤️", "👍", "😥"};
+        Map<String, TextView> reactionCountViews = new HashMap<>();
+        for (int i = 0; i < reactionTypes.length; i++) {
+            final String type = reactionTypes[i];
+            LinearLayout reactionItem = new LinearLayout(this);
+            reactionItem.setOrientation(LinearLayout.VERTICAL);
+            reactionItem.setGravity(Gravity.CENTER);
+            reactionItem.setPadding(0, dp(4), 0, dp(4));
+
+            TextView emoji = new TextView(this);
+            emoji.setText(reactionEmojis[i]);
+            emoji.setTextSize(19);
+            emoji.setGravity(Gravity.CENTER);
+            emoji.setContentDescription(text(type.equals("heart") ? "قلب" : type.equals("like") ? "لایک" : "همدردی"));
+            emoji.setOnClickListener(v -> sendStoryReaction(story, type));
+            reactionItem.addView(emoji, new LinearLayout.LayoutParams(dp(42), dp(29)));
+
+            TextView count = new TextView(this);
+            count.setText("0");
+            count.setTextColor(Color.WHITE);
+            count.setTextSize(11);
+            count.setGravity(Gravity.CENTER);
+            count.setOnClickListener(v -> showStoryReactionList(story.getReference(), type));
+            reactionCountViews.put(type, count);
+            reactionItem.addView(count, new LinearLayout.LayoutParams(dp(42), dp(19)));
+            reactionRail.addView(reactionItem);
         }
-        viewer.addView(storyReactionRow);
+
+        TextView totalReactions = new TextView(this);
+        totalReactions.setText("👥\n0");
+        totalReactions.setTextColor(Color.WHITE);
+        totalReactions.setTextSize(11);
+        totalReactions.setGravity(Gravity.CENTER);
+        totalReactions.setPadding(0, dp(5), 0, 0);
+        totalReactions.setOnClickListener(v -> showStoryReactionList(story.getReference(), null));
+        reactionRail.addView(totalReactions, new LinearLayout.LayoutParams(dp(46), dp(42)));
+        if (hasMedia) {
+            mediaFrame.addView(reactionRail, railParams);
+            viewer.addView(mediaFrame, mediaFrameParams);
+        } else {
+            // داستان متنی نیز شمارنده‌ها و فهرست واکنش‌ها را در دسترس دارد.
+            viewer.addView(reactionRail, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
 
         TextView caption = new TextView(this);
         caption.setText(body.isEmpty() ? "" : body);
@@ -1686,13 +1729,120 @@ public class ExperienceListActivity extends Activity {
 
         AlertDialog dialog = builder.create();
         dialog.show();
+        final ListenerRegistration[] reactionListener = {null};
+        reactionListener[0] = story.getReference().collection("reactions")
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null || snapshot == null) {
+                        Log.w("iNtajStoryReactions", "Could not load story reactions", error);
+                        return;
+                    }
+                    int hearts = 0, likes = 0, sad = 0;
+                    for (DocumentSnapshot reaction : snapshot.getDocuments()) {
+                        String type = reaction.getString("type");
+                        if ("heart".equals(type)) hearts++;
+                        else if ("like".equals(type)) likes++;
+                        else if ("sad".equals(type)) sad++;
+                    }
+                    if (dialog.isShowing()) {
+                        reactionCountViews.get("heart").setText(String.valueOf(hearts));
+                        reactionCountViews.get("like").setText(String.valueOf(likes));
+                        reactionCountViews.get("sad").setText(String.valueOf(sad));
+                        totalReactions.setText("👥\n" + snapshot.size());
+                    }
+                });
+        dialog.setOnDismissListener(d -> {
+            if (reactionListener[0] != null) reactionListener[0].remove();
+        });
+
         if (!storyOwner.isEmpty()) {
             db.collection("users").document(storyOwner).get().addOnSuccessListener(user -> {
                 String ownerName = firstNonEmpty(user.getString("name"),
                         user.getString("username"), user.getString("displayName"), text("کاربر"));
-                dialog.setTitle(ownerName + " · " + text("داستان"));
+                if (dialog.isShowing()) dialog.setTitle(ownerName + " · " + text("داستان"));
             });
         }
+    }
+
+    private void showStoryReactionList(DocumentReference storyRef, String typeFilter) {
+        if (storyRef == null) return;
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(14), dp(10), dp(14), dp(10));
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(root);
+        TextView loading = new TextView(this);
+        loading.setText(text("در حال دریافت واکنش‌ها…"));
+        loading.setTextSize(14);
+        loading.setPadding(dp(8), dp(12), dp(8), dp(12));
+        root.addView(loading);
+        AlertDialog listDialog = new AlertDialog.Builder(this)
+                .setTitle(text("واکنش‌های داستان"))
+                .setView(scroll)
+                .setPositiveButton(text("بستن"), null)
+                .create();
+        listDialog.show();
+
+        storyRef.collection("reactions").get().addOnSuccessListener(snapshot -> {
+            root.removeAllViews();
+            int shown = 0;
+            String[] types = {"heart", "like", "sad"};
+            String[] emojis = {"❤️", "👍", "😥"};
+            for (int i = 0; i < types.length; i++) {
+                final String type = types[i];
+                if (typeFilter != null && !typeFilter.equals(type)) continue;
+                List<DocumentSnapshot> matching = new ArrayList<>();
+                for (DocumentSnapshot item : snapshot.getDocuments()) {
+                    if (type.equals(item.getString("type"))) matching.add(item);
+                }
+                if (matching.isEmpty() && typeFilter != null) continue;
+
+                TextView heading = new TextView(this);
+                heading.setText(emojis[i] + "  " + (type.equals("heart") ? text("قلب‌ها") : type.equals("like") ? text("لایک‌ها") : text("همدردی‌ها")) + "  (" + matching.size() + ")");
+                heading.setTextSize(15);
+                heading.setTypeface(null, Typeface.BOLD);
+                heading.setTextColor(Color.rgb(18, 105, 111));
+                heading.setPadding(dp(6), dp(12), dp(6), dp(7));
+                root.addView(heading);
+
+                for (DocumentSnapshot reaction : matching) {
+                    shown++;
+                    String reactorId = firstNonEmpty(reaction.getString("userId"), reaction.getId());
+                    LinearLayout row = new LinearLayout(this);
+                    row.setOrientation(LinearLayout.HORIZONTAL);
+                    row.setGravity(Gravity.CENTER_VERTICAL);
+                    row.setPadding(dp(5), dp(7), dp(5), dp(7));
+                    TextView person = new TextView(this);
+                    person.setText(text("در حال دریافت نام کاربر…"));
+                    person.setTextSize(14);
+                    person.setTextColor(Color.DKGRAY);
+                    row.addView(person, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                    TextView mark = new TextView(this);
+                    mark.setText(emojis[i]);
+                    mark.setTextSize(19);
+                    row.addView(mark);
+                    root.addView(row);
+
+                    db.collection("users").document(reactorId).get().addOnSuccessListener(user -> {
+                        String name = firstNonEmpty(user.getString("name"), user.getString("displayName"),
+                                user.getString("username"), text("کاربر"));
+                        person.setText(name);
+                    }).addOnFailureListener(e -> person.setText(text("کاربر iNtaj")));
+                }
+            }
+            if (shown == 0) {
+                TextView empty = new TextView(this);
+                empty.setText(text("هنوز واکنشی ثبت نشده است."));
+                empty.setTextSize(14);
+                empty.setPadding(dp(8), dp(16), dp(8), dp(16));
+                root.addView(empty);
+            }
+        }).addOnFailureListener(error -> {
+            root.removeAllViews();
+            TextView failed = new TextView(this);
+            failed.setText(text("دریافت فهرست واکنش‌ها ناموفق بود: ") + error.getMessage());
+            failed.setTextSize(14);
+            root.addView(failed);
+        });
     }
 
     private void sendStoryReaction(DocumentSnapshot story, String reactionType) {
@@ -5176,4 +5326,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-    }
+            }
