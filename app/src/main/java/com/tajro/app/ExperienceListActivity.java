@@ -3006,7 +3006,8 @@ public class ExperienceListActivity extends Activity {
             videoFrameBackground.setColor(Color.BLACK);
             videoFrameBackground.setCornerRadius(dp(12));
             videoFrame.setBackground(videoFrameBackground);
-            videoFrame.setClipToOutline(true);
+            // VideoView uses a separate Surface; clipping its parent outline can hide the video
+            // image on some Android devices while audio continues. Keep the frame unclipped.
             LinearLayout.LayoutParams videoFrameParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(330));
             videoFrameParams.setMargins(-dp(12), dp(8), -dp(12), dp(12));
@@ -3067,6 +3068,10 @@ public class ExperienceListActivity extends Activity {
             final boolean[] completed = {false};
             final Runnable[] progressTask = new Runnable[1];
             Handler videoHandler = new Handler(Looper.getMainLooper());
+            final Runnable[] hideCenterControl = new Runnable[1];
+            hideCenterControl[0] = () -> {
+                if (experienceVideo.isPlaying()) centerPlay.setVisibility(View.GONE);
+            };
             progressTask[0] = () -> {
                 if (!prepared[0]) return;
                 int duration = experienceVideo.getDuration();
@@ -3092,11 +3097,27 @@ public class ExperienceListActivity extends Activity {
             });
 
             Runnable togglePlayback = () -> {
+                videoHandler.removeCallbacks(hideCenterControl[0]);
                 toggleFeedVideo(experienceVideo, centerPlay, videoKey);
-                if (experienceVideo.isPlaying()) videoHandler.post(progressTask[0]);
+                if (experienceVideo.isPlaying()) {
+                    videoHandler.post(progressTask[0]);
+                    videoHandler.postDelayed(hideCenterControl[0], 1400);
+                }
             };
             centerPlay.setOnClickListener(v -> togglePlayback.run());
-            experienceVideo.setOnClickListener(v -> togglePlayback.run());
+            // A tap on the playing picture reveals the pause control briefly; it does not
+            // pause the video by itself. The centered control performs pause/resume.
+            experienceVideo.setOnClickListener(v -> {
+                if (experienceVideo.isPlaying()) {
+                    videoHandler.removeCallbacks(hideCenterControl[0]);
+                    centerPlay.setText("Ⅱ");
+                    centerPlay.setVisibility(View.VISIBLE);
+                    videoHandler.postDelayed(hideCenterControl[0], 1800);
+                } else {
+                    centerPlay.setText("▶");
+                    centerPlay.setVisibility(View.VISIBLE);
+                }
+            });
             saveVideo.setOnClickListener(v -> new AlertDialog.Builder(ExperienceListActivity.this)
                     .setTitle(text("ذخیره ویدیو"))
                     .setMessage(text("آیا می‌خواهید این ویدیو در گوشی ذخیره شود؟"))
@@ -3141,6 +3162,8 @@ public class ExperienceListActivity extends Activity {
                     firstFeedVideoAutoStarted = true;
                     autoStartedExperienceVideos.add(videoKey);
                     startFeedVideo(experienceVideo, centerPlay, videoKey);
+                    videoHandler.removeCallbacks(hideCenterControl[0]);
+                    videoHandler.postDelayed(hideCenterControl[0], 1400);
                 } else {
                     centerPlay.setVisibility(View.VISIBLE);
                     centerPlay.setText("▶");
@@ -3148,6 +3171,7 @@ public class ExperienceListActivity extends Activity {
             });
             experienceVideo.setOnCompletionListener(mp -> {
                 completed[0] = true;
+                videoHandler.removeCallbacks(hideCenterControl[0]);
                 centerPlay.setVisibility(View.VISIBLE);
                 centerPlay.setText("▶");
                 videoSeek.setProgress(1000);
@@ -5094,4 +5118,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-    }
+        }
