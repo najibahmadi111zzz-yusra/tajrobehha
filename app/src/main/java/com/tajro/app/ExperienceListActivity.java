@@ -799,6 +799,21 @@ public class ExperienceListActivity extends Activity {
         feedLayout.setOrientation(LinearLayout.VERTICAL);
         layout.addView(feedLayout);
 
+        // هنگام عبور از ویدیوی جاری و رفتن به پست بعدی، پخش و صدا فوراً متوقف شود.
+        scrollView.getViewTreeObserver().addOnScrollChangedListener(() -> {
+            VideoView playingVideo = activeExperienceVideo;
+            if (playingVideo == null || !playingVideo.isPlaying()) return;
+
+            android.graphics.Rect visibleRect = new android.graphics.Rect();
+            boolean visible = playingVideo.getGlobalVisibleRect(visibleRect);
+            int videoHeight = playingVideo.getHeight();
+            int visibleHeight = visible ? visibleRect.height() : 0;
+            // با خارج‌شدن بخش عمده ویدیو از صفحه، دیگر اجازه ادامه صدا داده نمی‌شود.
+            if (!visible || videoHeight <= 0 || visibleHeight < videoHeight * 0.60f) {
+                stopActiveExperienceVideo();
+            }
+        });
+
         setContentView(pageRoot);
 
         // Pull-to-refresh: فقط وقتی فهرست در بالاترین نقطه است و کاربر رو به پایین می‌کشد.
@@ -3358,8 +3373,23 @@ public class ExperienceListActivity extends Activity {
                 // حفظ نسبت تصویر اصلی داخل قاب 4:5؛ از کشیده‌شدن یا تغییر ناگهانی اندازه جلوگیری می‌شود.
                 try { mp.setVideoScalingMode(android.media.MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT); }
                 catch (Exception ignored) { }
-                if (mp.getVideoWidth() <= 0 || mp.getVideoHeight() <= 0) {
+                final int sourceVideoWidth = mp.getVideoWidth();
+                final int sourceVideoHeight = mp.getVideoHeight();
+                if (sourceVideoWidth <= 0 || sourceVideoHeight <= 0) {
                     Log.e("iNtajVideo", "Prepared media has no decoded video dimensions: " + videoKey);
+                } else {
+                    // قاب را دقیقاً با نسبت واقعی فایل تنظیم می‌کنیم؛ در نتیجه VideoView
+                    // برای پرکردن قاب مجبور به ایجاد نوار سیاه در کناره‌ها نمی‌شود.
+                    videoFrame.post(() -> {
+                        int frameWidth = videoFrame.getWidth();
+                        if (frameWidth > 0 && sourceVideoWidth > 0 && sourceVideoHeight > 0) {
+                            int targetHeight = Math.round(
+                                    frameWidth * (sourceVideoHeight / (float) sourceVideoWidth));
+                            targetHeight = Math.max(dp(180), Math.min(targetHeight, dp(1000)));
+                            videoFrameParams.height = targetHeight;
+                            videoFrame.setLayoutParams(videoFrameParams);
+                        }
+                    });
                 }
                 videoSeek.setProgress(0);
                 videoTime.setText("00:00 / " + formatVideoTime(experienceVideo.getDuration()));
@@ -3384,7 +3414,10 @@ public class ExperienceListActivity extends Activity {
                 centerPlay.setText("▶");
                 videoSeek.setProgress(1000);
                 videoHandler.removeCallbacks(progressTask[0]);
-                if (activeExperienceVideo == experienceVideo) activeExperienceVideo = null;
+                if (activeExperienceVideo == experienceVideo) {
+                    activeExperienceVideo = null;
+                    activeExperienceVideoControl = null;
+                }
             });
             experienceVideo.setOnErrorListener((mp, what, extra) -> {
                 centerPlay.setVisibility(View.VISIBLE);
@@ -4819,16 +4852,26 @@ public class ExperienceListActivity extends Activity {
 
     @Override
     protected void onPause() {
-        if (activeExperienceVideo != null) {
-            try { activeExperienceVideo.pause(); } catch (Exception ignored) { }
-            if (activeExperienceVideoControl != null) {
-                activeExperienceVideoControl.setText("▶");
-                activeExperienceVideoControl.setVisibility(View.VISIBLE);
-            }
-            activeExperienceVideo = null;
-            activeExperienceVideoControl = null;
-        }
+        stopActiveExperienceVideo();
         super.onPause();
+    }
+
+    // توقف متمرکز برای جلوگیری از باقی‌ماندن صدای ویدیوی قبلی در فید.
+    private void stopActiveExperienceVideo() {
+        VideoView video = activeExperienceVideo;
+        TextView control = activeExperienceVideoControl;
+        activeExperienceVideo = null;
+        activeExperienceVideoControl = null;
+
+        if (video != null) {
+            try {
+                if (video.isPlaying()) video.pause();
+            } catch (Exception ignored) { }
+        }
+        if (control != null) {
+            control.setText("▶");
+            control.setVisibility(View.VISIBLE);
+        }
     }
 
     private GradientDrawable createVideoControlCircle() {
@@ -4841,11 +4884,7 @@ public class ExperienceListActivity extends Activity {
 
     private void startFeedVideo(VideoView video, TextView control, String key) {
         if (activeExperienceVideo != null && activeExperienceVideo != video) {
-            try { activeExperienceVideo.pause(); } catch (Exception ignored) { }
-            if (activeExperienceVideoControl != null) {
-                activeExperienceVideoControl.setText("▶");
-                activeExperienceVideoControl.setVisibility(View.VISIBLE);
-            }
+            stopActiveExperienceVideo();
         }
         activeExperienceVideo = video;
         activeExperienceVideoControl = control;
@@ -5326,4 +5365,4 @@ public class ExperienceListActivity extends Activity {
         }
     }
 
-            }
+    }
