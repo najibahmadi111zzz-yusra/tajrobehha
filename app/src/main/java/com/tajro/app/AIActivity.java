@@ -292,16 +292,16 @@ public class AIActivity extends Activity {
                 savedInstanceState.containsKey("ai_messages")) {
             ArrayList<String> savedMessages =
                     savedInstanceState.getStringArrayList("ai_messages");
-            ArrayList<Boolean> savedSenders =
-                    savedInstanceState.getBooleanArrayList("ai_senders");
-            ArrayList<Boolean> savedCopyFlags =
-                    savedInstanceState.getBooleanArrayList("ai_copy_flags");
+            boolean[] savedSenders =
+                    savedInstanceState.getBooleanArray("ai_senders");
+            boolean[] savedCopyFlags =
+                    savedInstanceState.getBooleanArray("ai_copy_flags");
             if (savedMessages != null && savedSenders != null &&
-                    savedCopyFlags != null && savedMessages.size() == savedSenders.size() &&
-                    savedMessages.size() == savedCopyFlags.size()) {
+                    savedCopyFlags != null && savedMessages.size() == savedSenders.length &&
+                    savedMessages.size() == savedCopyFlags.length) {
                 for (int i = 0; i < savedMessages.size(); i++) {
-                    addMessage(savedSenders.get(i), savedMessages.get(i),
-                            savedCopyFlags.get(i));
+                    addMessage(savedSenders[i], savedMessages.get(i),
+                            savedCopyFlags[i]);
                 }
             } else {
                 addMessage(false, getWelcomeMessage(), false);
@@ -608,8 +608,14 @@ public class AIActivity extends Activity {
             }
         }
         outState.putStringArrayList("ai_messages", savedMessages);
-        outState.putBooleanArrayList("ai_senders", savedSenders);
-        outState.putBooleanArrayList("ai_copy_flags", savedCopyFlags);
+        boolean[] senderArray = new boolean[savedSenders.size()];
+        boolean[] copyFlagsArray = new boolean[savedCopyFlags.size()];
+        for (int i = 0; i < savedSenders.size(); i++) {
+            senderArray[i] = savedSenders.get(i);
+            copyFlagsArray[i] = savedCopyFlags.get(i);
+        }
+        outState.putBooleanArray("ai_senders", senderArray);
+        outState.putBooleanArray("ai_copy_flags", copyFlagsArray);
         if (questionInput != null) {
             outState.putString("ai_input", questionInput.getText().toString());
         }
