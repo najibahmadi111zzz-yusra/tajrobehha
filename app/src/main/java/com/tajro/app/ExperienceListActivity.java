@@ -858,9 +858,15 @@ if (appliedThemeColor != currentThemeColor ||
         layout.addView(buildSectionHeading("داستان‌ها", "✨"));
         HorizontalScrollView storiesScroller = new HorizontalScrollView(this);
         storiesScroller.setHorizontalScrollBarEnabled(false);
+        // در دو لبه فضای امن می‌گذاریم تا حلقه استوری‌ها بریده نشود.
+        storiesScroller.setClipToPadding(false);
+        storiesScroller.setClipChildren(false);
+        storiesScroller.setPadding(dp(4), 0, dp(4), 0);
         storiesLayout = new LinearLayout(this);
         storiesLayout.setOrientation(LinearLayout.HORIZONTAL);
         storiesLayout.setPadding(0, dp(4), 0, dp(8));
+        storiesLayout.setClipToPadding(false);
+        storiesLayout.setClipChildren(false);
         storiesScroller.addView(storiesLayout);
         layout.addView(storiesScroller);
 
@@ -1735,8 +1741,12 @@ if (appliedThemeColor != currentThemeColor ||
         } else if ("video".equals(mediaType)
                 && (!videoPath.isEmpty() || !mediaUrl.isEmpty())) {
             VideoView video = new VideoView(this);
-            mediaFrame.addView(video, new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            FrameLayout.LayoutParams storyVideoParams = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    Gravity.CENTER);
+            video.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+            mediaFrame.addView(video, storyVideoParams);
             // کنترل‌ها پیش از درخواست لینک ثبت می‌شوند تا رویداد آماده‌شدن از دست نرود.
             MediaController controls = new MediaController(this);
             controls.setAnchorView(video);
@@ -1843,6 +1853,13 @@ if (appliedThemeColor != currentThemeColor ||
 
         AlertDialog dialog = builder.create();
         dialog.show();
+        // عرض دیالوگ رسانه را صریح تنظیم می‌کنیم تا قاب ویدیو در یک سمت فشرده نشود.
+        if (hasMedia && dialog.getWindow() != null) {
+            int availableWidth = getResources().getDisplayMetrics().widthPixels - dp(24);
+            int storyDialogWidth = Math.min(availableWidth, dp(480));
+            dialog.getWindow().setLayout(
+                    storyDialogWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
         final ListenerRegistration[] reactionListener = {null};
         reactionListener[0] = story.getReference().collection("reactions")
                 .addSnapshotListener((snapshot, error) -> {
@@ -5566,4 +5583,4 @@ if (appliedThemeColor != currentThemeColor ||
         }
     }
 
-    }
+                          }
