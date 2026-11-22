@@ -86,6 +86,7 @@ public class ExchangeActivity extends Activity {
         exchangeData = ExchangeData.get(this);
         currencies = ExchangeData.getCurrencies();
 
+        applyExchangeTheme();
         createScreen();
     }
 
@@ -597,7 +598,7 @@ public class ExchangeActivity extends Activity {
                 );
 
                 tv.setTextSize(16);
-                tv.setTextColor(Color.DKGRAY);
+                tv.setTextColor(EX_TEXT);
 
                 tv.setGravity(
                         Gravity.CENTER_VERTICAL
@@ -658,12 +659,33 @@ public class ExchangeActivity extends Activity {
     // صفحه اصلی
     // =========================================================
 
-    // رنگ‌ها و اجزای ظاهری صفحه صرافی
-    private static final int EX_BG = Color.rgb(244, 247, 250);
-    private static final int EX_NAVY = Color.rgb(16, 43, 67);
-    private static final int EX_TEAL = Color.rgb(15, 105, 125);
-    private static final int EX_TEXT = Color.rgb(39, 55, 68);
-    private static final int EX_MUTED = Color.rgb(111, 127, 140);
+    // رنگ‌های پویا بر اساس تم انتخاب‌شده برنامه
+    private int EX_BG;
+    private int EX_NAVY;
+    private int EX_TEAL;
+    private int EX_TEXT;
+    private int EX_MUTED;
+    private int EX_CARD;
+    private int EX_FIELD;
+    private int EX_BORDER;
+    private int EX_SUMMARY;
+    private int appliedThemeColor;
+    private boolean appliedNightMode;
+
+    private void applyExchangeTheme() {
+        appliedThemeColor = ThemeManager.getThemeColor(this);
+        appliedNightMode = ThemeManager.isNightMode(this);
+
+        EX_BG = appliedNightMode ? Color.rgb(15, 23, 32) : Color.rgb(244, 247, 250);
+        EX_NAVY = appliedNightMode ? Color.rgb(25, 39, 54) : appliedThemeColor;
+        EX_TEAL = appliedThemeColor;
+        EX_TEXT = appliedNightMode ? Color.rgb(238, 243, 247) : Color.rgb(39, 55, 68);
+        EX_MUTED = appliedNightMode ? Color.rgb(174, 188, 200) : Color.rgb(111, 127, 140);
+        EX_CARD = appliedNightMode ? Color.rgb(27, 39, 52) : Color.WHITE;
+        EX_FIELD = appliedNightMode ? Color.rgb(36, 51, 66) : Color.rgb(247, 249, 251);
+        EX_BORDER = appliedNightMode ? Color.rgb(58, 75, 91) : Color.rgb(226, 232, 237);
+        EX_SUMMARY = appliedNightMode ? Color.rgb(31, 57, 65) : Color.rgb(230, 242, 245);
+    }
 
     private GradientDrawable rounded(int color, int radiusDp, int strokeColor) {
         GradientDrawable drawable = new GradientDrawable();
@@ -677,7 +699,7 @@ public class ExchangeActivity extends Activity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(14), dp(10), dp(14), dp(10));
-        card.setBackground(rounded(Color.WHITE, 18, Color.rgb(230, 235, 240)));
+        card.setBackground(rounded(EX_CARD, 18, appliedNightMode ? Color.rgb(48, 64, 80) : Color.rgb(230, 235, 240)));
         card.setElevation(dp(2));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -706,9 +728,9 @@ public class ExchangeActivity extends Activity {
         field.setTextSize(14);
         field.setSingleLine(true);
         field.setTextColor(EX_TEXT);
-        field.setHintTextColor(Color.rgb(145, 157, 168));
+        field.setHintTextColor(EX_MUTED);
         field.setPadding(dp(12), dp(7), dp(12), dp(7));
-        field.setBackground(rounded(Color.rgb(247, 249, 251), 11, Color.rgb(226, 232, 237)));
+        field.setBackground(rounded(EX_FIELD, 11, EX_BORDER));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(46));
         lp.bottomMargin = dp(5);
@@ -716,7 +738,7 @@ public class ExchangeActivity extends Activity {
     }
 
     private void styleSpinner(Spinner spinner) {
-        spinner.setBackground(rounded(Color.rgb(247, 249, 251), 11, Color.rgb(226, 232, 237)));
+        spinner.setBackground(rounded(EX_FIELD, 11, EX_BORDER));
         spinner.setPadding(dp(7), dp(2), dp(7), dp(2));
         spinner.setMinimumHeight(dp(44));
     }
@@ -726,9 +748,10 @@ public class ExchangeActivity extends Activity {
         button.setText(value);
         button.setTextSize(13);
         button.setAllCaps(false);
-        button.setTextColor(primary ? Color.WHITE : EX_NAVY);
-        button.setBackground(rounded(primary ? EX_TEAL : Color.rgb(232, 239, 243), 13,
-                primary ? EX_TEAL : Color.rgb(220, 229, 235)));
+        button.setTextColor(primary ? Color.WHITE : EX_TEXT);
+        button.setBackground(rounded(primary ? EX_TEAL :
+                (appliedNightMode ? Color.rgb(43, 59, 74) : Color.rgb(232, 239, 243)), 13,
+                primary ? EX_TEAL : EX_BORDER));
         button.setElevation(dp(1));
         button.setPadding(dp(7), 0, dp(7), 0);
         button.setMinHeight(dp(46));
@@ -839,9 +862,9 @@ public class ExchangeActivity extends Activity {
 
         // کارت نتیجه و موجودی
         LinearLayout summaryCard = makeCard();
-        summaryCard.setBackground(rounded(Color.rgb(230, 242, 245), 17, Color.rgb(211, 230, 235)));
+        summaryCard.setBackground(rounded(EX_SUMMARY, 17, EX_BORDER));
         totalText = makeText(text("مجموع: 0 افغانی", "Total: 0 Afghani", "ټول: ۰ افغانۍ", "کل: 0 افغانی", "कुल: 0 अफ़गानी"), 17);
-        totalText.setTextColor(EX_NAVY);
+        totalText.setTextColor(EX_TEXT);
         totalText.setTypeface(null, android.graphics.Typeface.BOLD);
         totalText.setGravity(Gravity.CENTER);
         balanceText = makeText(text("موجودی: 0", "Balance: 0", "موجودي: ۰", "بیلنس: 0", "शेष: 0"), 14);
@@ -3701,6 +3724,14 @@ public class ExchangeActivity extends Activity {
             return;
         }
 
+        int currentThemeColor = ThemeManager.getThemeColor(this);
+        boolean currentNightMode = ThemeManager.isNightMode(this);
+        if (appliedThemeColor != currentThemeColor ||
+                appliedNightMode != currentNightMode) {
+            recreate();
+            return;
+        }
+
         if (exchangeData != null) {
 
             exchangeData.forceUpdateRates();
@@ -3717,4 +3748,4 @@ public class ExchangeActivity extends Activity {
         rateRefreshHandler.removeCallbacks(rateRefreshRunnable);
         super.onPause();
     }
-            }
+                               }
