@@ -100,6 +100,15 @@ public class ExperienceListActivity extends Activity {
     private boolean isPullRefreshing = false;
     private float pullStartY = 0f;
     private boolean pullGestureStarted = false;
+    private String appliedThemeMode = ThemeManager.MODE_NTAJ;
+
+    // فید به‌صورت صفحه‌ای دریافت می‌شود تا با زیادشدن پست‌ها حافظه و اینترنت بی‌جهت مصرف نشود.
+    private static final int EXPERIENCE_PAGE_SIZE = 20;
+    private DocumentSnapshot lastExperienceDocument = null;
+    private boolean hasMoreExperiences = false;
+    private boolean isLoadingMoreExperiences = false;
+    private int experienceFeedGeneration = 0;
+    private Button loadMoreExperiencesButton;
 
     // فقط یک ویدیوی فید در هر لحظه پخش می‌شود.
     private VideoView activeExperienceVideo;
@@ -242,6 +251,10 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("خطا در دریافت تجربه‌ها"))
                 return "Error loading experiences";
+            if (fa.equals("بارگذاری تجربه‌های بیشتر")) return "Load more experiences";
+            if (fa.equals("در حال بارگذاری…")) return "Loading…";
+            if (fa.equals("برای دریافت تجربه‌های بیشتر اتصال اینترنت لازم است.")) return "An internet connection is required to load more experiences.";
+            if (fa.equals("بارگذاری تجربه‌های بیشتر ناموفق بود.")) return "Could not load more experiences.";
 
             if (fa.equals("خطا در برداشتن لایک"))
                 return "Error removing like";
@@ -307,6 +320,10 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("خطا در دریافت تجربه‌ها"))
                 return "د تجربو په ترلاسه کولو کې تېروتنه";
+            if (fa.equals("بارگذاری تجربه‌های بیشتر")) return "نورې تجربې پورته کړئ";
+            if (fa.equals("در حال بارگذاری…")) return "پورته کېږي…";
+            if (fa.equals("برای دریافت تجربه‌های بیشتر اتصال اینترنت لازم است.")) return "د نورو تجربو لپاره انټرنېټ ته اړتیا ده.";
+            if (fa.equals("بارگذاری تجربه‌های بیشتر ناموفق بود.")) return "د نورو تجربو پورته کول ناکام شول.";
 
             if (fa.equals("خطا در برداشتن لایک"))
                 return "د خوښونې په لرې کولو کې تېروتنه";
@@ -372,6 +389,10 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("خطا در دریافت تجربه‌ها"))
                 return "تجربات حاصل کرنے میں خرابی";
+            if (fa.equals("بارگذاری تجربه‌های بیشتر")) return "مزید تجربات لوڈ کریں";
+            if (fa.equals("در حال بارگذاری…")) return "لوڈ ہو رہا ہے…";
+            if (fa.equals("برای دریافت تجربه‌های بیشتر اتصال اینترنت لازم است.")) return "مزید تجربات کے لیے انٹرنیٹ کنکشن ضروری ہے۔";
+            if (fa.equals("بارگذاری تجربه‌های بیشتر ناموفق بود.")) return "مزید تجربات لوڈ نہیں ہو سکے۔";
 
             if (fa.equals("خطا در برداشتن لایک"))
                 return "لائک ہٹانے میں خرابی";
@@ -437,6 +458,10 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("خطا در دریافت تجربه‌ها"))
                 return "अनुभव प्राप्त करने में त्रुटि";
+            if (fa.equals("بارگذاری تجربه‌های بیشتر")) return "और अनुभव लोड करें";
+            if (fa.equals("در حال بارگذاری…")) return "लोड हो रहा है…";
+            if (fa.equals("برای دریافت تجربه‌های بیشتر اتصال اینترنت لازم است.")) return "और अनुभव लोड करने के लिए इंटरनेट कनेक्शन आवश्यक है।";
+            if (fa.equals("بارگذاری تجربه‌های بیشتر ناموفق بود.")) return "और अनुभव लोड नहीं हो सके।";
 
             if (fa.equals("خطا در برداشتن لایک"))
                 return "लाइक हटाने में त्रुटि";
@@ -656,9 +681,72 @@ public class ExperienceListActivity extends Activity {
         );
     }
 
+    // پالت مرکزی رنگ؛ تمام اجزای این صفحه از ThemeManager پیروی می‌کنند.
+    private int pageBackgroundColor() {
+        return ThemeManager.getBackgroundColor(this);
+    }
+
+    private int cardSurfaceColor() {
+        return ThemeManager.getSurfaceColor(this);
+    }
+
+    private int primaryTextColor() {
+        return ThemeManager.getTextColor(this);
+    }
+
+    private int secondaryTextColor() {
+        return ThemeManager.getNormalTextColor(this);
+    }
+
+    private int themeBorderColor() {
+        return ThemeManager.getBorderColor(this);
+    }
+
+    private int themeAccentColor() {
+        return ThemeManager.getThemeColor(this);
+    }
+
+    private boolean isDarkThemePalette() {
+        return ThemeManager.isNightMode(this);
+    }
+
+    private void applyExperienceSystemBars() {
+        boolean dark = isDarkThemePalette();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(pageBackgroundColor());
+            getWindow().setNavigationBarColor(pageBackgroundColor());
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            int flags = getWindow().getDecorView().getSystemUiVisibility();
+            if (!dark) {
+                flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                }
+            } else {
+                flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                }
+            }
+            getWindow().getDecorView().setSystemUiVisibility(flags);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        String currentMode = ThemeManager.getThemeMode(this);
+        if (appliedThemeMode != null && !appliedThemeMode.equals(currentMode)) {
+            recreate();
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        appliedThemeMode = ThemeManager.getThemeMode(this);
+        applyExperienceSystemBars();
 
         auth = FirebaseAuth.getInstance();
 
@@ -678,7 +766,7 @@ public class ExperienceListActivity extends Activity {
         // نوار بالایی ثابت؛ فقط این بخش هنگام پیمایش در جای خود می‌ماند.
         LinearLayout pageRoot = new LinearLayout(this);
         pageRoot.setOrientation(LinearLayout.VERTICAL);
-        pageRoot.setBackgroundColor(Color.rgb(238, 248, 250));
+        pageRoot.setBackgroundColor(pageBackgroundColor());
 
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
@@ -752,7 +840,7 @@ public class ExperienceListActivity extends Activity {
         layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(dp(14), dp(10), dp(14), dp(30));
-        layout.setBackgroundColor(Color.rgb(238, 248, 250));
+        layout.setBackgroundColor(pageBackgroundColor());
         scrollView.addView(layout, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -788,7 +876,7 @@ public class ExperienceListActivity extends Activity {
         pullRefreshIndicator = new TextView(this);
         pullRefreshIndicator.setText(text("↓ برای تازه‌سازی، صفحه را پایین بکشید"));
         pullRefreshIndicator.setTextSize(13);
-        pullRefreshIndicator.setTextColor(Color.rgb(12, 91, 120));
+        pullRefreshIndicator.setTextColor(themeAccentColor());
         pullRefreshIndicator.setGravity(Gravity.CENTER);
         pullRefreshIndicator.setPadding(dp(8), dp(9), dp(8), dp(9));
         pullRefreshIndicator.setVisibility(View.GONE);
@@ -862,13 +950,13 @@ public class ExperienceListActivity extends Activity {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(18), dp(18), dp(18), dp(14));
-        panel.setBackgroundColor(Color.WHITE);
+        panel.setBackgroundColor(cardSurfaceColor());
 
         TextView heading = new TextView(this);
         heading.setText("⚙  " + text("تنظیمات تجربه‌ها"));
         heading.setTextSize(19);
         heading.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-        heading.setTextColor(Color.rgb(14, 55, 82));
+        heading.setTextColor(primaryTextColor());
         heading.setGravity(Gravity.CENTER_VERTICAL);
         heading.setPadding(dp(4), dp(4), dp(4), dp(14));
         panel.addView(heading, new LinearLayout.LayoutParams(-1, -2));
@@ -919,9 +1007,9 @@ public class ExperienceListActivity extends Activity {
         row.setPadding(dp(13), dp(9), dp(13), dp(9));
         GradientDrawable rowBg = new GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{Color.rgb(250, 253, 255), Color.rgb(239, 247, 250)});
+                new int[]{cardSurfaceColor(), cardSurfaceColor()});
         rowBg.setCornerRadius(dp(17));
-        rowBg.setStroke(dp(1), Color.rgb(215, 231, 237));
+        rowBg.setStroke(dp(1), themeBorderColor());
         row.setBackground(rowBg);
         row.setElevation(dp(1));
         row.setClickable(true);
@@ -931,10 +1019,10 @@ public class ExperienceListActivity extends Activity {
         iconView.setText(icon);
         iconView.setTextSize(21);
         iconView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        iconView.setTextColor(Color.rgb(13, 105, 132));
+        iconView.setTextColor(themeAccentColor());
         iconView.setGravity(Gravity.CENTER);
         GradientDrawable iconBg = new GradientDrawable();
-        iconBg.setColor(Color.rgb(224, 241, 247));
+        iconBg.setColor(cardSurfaceColor());
         iconBg.setCornerRadius(dp(13));
         iconView.setBackground(iconBg);
         row.addView(iconView, new LinearLayout.LayoutParams(dp(44), dp(44)));
@@ -946,12 +1034,12 @@ public class ExperienceListActivity extends Activity {
         titleView.setText(title);
         titleView.setTextSize(14);
         titleView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        titleView.setTextColor(Color.rgb(20, 51, 68));
+        titleView.setTextColor(primaryTextColor());
         labels.addView(titleView);
         TextView subtitleView = new TextView(this);
         subtitleView.setText(subtitle);
         subtitleView.setTextSize(11);
-        subtitleView.setTextColor(Color.rgb(103, 123, 135));
+        subtitleView.setTextColor(secondaryTextColor());
         subtitleView.setPadding(0, dp(2), 0, 0);
         labels.addView(subtitleView);
         row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
@@ -959,7 +1047,7 @@ public class ExperienceListActivity extends Activity {
         arrow.setText("›");
         arrow.setTextSize(25);
         arrow.setTypeface(Typeface.DEFAULT_BOLD);
-        arrow.setTextColor(Color.rgb(91, 132, 148));
+        arrow.setTextColor(secondaryTextColor());
         arrow.setGravity(Gravity.CENTER);
         row.addView(arrow, new LinearLayout.LayoutParams(dp(26), dp(42)));
         return row;
@@ -973,14 +1061,14 @@ public class ExperienceListActivity extends Activity {
         TextView title = new TextView(this);
         title.setText(emoji + "  " + text(titleText));
         title.setTextSize(17);
-        title.setTextColor(Color.rgb(13, 53, 82));
+        title.setTextColor(primaryTextColor());
         title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         heading.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
         if ("دوستان".equals(titleText)) {
             friendsCountView = new TextView(this);
             friendsCountView.setText("(0)");
             friendsCountView.setTextSize(13);
-            friendsCountView.setTextColor(Color.rgb(91, 132, 148));
+            friendsCountView.setTextColor(secondaryTextColor());
             friendsCountView.setGravity(Gravity.CENTER);
             heading.addView(friendsCountView);
         }
@@ -1055,7 +1143,7 @@ public class ExperienceListActivity extends Activity {
 
         FrameLayout circleFrame = new FrameLayout(this);
         GradientDrawable ring = new GradientDrawable();
-        ring.setColor(Color.WHITE);
+        ring.setColor(cardSurfaceColor());
         ring.setShape(GradientDrawable.OVAL);
         ring.setStroke(dp(3), Color.rgb(24, 142, 155));
         circleFrame.setBackground(ring);
@@ -1063,7 +1151,7 @@ public class ExperienceListActivity extends Activity {
         TextView plus = new TextView(this);
         plus.setText("＋");
         plus.setTextSize(34);
-        plus.setTextColor(Color.rgb(15, 113, 132));
+        plus.setTextColor(themeAccentColor());
         plus.setGravity(Gravity.CENTER);
         circleFrame.addView(plus, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -1087,7 +1175,7 @@ public class ExperienceListActivity extends Activity {
         TextView label = new TextView(this);
         label.setText(text("داستان من"));
         label.setTextSize(11);
-        label.setTextColor(Color.rgb(34, 57, 69));
+        label.setTextColor(primaryTextColor());
         label.setGravity(Gravity.CENTER);
         label.setMaxLines(1);
         tile.addView(label);
@@ -1109,7 +1197,7 @@ public class ExperienceListActivity extends Activity {
 
         FrameLayout avatarFrame = new FrameLayout(this);
         GradientDrawable ring = new GradientDrawable();
-        ring.setColor(Color.WHITE);
+        ring.setColor(cardSurfaceColor());
         ring.setShape(GradientDrawable.OVAL);
         ring.setStroke(dp(3), Color.rgb(220, 72, 111));
         avatarFrame.setBackground(ring);
@@ -1117,7 +1205,7 @@ public class ExperienceListActivity extends Activity {
         ImageView avatar = new ImageView(this);
         avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
         GradientDrawable avatarBg = new GradientDrawable();
-        avatarBg.setColor(Color.rgb(18, 91, 115));
+        avatarBg.setColor(cardSurfaceColor());
         avatarBg.setShape(GradientDrawable.OVAL);
         avatar.setBackground(avatarBg);
         avatar.setClipToOutline(true);
@@ -1137,7 +1225,7 @@ public class ExperienceListActivity extends Activity {
 
         TextView authorName = new TextView(this);
         authorName.setText(text("کاربر"));
-        authorName.setTextColor(Color.rgb(38, 57, 68));
+        authorName.setTextColor(primaryTextColor());
         authorName.setTextSize(10);
         authorName.setGravity(Gravity.CENTER);
         authorName.setMaxLines(1);
@@ -1622,7 +1710,8 @@ public class ExperienceListActivity extends Activity {
         LinearLayout viewer = new LinearLayout(this);
         viewer.setOrientation(LinearLayout.VERTICAL);
         viewer.setGravity(Gravity.CENTER);
-        viewer.setPadding(dp(12), dp(12), dp(12), dp(12));
+        // حاشیه داخلی اضافی حذف می‌شود تا رسانه فضای مفید پنجره را بگیرد.
+        viewer.setPadding(0, 0, 0, 0);
         viewer.setBackgroundColor(Color.rgb(18, 24, 32));
 
         boolean hasMedia = ("image".equals(mediaType) && !mediaUrl.isEmpty())
@@ -1630,7 +1719,7 @@ public class ExperienceListActivity extends Activity {
         FrameLayout mediaFrame = new FrameLayout(this);
         LinearLayout.LayoutParams mediaFrameParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(390));
-        mediaFrameParams.bottomMargin = dp(6);
+        mediaFrameParams.bottomMargin = 0;
 
         if ("image".equals(mediaType) && !mediaUrl.isEmpty()) {
             ImageView image = new ImageView(this);
@@ -1724,13 +1813,18 @@ public class ExperienceListActivity extends Activity {
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         }
 
-        TextView caption = new TextView(this);
-        caption.setText(body.isEmpty() ? "" : body);
-        caption.setTextColor(Color.WHITE);
-        caption.setTextSize(16);
-        caption.setGravity(Gravity.CENTER);
-        caption.setPadding(dp(12), dp(14), dp(12), dp(14));
-        viewer.addView(caption);
+        // برای داستان رسانه‌ای بدون توضیح، TextView خالی ساخته نمی‌شود؛
+        // این View قبلاً فضای خالی غیرضروری زیر عکس/ویدیو ایجاد می‌کرد.
+        if (!body.trim().isEmpty()) {
+            TextView caption = new TextView(this);
+            caption.setText(body);
+            caption.setTextColor(Color.WHITE);
+            caption.setTextSize(16);
+            caption.setGravity(Gravity.CENTER);
+            caption.setPadding(dp(12), dp(10), dp(12), dp(10));
+            viewer.addView(caption, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
                 .setTitle(text("داستان"))
@@ -1815,7 +1909,7 @@ public class ExperienceListActivity extends Activity {
                 heading.setText(emojis[i] + "  " + (type.equals("heart") ? text("قلب‌ها") : type.equals("like") ? text("لایک‌ها") : text("همدردی‌ها")) + "  (" + matching.size() + ")");
                 heading.setTextSize(15);
                 heading.setTypeface(null, Typeface.BOLD);
-                heading.setTextColor(Color.rgb(18, 105, 111));
+                heading.setTextColor(primaryTextColor());
                 heading.setPadding(dp(6), dp(12), dp(6), dp(7));
                 root.addView(heading);
 
@@ -1829,7 +1923,7 @@ public class ExperienceListActivity extends Activity {
                     TextView person = new TextView(this);
                     person.setText(text("در حال دریافت نام کاربر…"));
                     person.setTextSize(14);
-                    person.setTextColor(Color.DKGRAY);
+                    person.setTextColor(primaryTextColor());
                     row.addView(person, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
                     TextView mark = new TextView(this);
                     mark.setText(emojis[i]);
@@ -1953,7 +2047,7 @@ public class ExperienceListActivity extends Activity {
         if (friendIds.isEmpty()) {
             TextView empty = new TextView(this);
             empty.setText(text("هنوز دوستی اضافه نشده است."));
-            empty.setTextColor(Color.rgb(100, 117, 126));
+            empty.setTextColor(secondaryTextColor());
             empty.setTextSize(13);
             empty.setPadding(dp(10), dp(15), dp(10), dp(15));
             friendsLayout.addView(empty);
@@ -1968,9 +2062,9 @@ public class ExperienceListActivity extends Activity {
             ImageView avatar = new ImageView(this);
             avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
             GradientDrawable circle = new GradientDrawable();
-            circle.setColor(Color.rgb(221, 239, 242));
+            circle.setColor(cardSurfaceColor());
             circle.setShape(GradientDrawable.OVAL);
-            circle.setStroke(dp(2), Color.rgb(18, 130, 137));
+            circle.setStroke(dp(2), themeBorderColor());
             avatar.setBackground(circle);
             avatar.setClipToOutline(true);
             FrameLayout avatarFrame = new FrameLayout(this);
@@ -1983,7 +2077,7 @@ public class ExperienceListActivity extends Activity {
             TextView name = new TextView(this);
             name.setText(text("کاربر"));
             name.setTextSize(11);
-            name.setTextColor(Color.rgb(34, 57, 69));
+            name.setTextColor(primaryTextColor());
             name.setGravity(Gravity.CENTER);
             name.setMaxWidth(dp(78));
             name.setMaxLines(1);
@@ -2017,7 +2111,7 @@ public class ExperienceListActivity extends Activity {
         TextView label = new TextView(this);
         label.setText(message);
         label.setTextSize(14);
-        label.setTextColor(Color.rgb(35, 55, 65));
+        label.setTextColor(primaryTextColor());
         label.setPadding(dp(14), 0, 0, 0);
         content.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
         activeOperationDialog = new Dialog(this);
@@ -2067,9 +2161,9 @@ public class ExperienceListActivity extends Activity {
         profileCard.setPadding(dp(14), dp(11), dp(14), dp(11));
 
         GradientDrawable cardBackground = new GradientDrawable();
-        cardBackground.setColor(Color.WHITE);
+        cardBackground.setColor(cardSurfaceColor());
         cardBackground.setCornerRadius(dp(18));
-        cardBackground.setStroke(dp(1), Color.rgb(210, 230, 235));
+        cardBackground.setStroke(dp(1), themeBorderColor());
         profileCard.setBackground(cardBackground);
         profileCard.setElevation(dp(2));
 
@@ -2082,9 +2176,9 @@ public class ExperienceListActivity extends Activity {
         ImageView avatar = new ImageView(this);
         avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
         GradientDrawable avatarBackground = new GradientDrawable();
-        avatarBackground.setColor(Color.rgb(224, 241, 246));
+        avatarBackground.setColor(cardSurfaceColor());
         avatarBackground.setShape(GradientDrawable.OVAL);
-        avatarBackground.setStroke(dp(2), Color.rgb(12, 91, 120));
+        avatarBackground.setStroke(dp(2), themeBorderColor());
         avatar.setBackground(avatarBackground);
         avatar.setClipToOutline(true);
         FrameLayout myAvatarFrame = new FrameLayout(this);
@@ -2103,7 +2197,7 @@ public class ExperienceListActivity extends Activity {
         TextView nameView = new TextView(this);
         nameView.setText(text("کاربر"));
         nameView.setTextSize(17);
-        nameView.setTextColor(Color.rgb(8, 65, 90));
+        nameView.setTextColor(primaryTextColor());
         nameView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         nameView.setSingleLine(true);
         nameView.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -2112,7 +2206,7 @@ public class ExperienceListActivity extends Activity {
         TextView profileHint = new TextView(this);
         profileHint.setText(text("پروفایل من"));
         profileHint.setTextSize(12);
-        profileHint.setTextColor(Color.rgb(105, 125, 132));
+        profileHint.setTextColor(secondaryTextColor());
         profileHint.setPadding(0, dp(3), 0, 0);
         nameColumn.addView(profileHint);
 
@@ -2178,9 +2272,9 @@ public class ExperienceListActivity extends Activity {
         entry.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         entry.setPadding(dp(12), dp(8), dp(12), dp(8));
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(Color.WHITE);
+        bg.setColor(cardSurfaceColor());
         bg.setCornerRadius(dp(18));
-        bg.setStroke(dp(1), Color.rgb(211, 229, 234));
+        bg.setStroke(dp(1), themeBorderColor());
         entry.setBackground(bg);
         entry.setElevation(dp(2));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -2196,7 +2290,7 @@ public class ExperienceListActivity extends Activity {
         action.setGravity(Gravity.CENTER);
         GradientDrawable actionBg = new GradientDrawable();
         actionBg.setShape(GradientDrawable.OVAL);
-        actionBg.setColor(Color.rgb(12, 91, 120));
+        actionBg.setColor(themeAccentColor());
         actionBg.setStroke(dp(1), Color.rgb(18, 130, 137));
         action.setBackground(actionBg);
         action.setContentDescription(text("انتشار تجربه"));
@@ -2205,7 +2299,7 @@ public class ExperienceListActivity extends Activity {
         TextView prompt = new TextView(this);
         prompt.setText(text("تجربه‌ای برای شریک‌سازی داری؟"));
         prompt.setTextSize(14);
-        prompt.setTextColor(Color.rgb(83, 105, 116));
+        prompt.setTextColor(secondaryTextColor());
         prompt.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
         prompt.setPadding(dp(12), 0, dp(8), 0);
         entry.addView(prompt, new LinearLayout.LayoutParams(0, dp(46), 1f));
@@ -2228,9 +2322,9 @@ public class ExperienceListActivity extends Activity {
         form.setPadding(dp(14), dp(13), dp(14), dp(14));
         GradientDrawable bg = new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{Color.rgb(255, 255, 255), Color.rgb(246, 251, 253)});
+                new int[]{cardSurfaceColor(), cardSurfaceColor()});
         bg.setCornerRadius(dp(20));
-        bg.setStroke(dp(1), Color.rgb(214, 231, 237));
+        bg.setStroke(dp(1), themeBorderColor());
         form.setBackground(bg);
         form.setElevation(dp(2));
         LinearLayout.LayoutParams formParams = new LinearLayout.LayoutParams(
@@ -2241,7 +2335,7 @@ public class ExperienceListActivity extends Activity {
         TextView formTitle = new TextView(this);
         formTitle.setText(text("✍️ ثبت تجربه جدید"));
         formTitle.setTextSize(19);
-        formTitle.setTextColor(Color.rgb(12, 73, 101));
+        formTitle.setTextColor(themeAccentColor());
         formTitle.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         formTitle.setGravity(Gravity.CENTER);
         formTitle.setPadding(0, 0, 0, dp(13));
@@ -2250,7 +2344,7 @@ public class ExperienceListActivity extends Activity {
         TextView mediaHint = new TextView(this);
         mediaHint.setText(text("افزودن عکس یا ویدیو به تجربه"));
         mediaHint.setTextSize(12);
-        mediaHint.setTextColor(Color.rgb(94, 116, 128));
+        mediaHint.setTextColor(secondaryTextColor());
         mediaHint.setGravity(Gravity.CENTER);
         mediaHint.setPadding(0, 0, 0, dp(8));
         form.addView(mediaHint);
@@ -2287,7 +2381,7 @@ public class ExperienceListActivity extends Activity {
         imageStatus = new TextView(this);
         imageStatus.setText(text("عکس انتخاب نشده است"));
         imageStatus.setTextSize(12);
-        imageStatus.setTextColor(Color.rgb(80, 100, 110));
+        imageStatus.setTextColor(secondaryTextColor());
         imageStatus.setGravity(Gravity.CENTER);
         imageStatus.setPadding(dp(4), dp(8), dp(4), dp(8));
         form.addView(imageStatus);
@@ -2347,21 +2441,25 @@ public class ExperienceListActivity extends Activity {
 
     private GradientDrawable createPublishFieldBackground() {
         GradientDrawable fieldBg = new GradientDrawable();
-        fieldBg.setColor(Color.rgb(255, 255, 255));
+        fieldBg.setColor(cardSurfaceColor());
         fieldBg.setCornerRadius(dp(13));
-        fieldBg.setStroke(dp(1), Color.rgb(220, 232, 237));
+        fieldBg.setStroke(dp(1), themeBorderColor());
         return fieldBg;
     }
 
     private void styleMediaChoiceButton(Button button, boolean video) {
-        int top = video ? Color.rgb(225, 242, 248) : Color.rgb(239, 247, 250);
-        int bottom = video ? Color.rgb(210, 234, 243) : Color.rgb(229, 241, 246);
+        int top = isDarkThemePalette() ? cardSurfaceColor()
+                : (video ? Color.rgb(225, 242, 248) : Color.rgb(239, 247, 250));
+        int bottom = isDarkThemePalette() ? cardSurfaceColor()
+                : (video ? Color.rgb(210, 234, 243) : Color.rgb(229, 241, 246));
         GradientDrawable shape = new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM, new int[]{top, bottom});
         shape.setCornerRadius(dp(14));
-        shape.setStroke(dp(1), video ? Color.rgb(171, 211, 225) : Color.rgb(196, 220, 230));
+        shape.setStroke(dp(1), isDarkThemePalette()
+                ? themeBorderColor()
+                : (video ? Color.rgb(171, 211, 225) : Color.rgb(196, 220, 230)));
         button.setBackground(shape);
-        button.setTextColor(Color.rgb(20, 82, 105));
+        button.setTextColor(themeAccentColor());
         button.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         button.setPadding(dp(5), 0, dp(5), 0);
         button.setMinHeight(dp(48));
@@ -2516,61 +2614,140 @@ public class ExperienceListActivity extends Activity {
     }
 
     private void loadExperiences() {
+        if (db == null || feedLayout == null) return;
 
+        // هر بار تازه‌سازی یک نسل جدید می‌سازد تا پاسخ دیررس درخواست قبلی فید را خراب نکند.
+        final int generation = ++experienceFeedGeneration;
+        isLoadingMoreExperiences = false;
+        lastExperienceDocument = null;
+        hasMoreExperiences = false;
         displayedExperienceKeys.clear();
+        removeLoadMoreExperiencesButton();
 
-        db.collection("experiences")
-                .orderBy(
-                        "timestamp",
-                        Query.Direction.DESCENDING
-                )
-                .get()
-                .addOnSuccessListener(this::displayExperienceSnapshot)
-                .addOnFailureListener(this::loadCachedExperiencesAfterFailure);
-    }
-
-    // در صورت قطع اینترنت، فقط تجربه‌هایی را نشان می‌دهد که قبلاً روی همین گوشی کش شده‌اند.
-    private void loadCachedExperiencesAfterFailure(Exception networkError) {
         db.collection("experiences")
                 .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(EXPERIENCE_PAGE_SIZE)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (generation != experienceFeedGeneration || isFinishing()) return;
+                    displayExperienceSnapshot(snapshot, false);
+                })
+                .addOnFailureListener(error -> {
+                    if (generation != experienceFeedGeneration || isFinishing()) return;
+                    loadCachedExperiencesAfterFailure(error, generation);
+                });
+    }
+
+    // در صورت قطع اینترنت، صفحهٔ اول فقط از داده‌های کش‌شدهٔ همین دستگاه خوانده می‌شود.
+    private void loadCachedExperiencesAfterFailure(Exception networkError, int generation) {
+        db.collection("experiences")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(EXPERIENCE_PAGE_SIZE)
                 .get(Source.CACHE)
                 .addOnSuccessListener(cached -> {
+                    if (generation != experienceFeedGeneration || isFinishing()) return;
                     if (cached != null && !cached.isEmpty()) {
-                        displayExperienceSnapshot(cached);
+                        Log.i("ExperiencesOffline", "Showing cached first feed page after network failure");
+                        displayExperienceSnapshot(cached, false);
                     } else {
                         finishRefreshTask();
                         if (!refreshBatchActive) {
                             isPullRefreshing = false;
                             if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
                         }
+                        feedLayout.removeAllViews();
                         showEmptyMessage();
                         Toast.makeText(this, text("خطا در دریافت تجربه‌ها"), Toast.LENGTH_SHORT).show();
+                        Log.w("ExperiencesOffline", "No cached feed available", networkError);
                     }
                 })
                 .addOnFailureListener(cacheError -> {
+                    if (generation != experienceFeedGeneration || isFinishing()) return;
                     finishRefreshTask();
                     if (!refreshBatchActive) {
                         isPullRefreshing = false;
                         if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
                     }
+                    feedLayout.removeAllViews();
+                    showEmptyMessage();
                     Toast.makeText(this, text("خطا در دریافت تجربه‌ها"), Toast.LENGTH_SHORT).show();
                     Log.w("ExperiencesOffline", "No cached feed available", cacheError);
                 });
     }
 
-    private void displayExperienceSnapshot(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots) {
-        finishRefreshTask();
-        if (!refreshBatchActive) {
-            isPullRefreshing = false;
-            if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
-        }
-        feedLayout.removeAllViews();
-        displayedExperienceKeys.clear();
+    private void loadMoreExperiences() {
+        if (isLoadingMoreExperiences || !hasMoreExperiences
+                || lastExperienceDocument == null || db == null) return;
 
-        if (queryDocumentSnapshots == null || queryDocumentSnapshots.isEmpty()) {
-            showEmptyMessage();
+        isLoadingMoreExperiences = true;
+        final int generation = experienceFeedGeneration;
+        if (loadMoreExperiencesButton != null) {
+            loadMoreExperiencesButton.setEnabled(false);
+            loadMoreExperiencesButton.setText(text("در حال بارگذاری…"));
+        }
+
+        db.collection("experiences")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .startAfter(lastExperienceDocument)
+                .limit(EXPERIENCE_PAGE_SIZE)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (generation != experienceFeedGeneration || isFinishing()) return;
+                    isLoadingMoreExperiences = false;
+                    displayExperienceSnapshot(snapshot, true);
+                })
+                .addOnFailureListener(networkError -> {
+                    if (generation != experienceFeedGeneration || isFinishing()) return;
+                    // هنگام آفلاین‌شدن، صفحهٔ بعدی فقط از کش محلی درخواست می‌شود.
+                    db.collection("experiences")
+                            .orderBy("timestamp", Query.Direction.DESCENDING)
+                            .startAfter(lastExperienceDocument)
+                            .limit(EXPERIENCE_PAGE_SIZE)
+                            .get(Source.CACHE)
+                            .addOnSuccessListener(cached -> {
+                                if (generation != experienceFeedGeneration || isFinishing()) return;
+                                isLoadingMoreExperiences = false;
+                                if (cached != null && !cached.isEmpty()) {
+                                    displayExperienceSnapshot(cached, true);
+                                } else {
+                                    updateLoadMoreExperiencesButton();
+                                    Toast.makeText(this, text("برای دریافت تجربه‌های بیشتر اتصال اینترنت لازم است."), Toast.LENGTH_SHORT).show();
+                                }
+                            })
+                            .addOnFailureListener(cacheError -> {
+                                if (generation != experienceFeedGeneration || isFinishing()) return;
+                                isLoadingMoreExperiences = false;
+                                updateLoadMoreExperiencesButton();
+                                Log.w("ExperiencesFeed", "Could not load next cached page", cacheError);
+                                Toast.makeText(this, text("بارگذاری تجربه‌های بیشتر ناموفق بود."), Toast.LENGTH_SHORT).show();
+                            });
+                });
+    }
+
+    private void displayExperienceSnapshot(
+            com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots,
+            boolean append
+    ) {
+        if (!append) {
+            finishRefreshTask();
+            if (!refreshBatchActive) {
+                isPullRefreshing = false;
+                if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
+            }
+            feedLayout.removeAllViews();
+            displayedExperienceKeys.clear();
+        }
+
+        if (queryDocumentSnapshots == null) {
+            updateLoadMoreExperiencesButton();
             return;
         }
+
+        if (!queryDocumentSnapshots.isEmpty()) {
+            lastExperienceDocument = queryDocumentSnapshots.getDocuments()
+                    .get(queryDocumentSnapshots.size() - 1);
+        }
+        hasMoreExperiences = queryDocumentSnapshots.size() >= EXPERIENCE_PAGE_SIZE;
 
         FirebaseUser currentUser = auth.getCurrentUser();
         String currentUserId = currentUser == null ? null : currentUser.getUid();
@@ -2582,7 +2759,39 @@ public class ExperienceListActivity extends Activity {
             createExperienceCard(document, currentUserId);
             displayedCount++;
         }
-        if (displayedCount == 0) showEmptyMessage();
+
+        if (displayedExperienceKeys.isEmpty()) {
+            if (!append) showEmptyMessage();
+        } else if (displayedCount == 0 && append) {
+            Log.d("ExperiencesFeed", "Page contained only already displayed experience keys");
+        }
+        updateLoadMoreExperiencesButton();
+    }
+
+    private void updateLoadMoreExperiencesButton() {
+        removeLoadMoreExperiencesButton();
+        if (!hasMoreExperiences || feedLayout == null || displayedExperienceKeys.isEmpty()) return;
+
+        loadMoreExperiencesButton = new Button(this);
+        loadMoreExperiencesButton.setAllCaps(false);
+        loadMoreExperiencesButton.setText(isLoadingMoreExperiences
+                ? text("در حال بارگذاری…") : text("بارگذاری تجربه‌های بیشتر"));
+        loadMoreExperiencesButton.setTextSize(14);
+        loadMoreExperiencesButton.setTextColor(themeAccentColor());
+        loadMoreExperiencesButton.setOnClickListener(v -> loadMoreExperiences());
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+        params.setMargins(dp(8), dp(12), dp(8), dp(18));
+        feedLayout.addView(loadMoreExperiencesButton, params);
+    }
+
+    private void removeLoadMoreExperiencesButton() {
+        if (loadMoreExperiencesButton != null) {
+            if (loadMoreExperiencesButton.getParent() instanceof ViewGroup) {
+                ((ViewGroup) loadMoreExperiencesButton.getParent()).removeView(loadMoreExperiencesButton);
+            }
+            loadMoreExperiencesButton = null;
+        }
     }
 
     private String getExperienceUniqueKey(
@@ -2856,9 +3065,7 @@ public class ExperienceListActivity extends Activity {
 
         empty.setTextSize(18);
 
-        empty.setTextColor(
-                Color.rgb(80, 90, 95)
-        );
+        empty.setTextColor(secondaryTextColor());
 
         empty.setTypeface(
                 Typeface.create(
@@ -2939,18 +3146,13 @@ public class ExperienceListActivity extends Activity {
         GradientDrawable cardBackground =
                 new GradientDrawable();
 
-        cardBackground.setColor(
-                Color.WHITE
-        );
+        cardBackground.setColor(cardSurfaceColor());
 
         cardBackground.setCornerRadius(
                 dp(16)
         );
 
-        cardBackground.setStroke(
-                dp(1),
-                Color.rgb(220, 235, 239)
-        );
+        cardBackground.setStroke(dp(1), themeBorderColor());
 
         card.setBackground(
                 cardBackground
@@ -3011,18 +3213,13 @@ public class ExperienceListActivity extends Activity {
         GradientDrawable imageBackground =
                 new GradientDrawable();
 
-        imageBackground.setColor(
-                Color.rgb(224, 241, 246)
-        );
+        imageBackground.setColor(cardSurfaceColor());
 
         imageBackground.setShape(
                 GradientDrawable.OVAL
         );
 
-        imageBackground.setStroke(
-                dp(2),
-                Color.rgb(205, 228, 234)
-        );
+        imageBackground.setStroke(dp(2), themeBorderColor());
 
         profileImage.setBackground(
                 imageBackground
@@ -3044,9 +3241,7 @@ public class ExperienceListActivity extends Activity {
 
         authorName.setTextSize(16);
 
-        authorName.setTextColor(
-                Color.rgb(8, 65, 90)
-        );
+        authorName.setTextColor(primaryTextColor());
 
         authorName.setTypeface(
                 Typeface.create(
@@ -3117,9 +3312,7 @@ public class ExperienceListActivity extends Activity {
         View separator =
                 new View(this);
 
-        separator.setBackgroundColor(
-                Color.rgb(235, 242, 244)
-        );
+        separator.setBackgroundColor(themeBorderColor());
 
         card.addView(
                 separator,
@@ -3142,9 +3335,7 @@ public class ExperienceListActivity extends Activity {
 
         experienceTitleView.setTextSize(17);
 
-        experienceTitleView.setTextColor(
-                Color.rgb(7, 60, 82)
-        );
+        experienceTitleView.setTextColor(primaryTextColor());
 
         experienceTitleView.setTypeface(
                 Typeface.create(
@@ -3186,9 +3377,7 @@ public class ExperienceListActivity extends Activity {
 
         experience.setTextSize(15);
 
-        experience.setTextColor(
-                Color.rgb(45, 50, 53)
-        );
+        experience.setTextColor(primaryTextColor());
 
         experience.setTypeface(
                 Typeface.create(
@@ -3483,7 +3672,7 @@ public class ExperienceListActivity extends Activity {
 
         TextView likeCount = new TextView(this);
         likeCount.setText(text("۰")); likeCount.setTextSize(13);
-        likeCount.setTextColor(Color.rgb(105, 105, 105));
+        likeCount.setTextColor(secondaryTextColor());
         likeCount.setGravity(Gravity.CENTER_VERTICAL);
         likeCount.setPadding(dp(4), 0, dp(8), 0);
         likeRow.addView(likeCount, new LinearLayout.LayoutParams(dp(25), dp(36)));
@@ -3514,9 +3703,9 @@ public class ExperienceListActivity extends Activity {
             chooser.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
             chooser.setPadding(dp(16), dp(16), dp(16), dp(16));
             GradientDrawable chooserBg = new GradientDrawable();
-            chooserBg.setColor(Color.WHITE);
+            chooserBg.setColor(cardSurfaceColor());
             chooserBg.setCornerRadius(dp(22));
-            chooserBg.setStroke(dp(1), Color.rgb(225, 233, 240));
+            chooserBg.setStroke(dp(1), themeBorderColor());
             chooser.setBackground(chooserBg);
 
             TextView likeChoice = new TextView(ExperienceListActivity.this);
@@ -3574,9 +3763,7 @@ public class ExperienceListActivity extends Activity {
 
         dateTime.setTextSize(10);
 
-        dateTime.setTextColor(
-                Color.rgb(135, 145, 148)
-        );
+        dateTime.setTextColor(secondaryTextColor());
 
         dateTime.setGravity(
                 Gravity.CENTER_VERTICAL |
@@ -3616,7 +3803,7 @@ public class ExperienceListActivity extends Activity {
         commentsButton.setText(text("💬 کامنت"));
         commentsButton.setTextSize(14);
         commentsButton.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        commentsButton.setTextColor(Color.rgb(12, 91, 120));
+        commentsButton.setTextColor(themeAccentColor());
         commentsButton.setGravity(Gravity.CENTER);
         commentsButton.setPadding(dp(10), dp(8), dp(10), dp(8));
         commentsButton.setBackground(createReactionBackground(
@@ -3626,7 +3813,8 @@ public class ExperienceListActivity extends Activity {
         shareButtonCard.setText(text("↗ اشتراک‌گذاری"));
         shareButtonCard.setTextSize(14);
         shareButtonCard.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        shareButtonCard.setTextColor(Color.rgb(113, 83, 25));
+        shareButtonCard.setTextColor(isDarkThemePalette()
+                ? primaryTextColor() : Color.rgb(113, 83, 25));
         shareButtonCard.setGravity(Gravity.CENTER);
         shareButtonCard.setPadding(dp(10), dp(8), dp(10), dp(8));
         shareButtonCard.setBackground(createReactionBackground(
@@ -3728,7 +3916,7 @@ public class ExperienceListActivity extends Activity {
         TextView titleView = new TextView(this);
         titleView.setText(titleValue == null ? text("بدون عنوان") : titleValue);
         titleView.setTextSize(21);
-        titleView.setTextColor(Color.rgb(7, 60, 82));
+        titleView.setTextColor(primaryTextColor());
         titleView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         titleView.setGravity(Gravity.RIGHT);
         titleView.setPadding(0, dp(12), 0, dp(8));
@@ -3737,7 +3925,7 @@ public class ExperienceListActivity extends Activity {
         TextView bodyView = new TextView(this);
         bodyView.setText(bodyValue == null ? "" : bodyValue);
         bodyView.setTextSize(17);
-        bodyView.setTextColor(Color.rgb(45, 50, 53));
+        bodyView.setTextColor(primaryTextColor());
         bodyView.setGravity(Gravity.RIGHT);
         bodyView.setLineSpacing(dp(4), 1.08f);
         box.addView(bodyView);
@@ -3746,7 +3934,7 @@ public class ExperienceListActivity extends Activity {
             TextView dateView = new TextView(this);
             dateView.setText(dateValue);
             dateView.setTextSize(12);
-            dateView.setTextColor(Color.GRAY);
+            dateView.setTextColor(secondaryTextColor());
             dateView.setPadding(0, dp(12), 0, dp(4));
             box.addView(dateView);
         }
@@ -3793,7 +3981,7 @@ public class ExperienceListActivity extends Activity {
         }
         dialog.show();
         if (isOwner) {
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(Color.rgb(12, 91, 120));
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(themeAccentColor());
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.rgb(190, 45, 55));
         }
     }
@@ -4135,7 +4323,7 @@ public class ExperienceListActivity extends Activity {
                         String comment = d.getString("text");
                         TextView row = new TextView(this);
                         row.setText((comment == null ? "" : comment) + "\n");
-                        row.setTextSize(15); row.setTextColor(Color.rgb(45,50,53)); row.setGravity(Gravity.RIGHT);
+                        row.setTextSize(15); row.setTextColor(primaryTextColor()); row.setGravity(Gravity.RIGHT);
                         row.setPadding(0, dp(8), 0, dp(8));
                         list.addView(row);
                         if (uid != null) db.collection("users").document(uid).get().addOnSuccessListener(u -> {
@@ -4197,9 +4385,14 @@ public class ExperienceListActivity extends Activity {
 
     private GradientDrawable createReactionBackground(int fill, int stroke) {
         GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(fill);
+        if (isDarkThemePalette()) {
+            drawable.setColor(cardSurfaceColor());
+            drawable.setStroke(dp(1), themeBorderColor());
+        } else {
+            drawable.setColor(fill);
+            drawable.setStroke(dp(1), stroke);
+        }
         drawable.setCornerRadius(dp(18));
-        drawable.setStroke(dp(1), stroke);
         return drawable;
     }
 
@@ -4311,26 +4504,20 @@ public class ExperienceListActivity extends Activity {
                 );
 
         if (savedCount != null) {
-
-            likeCount.setText(
-                    formatCount(savedCount)
-            );
+            // likesCount is maintained transactionally by toggleLike().
+            // Trust this field instead of downloading every like document
+            // for every feed card.
+            likeCount.setText(formatCount(Math.max(0L, savedCount)));
+            return;
         }
 
+        // Compatibility fallback for older experiences created before
+        // likesCount was added to the experience document.
         experience.getReference()
                 .collection("likes")
                 .get()
-                .addOnSuccessListener(
-                        querySnapshot -> {
-
-                            long count =
-                                    querySnapshot.size();
-
-                            likeCount.setText(
-                                    formatCount(count)
-                            );
-                        }
-                );
+                .addOnSuccessListener(querySnapshot ->
+                        likeCount.setText(formatCount(querySnapshot.size())));
     }
 
     private void toggleLike(
@@ -4360,11 +4547,16 @@ public class ExperienceListActivity extends Activity {
             if (heartSnap.exists()) return "has_heart";
 
             Long savedCount = experienceSnap.getLong("likesCount");
+            // Older experiences may not have likesCount. In that case,
+            // preserve the legacy counter behavior rather than writing an
+            // incorrect count starting from zero.
             long count = savedCount == null ? 0L : Math.max(0L, savedCount);
 
             if (likeSnap.exists()) {
                 transaction.delete(likeRef);
-                transaction.update(experienceRef, "likesCount", Math.max(0L, count - 1L));
+                if (savedCount != null) {
+                    transaction.update(experienceRef, "likesCount", Math.max(0L, count - 1L));
+                }
                 return "removed";
             }
 
@@ -4372,7 +4564,9 @@ public class ExperienceListActivity extends Activity {
             data.put("userId", currentUserId);
             data.put("timestamp", FieldValue.serverTimestamp());
             transaction.set(likeRef, data);
-            transaction.update(experienceRef, "likesCount", count + 1L);
+            if (savedCount != null) {
+                transaction.update(experienceRef, "likesCount", count + 1L);
+            }
             return "added";
         }).addOnSuccessListener(result -> {
             if ("has_heart".equals(result)) {
@@ -4392,19 +4586,21 @@ public class ExperienceListActivity extends Activity {
             TextView likeCount
     ) {
 
-        experienceReference
-                .collection("likes")
-                .get()
-                .addOnSuccessListener(
-                        snapshot -> {
-
-                            likeCount.setText(
-                                    formatCount(
-                                            snapshot.size()
-                                    )
-                            );
-                        }
-                );
+        // Read the single experience document: toggleLike() updates
+        // likesCount in the same Firestore transaction as the like itself.
+        // This avoids downloading the complete likes subcollection after
+        // each tap. Keep the old-subcollection fallback for legacy records.
+        experienceReference.get()
+                .addOnSuccessListener(experienceSnapshot -> {
+                    Long savedCount = experienceSnapshot.getLong("likesCount");
+                    if (savedCount != null) {
+                        likeCount.setText(formatCount(Math.max(0L, savedCount)));
+                    } else {
+                        experienceReference.collection("likes").get()
+                                .addOnSuccessListener(snapshot ->
+                                        likeCount.setText(formatCount(snapshot.size())));
+                    }
+                });
     }
 
     private String formatCount(long count) {
@@ -4765,9 +4961,9 @@ public class ExperienceListActivity extends Activity {
             ImageView avatar = new ImageView(this);
             avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
             GradientDrawable avatarBg = new GradientDrawable();
-            avatarBg.setColor(Color.rgb(230, 241, 245));
+            avatarBg.setColor(cardSurfaceColor());
             avatarBg.setShape(GradientDrawable.OVAL);
-            avatarBg.setStroke(dp(2), Color.rgb(12, 91, 120));
+            avatarBg.setStroke(dp(2), themeBorderColor());
             avatar.setBackground(avatarBg);
             avatar.setClipToOutline(true);
             panel.addView(avatar, new LinearLayout.LayoutParams(dp(112), dp(112)));
@@ -4778,7 +4974,7 @@ public class ExperienceListActivity extends Activity {
             nameView.setText(name);
             nameView.setTextSize(21);
             nameView.setTypeface(null, Typeface.BOLD);
-            nameView.setTextColor(Color.rgb(8, 35, 45));
+            nameView.setTextColor(primaryTextColor());
             nameView.setGravity(Gravity.CENTER);
             nameView.setPadding(0, dp(9), 0, dp(2));
             panel.addView(nameView, new LinearLayout.LayoutParams(-1, -2));
@@ -4786,7 +4982,7 @@ public class ExperienceListActivity extends Activity {
             TextView usernameView = new TextView(this);
             usernameView.setText(username.isEmpty() ? "@" + uid.substring(0, Math.min(8, uid.length())) : username);
             usernameView.setTextSize(14);
-            usernameView.setTextColor(Color.rgb(125, 130, 135));
+            usernameView.setTextColor(secondaryTextColor());
             usernameView.setGravity(Gravity.CENTER);
             panel.addView(usernameView, new LinearLayout.LayoutParams(-1, -2));
 
@@ -4841,7 +5037,7 @@ public class ExperienceListActivity extends Activity {
                 reactions.setOnClickListener(v -> showMyReceivedReactions(uid));
                 TextView photoNote = new TextView(this);
                 photoNote.setText(text("برای تغییر عکس پروفایل، بخش عکس حساب را باز کنید."));
-                photoNote.setTextSize(12); photoNote.setTextColor(Color.GRAY);
+                photoNote.setTextSize(12); photoNote.setTextColor(secondaryTextColor());
                 panel.addView(photoNote);
             }
             AlertDialog profileDialog = new AlertDialog.Builder(this)
@@ -5019,7 +5215,7 @@ public class ExperienceListActivity extends Activity {
         TextView view = new TextView(this);
         view.setText(count + "\n" + label);
         view.setTextSize(13);
-        view.setTextColor(Color.rgb(75, 80, 85));
+        view.setTextColor(primaryTextColor());
         view.setGravity(Gravity.CENTER);
         view.setPadding(dp(5), dp(5), dp(5), dp(5));
         return view;
@@ -5110,7 +5306,7 @@ public class ExperienceListActivity extends Activity {
         TextView detail = new TextView(this);
         detail.setText(label + ": " + value);
         detail.setTextSize(15);
-        detail.setTextColor(Color.rgb(55, 65, 70));
+        detail.setTextColor(primaryTextColor());
         detail.setGravity(Gravity.RIGHT);
         detail.setPadding(dp(4), dp(7), dp(4), dp(7));
         panel.addView(detail, new LinearLayout.LayoutParams(-1, -2));
