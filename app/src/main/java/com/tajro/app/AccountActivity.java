@@ -6,10 +6,11 @@ import android.os.Bundle;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.text.InputType;
-import android.text.method.PasswordTransformationMethod;
+import android.text.method.TransformationMethod;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -516,7 +517,7 @@ public class AccountActivity extends Activity {
         );
 
         passwordInput.setTransformationMethod(
-                PasswordTransformationMethod.getInstance()
+                new AlwaysMaskedPasswordTransformationMethod()
         );
 
         layout.addView(passwordInput);
@@ -2384,22 +2385,15 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
     // کارت سفید/تیره هماهنگ با حالت روز و شب
     private GradientDrawable createCardBackground() {
         GradientDrawable background = new GradientDrawable();
-        int cardColor = ThemeManager.isNightMode(this)
-                ? Color.rgb(45, 52, 60)
-                : Color.rgb(248, 249, 252);
-        background.setColor(cardColor);
+        background.setColor(ThemeManager.getSurfaceColor(this));
         background.setCornerRadius(dp(22));
-        background.setStroke(dp(1), ThemeManager.isNightMode(this)
-                ? Color.rgb(65, 74, 84)
-                : Color.rgb(225, 230, 236));
+        background.setStroke(dp(1), ThemeManager.getBorderColor(this));
         return background;
     }
 
     private void styleInputField(EditText field) {
         field.setTextColor(ThemeManager.getNormalTextColor(this));
-        field.setHintTextColor(ThemeManager.isNightMode(this)
-                ? Color.rgb(175, 184, 192)
-                : Color.rgb(115, 124, 134));
+        field.setHintTextColor(ThemeManager.getHintTextColor(this));
         field.setTextSize(16);
         field.setSingleLine(true);
         field.setPadding(dp(16), dp(14), dp(16), dp(14));
@@ -2447,27 +2441,65 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
         @Override public int getIntrinsicHeight() { return 24; }
     }
 
+    // همه نویسه‌ها از همان لحظه ورود مخفی می‌شوند؛ آخرین رقم نیز آشکار نمی‌شود.
+    private static class AlwaysMaskedPasswordTransformationMethod
+            implements TransformationMethod {
+
+        @Override
+        public CharSequence getTransformation(CharSequence source, android.view.View view) {
+            if (source == null) return "";
+            return new CharSequence() {
+                @Override public int length() {
+                    return source.length();
+                }
+
+                @Override public char charAt(int index) {
+                    return '•';
+                }
+
+                @Override public CharSequence subSequence(int start, int end) {
+                    StringBuilder masked = new StringBuilder(end - start);
+                    for (int i = start; i < end; i++) masked.append('•');
+                    return masked.toString();
+                }
+
+                @Override public String toString() {
+                    StringBuilder masked = new StringBuilder(source.length());
+                    for (int i = 0; i < source.length(); i++) masked.append('•');
+                    return masked.toString();
+                }
+            };
+        }
+
+        @Override
+        public void onFocusChanged(android.view.View view, CharSequence sourceText,
+                                   boolean focused, int direction, Rect previouslyFocusedRect) {
+            // هنگام تغییر فوکوس نیز رمز مخفی باقی می‌ماند.
+        }
+    }
+
+    // نمایش رمز فقط با لمس عمدی آیکن چشم فعال می‌شود.
     private void attachPasswordEye(EditText field) {
         final boolean[] visible = {false};
-        final int hiddenInputType = field.getInputType();
         field.setCompoundDrawablePadding(dp(8));
-        field.setCompoundDrawablesWithIntrinsicBounds(null, null, new PasswordEyeDrawable(false), null);
+        field.setCompoundDrawablesWithIntrinsicBounds(
+                null, null, new PasswordEyeDrawable(false), null);
+
         field.setOnTouchListener((view, event) -> {
             if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
                 android.graphics.drawable.Drawable eye = field.getCompoundDrawables()[2];
-                if (eye != null && event.getX() >= field.getWidth() - field.getPaddingRight() - eye.getBounds().width() - dp(8)) {
+                if (eye != null && event.getX() >= field.getWidth()
+                        - field.getPaddingRight() - eye.getBounds().width() - dp(8)) {
                     int cursor = field.getSelectionStart();
                     visible[0] = !visible[0];
-                    if (visible[0]) {
-                        field.setTransformationMethod(null);
-                    } else {
-                        field.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
-                    }
-                    field.setInputType(hiddenInputType);
-                    if (visible[0]) field.setTransformationMethod(null);
-                    else field.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
+
+                    field.setTransformationMethod(visible[0]
+                            ? null
+                            : new AlwaysMaskedPasswordTransformationMethod());
+
                     field.setSelection(Math.max(0, Math.min(cursor, field.length())));
-                    field.setCompoundDrawablesWithIntrinsicBounds(null, null, new PasswordEyeDrawable(visible[0]), null);
+                    field.setCompoundDrawablesWithIntrinsicBounds(
+                            null, null, new PasswordEyeDrawable(visible[0]), null);
                     field.performClick();
                     return true;
                 }
