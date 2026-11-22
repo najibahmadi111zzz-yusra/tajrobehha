@@ -138,6 +138,9 @@ public class ChatActivity extends Activity {
     private ListenerRegistration blockListener;
     private ListenerRegistration reverseBlockListener;
     private ListenerRegistration unreadMessagesListener;
+    private ListenerRegistration unreadNullMessagesListener;
+    private final Map<String, DocumentSnapshot> unreadFalseDocuments = new HashMap<>();
+    private final Map<String, DocumentSnapshot> unreadNullDocuments = new HashMap<>();
     private final Map<String, Integer> unreadCounts = new HashMap<>();
     private String pendingNotificationMessageId;
 
@@ -213,6 +216,8 @@ public class ChatActivity extends Activity {
     private String pendingSaveName = "tajrobehha.jpg";
 
     private String appliedLanguage;
+    private int appliedThemeColor;
+    private boolean appliedNightMode;
 
     private interface SupabaseUploadCallback {
         void onSuccess(String publicUrl);
@@ -232,6 +237,8 @@ public class ChatActivity extends Activity {
 
         appliedLanguage =
                 LanguageManager.getLanguage(this);
+        appliedThemeColor = ThemeManager.getThemeColor(this);
+        appliedNightMode = ThemeManager.isNightMode(this);
 
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
@@ -274,6 +281,61 @@ public class ChatActivity extends Activity {
     }
 
 
+
+    // رنگ‌های صفحه چت از همان تنظیمات عمومی برنامه خوانده می‌شوند.
+    private int chatAccentColor() {
+        return ThemeManager.getThemeColor(this);
+    }
+
+    private int chatBackgroundColor() {
+        return ThemeManager.getBackgroundColor(this);
+    }
+
+    private int chatSurfaceColor() {
+        return ThemeManager.getSurfaceColor(this);
+    }
+
+    private int chatBorderColor() {
+        return ThemeManager.getBorderColor(this);
+    }
+
+    private int chatMainTextColor() {
+        return ThemeManager.getTextColor(this);
+    }
+
+    private int chatSecondaryTextColor() {
+        return ThemeManager.getNormalTextColor(this);
+    }
+
+    private int chatHeaderStartColor() {
+        if (ThemeManager.isNightMode(this)) {
+            return Color.rgb(20, 34, 53);
+        }
+        return darkenChatColor(chatAccentColor(), 0.78f);
+    }
+
+    private int chatHeaderEndColor() {
+        if (ThemeManager.isNightMode(this)) {
+            return Color.rgb(29, 53, 77);
+        }
+        return darkenChatColor(chatAccentColor(), 0.92f);
+    }
+
+    private int darkenChatColor(int color, float factor) {
+        return Color.rgb(
+                Math.max(0, Math.min(255, Math.round(Color.red(color) * factor))),
+                Math.max(0, Math.min(255, Math.round(Color.green(color) * factor))),
+                Math.max(0, Math.min(255, Math.round(Color.blue(color) * factor)))
+        );
+    }
+
+    private int chatAccentTextColor() {
+        int color = chatAccentColor();
+        double luminance = (0.299 * Color.red(color)
+                + 0.587 * Color.green(color)
+                + 0.114 * Color.blue(color)) / 255.0;
+        return luminance > 0.62 ? Color.rgb(18, 31, 48) : Color.WHITE;
+    }
 
     private String tr(String fa) {
         String lang = LanguageManager.getLanguage(this);
@@ -1269,8 +1331,7 @@ public class ChatActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        // تم تیره حرفه‌ای برای فهرست گفتگوها
-        root.setBackgroundColor(Color.rgb(10, 15, 24));
+        root.setBackgroundColor(chatBackgroundColor());
 
         LinearLayout header =
                 new LinearLayout(this);
@@ -1286,7 +1347,7 @@ public class ChatActivity extends Activity {
                 dp(8)
         );
 
-        header.setBackgroundColor(Color.rgb(18, 29, 45));
+        header.setBackgroundColor(chatHeaderStartColor());
 
         myHeaderProfileButton =
                 new ImageButton(this);
@@ -1428,6 +1489,7 @@ titleText =
         refresh.setImageResource(
                 android.R.drawable.ic_popup_sync
         );
+        refresh.setColorFilter(Color.WHITE);
 
         refresh.setBackgroundColor(
                 Color.TRANSPARENT
@@ -1460,7 +1522,7 @@ titleText =
         usersContainer.setPadding(
                 dp(10), dp(8), dp(10), dp(16)
         );
-        usersContainer.setBackgroundColor(Color.rgb(10, 15, 24));
+        usersContainer.setBackgroundColor(chatBackgroundColor());
 
         scroll.addView(usersContainer);
 
@@ -1763,31 +1825,65 @@ titleText =
             unreadMessagesListener.remove();
             unreadMessagesListener = null;
         }
+        if (unreadNullMessagesListener != null) {
+            unreadNullMessagesListener.remove();
+            unreadNullMessagesListener = null;
+        }
+        unreadFalseDocuments.clear();
+        unreadNullDocuments.clear();
+
+        // Observe only unread records instead of downloading the user's full message
+        // history. The second query preserves older records whose read value is null.
         unreadMessagesListener = db.collection("messages")
                 .whereEqualTo("receiverId", myId)
+                .whereEqualTo("read", false)
                 .addSnapshotListener((snapshot, error) -> {
                     if (error != null || snapshot == null) {
                         Log.w("ChatUnread", "Unread message listener failed", error);
                         return;
                     }
-                    Map<String, Integer> counts = new HashMap<>();
-                    for (DocumentSnapshot d : snapshot.getDocuments()) {
-                        if (Boolean.TRUE.equals(d.getBoolean("read"))
-                                || Boolean.TRUE.equals(d.getBoolean("deletedForAll"))) {
-                            continue;
-                        }
-                        List<String> deletedFor = (List<String>) d.get("deletedFor");
-                        if (deletedFor != null && deletedFor.contains(myId)) continue;
-                        String sender = d.getString("senderId");
-                        if (sender != null && !sender.equals(myId)) {
-                            Integer old = counts.get(sender);
-                            counts.put(sender, old == null ? 1 : old + 1);
-                        }
+                    unreadFalseDocuments.clear();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        unreadFalseDocuments.put(document.getId(), document);
                     }
-                    unreadCounts.clear();
-                    unreadCounts.putAll(counts);
-                    if (!insideChat && usersContainer != null) loadUsers();
+                    refreshUnreadCounts();
                 });
+
+        unreadNullMessagesListener = db.collection("messages")
+                .whereEqualTo("receiverId", myId)
+                .whereEqualTo("read", null)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null || snapshot == null) {
+                        Log.w("ChatUnread", "Legacy unread message listener failed", error);
+                        return;
+                    }
+                    unreadNullDocuments.clear();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        unreadNullDocuments.put(document.getId(), document);
+                    }
+                    refreshUnreadCounts();
+                });
+    }
+
+    private void refreshUnreadCounts() {
+        Map<String, DocumentSnapshot> allUnread = new HashMap<>();
+        allUnread.putAll(unreadFalseDocuments);
+        allUnread.putAll(unreadNullDocuments);
+        Map<String, Integer> counts = new HashMap<>();
+        for (DocumentSnapshot document : allUnread.values()) {
+            if (Boolean.TRUE.equals(document.getBoolean("deletedForAll"))) continue;
+            Object deletedForValue = document.get("deletedFor");
+            if (deletedForValue instanceof List
+                    && ((List<?>) deletedForValue).contains(myId)) continue;
+            String sender = document.getString("senderId");
+            if (sender != null && !sender.equals(myId)) {
+                Integer old = counts.get(sender);
+                counts.put(sender, old == null ? 1 : old + 1);
+            }
+        }
+        unreadCounts.clear();
+        unreadCounts.putAll(counts);
+        if (!insideChat && usersContainer != null) loadUsers();
     }
 
     private void openNotificationMessage(Intent intent) {
@@ -2048,9 +2144,9 @@ titleText =
 
     private void addMessageDateLabel(LinearLayout item, String label) {
         TextView dateLabel = text(label, 12);
-        dateLabel.setTextColor(Color.WHITE);
+        dateLabel.setTextColor(chatAccentTextColor());
         dateLabel.setGravity(Gravity.CENTER);
-        dateLabel.setBackground(bg(Color.rgb(75, 90, 110), 20));
+        dateLabel.setBackground(bg(chatAccentColor(), 20));
         dateLabel.setPadding(dp(12), dp(4), dp(12), dp(4));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2063,7 +2159,7 @@ titleText =
         String time = formatMessageTime(timestamp);
         if (time.isEmpty()) return;
         TextView timeLabel = text(time, 11);
-        timeLabel.setTextColor(Color.GRAY);
+        timeLabel.setTextColor(chatSecondaryTextColor());
         timeLabel.setGravity(Gravity.CENTER);
         timeLabel.setPadding(dp(5), 0, dp(5), dp(2));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -2142,9 +2238,9 @@ titleText =
         );
 
         GradientDrawable userCardBackground = new GradientDrawable();
-        userCardBackground.setColor(Color.rgb(24, 35, 51));
+        userCardBackground.setColor(chatSurfaceColor());
         userCardBackground.setCornerRadius(dp(17));
-        userCardBackground.setStroke(dp(1), Color.rgb(43, 59, 79));
+        userCardBackground.setStroke(dp(1), chatBorderColor());
         card.setBackground(userCardBackground);
         card.setElevation(dp(2));
 
@@ -2207,7 +2303,7 @@ titleText =
                 );
 
         nameText.setTypeface(null, Typeface.BOLD);
-        nameText.setTextColor(Color.rgb(239, 244, 250));
+        nameText.setTextColor(chatMainTextColor());
 
         LinearLayout statusRow =
                 new LinearLayout(this);
@@ -2240,7 +2336,7 @@ titleText =
             userStatusText = " " + formatLastSeen(lastSeen);
         }
         TextView status = text(userStatusText, 12);
-        status.setTextColor(Color.rgb(157, 173, 193));
+        status.setTextColor(chatSecondaryTextColor());
 
         if (finalBlockedUser) {
             dot.setText("🚫");
@@ -2927,8 +3023,7 @@ receiverPhotoUrl = photoUrl;
                 LinearLayout.VERTICAL
         );
 
-        // Near-white conversation canvas, matching the requested premium assistant style.
-        root.setBackgroundColor(Color.rgb(248, 251, 253));
+        root.setBackgroundColor(chatBackgroundColor());
 
         LinearLayout header =
                 new LinearLayout(this);
@@ -2946,7 +3041,7 @@ receiverPhotoUrl = photoUrl;
 
         GradientDrawable headerBackground = new GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{Color.rgb(5, 48, 72), Color.rgb(8, 83, 108)}
+                new int[]{chatHeaderStartColor(), chatHeaderEndColor()}
         );
         header.setBackground(headerBackground);
 
@@ -2956,6 +3051,7 @@ receiverPhotoUrl = photoUrl;
         back.setImageResource(
                 android.R.drawable.ic_media_previous
         );
+        back.setColorFilter(Color.WHITE);
 
         back.setBackgroundColor(
                 Color.TRANSPARENT
@@ -3124,7 +3220,7 @@ header.addView(chatMenu,
                 dp(10),
                 dp(8)
         );
-        bottom.setBackgroundColor(Color.rgb(18, 29, 45));
+        bottom.setBackgroundColor(chatSurfaceColor());
         bottom.setElevation(dp(5));
 
         mediaButton =
@@ -3134,9 +3230,11 @@ header.addView(chatMenu,
                 android.R.drawable.ic_menu_gallery
         );
 
-        mediaButton.setBackground(bg(Color.rgb(31, 45, 63), 18));
+        GradientDrawable mediaButtonBackground = bg(chatSurfaceColor(), 18);
+        mediaButtonBackground.setStroke(dp(1), chatBorderColor());
+        mediaButton.setBackground(mediaButtonBackground);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mediaButton.setImageTintList(android.content.res.ColorStateList.valueOf(Color.rgb(8, 65, 91)));
+            mediaButton.setImageTintList(android.content.res.ColorStateList.valueOf(chatAccentColor()));
         }
 
         mediaButton.setPadding(
@@ -3167,11 +3265,11 @@ header.addView(chatMenu,
 
         messageInput.setTextSize(15);
         messageInput.setSingleLine(false);
-        messageInput.setTextColor(Color.rgb(35, 53, 64));
-        messageInput.setHintTextColor(Color.rgb(137, 151, 160));
+        messageInput.setTextColor(chatMainTextColor());
+        messageInput.setHintTextColor(ThemeManager.getHintTextColor(this));
         messageInput.setPadding(dp(16), dp(11), dp(16), dp(11));
-        GradientDrawable inputBackground = bg(Color.rgb(249, 252, 253), 28);
-        inputBackground.setStroke(dp(1), Color.rgb(210, 229, 235));
+        GradientDrawable inputBackground = bg(chatSurfaceColor(), 28);
+        inputBackground.setStroke(dp(1), chatBorderColor());
         messageInput.setBackground(inputBackground);
 
         bottom.addView(
@@ -3190,9 +3288,11 @@ header.addView(chatMenu,
                 android.R.drawable.ic_btn_speak_now
         );
 
-        voiceButton.setBackground(bg(Color.rgb(239, 247, 249), 18));
+        GradientDrawable voiceButtonBackground = bg(chatSurfaceColor(), 18);
+        voiceButtonBackground.setStroke(dp(1), chatBorderColor());
+        voiceButton.setBackground(voiceButtonBackground);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            voiceButton.setImageTintList(android.content.res.ColorStateList.valueOf(Color.rgb(8, 65, 91)));
+            voiceButton.setImageTintList(android.content.res.ColorStateList.valueOf(chatAccentColor()));
         }
 
         voiceButton.setPadding(
@@ -3209,7 +3309,7 @@ header.addView(chatMenu,
         recordingStatusText = new TextView(this);
         recordingStatusText.setText("00:00");
         recordingStatusText.setTextSize(11);
-        recordingStatusText.setTextColor(Color.rgb(8, 65, 91));
+        recordingStatusText.setTextColor(chatSecondaryTextColor());
         recordingStatusText.setGravity(Gravity.CENTER);
         recordingStatusText.setVisibility(View.GONE);
         bottom.addView(recordingStatusText, new LinearLayout.LayoutParams(dp(42), dp(48)));
@@ -3231,7 +3331,7 @@ header.addView(chatMenu,
 
         GradientDrawable sendBackground = new GradientDrawable();
         sendBackground.setShape(GradientDrawable.OVAL);
-        sendBackground.setColor(Color.rgb(5, 55, 79));
+        sendBackground.setColor(chatAccentColor());
         sendButton.setBackground(sendBackground);
         sendButton.setPadding(dp(13), dp(13), dp(13), dp(13));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -3799,16 +3899,14 @@ header.addView(chatMenu,
             );
         }
 
-        // هر دو نوع پیام در زمینه تیره چت باید خوانا باشند.
-        // فقط رنگ متن پیام دریافتی از تیره به سفید تغییر کرده است.
-        bubble.setTextColor(Color.WHITE);
+        bubble.setTextColor(mine ? chatAccentTextColor() : chatMainTextColor());
 
         GradientDrawable bubbleBackground = bg(
-                mine ? Color.rgb(8, 65, 91) : Color.rgb(34, 46, 63),
+                mine ? chatAccentColor() : chatSurfaceColor(),
                 18
         );
         if (!mine) {
-            bubbleBackground.setStroke(dp(1), Color.rgb(220, 233, 239));
+            bubbleBackground.setStroke(dp(1), chatBorderColor());
         }
         bubble.setBackground(bubbleBackground);
         bubble.setElevation(dp(1));
@@ -3881,7 +3979,7 @@ header.addView(chatMenu,
         );
 
         image.setBackground(
-                bg(Color.rgb(34, 46, 63), 14)
+                bg(chatSurfaceColor(), 14)
         );
 
         image.setPadding(
@@ -3895,7 +3993,7 @@ header.addView(chatMenu,
         // پس از دریافت فایل، فریم واقعی ویدیو به‌عنوان پیش‌نمایش قرار می‌گیرد.
         image.setTag(url);
         if (video) {
-            image.setBackground(bg(Color.rgb(32, 38, 46), 14));
+            image.setBackground(bg(chatSurfaceColor(), 14));
             image.setImageResource(android.R.drawable.ic_media_play);
             image.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
             image.setAlpha(1f);
@@ -3972,23 +4070,20 @@ header.addView(chatMenu,
         );
 
         play.setTextSize(14);
-        play.setTextColor(Color.WHITE);
         boolean mine =
                 myId.equals(sender);
 
-        // پیام ارسالی دقیقاً رنگ فعلی را نگه می‌دارد؛ دریافتی فقط کمی روشن‌تر است.
-        int audioBubbleColor = mine
-                ? Color.rgb(31, 45, 63)
-                : Color.rgb(43, 57, 73);
+        play.setTextColor(mine ? chatAccentTextColor() : chatMainTextColor());
+        int audioBubbleColor = mine ? chatAccentColor() : chatSurfaceColor();
         GradientDrawable audioButtonBackground = bg(audioBubbleColor, 16);
-        audioButtonBackground.setStroke(dp(1), Color.rgb(210, 229, 235));
+        audioButtonBackground.setStroke(dp(1), chatBorderColor());
         play.setBackground(audioButtonBackground);
         play.setAllCaps(false);
 
         TextView playbackStatus = new TextView(this);
         playbackStatus.setText("00:00 / --:--");
         playbackStatus.setTextSize(11);
-        playbackStatus.setTextColor(Color.WHITE);
+        playbackStatus.setTextColor(chatSecondaryTextColor());
         playbackStatus.setGravity(Gravity.CENTER);
 
         play.setOnClickListener(
@@ -6645,6 +6740,26 @@ private void showChatCachedImage(File file, ImageView imageView, Object expected
         if (appliedLanguage != null
                 && !currentLanguage.equals(appliedLanguage)) {
             recreate();
+            return;
+        }
+
+        int currentThemeColor = ThemeManager.getThemeColor(this);
+        boolean currentNightMode = ThemeManager.isNightMode(this);
+        if (currentThemeColor != appliedThemeColor
+                || currentNightMode != appliedNightMode) {
+            appliedThemeColor = currentThemeColor;
+            appliedNightMode = currentNightMode;
+
+            if (insideChat && receiverId != null) {
+                // Keep the active chat and its listeners; rebuild only its visual views.
+                messageViews.clear();
+                dirtyMessageIds.clear();
+                createChatScreen(receiverPhotoUrl);
+                renderMessages();
+            } else {
+                createUsersScreen();
+                loadUsers();
+            }
         }
     }
 
@@ -6663,6 +6778,10 @@ private void showChatCachedImage(File file, ImageView imageView, Object expected
         if (unreadMessagesListener != null) {
             unreadMessagesListener.remove();
             unreadMessagesListener = null;
+        }
+        if (unreadNullMessagesListener != null) {
+            unreadNullMessagesListener.remove();
+            unreadNullMessagesListener = null;
         }
 
         try {
