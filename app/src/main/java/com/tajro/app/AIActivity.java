@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.view.ViewParent;
 import java.util.Locale;
+import java.util.ArrayList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -48,10 +49,54 @@ public class AIActivity extends Activity {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private boolean isSending = false;
 
-    private final int primary = Color.rgb(12, 91, 120);
-    private final int darkBlue = Color.rgb(5, 43, 70);
-    private final int background = Color.rgb(235, 248, 250);
-    private final int textColor = Color.rgb(28, 48, 62);
+    private int primary = Color.rgb(12, 91, 120);
+    private int darkBlue = Color.rgb(5, 43, 70);
+    private int background = Color.rgb(235, 248, 250);
+    private int textColor = Color.rgb(28, 48, 62);
+    private int surfaceColor = Color.WHITE;
+    private int inputColor = Color.rgb(248, 252, 255);
+    private int borderColor = Color.rgb(205, 231, 239);
+    private int secondaryTextColor = Color.rgb(10, 115, 153);
+    private int userBubbleStart = Color.rgb(202, 239, 250);
+    private int userBubbleEnd = Color.rgb(220, 246, 251);
+    private int assistantBubbleStart = Color.WHITE;
+    private int assistantBubbleEnd = Color.rgb(248, 253, 255);
+    private int appliedThemeColor;
+    private boolean appliedNightMode;
+
+    private void applyAssistantTheme() {
+        appliedThemeColor = ThemeManager.getThemeColor(this);
+        appliedNightMode = ThemeManager.isNightMode(this);
+        primary = appliedThemeColor;
+        darkBlue = Color.rgb(
+                (int) (Color.red(primary) * 0.48f),
+                (int) (Color.green(primary) * 0.48f),
+                (int) (Color.blue(primary) * 0.48f));
+
+        if (appliedNightMode) {
+            background = Color.rgb(18, 25, 33);
+            textColor = Color.rgb(235, 241, 247);
+            surfaceColor = Color.rgb(28, 38, 49);
+            inputColor = Color.rgb(37, 49, 62);
+            borderColor = Color.rgb(63, 81, 98);
+            secondaryTextColor = Color.rgb(157, 207, 226);
+            userBubbleStart = Color.rgb(34, 73, 91);
+            userBubbleEnd = Color.rgb(39, 83, 101);
+            assistantBubbleStart = Color.rgb(30, 42, 54);
+            assistantBubbleEnd = Color.rgb(35, 48, 61);
+        } else {
+            background = Color.rgb(235, 248, 250);
+            textColor = Color.rgb(28, 48, 62);
+            surfaceColor = Color.WHITE;
+            inputColor = Color.rgb(248, 252, 255);
+            borderColor = Color.rgb(205, 231, 239);
+            secondaryTextColor = Color.rgb(10, 115, 153);
+            userBubbleStart = Color.rgb(202, 239, 250);
+            userBubbleEnd = Color.rgb(220, 246, 251);
+            assistantBubbleStart = Color.WHITE;
+            assistantBubbleEnd = Color.rgb(248, 253, 255);
+        }
+    }
 
     private String languageCode() {
         return LanguageManager.getLanguage(this);
@@ -115,11 +160,12 @@ public class AIActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyAssistantTheme();
 
         getWindow().setStatusBarColor(darkBlue);
         getWindow().setNavigationBarColor(background);
         getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                appliedNightMode ? 0 : View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         );
 
         LinearLayout main = new LinearLayout(this);
@@ -149,8 +195,8 @@ public class AIActivity extends Activity {
         robotIcon.setTextColor(Color.WHITE);
         robotIcon.setGravity(Gravity.CENTER);
         robotIcon.setBackground(createBackground(
-                new int[]{Color.rgb(22, 151, 194), Color.rgb(22, 74, 151)},
-                Color.rgb(80, 220, 255), 50));
+                new int[]{primary, darkBlue},
+                appliedNightMode ? Color.rgb(100, 164, 190) : Color.rgb(80, 220, 255), 50));
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(52), dp(52));
         iconParams.setMargins(dp(8), 0, dp(12), 0);
         header.addView(robotIcon, iconParams);
@@ -205,7 +251,7 @@ public class AIActivity extends Activity {
         bottom.setOrientation(LinearLayout.HORIZONTAL);
         bottom.setGravity(Gravity.CENTER_VERTICAL);
         bottom.setPadding(dp(10), dp(9), dp(10), dp(10));
-        bottom.setBackgroundColor(Color.WHITE);
+        bottom.setBackgroundColor(surfaceColor);
 
         questionInput = new EditText(this);
         questionInput.setHint(tr("hint"));
@@ -215,15 +261,15 @@ public class AIActivity extends Activity {
         questionInput.setLayoutDirection(main.getLayoutDirection());
         questionInput.setTextSize(16);
         questionInput.setTextColor(textColor);
-        questionInput.setHintTextColor(Color.GRAY);
+        questionInput.setHintTextColor(appliedNightMode
+                ? Color.rgb(166, 180, 193) : Color.GRAY);
         questionInput.setPadding(dp(15), dp(10), dp(15), dp(10));
         questionInput.setMinHeight(dp(50));
         questionInput.setMaxLines(4);
         questionInput.setSingleLine(false);
         questionInput.setImeOptions(EditorInfo.IME_ACTION_SEND);
         questionInput.setBackground(createBackground(
-                new int[]{Color.rgb(248, 252, 255), Color.rgb(248, 252, 255)},
-                Color.rgb(205, 231, 239), 24));
+                new int[]{inputColor, inputColor}, borderColor, 24));
         bottom.addView(questionInput, new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
@@ -242,7 +288,30 @@ public class AIActivity extends Activity {
         main.addView(bottom);
 
         setContentView(main);
-        addMessage(false, getWelcomeMessage(), false);
+        if (savedInstanceState != null &&
+                savedInstanceState.containsKey("ai_messages")) {
+            ArrayList<String> savedMessages =
+                    savedInstanceState.getStringArrayList("ai_messages");
+            ArrayList<Boolean> savedSenders =
+                    savedInstanceState.getBooleanArrayList("ai_senders");
+            ArrayList<Boolean> savedCopyFlags =
+                    savedInstanceState.getBooleanArrayList("ai_copy_flags");
+            if (savedMessages != null && savedSenders != null &&
+                    savedCopyFlags != null && savedMessages.size() == savedSenders.size() &&
+                    savedMessages.size() == savedCopyFlags.size()) {
+                for (int i = 0; i < savedMessages.size(); i++) {
+                    addMessage(savedSenders.get(i), savedMessages.get(i),
+                            savedCopyFlags.get(i));
+                }
+            } else {
+                addMessage(false, getWelcomeMessage(), false);
+            }
+        } else {
+            addMessage(false, getWelcomeMessage(), false);
+        }
+        if (savedInstanceState != null) {
+            questionInput.setText(savedInstanceState.getString("ai_input", ""));
+        }
         sendButton.setOnClickListener(v -> sendQuestion());
         questionInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
@@ -431,6 +500,7 @@ public class AIActivity extends Activity {
         isSending = false;
         sendButton.setEnabled(true);
         sendButton.setAlpha(1f);
+        recreateIfThemeChanged();
     }
 
     private TextView addMessage(boolean isUser, String message, boolean allowCopy) {
@@ -447,9 +517,9 @@ public class AIActivity extends Activity {
         bubble.setPadding(dp(14), dp(12), dp(14), dp(10));
         bubble.setBackground(createBackground(
                 isUser
-                        ? new int[]{Color.rgb(202, 239, 250), Color.rgb(220, 246, 251)}
-                        : new int[]{Color.WHITE, Color.rgb(248, 253, 255)},
-                isUser ? Color.rgb(166, 225, 241) : Color.rgb(215, 234, 241), 20));
+                        ? new int[]{userBubbleStart, userBubbleEnd}
+                        : new int[]{assistantBubbleStart, assistantBubbleEnd},
+                borderColor, 20));
         LinearLayout.LayoutParams bubbleParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         bubbleParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -460,7 +530,7 @@ public class AIActivity extends Activity {
         sender.setText(isUser ? tr("you") : tr("assistant"));
         sender.setTextSize(13);
         sender.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        sender.setTextColor(isUser ? primary : Color.rgb(10, 115, 153));
+        sender.setTextColor(isUser ? primary : secondaryTextColor);
         sender.setGravity(Gravity.RIGHT);
         bubble.addView(sender);
 
@@ -484,7 +554,7 @@ public class AIActivity extends Activity {
             copyButton.setMinimumHeight(0);
             copyButton.setPadding(dp(10), dp(2), dp(10), dp(2));
             copyButton.setBackground(createBackground(
-                    new int[]{Color.WHITE, Color.WHITE}, Color.rgb(205, 231, 239), 18));
+                    new int[]{surfaceColor, surfaceColor}, borderColor, 18));
             LinearLayout.LayoutParams copyParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, dp(38));
             copyParams.gravity = Gravity.START;
@@ -511,6 +581,54 @@ public class AIActivity extends Activity {
                 ((ViewGroup) view.getParent()).removeView(view);
             }
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        ArrayList<String> savedMessages = new ArrayList<>();
+        ArrayList<Boolean> savedSenders = new ArrayList<>();
+        ArrayList<Boolean> savedCopyFlags = new ArrayList<>();
+        if (messagesLayout != null) {
+            for (int i = 0; i < messagesLayout.getChildCount(); i++) {
+                View wrapperView = messagesLayout.getChildAt(i);
+                if (!(wrapperView instanceof LinearLayout)) continue;
+                LinearLayout wrapper = (LinearLayout) wrapperView;
+                if (wrapper.getChildCount() == 0 ||
+                        !(wrapper.getChildAt(0) instanceof LinearLayout)) continue;
+                LinearLayout bubble = (LinearLayout) wrapper.getChildAt(0);
+                if (bubble.getChildCount() < 2 ||
+                        !(bubble.getChildAt(0) instanceof TextView) ||
+                        !(bubble.getChildAt(1) instanceof TextView)) continue;
+                TextView sender = (TextView) bubble.getChildAt(0);
+                TextView message = (TextView) bubble.getChildAt(1);
+                savedSenders.add(sender.getText().toString().equals(tr("you")));
+                savedMessages.add(message.getText().toString());
+                savedCopyFlags.add(bubble.getChildCount() > 2);
+            }
+        }
+        outState.putStringArrayList("ai_messages", savedMessages);
+        outState.putBooleanArrayList("ai_senders", savedSenders);
+        outState.putBooleanArrayList("ai_copy_flags", savedCopyFlags);
+        if (questionInput != null) {
+            outState.putString("ai_input", questionInput.getText().toString());
+        }
+    }
+
+    private void recreateIfThemeChanged() {
+        if (isSending) return;
+        int currentThemeColor = ThemeManager.getThemeColor(this);
+        boolean currentNightMode = ThemeManager.isNightMode(this);
+        if (appliedThemeColor != currentThemeColor ||
+                appliedNightMode != currentNightMode) {
+            recreate();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        recreateIfThemeChanged();
     }
 
     @Override
