@@ -15,6 +15,8 @@ public class ThemeManager {
     private static final String NIGHT_MODE =
             "night_mode";
 
+    private static final int DEFAULT_ACCENT = Color.rgb(36, 86, 166);
+
     // ==================================
     // رنگ انتخاب‌شده
     // ==================================
@@ -29,7 +31,7 @@ public class ThemeManager {
 
         return preferences.getInt(
                 THEME_COLOR,
-                Color.rgb(12, 91, 120)
+                DEFAULT_ACCENT
         );
     }
 
@@ -60,9 +62,9 @@ public class ThemeManager {
         if (isNightMode(context)) {
 
             return Color.rgb(
-                    25,
-                    30,
-                    35
+                    16,
+                    24,
+                    39
             );
 
         } else {
@@ -81,15 +83,15 @@ public class ThemeManager {
 
             red =
                     red +
-                    (255 - red) * 92 / 100;
+                    (255 - red) * 96 / 100;
 
             green =
                     green +
-                    (255 - green) * 92 / 100;
+                    (255 - green) * 96 / 100;
 
             blue =
                     blue +
-                    (255 - blue) * 92 / 100;
+                    (255 - blue) * 96 / 100;
 
             return Color.rgb(
                     red,
@@ -107,14 +109,14 @@ public class ThemeManager {
 
         if (isNightMode(context)) {
 
-            return Color.WHITE;
+            return Color.rgb(241, 245, 252);
 
         } else {
 
             return Color.rgb(
-                    8,
-                    65,
-                    90
+                    20,
+                    36,
+                    58
             );
         }
     }
@@ -128,14 +130,48 @@ public class ThemeManager {
         if (isNightMode(context)) {
 
             return Color.rgb(
-                    235,
-                    235,
-                    235
+                    183,
+                    196,
+                    214
             );
 
         } else {
 
-            return Color.DKGRAY;
+            return Color.rgb(83, 99, 120);
         }
     }
+
+    // ==========================================
+    // رنگ سطح کارت‌ها و ورودی‌ها
+    // ==========================================
+
+    public static int getSurfaceColor(Context context) {
+        if (isNightMode(context)) {
+            return Color.rgb(32, 45, 64); // #202D40
+        }
+        return Color.WHITE;
+    }
+
+    // ==========================================
+    // رنگ حاشیه کارت‌ها
+    // ==========================================
+
+    public static int getBorderColor(Context context) {
+        if (isNightMode(context)) {
+            return Color.rgb(52, 68, 91);
+        }
+        return Color.rgb(220, 228, 239);
+    }
+
+    // ==========================================
+    // رنگ متن راهنمای فیلدها
+    // ==========================================
+
+    public static int getHintTextColor(Context context) {
+        if (isNightMode(context)) {
+            return Color.rgb(157, 174, 197);
+        }
+        return Color.rgb(112, 128, 150);
+    }
+
 }
