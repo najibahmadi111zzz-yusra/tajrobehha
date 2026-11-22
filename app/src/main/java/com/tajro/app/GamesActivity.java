@@ -14,12 +14,18 @@ import android.widget.TextView;
 public class GamesActivity extends Activity {
 
     private int themeColor;
+    private boolean nightMode;
+    private int appliedThemeColor;
+    private boolean appliedNightMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         themeColor = ThemeManager.getThemeColor(this);
+        nightMode = ThemeManager.isNightMode(this);
+        appliedThemeColor = themeColor;
+        appliedNightMode = nightMode;
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -87,7 +93,9 @@ public class GamesActivity extends Activity {
                 "صُممت هذه الألعاب للترفيه.\nيمكن إضافة المزيد من المراحل مستقبلًا."
         ));
         info.setTextSize(16);
-        info.setTextColor(Color.rgb(48, 66, 76));
+        info.setTextColor(nightMode
+                ? Color.rgb(210, 220, 232)
+                : Color.rgb(48, 66, 76));
         info.setGravity(Gravity.CENTER);
         info.setLineSpacing(dp(5), 1.0f);
         info.setPadding(dp(4), dp(8), dp(4), 0);
@@ -150,7 +158,9 @@ public class GamesActivity extends Activity {
         TextView titleView = new TextView(this);
         titleView.setText(title);
         titleView.setTextSize(20);
-        titleView.setTextColor(Color.WHITE);
+        titleView.setTextColor(nightMode
+                ? Color.rgb(245, 248, 252)
+                : Color.WHITE);
         titleView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         titleView.setGravity(Gravity.CENTER_VERTICAL);
         textArea.addView(titleView);
@@ -158,7 +168,9 @@ public class GamesActivity extends Activity {
         TextView descriptionView = new TextView(this);
         descriptionView.setText(description);
         descriptionView.setTextSize(12);
-        descriptionView.setTextColor(Color.rgb(225, 246, 250));
+        descriptionView.setTextColor(nightMode
+                ? Color.rgb(205, 216, 230)
+                : Color.rgb(225, 246, 250));
         descriptionView.setGravity(Gravity.CENTER_VERTICAL);
         descriptionView.setPadding(0, dp(5), 0, 0);
         textArea.addView(descriptionView);
@@ -188,16 +200,29 @@ public class GamesActivity extends Activity {
                         darken(themeColor, 18)
                 }
         );
+        if (nightMode) {
+            background.setColors(new int[]{
+                    blend(Color.rgb(35, 46, 62), themeColor, 0.28f),
+                    Color.rgb(27, 37, 51),
+                    Color.rgb(22, 30, 42)
+            });
+        }
         background.setCornerRadius(dp(25));
-        background.setStroke(dp(2), Color.rgb(104, 218, 235));
+        background.setStroke(dp(2), nightMode
+                ? themeColor
+                : Color.rgb(104, 218, 235));
         return background;
     }
 
     private GradientDrawable createIconBackground() {
         GradientDrawable background = new GradientDrawable();
         background.setShape(GradientDrawable.OVAL);
-        background.setColor(Color.rgb(235, 250, 252));
-        background.setStroke(dp(2), Color.rgb(95, 211, 230));
+        background.setColor(nightMode
+                ? Color.rgb(39, 52, 69)
+                : Color.rgb(235, 250, 252));
+        background.setStroke(dp(2), nightMode
+                ? lighten(themeColor, 25)
+                : Color.rgb(95, 211, 230));
         return background;
     }
 
@@ -253,6 +278,10 @@ public class GamesActivity extends Activity {
     }
 
     private int getLightThemeColor() {
+        if (nightMode) {
+            return Color.rgb(18, 25, 35);
+        }
+
         int red = Color.red(themeColor);
         int green = Color.green(themeColor);
         int blue = Color.blue(themeColor);
@@ -262,5 +291,27 @@ public class GamesActivity extends Activity {
         blue = blue + (255 - blue) * 92 / 100;
 
         return Color.rgb(red, green, blue);
+    }
+
+    private int blend(int color1, int color2, float ratio) {
+        float inverse = 1.0f - ratio;
+        return Color.rgb(
+                (int) (Color.red(color1) * inverse + Color.red(color2) * ratio),
+                (int) (Color.green(color1) * inverse + Color.green(color2) * ratio),
+                (int) (Color.blue(color1) * inverse + Color.blue(color2) * ratio)
+        );
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        int currentThemeColor = ThemeManager.getThemeColor(this);
+        boolean currentNightMode = ThemeManager.isNightMode(this);
+
+        if (appliedThemeColor != currentThemeColor
+                || appliedNightMode != currentNightMode) {
+            recreate();
+        }
     }
 }
