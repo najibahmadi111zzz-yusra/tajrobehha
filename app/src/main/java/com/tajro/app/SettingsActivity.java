@@ -28,7 +28,7 @@ public class SettingsActivity extends Activity {
     private LinearLayout mainLayout;
 
     private int selectedColor =
-            Color.rgb(12, 91, 120);
+            Color.rgb(36, 86, 166);
 
     private boolean nightMode = false;
 
@@ -202,13 +202,9 @@ public class SettingsActivity extends Activity {
         button.setElevation(dp(2));
 
         GradientDrawable background = new GradientDrawable();
-        background.setColor(nightMode
-                ? Color.rgb(37, 43, 52)
-                : Color.rgb(247, 249, 252));
+        background.setColor(ThemeManager.getSurfaceColor(this));
         background.setCornerRadius(dp(18));
-        background.setStroke(dp(1), nightMode
-                ? Color.rgb(65, 76, 89)
-                : Color.rgb(226, 232, 240));
+        background.setStroke(dp(1), ThemeManager.getBorderColor(this));
 
         button.setBackground(background);
 
@@ -247,7 +243,7 @@ public class SettingsActivity extends Activity {
         selectedColor =
                 preferences.getInt(
                         "theme_color",
-                        Color.rgb(12, 91, 120)
+                        Color.rgb(36, 86, 166)
                 );
 
         nightMode =
@@ -405,13 +401,9 @@ public class SettingsActivity extends Activity {
         );
         nightSwitch.setTextColor(ThemeManager.getTextColor(this));
         GradientDrawable nightBackground = new GradientDrawable();
-        nightBackground.setColor(nightMode
-                ? Color.rgb(37, 43, 52)
-                : Color.rgb(247, 249, 252));
+        nightBackground.setColor(ThemeManager.getSurfaceColor(this));
         nightBackground.setCornerRadius(dp(18));
-        nightBackground.setStroke(dp(1), nightMode
-                ? Color.rgb(65, 76, 89)
-                : Color.rgb(226, 232, 240));
+        nightBackground.setStroke(dp(1), ThemeManager.getBorderColor(this));
         nightSwitch.setBackground(nightBackground);
 
         mainLayout.addView(
@@ -686,11 +678,11 @@ public class SettingsActivity extends Activity {
         };
 
         int[] colorValues = {
-                Color.rgb(12, 91, 120),
-                Color.rgb(30, 120, 85),
-                Color.rgb(105, 70, 150),
-                Color.rgb(190, 105, 30),
-                Color.rgb(25, 55, 90)
+                Color.rgb(36, 86, 166),   // آبی لاجوردی
+                Color.rgb(54, 191, 160),  // سبز آرام
+                Color.rgb(117, 85, 183),  // بنفش ملایم
+                Color.rgb(196, 122, 54),  // طلایی مات
+                Color.rgb(16, 24, 39)     // سرمه‌ای عمیق
         };
 
         new AlertDialog.Builder(this)
@@ -1620,6 +1612,9 @@ public class SettingsActivity extends Activity {
                 InputType.TYPE_CLASS_NUMBER
                         | InputType.TYPE_NUMBER_VARIATION_PASSWORD
         );
+        input.setTransformationMethod(
+                new AlwaysMaskedPasswordTransformationMethod()
+        );
 
         input.setSingleLine(true);
 
@@ -1686,27 +1681,64 @@ public class SettingsActivity extends Activity {
         @Override public int getIntrinsicHeight() { return 24; }
     }
 
+    // مخفی‌سازی فوری تمام رقم‌های رمز قفل.
+    private static class AlwaysMaskedPasswordTransformationMethod
+            implements android.text.method.TransformationMethod {
+
+        @Override
+        public CharSequence getTransformation(CharSequence source, android.view.View view) {
+            if (source == null) return "";
+            return new CharSequence() {
+                @Override public int length() {
+                    return source.length();
+                }
+
+                @Override public char charAt(int index) {
+                    return '•';
+                }
+
+                @Override public CharSequence subSequence(int start, int end) {
+                    StringBuilder masked = new StringBuilder(end - start);
+                    for (int i = start; i < end; i++) masked.append('•');
+                    return masked.toString();
+                }
+
+                @Override public String toString() {
+                    StringBuilder masked = new StringBuilder(source.length());
+                    for (int i = 0; i < source.length(); i++) masked.append('•');
+                    return masked.toString();
+                }
+            };
+        }
+
+        @Override
+        public void onFocusChanged(android.view.View view, CharSequence sourceText,
+                                   boolean focused, int direction, android.graphics.Rect rect) {
+            // رمز هنگام تغییر فوکوس نیز مخفی باقی می‌ماند.
+        }
+    }
+
     private void attachPasswordEye(EditText field) {
         final boolean[] visible = {false};
-        final int hiddenInputType = field.getInputType();
         field.setCompoundDrawablePadding(dp(8));
-        field.setCompoundDrawablesWithIntrinsicBounds(null, null, new PasswordEyeDrawable(false), null);
+        field.setCompoundDrawablesWithIntrinsicBounds(
+                null, null, new PasswordEyeDrawable(false), null);
+
         field.setOnTouchListener((view, event) -> {
             if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
                 android.graphics.drawable.Drawable eye = field.getCompoundDrawables()[2];
-                if (eye != null && event.getX() >= field.getWidth() - field.getPaddingRight() - eye.getBounds().width() - dp(8)) {
+                if (eye != null && event.getX() >= field.getWidth()
+                        - field.getPaddingRight() - eye.getBounds().width() - dp(8)) {
                     int cursor = field.getSelectionStart();
                     visible[0] = !visible[0];
-                    if (visible[0]) {
-                        field.setTransformationMethod(null);
-                    } else {
-                        field.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
-                    }
-                    field.setInputType(hiddenInputType);
-                    if (visible[0]) field.setTransformationMethod(null);
-                    else field.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
+
+                    field.setTransformationMethod(visible[0]
+                            ? null
+                            : new AlwaysMaskedPasswordTransformationMethod());
+
                     field.setSelection(Math.max(0, Math.min(cursor, field.length())));
-                    field.setCompoundDrawablesWithIntrinsicBounds(null, null, new PasswordEyeDrawable(visible[0]), null);
+                    field.setCompoundDrawablesWithIntrinsicBounds(
+                            null, null, new PasswordEyeDrawable(visible[0]), null);
                     field.performClick();
                     return true;
                 }
