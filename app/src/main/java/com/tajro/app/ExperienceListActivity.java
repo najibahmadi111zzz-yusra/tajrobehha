@@ -100,7 +100,8 @@ public class ExperienceListActivity extends Activity {
     private boolean isPullRefreshing = false;
     private float pullStartY = 0f;
     private boolean pullGestureStarted = false;
-    private String appliedThemeMode = ThemeManager.MODE_NTAJ;
+    private int appliedThemeColor;
+    private boolean appliedNightMode;
 
     // فید به‌صورت صفحه‌ای دریافت می‌شود تا با زیادشدن پست‌ها حافظه و اینترنت بی‌جهت مصرف نشود.
     private static final int EXPERIENCE_PAGE_SIZE = 20;
@@ -736,16 +737,19 @@ public class ExperienceListActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        String currentMode = ThemeManager.getThemeMode(this);
-        if (appliedThemeMode != null && !appliedThemeMode.equals(currentMode)) {
-            recreate();
-        }
-    }
+        int currentThemeColor = ThemeManager.getThemeColor(this);
+boolean currentNightMode = ThemeManager.isNightMode(this);
+
+if (appliedThemeColor != currentThemeColor ||
+        appliedNightMode != currentNightMode) {
+    recreate();
+}
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        appliedThemeMode = ThemeManager.getThemeMode(this);
+        appliedThemeColor = ThemeManager.getThemeColor(this);
+        appliedNightMode = ThemeManager.isNightMode(this);
         applyExperienceSystemBars();
 
         auth = FirebaseAuth.getInstance();
