@@ -16,6 +16,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.util.Log;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -26,6 +27,9 @@ import android.graphics.RectF;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 public class MainActivity extends Activity {
 
@@ -49,6 +53,15 @@ public class MainActivity extends Activity {
     private View settingsCard;
     private View rewardedCard;
     private View gameCard;
+    private View chatCard;
+    private TextView chatUnreadBadge;
+    private ListenerRegistration mainUnreadListener;
+    private ListenerRegistration mainUnreadNullListener;
+    private final java.util.Map<String, DocumentSnapshot> mainUnreadFalseDocs =
+            new java.util.HashMap<>();
+    private final java.util.Map<String, DocumentSnapshot> mainUnreadNullDocs =
+            new java.util.HashMap<>();
+    private String mainUnreadUid;
 
     private static final int NAVY = Color.rgb(25, 48, 65);
     private static final int NAVY_LIGHT = Color.rgb(43, 72, 88);
@@ -200,7 +213,7 @@ public class MainActivity extends Activity {
         mark.setGravity(Gravity.CENTER);
         GradientDrawable markBg = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                new int[]{NAVY_LIGHT, NAVY});
+                new int[]{ThemeManager.getThemeColor(this), 0xFF101827});
         markBg.setCornerRadius(dp(15));
         mark.setBackground(markBg);
         LinearLayout.LayoutParams markParams = new LinearLayout.LayoutParams(dp(48), dp(48));
@@ -218,6 +231,15 @@ public class MainActivity extends Activity {
         heroParams.setMargins(0, 0, 0, dp(14));
         mainLayout.addView(experienceCard, heroParams);
 
+        // Direct chat entry with a live unread-message counter.
+        chatCard = createChatCard();
+        LinearLayout.LayoutParams chatParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(68));
+        chatParams.setMargins(0, 0, 0, dp(12));
+        mainLayout.addView(chatCard, chatParams);
+        chatCard.setOnClickListener(v ->
+                startActivity(new Intent(MainActivity.this, ChatActivity.class)));
+
         // Two-column feature grid
         LinearLayout rowOne = createFeatureRow();
         aiCard = createFeatureCard(
@@ -226,14 +248,14 @@ public class MainActivity extends Activity {
                 text("همراه پاسخ‌گوی شما", "Your helpful companion",
                         "ستاسو هوښیار ملګری", "آپ کا مددگار معاون",
                         "आपका सहायक", "مساعدك الذكي"),
-                IconView.TYPE_AI, 0xFFE0EEE9, 0xFF245B52);
+                IconView.TYPE_AI, 0xFFEAF0F8, ThemeManager.getThemeColor(this));
         rewardedCard = createFeatureCard(
-                text("حمایت از تجربه‌ها", "Support iNtaj", "د تجربو ملاتړ",
-                        "تجربات کی حمایت", "iNtaj का समर्थन", "دعم iNtaj"),
+                text("حمایت از تجربه‌ها", "Support N TAJ", "د تجربو ملاتړ",
+                        "تجربات کی حمایت", "N TAJ का समर्थन", "دعم N TAJ"),
                 text("همراه توسعه برنامه", "Help the app grow",
                         "د اپ پرمختګ ملاتړ", "ایپ کی ترقی میں مدد",
                         "ऐप के विकास में मदद", "ساهم في تطوير التطبيق"),
-                IconView.TYPE_SUPPORT, 0xFFF1E4DA, 0xFF85583F);
+                IconView.TYPE_SUPPORT, 0xFFEAF0F8, ThemeManager.getThemeColor(this));
         addWeighted(rowOne, aiCard);
         addWeighted(rowOne, rewardedCard);
         addRow(rowOne);
@@ -245,14 +267,14 @@ public class MainActivity extends Activity {
                 text("نرخ و تبدیل ارز", "Currency rates & conversion",
                         "د اسعارو بدلون", "زرِ مبادلہ",
                         "मुद्रा दरें", "أسعار وتحويل العملات"),
-                IconView.TYPE_EXCHANGE, 0xFFE1EAF5, 0xFF365D89);
+                IconView.TYPE_EXCHANGE, 0xFFEAF0F8, ThemeManager.getThemeColor(this));
         gameCard = createFeatureCard(
                 text("بازی‌ها", "Games", "لوبې", "کھیل",
                         "खेल", "الألعاب"),
                 text("کمی سرگرمی و شادی", "A little fun",
                         "ساتېري او خوښي", "تفریح اور خوشی",
                         "मनोरंजन", "قليل من المرح"),
-                IconView.TYPE_GAMES, 0xFFECE4F3, 0xFF71538D);
+                IconView.TYPE_GAMES, 0xFFEAF0F8, ThemeManager.getThemeColor(this));
         addWeighted(rowTwo, exchangeCard);
         addWeighted(rowTwo, gameCard);
         addRow(rowTwo);
@@ -277,12 +299,12 @@ public class MainActivity extends Activity {
         mainLayout.addView(supportDescription);
 
         footer = makeText(
-                text("iNtaj • یاد بگیر • شریک کن",
-                        "iNtaj • Learn • Share",
-                        "iNtaj • زده کړه • شریک یې کړه",
-                        "iNtaj • سیکھیں • شیئر کریں",
-                        "iNtaj • सीखें • साझा करें",
-                        "iNtaj • تعلّم • شارك"),
+                text("N TAJ • یاد بگیر • شریک کن",
+                        "N TAJ • Learn • Share",
+                        "N TAJ • زده کړه • شریک یې کړه",
+                        "N TAJ • سیکھیں • شیئر کریں",
+                        "N TAJ • सीखें • साझा करें",
+                        "N TAJ • تعلّم • شارك"),
                 12, Color.GRAY, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(8), 0, dp(8));
@@ -309,6 +331,136 @@ public class MainActivity extends Activity {
                 startActivity(new Intent(MainActivity.this, GamesActivity.class)));
 
         rewardedCard.setOnClickListener(v -> showSupportAd());
+    }
+
+    private View createChatCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(16), dp(9), dp(16), dp(9));
+        card.setBackground(rounded(ThemeManager.getSurfaceColor(this), 17,
+                ThemeManager.getBorderColor(this)));
+        card.setElevation(dp(2));
+        card.setClickable(true);
+        card.setFocusable(true);
+
+        IconView icon = new IconView(this, IconView.TYPE_CHAT,
+                ThemeManager.getThemeColor(this));
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(44), dp(44));
+        iconParams.setMargins(0, 0, dp(12), 0);
+        card.addView(icon, iconParams);
+
+        LinearLayout labels = new LinearLayout(this);
+        labels.setOrientation(LinearLayout.VERTICAL);
+        labels.setGravity(Gravity.CENTER_VERTICAL);
+        TextView heading = makeText(
+                text("پیام‌ها و گفت‌وگوها", "Messages & Chats", "پیغامونه او خبرې اترې",
+                        "پیغامات اور چیٹس", "संदेश और चैट", "الرسائل والمحادثات"),
+                15, ThemeManager.getTextColor(this), true);
+        TextView subtitle = makeText(
+                text("گفت‌وگوی خصوصی با کاربران", "Private conversations with users",
+                        "له کاروونکو سره شخصي خبرې", "صارفین کے ساتھ نجی گفتگو",
+                        "उपयोगकर्ताओं से निजी बातचीत", "محادثات خاصة مع المستخدمين"),
+                11, ThemeManager.getNormalTextColor(this), false);
+        labels.addView(heading);
+        labels.addView(subtitle);
+        card.addView(labels, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.MATCH_PARENT, 1));
+
+        chatUnreadBadge = makeText("0", 12, WHITE, true);
+        chatUnreadBadge.setGravity(Gravity.CENTER);
+        chatUnreadBadge.setMinWidth(dp(26));
+        chatUnreadBadge.setPadding(dp(7), dp(3), dp(7), dp(3));
+        chatUnreadBadge.setBackground(rounded(0xFFE34B55, 20, Color.TRANSPARENT));
+        chatUnreadBadge.setVisibility(View.GONE);
+        card.addView(chatUnreadBadge, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(26)));
+        return card;
+    }
+
+    private void startMainUnreadListener() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        String uid = user == null ? null : user.getUid();
+        if (uid == null) {
+            stopMainUnreadListener();
+            updateMainUnreadBadge(0);
+            return;
+        }
+        if (uid.equals(mainUnreadUid) && mainUnreadListener != null) return;
+
+        stopMainUnreadListener();
+        mainUnreadUid = uid;
+        FirebaseFirestore messages = FirebaseFirestore.getInstance();
+        mainUnreadListener = messages.collection("messages")
+                .whereEqualTo("receiverId", uid)
+                .whereEqualTo("read", false)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        Log.w("MainUnread", "Unread counter listener failed", error);
+                        return;
+                    }
+                    if (snapshot == null) return;
+                    mainUnreadFalseDocs.clear();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        mainUnreadFalseDocs.put(document.getId(), document);
+                    }
+                    refreshMainUnreadCount(uid);
+                });
+        // Older message records may store read=null; continue counting those too.
+        mainUnreadNullListener = messages.collection("messages")
+                .whereEqualTo("receiverId", uid)
+                .whereEqualTo("read", null)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        Log.w("MainUnread", "Legacy unread counter listener failed", error);
+                        return;
+                    }
+                    if (snapshot == null) return;
+                    mainUnreadNullDocs.clear();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        mainUnreadNullDocs.put(document.getId(), document);
+                    }
+                    refreshMainUnreadCount(uid);
+                });
+    }
+
+    private void refreshMainUnreadCount(String uid) {
+        java.util.Map<String, DocumentSnapshot> allUnread = new java.util.HashMap<>();
+        allUnread.putAll(mainUnreadFalseDocs);
+        allUnread.putAll(mainUnreadNullDocs);
+        int count = 0;
+        for (DocumentSnapshot document : allUnread.values()) {
+            if (Boolean.TRUE.equals(document.getBoolean("deletedForAll"))) continue;
+            Object deletedForValue = document.get("deletedFor");
+            if (deletedForValue instanceof java.util.List
+                    && ((java.util.List<?>) deletedForValue).contains(uid)) continue;
+            count++;
+        }
+        updateMainUnreadBadge(count);
+    }
+
+    private void updateMainUnreadBadge(int count) {
+        if (chatUnreadBadge == null) return;
+        if (count <= 0) {
+            chatUnreadBadge.setVisibility(View.GONE);
+        } else {
+            chatUnreadBadge.setText(count > 99 ? "99+" : String.valueOf(count));
+            chatUnreadBadge.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void stopMainUnreadListener() {
+        if (mainUnreadListener != null) {
+            mainUnreadListener.remove();
+            mainUnreadListener = null;
+        }
+        if (mainUnreadNullListener != null) {
+            mainUnreadNullListener.remove();
+            mainUnreadNullListener = null;
+        }
+        mainUnreadFalseDocs.clear();
+        mainUnreadNullDocs.clear();
+        mainUnreadUid = null;
     }
 
     private View createExperienceCard() {
@@ -343,16 +495,16 @@ public class MainActivity extends Activity {
                 text("مشاهده تجربه‌ها  ←", "Explore experiences  →",
                         "تجربې وګورئ  ←", "تجربات دیکھیں  ←",
                         "अनुभव देखें  →", "استكشف التجارب  ←"),
-                13, NAVY, true);
+                13, WHITE, true);
         action.setGravity(Gravity.CENTER);
         action.setPadding(dp(14), dp(8), dp(14), dp(8));
-        action.setBackground(rounded(TEAL, 12, Color.TRANSPARENT));
+        action.setBackground(rounded(ThemeManager.getThemeColor(this), 12, Color.TRANSPARENT));
 
         content.addView(heading);
         content.addView(description);
         content.addView(action);
 
-        IconView icon = new IconView(this, IconView.TYPE_EXPERIENCE, TEAL);
+        IconView icon = new IconView(this, IconView.TYPE_EXPERIENCE, ThemeManager.getThemeColor(this));
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(76), dp(76));
         iconParams.setMargins(dp(12), 0, 0, 0);
 
@@ -388,13 +540,15 @@ public class MainActivity extends Activity {
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(dp(13), dp(12), dp(10), dp(11));
-        card.setBackground(rounded(backgroundColor, 19, 0x22000000));
+        card.setBackground(rounded(ThemeManager.getSurfaceColor(this), 19,
+                ThemeManager.getBorderColor(this)));
         card.setElevation(dp(2));
         card.setClickable(true);
         card.setFocusable(true);
 
         FrameLayout iconHolder = new FrameLayout(this);
-        iconHolder.setBackground(rounded(0x44FFFFFF, 15, 0x22000000));
+        iconHolder.setBackground(rounded(ThemeManager.isNightMode(this)
+                ? 0xFF293B54 : 0xFFEAF0F8, 15, ThemeManager.getBorderColor(this)));
         IconView icon = new IconView(this, iconType, iconColor);
         FrameLayout.LayoutParams iconParams = new FrameLayout.LayoutParams(
                 dp(48), dp(48), Gravity.CENTER);
@@ -404,13 +558,13 @@ public class MainActivity extends Activity {
         holderParams.setMargins(0, 0, 0, dp(7));
         card.addView(iconHolder, holderParams);
 
-        TextView titleView = makeText(heading, 14, iconColor, true);
+        TextView titleView = makeText(heading, 14, ThemeManager.getTextColor(this), true);
         titleView.setMaxLines(1);
         titleView.setSingleLine(true);
         titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
         card.addView(titleView);
 
-        TextView subtitle = makeText(description, 10, 0xFF53616B, false);
+        TextView subtitle = makeText(description, 10, ThemeManager.getNormalTextColor(this), false);
         subtitle.setMaxLines(1);
         subtitle.setSingleLine(true);
         subtitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -426,12 +580,14 @@ public class MainActivity extends Activity {
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(dp(15), dp(8), dp(15), dp(8));
-        card.setBackground(rounded(0xFFF0F2F3, 17, 0x22000000));
+        card.setBackground(rounded(ThemeManager.getSurfaceColor(this), 17,
+                ThemeManager.getBorderColor(this)));
         card.setElevation(dp(1));
         card.setClickable(true);
         card.setFocusable(true);
 
-        IconView icon = new IconView(this, IconView.TYPE_SETTINGS, 0xFF526B78);
+        IconView icon = new IconView(this, IconView.TYPE_SETTINGS,
+                ThemeManager.getThemeColor(this));
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(42), dp(42));
         iconParams.setMargins(0, 0, dp(11), 0);
         card.addView(icon, iconParams);
@@ -439,11 +595,11 @@ public class MainActivity extends Activity {
         TextView label = makeText(
                 text("تنظیمات برنامه", "App settings", "د اپ ترتیبات",
                         "ایپ کی ترتیبات", "ऐप सेटिंग्स", "إعدادات التطبيق"),
-                15, 0xFF344B59, true);
+                15, ThemeManager.getTextColor(this), true);
         card.addView(label, new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.MATCH_PARENT, 1));
 
-        TextView arrow = makeText("‹", 28, 0xFF526B78, false);
+        TextView arrow = makeText("‹", 28, ThemeManager.getNormalTextColor(this), false);
         arrow.setGravity(Gravity.CENTER);
         card.addView(arrow, new LinearLayout.LayoutParams(dp(30),
                 ViewGroup.LayoutParams.MATCH_PARENT));
@@ -498,6 +654,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        startMainUnreadListener();
         if (mainLayout != null) {
             String currentLanguage = LanguageManager.getLanguage(this);
             if (appliedLanguage != null && !currentLanguage.equals(appliedLanguage)) {
@@ -509,9 +666,26 @@ public class MainActivity extends Activity {
         }
     }
 
+    @Override
+    protected void onPause() {
+        // Keep the live counter listener only while the home screen is visible.
+        stopMainUnreadListener();
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        stopMainUnreadListener();
+        super.onDestroy();
+    }
+
     private void applyTheme() {
         boolean night = ThemeManager.isNightMode(this);
         int backgroundColor = ThemeManager.getBackgroundColor(this);
+        int textColor = ThemeManager.getTextColor(this);
+        int normalTextColor = ThemeManager.getNormalTextColor(this);
+        int surfaceColor = ThemeManager.getSurfaceColor(this);
+        int borderColor = ThemeManager.getBorderColor(this);
         if (mainLayout == null) return;
 
         mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -520,8 +694,8 @@ public class MainActivity extends Activity {
         }
 
         if (getWindow() != null) {
-            getWindow().setStatusBarColor(night ? NAVY : 0xFFE9F0F0);
-            getWindow().setNavigationBarColor(night ? NAVY : 0xFFE9F0F0);
+            getWindow().setStatusBarColor(night ? 0xFF101827 : backgroundColor);
+            getWindow().setNavigationBarColor(night ? 0xFF101827 : backgroundColor);
             if (Build.VERSION.SDK_INT >= 23) {
                 getWindow().getDecorView().setSystemUiVisibility(
                         night ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
@@ -529,39 +703,80 @@ public class MainActivity extends Activity {
             }
         }
 
-        if (title != null) title.setTextColor(night ? WHITE : NAVY);
-        if (welcome != null) welcome.setTextColor(
-                night ? 0xFFD3DEE2 : 0xFF53616B);
-        if (footer != null) footer.setTextColor(night ? 0xFFB9C5CB : Color.GRAY);
-        if (supportDescription != null) supportDescription.setTextColor(
-                night ? 0xFFB9C5CB : Color.GRAY);
+        if (title != null) title.setTextColor(textColor);
+        if (welcome != null) welcome.setTextColor(normalTextColor);
+        if (footer != null) footer.setTextColor(normalTextColor);
+        if (supportDescription != null) supportDescription.setTextColor(normalTextColor);
 
-        if (night) {
-            if (settingsCard != null) settingsCard.setBackground(
-                    rounded(0xFF34434C, 17, 0x335CC9B1));
-            if (settingsCard instanceof LinearLayout) {
-                LinearLayout row = (LinearLayout) settingsCard;
-                for (int i = 0; i < row.getChildCount(); i++) {
-                    View child = row.getChildAt(i);
-                    if (child instanceof TextView) {
-                        ((TextView) child).setTextColor(0xFFE8EFF1);
-                    }
-                }
-            }
-        } else if (settingsCard != null) {
-            settingsCard.setBackground(rounded(0xFFF0F2F3, 17, 0x22000000));
-            if (settingsCard instanceof LinearLayout) {
-                LinearLayout row = (LinearLayout) settingsCard;
-                for (int i = 0; i < row.getChildCount(); i++) {
-                    View child = row.getChildAt(i);
-                    if (child instanceof TextView) {
-                        ((TextView) child).setTextColor(0xFF344B59);
+        // Chat and settings surfaces follow the same shared palette as the other pages.
+        if (chatCard != null) {
+            chatCard.setBackground(rounded(surfaceColor, 17, borderColor));
+            if (chatCard instanceof LinearLayout) {
+                LinearLayout chatRow = (LinearLayout) chatCard;
+                for (int i = 0; i < chatRow.getChildCount(); i++) {
+                    View child = chatRow.getChildAt(i);
+                    if (child instanceof LinearLayout) {
+                        LinearLayout labels = (LinearLayout) child;
+                        for (int j = 0; j < labels.getChildCount(); j++) {
+                            View label = labels.getChildAt(j);
+                            if (label instanceof TextView) {
+                                ((TextView) label).setTextColor(
+                                        j == 0 ? textColor : normalTextColor);
+                            }
+                        }
                     }
                 }
             }
         }
 
-        if (getWindow() != null) getWindow().getDecorView().setBackgroundColor(backgroundColor);
+        if (settingsCard != null) {
+            settingsCard.setBackground(rounded(surfaceColor, 17, borderColor));
+            if (settingsCard instanceof LinearLayout) {
+                LinearLayout row = (LinearLayout) settingsCard;
+                for (int i = 0; i < row.getChildCount(); i++) {
+                    View child = row.getChildAt(i);
+                    if (child instanceof TextView) {
+                        TextView label = (TextView) child;
+                        label.setTextColor(i == 1 ? textColor : normalTextColor);
+                    }
+                }
+            }
+        }
+
+        // Keep feature cards visually calm while updating their surfaces and text.
+        applyFeatureCardTheme(aiCard, textColor, normalTextColor, surfaceColor, borderColor);
+        applyFeatureCardTheme(rewardedCard, textColor, normalTextColor, surfaceColor, borderColor);
+        applyFeatureCardTheme(exchangeCard, textColor, normalTextColor, surfaceColor, borderColor);
+        applyFeatureCardTheme(gameCard, textColor, normalTextColor, surfaceColor, borderColor);
+
+        // The featured Experiences card remains the distinct brand entry point.
+        if (experienceCard != null) {
+            experienceCard.setBackground(rounded(
+                    night ? 0xFF202D40 : 0xFF142B49, 23, borderColor));
+        }
+
+        if (getWindow() != null) {
+            getWindow().getDecorView().setBackgroundColor(backgroundColor);
+        }
+    }
+
+    private void applyFeatureCardTheme(View card, int textColor, int normalTextColor,
+                                       int surfaceColor, int borderColor) {
+        if (!(card instanceof LinearLayout)) return;
+        LinearLayout feature = (LinearLayout) card;
+        feature.setBackground(rounded(surfaceColor, 19, borderColor));
+        for (int i = 0; i < feature.getChildCount(); i++) {
+            View child = feature.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView label = (TextView) child;
+                label.setTextColor(i == 1 ? textColor : normalTextColor);
+            } else if (child instanceof FrameLayout) {
+                View iconHolder = child;
+                iconHolder.setBackground(rounded(
+                        ThemeManager.isNightMode(this) ? 0xFF293B54 : 0xFFEAF0F8,
+                        15, borderColor));
+            }
+        }
     }
 
     /**
@@ -575,6 +790,7 @@ public class MainActivity extends Activity {
         static final int TYPE_EXCHANGE = 4;
         static final int TYPE_GAMES = 5;
         static final int TYPE_SETTINGS = 6;
+        static final int TYPE_CHAT = 7;
 
         private final int type;
         private final int accent;
@@ -610,7 +826,8 @@ public class MainActivity extends Activity {
                     (getHeight() - 64 * scale) / 2f);
             canvas.scale(scale, scale);
 
-            int dark = 0xFF294958;
+            int dark = ThemeManager.isNightMode(getContext())
+                    ? 0xFFD5DFEE : 0xFF294958;
             int light = accent;
             paint.setShadowLayer(2.2f, 0, 2, 0x33000000);
 
@@ -632,6 +849,9 @@ public class MainActivity extends Activity {
                     break;
                 case TYPE_SETTINGS:
                     drawSettings(canvas, dark, light);
+                    break;
+                case TYPE_CHAT:
+                    drawChat(canvas, dark, light);
                     break;
             }
             paint.clearShadowLayer();
@@ -707,6 +927,20 @@ public class MainActivity extends Activity {
             stroke(a, 4); c.drawLine(18, 32, 30, 32, paint); c.drawLine(24, 26, 24, 38, paint);
             fill(d); c.drawCircle(42, 29, 3, paint); c.drawCircle(49, 36, 3, paint);
             fill(a); c.drawCircle(15, 14, 3, paint);
+        }
+
+        private void drawChat(Canvas c, int d, int a) {
+            fill(0xFFEFFFFA);
+            c.drawRoundRect(new RectF(7, 10, 57, 47), 11, 11, paint);
+            stroke(d, 3);
+            c.drawRoundRect(new RectF(7, 10, 57, 47), 11, 11, paint);
+            path.reset();
+            path.moveTo(19, 46); path.lineTo(15, 56); path.lineTo(30, 46);
+            c.drawPath(path, paint);
+            fill(a);
+            c.drawCircle(21, 28, 3, paint);
+            c.drawCircle(32, 28, 3, paint);
+            c.drawCircle(43, 28, 3, paint);
         }
 
         private void drawSettings(Canvas c, int d, int a) {
