@@ -743,6 +743,7 @@ boolean currentNightMode = ThemeManager.isNightMode(this);
 if (appliedThemeColor != currentThemeColor ||
         appliedNightMode != currentNightMode) {
     recreate();
+  } 
 }
 
     @Override
