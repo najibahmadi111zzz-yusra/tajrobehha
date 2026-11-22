@@ -104,9 +104,10 @@ public class ColorSortActivity extends Activity {
         private Thread soundThread;
         private volatile AudioTrack ambientAudioTrack;
         private volatile boolean ambientRunning = false;
+        private volatile long ambientGeneration = 0L;
         private Thread ambientThread;
 
-        private boolean soundEnabled = true;
+        private volatile boolean soundEnabled = true;
 
         /* =========================================================
            ANIMATION
@@ -710,99 +711,174 @@ public class ColorSortActivity extends Activity {
         }
 
         /* =========================================================
-           ORIGINAL PIANO-ONLY AMBIENT MUSIC
+           ORIGINAL NTAJ AMBIENT MUSIC
+           Warm felt-piano melody, soft bell shimmer, gentle pad and
+           quiet arpeggio. Generated locally; no music file or network.
            ========================================================= */
 
         private synchronized void startAmbientMusic() {
             if (!soundEnabled || !running || ambientRunning) return;
 
+            final long generation = ++ambientGeneration;
             ambientRunning = true;
+
             ambientThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    // Original piano-only lullaby. No rain, hiss, noise, or other instruments.
                     final int sampleRate = 22050;
                     final int framesPerBlock = 1024;
                     final byte[] buffer = new byte[framesPerBlock * 2];
                     final double twoPi = Math.PI * 2.0;
-                    // A gentle 32-second phrase in C major / A minor, then a seamless reprise.
+                    final double beatSeconds = 60.0 / 73.0;
+                    final double phraseSeconds = beatSeconds * 48.0;
+
+                    // Original 48-beat melody in D major / B minor.
+                    // Zero values are intentional breathing spaces.
                     final double[] melody = {
-                            523.25, 659.25, 783.99, 659.25, 587.33, 523.25,
-                            440.00, 523.25, 587.33, 659.25, 587.33, 523.25,
-                            392.00, 493.88, 587.33, 493.88, 440.00, 392.00,
-                            349.23, 440.00, 523.25, 587.33, 523.25, 440.00,
-                            392.00, 440.00, 523.25, 659.25, 587.33, 523.25,
-                            493.88, 392.00
+                            587.33, 659.25, 739.99, 880.00,
+                            739.99, 659.25, 587.33, 493.88,
+                            523.25, 587.33, 659.25, 739.99,
+                            659.25, 587.33, 523.25, 0.0,
+                            493.88, 587.33, 659.25, 739.99,
+                            659.25, 587.33, 493.88, 440.00,
+                            440.00, 523.25, 587.33, 659.25,
+                            587.33, 523.25, 493.88, 0.0,
+                            587.33, 659.25, 739.99, 880.00,
+                            987.77, 880.00, 739.99, 659.25,
+                            587.33, 523.25, 493.88, 587.33,
+                            659.25, 587.33, 493.88, 0.0
                     };
-                    final double[] bass = {
-                            130.81, 164.81, 196.00, 146.83,
-                            110.00, 146.83, 174.61, 130.81
+
+                    // Twelve gently changing chords; the last resolves to the first.
+                    final double[][] chords = {
+                            {146.83, 185.00, 220.00}, // D
+                            {123.47, 146.83, 185.00}, // Bm
+                            {98.00, 123.47, 146.83},  // G
+                            {110.00, 138.59, 164.81}, // A
+                            {146.83, 185.00, 220.00}, // D
+                            {123.47, 146.83, 185.00}, // Bm
+                            {82.41, 98.00, 123.47},   // Em
+                            {98.00, 123.47, 146.83},  // G
+                            {110.00, 138.59, 164.81}, // A
+                            {146.83, 185.00, 220.00}, // D
+                            {98.00, 123.47, 146.83},  // G
+                            {146.83, 185.00, 220.00}  // D
                     };
-                    // Short delay taps create a warm room-like piano tail without a hiss bed.
-                    final double[] delayA = new double[(int)(sampleRate * 0.115)];
-                    final double[] delayB = new double[(int)(sampleRate * 0.173)];
-                    final double[] delayC = new double[(int)(sampleRate * 0.247)];
-                    final double[] chordRatios = {1.0, 1.25, 1.5, 2.0};
+
+                    final double[] arpPattern = {0.5, 1.5, 1.0, 1.5, 2.0, 1.5, 1.0, 1.5};
+                    final double[] delayA = new double[(int) (sampleRate * 0.105)];
+                    final double[] delayB = new double[(int) (sampleRate * 0.167)];
+                    final double[] delayC = new double[(int) (sampleRate * 0.239)];
+
                     AudioTrack track = null;
                     long sample = 0L;
+
                     try {
-                        int min = AudioTrack.getMinBufferSize(sampleRate,
+                        int min = AudioTrack.getMinBufferSize(
+                                sampleRate,
                                 AudioFormat.CHANNEL_OUT_MONO,
-                                AudioFormat.ENCODING_PCM_16BIT);
+                                AudioFormat.ENCODING_PCM_16BIT
+                        );
                         if (min <= 0) min = 4096;
-                        track = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate,
+
+                        track = new AudioTrack(
+                                AudioManager.STREAM_MUSIC,
+                                sampleRate,
                                 AudioFormat.CHANNEL_OUT_MONO,
                                 AudioFormat.ENCODING_PCM_16BIT,
-                                Math.max(min, buffer.length * 4), AudioTrack.MODE_STREAM);
+                                Math.max(min, buffer.length * 4),
+                                AudioTrack.MODE_STREAM
+                        );
+
                         ambientAudioTrack = track;
                         track.play();
-                        int ia = 0, ib = 0, ic = 0;
-                        while (ambientRunning && soundEnabled && running && ambientAudioTrack == track) {
+
+                        int ia = 0;
+                        int ib = 0;
+                        int ic = 0;
+
+                        while (ambientRunning
+                                && soundEnabled
+                                && running
+                                && ambientGeneration == generation
+                                && ambientAudioTrack == track) {
+
                             for (int i = 0; i < framesPerBlock; i++, sample++) {
-                                double t = sample / (double) sampleRate;
-                                double phrase = t % 32.0;
-                                int noteIndex = (int)(phrase / 1.0) % melody.length;
-                                // Start each one-second note at its own phrase boundary.
-                                double noteStart = Math.floor(phrase);
-                                double noteTime = phrase - noteStart;
-                                double f = melody[noteIndex];
-                                double env = (1.0 - Math.exp(-noteTime * 90.0))
-                                        * Math.exp(-noteTime * 1.55);
-                                // Inharmonic partials and a soft hammer transient make each note piano-like.
-                                double fundamental = Math.sin(twoPi * f * noteTime);
-                                double partial2 = Math.sin(twoPi * f * 2.003 * noteTime) * 0.34;
-                                double partial3 = Math.sin(twoPi * f * 3.009 * noteTime) * 0.13;
-                                double partial4 = Math.sin(twoPi * f * 4.018 * noteTime) * 0.055;
-                                double hammer = Math.sin(twoPi * f * 7.1 * noteTime)
-                                        * Math.exp(-noteTime * 34.0) * 0.035;
-                                double lead = (fundamental + partial2 + partial3 + partial4) * env * 0.105 + hammer;
+                                double time = sample / (double) sampleRate;
+                                double phrase = time % phraseSeconds;
+                                int beatIndex = Math.min(47, (int) (phrase / beatSeconds));
+                                double beatPhase = (phrase / beatSeconds) - beatIndex;
+                                int chordIndex = (beatIndex / 4) % chords.length;
+                                double[] chord = chords[chordIndex];
 
-                                // Quiet broken-chord accompaniment, still played by the same piano timbre.
-                                double bassStep = phrase % 4.0;
-                                int chordIndex = ((int)(phrase / 4.0)) % bass.length;
-                                int arpIndex = ((int)(bassStep / 0.5)) % 4;
-                                double bassFreq = bass[chordIndex] * chordRatios[arpIndex];
-                                double arpTime = bassStep - Math.floor(bassStep / 0.5) * 0.5;
-                                double arpEnv = (1.0 - Math.exp(-arpTime * 75.0)) * Math.exp(-arpTime * 3.0);
-                                double accompaniment = (Math.sin(twoPi * bassFreq * arpTime)
-                                        + 0.22 * Math.sin(twoPi * bassFreq * 2.01 * arpTime))
-                                        * arpEnv * 0.035;
+                                // Soft felt-piano lead with a rounded attack and natural decay.
+                                double lead = 0.0;
+                                double note = melody[beatIndex];
+                                if (note > 0.0) {
+                                    double noteTime = beatPhase * beatSeconds;
+                                    double attack = Math.min(1.0, noteTime / 0.055);
+                                    double release = Math.min(1.0, (1.0 - beatPhase) / 0.20);
+                                    double envelope = attack * release * Math.exp(-beatPhase * 1.15);
+                                    double fundamental = Math.sin(twoPi * note * noteTime);
+                                    double second = Math.sin(twoPi * note * 2.006 * noteTime) * 0.24;
+                                    double third = Math.sin(twoPi * note * 3.012 * noteTime) * 0.075;
+                                    double hammer = Math.sin(twoPi * note * 6.7 * noteTime)
+                                            * Math.exp(-noteTime * 38.0) * 0.025;
+                                    lead = (fundamental + second + third) * envelope * 0.145 + hammer;
+                                }
 
-                                double dry = lead + accompaniment;
-                                double wet = dry + delayA[ia] * 0.27 + delayB[ib] * 0.19 + delayC[ic] * 0.13;
-                                delayA[ia] = dry + delayA[ia] * 0.18;
-                                delayB[ib] = dry * 0.72 + delayB[ib] * 0.16;
-                                delayC[ic] = dry * 0.48 + delayC[ic] * 0.12;
+                                // Airy, quiet chord bed gives the melody warmth without masking it.
+                                double padPulse = 0.88 + 0.12 * Math.sin(twoPi * 0.11 * time);
+                                double pad = (
+                                        Math.sin(twoPi * chord[0] * 0.5 * time)
+                                                + Math.sin(twoPi * chord[1] * 0.5 * time) * 0.72
+                                                + Math.sin(twoPi * chord[2] * 0.5 * time) * 0.58
+                                ) * 0.012 * padPulse;
+
+                                // A soft bell-like shimmer follows selected melody notes.
+                                double shimmer = 0.0;
+                                if (note > 0.0) {
+                                    shimmer = Math.sin(twoPi * note * 2.01 * time)
+                                            * Math.exp(-beatPhase * 4.2) * 0.018;
+                                }
+
+                                // Quiet broken-chord notes add movement while keeping the game calm.
+                                int arpStep = Math.min(7, (int) (beatPhase * 2.0));
+                                double arpFreq = chord[0] * arpPattern[arpStep];
+                                double halfBeatPhase = (beatPhase * 2.0) - arpStep;
+                                double arpEnvelope = (1.0 - Math.exp(-halfBeatPhase * 24.0))
+                                        * Math.exp(-halfBeatPhase * 4.0);
+                                double arpTime = halfBeatPhase * beatSeconds * 0.5;
+                                double arp = (
+                                        Math.sin(twoPi * arpFreq * arpTime)
+                                                + Math.sin(twoPi * arpFreq * 2.0 * arpTime) * 0.12
+                                ) * arpEnvelope * 0.030;
+
+                                // Gentle low note anchors each four-beat chord.
+                                double barPhase = (phrase % (beatSeconds * 4.0)) / (beatSeconds * 4.0);
+                                double bassEnvelope = 0.72 + 0.28 * Math.sin(Math.PI * barPhase);
+                                double bass = Math.sin(twoPi * chord[0] * 0.5 * time)
+                                        * bassEnvelope * 0.027;
+
+                                double dry = lead + pad + shimmer + arp + bass;
+                                double wet = dry
+                                        + delayA[ia] * 0.25
+                                        + delayB[ib] * 0.17
+                                        + delayC[ic] * 0.11;
+
+                                delayA[ia] = dry + delayA[ia] * 0.19;
+                                delayB[ib] = dry * 0.72 + delayB[ib] * 0.15;
+                                delayC[ic] = dry * 0.48 + delayC[ic] * 0.11;
                                 ia = (ia + 1) % delayA.length;
                                 ib = (ib + 1) % delayB.length;
                                 ic = (ic + 1) % delayC.length;
-                                // Gentle fade at phrase boundary avoids an audible loop seam.
-                                double fade = phrase > 31.75 ? (32.0 - phrase) / 0.25 : 1.0;
-                                double value = Math.tanh(wet * 2.15) * 0.72 * Math.max(0.0, fade);
-                                int pcm = (int)(Math.max(-1.0, Math.min(1.0, value)) * 32700.0);
-                                buffer[i * 2] = (byte)(pcm & 255);
-                                buffer[i * 2 + 1] = (byte)((pcm >> 8) & 255);
+
+                                double value = Math.tanh(wet * 2.35) * 0.78;
+                                int pcm = (int) (Math.max(-1.0, Math.min(1.0, value)) * 32700.0);
+                                buffer[i * 2] = (byte) (pcm & 255);
+                                buffer[i * 2 + 1] = (byte) ((pcm >> 8) & 255);
                             }
+
                             int written = track.write(buffer, 0, buffer.length);
                             if (written < 0) break;
                         }
@@ -814,15 +890,17 @@ public class ColorSortActivity extends Activity {
                             try { track.release(); } catch (Exception ignored) {}
                         }
                         if (ambientAudioTrack == track) ambientAudioTrack = null;
-                        ambientRunning = false;
+                        if (ambientGeneration == generation) ambientRunning = false;
                     }
                 }
-            }, "ColorSort-Original-Piano");
+            }, "NTAJ-ColorSort-Ambient-Music");
+
             ambientThread.setDaemon(true);
             ambientThread.start();
         }
 
         private synchronized void stopAmbientMusic() {
+            ambientGeneration++;
             ambientRunning = false;
             AudioTrack track = ambientAudioTrack;
             ambientAudioTrack = null;
@@ -5303,4 +5381,4 @@ public class ColorSortActivity extends Activity {
             }
         }
     }
-      }
+    }
