@@ -888,7 +888,17 @@ public class AccountActivity extends Activity {
                                 Toast.LENGTH_SHORT
                         ).show();
 
-                        // صفحه حساب فوراً بسته می‌شود و کاربر به صفحه قبلی برمی‌گردد.
+                        // همه صفحه‌های قبلیِ وابسته به نشست بسته می‌شوند.
+                        // پس از خروج، کاربر فقط به صفحه اصلیِ بدون حساب برمی‌گردد.
+                        Intent homeIntent = new Intent(
+                                AccountActivity.this,
+                                MainActivity.class
+                        );
+                        homeIntent.addFlags(
+                                Intent.FLAG_ACTIVITY_NEW_TASK |
+                                Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        );
+                        startActivity(homeIntent);
                         finish();
                     })
                     .show();
