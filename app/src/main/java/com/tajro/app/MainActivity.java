@@ -45,6 +45,8 @@ public class MainActivity extends Activity {
     private TextView footer;
     private TextView supportDescription;
     private String appliedLanguage;
+    private int appliedThemeColor;
+    private boolean appliedNightMode;
     private ImageView backgroundImage;
 
     private View experienceCard;
@@ -250,8 +252,8 @@ public class MainActivity extends Activity {
                         "आपका सहायक", "مساعدك الذكي"),
                 IconView.TYPE_AI, 0xFFEAF0F8, ThemeManager.getThemeColor(this));
         rewardedCard = createFeatureCard(
-                text("حمایت از تجربه‌ها", "Support N TAJ", "د تجربو ملاتړ",
-                        "تجربات کی حمایت", "N TAJ का समर्थन", "دعم N TAJ"),
+                text("حمایت از تجربه‌ها", "Support iNtaj", "د تجربو ملاتړ",
+                        "تجربات کی حمایت", "iNtaj का समर्थन", "دعم iNtaj"),
                 text("همراه توسعه برنامه", "Help the app grow",
                         "د اپ پرمختګ ملاتړ", "ایپ کی ترقی میں مدد",
                         "ऐप के विकास में मदद", "ساهم في تطوير التطبيق"),
@@ -299,12 +301,12 @@ public class MainActivity extends Activity {
         mainLayout.addView(supportDescription);
 
         footer = makeText(
-                text("N TAJ • یاد بگیر • شریک کن",
-                        "N TAJ • Learn • Share",
-                        "N TAJ • زده کړه • شریک یې کړه",
-                        "N TAJ • سیکھیں • شیئر کریں",
-                        "N TAJ • सीखें • साझा करें",
-                        "N TAJ • تعلّم • شارك"),
+                text("iNtaj • یاد بگیر • شریک کن",
+                        "iNtaj • Learn • Share",
+                        "iNtaj • زده کړه • شریک یې کړه",
+                        "iNtaj • سیکھیں • شیئر کریں",
+                        "iNtaj • सीखें • साझा करें",
+                        "iNtaj • تعلّم • شارك"),
                 12, Color.GRAY, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(8), 0, dp(8));
@@ -662,6 +664,15 @@ public class MainActivity extends Activity {
                 recreate();
                 return;
             }
+
+            int currentThemeColor = ThemeManager.getThemeColor(this);
+            boolean currentNightMode = ThemeManager.isNightMode(this);
+            if (appliedThemeColor != currentThemeColor
+                    || appliedNightMode != currentNightMode) {
+                recreate();
+                return;
+            }
+
             applyTheme();
         }
     }
@@ -758,6 +769,10 @@ public class MainActivity extends Activity {
         if (getWindow() != null) {
             getWindow().getDecorView().setBackgroundColor(backgroundColor);
         }
+
+        // ثبت نسخه‌ای از تم که واقعاً روی این صفحه اعمال شده است.
+        appliedThemeColor = ThemeManager.getThemeColor(this);
+        appliedNightMode = night;
     }
 
     private void applyFeatureCardTheme(View card, int textColor, int normalTextColor,
