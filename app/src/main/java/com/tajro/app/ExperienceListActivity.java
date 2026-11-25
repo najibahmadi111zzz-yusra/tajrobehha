@@ -52,6 +52,9 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.android.gms.tasks.Tasks;
@@ -90,7 +93,10 @@ public class ExperienceListActivity extends Activity {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private LinearLayout layout;
-    private LinearLayout feedLayout;
+    private RecyclerView feedRecyclerView;
+    private ExperienceFeedAdapter feedAdapter;
+    private View feedHeaderView;
+    private final List<DocumentSnapshot> experienceFeedDocuments = new ArrayList<>();
     private TextView pullRefreshIndicator;
     private LinearLayout storiesLayout;
     private LinearLayout friendsLayout;
@@ -107,6 +113,7 @@ public class ExperienceListActivity extends Activity {
     private static final int EXPERIENCE_PAGE_SIZE = 20;
     private DocumentSnapshot lastExperienceDocument = null;
     private boolean hasMoreExperiences = false;
+    private boolean hasLoadedFirstExperiencePage = false;
     private boolean isLoadingMoreExperiences = false;
     private int experienceFeedGeneration = 0;
     private Button loadMoreExperiencesButton;
@@ -116,6 +123,9 @@ public class ExperienceListActivity extends Activity {
     private TextView activeExperienceVideoControl;
     private final Set<String> autoStartedExperienceVideos = new HashSet<>();
     private boolean firstFeedVideoAutoStarted = false;
+    private VideoView pendingAutoStartExperienceVideo;
+    private TextView pendingAutoStartExperienceVideoControl;
+    private String pendingAutoStartExperienceVideoKey;
 
     // اشتراک‌گذاری درخواست پروفایل بین کارت‌های یک کاربر؛ جلوگیری از خواندن تکراری Firestore
     private final Map<String, UserProfileData> userProfileCache = new HashMap<>();
@@ -838,27 +848,17 @@ if (appliedThemeColor != currentThemeColor ||
             startActivity(chatIntent);
         });
 
-        // همه محتوای زیر سربرگ در یک ناحیه پیمایش قرار می‌گیرد.
-        ScrollView scrollView = new ScrollView(this);
-        scrollView.setFillViewport(true);
-        scrollView.setClipToPadding(false);
+        // سربرگ محتوایی فید (انتشار، استوری، دوستان و پروفایل) به‌عنوان آیتم اول RecyclerView.
+        // خود پست‌ها جداگانه و به‌شکل بازیافت‌پذیر نمایش داده می‌شوند.
         layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(dp(14), dp(10), dp(14), dp(30));
+        layout.setPadding(dp(14), dp(10), dp(14), dp(12));
         layout.setBackgroundColor(pageBackgroundColor());
-        scrollView.addView(layout, new ScrollView.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-        pageRoot.addView(scrollView, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        // دکمه انتشار، داستان‌ها و فهرست دوستان همگی داخل بخش پیمایشی هستند.
         layout.addView(buildPublishEntryButton());
-
         layout.addView(buildSectionHeading("داستان‌ها", "✨"));
         HorizontalScrollView storiesScroller = new HorizontalScrollView(this);
         storiesScroller.setHorizontalScrollBarEnabled(false);
-        // در دو لبه فضای امن می‌گذاریم تا حلقه استوری‌ها بریده نشود.
         storiesScroller.setClipToPadding(false);
         storiesScroller.setClipChildren(false);
         storiesScroller.setPadding(dp(4), 0, dp(4), 0);
@@ -870,7 +870,6 @@ if (appliedThemeColor != currentThemeColor ||
         storiesScroller.addView(storiesLayout);
         layout.addView(storiesScroller);
 
-        // شمار دوستان دقیقاً پس از داستان‌ها نمایش داده می‌شود.
         layout.addView(buildSectionHeading("دوستان", "👥"));
         HorizontalScrollView friendsScroller = new HorizontalScrollView(this);
         friendsScroller.setHorizontalScrollBarEnabled(false);
@@ -879,11 +878,8 @@ if (appliedThemeColor != currentThemeColor ||
         friendsLayout.setPadding(0, dp(4), 0, dp(8));
         friendsScroller.addView(friendsLayout);
         layout.addView(friendsScroller);
-
-        // پروفایل من از نوار بالایی جداست و همراه فید پایین صفحه حرکت می‌کند.
         layout.addView(buildMyProfileHeader());
 
-        // نشانگر کوچک تازه‌سازی با کشیدن صفحه به پایین
         pullRefreshIndicator = new TextView(this);
         pullRefreshIndicator.setText(text("↓ برای تازه‌سازی، صفحه را پایین بکشید"));
         pullRefreshIndicator.setTextSize(13);
@@ -893,37 +889,56 @@ if (appliedThemeColor != currentThemeColor ||
         pullRefreshIndicator.setVisibility(View.GONE);
         layout.addView(pullRefreshIndicator, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        feedHeaderView = layout;
 
-        feedLayout = new LinearLayout(this);
-        feedLayout.setOrientation(LinearLayout.VERTICAL);
-        layout.addView(feedLayout);
+        feedRecyclerView = new RecyclerView(this);
+        feedRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        feedRecyclerView.setHasFixedSize(false);
+        feedRecyclerView.setItemAnimator(null);
+        feedRecyclerView.setItemViewCacheSize(4);
+        feedRecyclerView.setClipToPadding(false);
+        feedRecyclerView.setPadding(0, 0, 0, dp(20));
+        feedAdapter = new ExperienceFeedAdapter();
+        feedRecyclerView.setAdapter(feedAdapter);
+        pageRoot.addView(feedRecyclerView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        // هنگام عبور از ویدیوی جاری و رفتن به پست بعدی، پخش و صدا فوراً متوقف شود.
-        scrollView.getViewTreeObserver().addOnScrollChangedListener(() -> {
-            VideoView playingVideo = activeExperienceVideo;
-            if (playingVideo == null || !playingVideo.isPlaying()) return;
+        // بارگذاری خودکار صفحه بعدی بر اساس آخرین آیتم قابل مشاهده در RecyclerView.
+        feedRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                RecyclerView.LayoutManager manager = recyclerView.getLayoutManager();
+                if (manager instanceof LinearLayoutManager) {
+                    LinearLayoutManager linear = (LinearLayoutManager) manager;
+                    int lastVisible = linear.findLastVisibleItemPosition();
+                    int total = feedAdapter == null ? 0 : feedAdapter.getItemCount();
+                    if (hasMoreExperiences && !isLoadingMoreExperiences
+                            && total > 0 && lastVisible >= total - 4) {
+                        loadMoreExperiences();
+                    }
+                }
 
-            android.graphics.Rect visibleRect = new android.graphics.Rect();
-            boolean visible = playingVideo.getGlobalVisibleRect(visibleRect);
-            int videoHeight = playingVideo.getHeight();
-            int visibleHeight = visible ? visibleRect.height() : 0;
-            // با خارج‌شدن بخش عمده ویدیو از صفحه، دیگر اجازه ادامه صدا داده نمی‌شود.
-            if (!visible || videoHeight <= 0 || visibleHeight < videoHeight * 0.60f) {
-                stopActiveExperienceVideo();
+                VideoView playingVideo = activeExperienceVideo;
+                if (playingVideo != null && playingVideo.isPlaying()
+                        && !isExperienceVideoMostlyVisible(playingVideo)) {
+                    stopActiveExperienceVideo();
+                }
+                tryAutoStartFirstVisibleExperienceVideo();
             }
         });
 
         setContentView(pageRoot);
 
-        // Pull-to-refresh: فقط وقتی فهرست در بالاترین نقطه است و کاربر رو به پایین می‌کشد.
-        scrollView.setOnTouchListener((view, event) -> {
+        // Pull-to-refresh با حفظ رفتار قبلی، بر اساس موقعیت RecyclerView.
+        feedRecyclerView.setOnTouchListener((view, event) -> {
             switch (event.getActionMasked()) {
                 case android.view.MotionEvent.ACTION_DOWN:
                     pullStartY = event.getY();
-                    pullGestureStarted = scrollView.getScrollY() == 0;
+                    pullGestureStarted = !feedRecyclerView.canScrollVertically(-1);
                     break;
                 case android.view.MotionEvent.ACTION_MOVE:
-                    if (pullGestureStarted && scrollView.getScrollY() == 0) {
+                    if (pullGestureStarted && !feedRecyclerView.canScrollVertically(-1)) {
                         float distance = event.getY() - pullStartY;
                         if (distance > dp(35) && !isPullRefreshing) {
                             pullRefreshIndicator.setVisibility(View.VISIBLE);
@@ -933,7 +948,7 @@ if (appliedThemeColor != currentThemeColor ||
                     break;
                 case android.view.MotionEvent.ACTION_UP:
                 case android.view.MotionEvent.ACTION_CANCEL:
-                    if (pullGestureStarted && scrollView.getScrollY() == 0) {
+                    if (pullGestureStarted && !feedRecyclerView.canScrollVertically(-1)) {
                         float distance = event.getY() - pullStartY;
                         if (distance >= dp(85) && !isPullRefreshing) {
                             isPullRefreshing = true;
@@ -947,7 +962,6 @@ if (appliedThemeColor != currentThemeColor ||
                     pullGestureStarted = false;
                     break;
             }
-            // اجازه می‌دهیم خود ScrollView اسکرول عادی را انجام دهد.
             return false;
         });
 
@@ -2636,14 +2650,17 @@ if (appliedThemeColor != currentThemeColor ||
     }
 
     private void loadExperiences() {
-        if (db == null || feedLayout == null) return;
+        if (db == null || feedAdapter == null) return;
 
         // هر بار تازه‌سازی یک نسل جدید می‌سازد تا پاسخ دیررس درخواست قبلی فید را خراب نکند.
         final int generation = ++experienceFeedGeneration;
         isLoadingMoreExperiences = false;
         lastExperienceDocument = null;
         hasMoreExperiences = false;
+        hasLoadedFirstExperiencePage = false;
         displayedExperienceKeys.clear();
+        experienceFeedDocuments.clear();
+        refreshExperienceFeedAdapter();
         removeLoadMoreExperiencesButton();
 
         db.collection("experiences")
@@ -2677,7 +2694,6 @@ if (appliedThemeColor != currentThemeColor ||
                             isPullRefreshing = false;
                             if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
                         }
-                        feedLayout.removeAllViews();
                         showEmptyMessage();
                         Toast.makeText(this, text("خطا در دریافت تجربه‌ها"), Toast.LENGTH_SHORT).show();
                         Log.w("ExperiencesOffline", "No cached feed available", networkError);
@@ -2690,7 +2706,6 @@ if (appliedThemeColor != currentThemeColor ||
                         isPullRefreshing = false;
                         if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
                     }
-                    feedLayout.removeAllViews();
                     showEmptyMessage();
                     Toast.makeText(this, text("خطا در دریافت تجربه‌ها"), Toast.LENGTH_SHORT).show();
                     Log.w("ExperiencesOffline", "No cached feed available", cacheError);
@@ -2702,6 +2717,7 @@ if (appliedThemeColor != currentThemeColor ||
                 || lastExperienceDocument == null || db == null) return;
 
         isLoadingMoreExperiences = true;
+        refreshExperienceFeedAdapter();
         final int generation = experienceFeedGeneration;
         if (loadMoreExperiencesButton != null) {
             loadMoreExperiencesButton.setEnabled(false);
@@ -2751,12 +2767,13 @@ if (appliedThemeColor != currentThemeColor ||
             boolean append
     ) {
         if (!append) {
+            hasLoadedFirstExperiencePage = true;
             finishRefreshTask();
             if (!refreshBatchActive) {
                 isPullRefreshing = false;
                 if (pullRefreshIndicator != null) pullRefreshIndicator.setVisibility(View.GONE);
             }
-            feedLayout.removeAllViews();
+            experienceFeedDocuments.clear();
             displayedExperienceKeys.clear();
         }
 
@@ -2778,7 +2795,7 @@ if (appliedThemeColor != currentThemeColor ||
             String uniqueKey = getExperienceUniqueKey(document);
             if (displayedExperienceKeys.contains(uniqueKey)) continue;
             displayedExperienceKeys.add(uniqueKey);
-            createExperienceCard(document, currentUserId);
+            experienceFeedDocuments.add(document);
             displayedCount++;
         }
 
@@ -2787,33 +2804,23 @@ if (appliedThemeColor != currentThemeColor ||
         } else if (displayedCount == 0 && append) {
             Log.d("ExperiencesFeed", "Page contained only already displayed experience keys");
         }
+        refreshExperienceFeedAdapter();
         updateLoadMoreExperiencesButton();
     }
 
     private void updateLoadMoreExperiencesButton() {
-        removeLoadMoreExperiencesButton();
-        if (!hasMoreExperiences || feedLayout == null || displayedExperienceKeys.isEmpty()) return;
-
-        loadMoreExperiencesButton = new Button(this);
-        loadMoreExperiencesButton.setAllCaps(false);
-        loadMoreExperiencesButton.setText(isLoadingMoreExperiences
-                ? text("در حال بارگذاری…") : text("بارگذاری تجربه‌های بیشتر"));
-        loadMoreExperiencesButton.setTextSize(14);
-        loadMoreExperiencesButton.setTextColor(themeAccentColor());
-        loadMoreExperiencesButton.setOnClickListener(v -> loadMoreExperiences());
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
-        params.setMargins(dp(8), dp(12), dp(8), dp(18));
-        feedLayout.addView(loadMoreExperiencesButton, params);
+        if (!hasMoreExperiences || displayedExperienceKeys.isEmpty()) {
+            loadMoreExperiencesButton = null;
+        }
+        refreshExperienceFeedAdapter();
     }
 
     private void removeLoadMoreExperiencesButton() {
-        if (loadMoreExperiencesButton != null) {
-            if (loadMoreExperiencesButton.getParent() instanceof ViewGroup) {
-                ((ViewGroup) loadMoreExperiencesButton.getParent()).removeView(loadMoreExperiencesButton);
-            }
-            loadMoreExperiencesButton = null;
-        }
+        loadMoreExperiencesButton = null;
+    }
+
+    private void refreshExperienceFeedAdapter() {
+        if (feedAdapter != null) feedAdapter.notifyDataSetChanged();
     }
 
     private String getExperienceUniqueKey(
@@ -3076,45 +3083,177 @@ if (appliedThemeColor != currentThemeColor ||
     }
 
     private void showEmptyMessage() {
+        hasLoadedFirstExperiencePage = true;
+        if (experienceFeedDocuments.isEmpty()) {
+            refreshExperienceFeedAdapter();
+        }
+    }
 
-        TextView empty =
-                new TextView(this);
+    private boolean isExperienceVideoMostlyVisible(View video) {
+        if (video == null || video.getHeight() <= 0) return false;
+        android.graphics.Rect visibleRect = new android.graphics.Rect();
+        return video.getGlobalVisibleRect(visibleRect)
+                && visibleRect.height() >= video.getHeight() * 0.60f;
+    }
 
-        empty.setText(
-                text("هنوز تجربه‌ای منتشر نشده است.\n\n") +
-                        text("اولین تجربه خود را ثبت کنید! ✍️")
-        );
+    private void tryAutoStartFirstVisibleExperienceVideo() {
+        VideoView candidate = pendingAutoStartExperienceVideo;
+        TextView control = pendingAutoStartExperienceVideoControl;
+        String key = pendingAutoStartExperienceVideoKey;
+        if (firstFeedVideoAutoStarted || candidate == null || control == null
+                || key == null || !isExperienceVideoMostlyVisible(candidate)) return;
 
-        empty.setTextSize(18);
+        firstFeedVideoAutoStarted = true;
+        autoStartedExperienceVideos.add(key);
+        pendingAutoStartExperienceVideo = null;
+        pendingAutoStartExperienceVideoControl = null;
+        pendingAutoStartExperienceVideoKey = null;
+        startFeedVideo(candidate, control, key);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (candidate.isPlaying()) control.setVisibility(View.GONE);
+        }, 1400);
+    }
 
-        empty.setTextColor(secondaryTextColor());
+    private class ExperienceFeedAdapter extends RecyclerView.Adapter<ExperienceFeedAdapter.FeedViewHolder> {
+        private static final int TYPE_HEADER = 0;
+        private static final int TYPE_POST = 1;
+        private static final int TYPE_EMPTY = 2;
+        private static final int TYPE_FOOTER = 3;
 
-        empty.setTypeface(
-                Typeface.create(
-                        "sans-serif",
-                        Typeface.NORMAL
-                )
-        );
+        class FeedViewHolder extends RecyclerView.ViewHolder {
+            final FrameLayout container;
+            String boundKey;
+            FeedViewHolder(FrameLayout itemView) {
+                super(itemView);
+                container = itemView;
+            }
+        }
 
-        empty.setGravity(
-                Gravity.CENTER
-        );
+        @Override
+        public int getItemViewType(int position) {
+            if (position == 0) return TYPE_HEADER;
+            int postCount = experienceFeedDocuments.size();
+            if (postCount == 0) return TYPE_EMPTY;
+            if (position <= postCount) return TYPE_POST;
+            return TYPE_FOOTER;
+        }
 
-        empty.setPadding(
-                dp(20),
-                dp(45),
-                dp(20),
-                dp(45)
-        );
+        @Override
+        public FeedViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            FrameLayout container = new FrameLayout(ExperienceListActivity.this);
+            container.setLayoutParams(new RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            return new FeedViewHolder(container);
+        }
 
-        feedLayout.addView(empty);
+        @Override
+        public void onBindViewHolder(FeedViewHolder holder, int position) {
+            int type = getItemViewType(position);
+            if (type == TYPE_HEADER) {
+                if (holder.boundKey == null || !"__header__".equals(holder.boundKey)) {
+                    holder.container.removeAllViews();
+                    if (feedHeaderView.getParent() instanceof ViewGroup) {
+                        ((ViewGroup) feedHeaderView.getParent()).removeView(feedHeaderView);
+                    }
+                    holder.container.addView(feedHeaderView, new FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                    holder.boundKey = "__header__";
+                }
+                return;
+            }
+
+            if (type == TYPE_POST) {
+                DocumentSnapshot document = experienceFeedDocuments.get(position - 1);
+                String key = getExperienceUniqueKey(document) + "|"
+                        + String.valueOf(document.getData() == null ? 0 : document.getData().hashCode());
+                if (!key.equals(holder.boundKey)) {
+                    releaseHolderVideo(holder);
+                    holder.container.removeAllViews();
+                    FirebaseUser currentUser = auth.getCurrentUser();
+                    String uid = currentUser == null ? null : currentUser.getUid();
+                    View card = createExperienceCard(document, uid);
+                    FrameLayout.LayoutParams cardParams = new FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    cardParams.setMargins(dp(1), dp(2), dp(1), dp(10));
+                    holder.container.addView(card, cardParams);
+                    holder.boundKey = key;
+                }
+                return;
+            }
+
+            releaseHolderVideo(holder);
+            holder.container.removeAllViews();
+            if (type == TYPE_EMPTY) {
+                TextView empty = new TextView(ExperienceListActivity.this);
+                empty.setText(text("هنوز تجربه‌ای منتشر نشده است.\n\n")
+                        + text("اولین تجربه خود را ثبت کنید! ✍️"));
+                empty.setTextSize(18);
+                empty.setTextColor(secondaryTextColor());
+                empty.setGravity(Gravity.CENTER);
+                empty.setPadding(dp(20), dp(45), dp(20), dp(45));
+                holder.container.addView(empty);
+                holder.boundKey = "__empty__";
+            } else {
+                Button more = new Button(ExperienceListActivity.this);
+                more.setAllCaps(false);
+                more.setText(isLoadingMoreExperiences
+                        ? text("در حال بارگذاری…") : text("بارگذاری تجربه‌های بیشتر"));
+                more.setTextSize(14);
+                more.setTextColor(themeAccentColor());
+                more.setOnClickListener(v -> loadMoreExperiences());
+                FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+                params.setMargins(dp(8), dp(12), dp(8), dp(18));
+                holder.container.addView(more, params);
+                loadMoreExperiencesButton = more;
+                holder.boundKey = "__footer__";
+            }
+        }
+
+        @Override
+        public int getItemCount() {
+            int count = 1 + experienceFeedDocuments.size();
+            if (experienceFeedDocuments.isEmpty()) {
+                return count + (hasLoadedFirstExperiencePage ? 1 : 0);
+            }
+            if (hasMoreExperiences) return count + 1;
+            return count;
+        }
+
+        private void releaseHolderVideo(FeedViewHolder holder) {
+            if (activeExperienceVideo != null && isDescendantOf(holder.container, activeExperienceVideo)) {
+                stopActiveExperienceVideo();
+            }
+            if (pendingAutoStartExperienceVideo != null
+                    && isDescendantOf(holder.container, pendingAutoStartExperienceVideo)) {
+                pendingAutoStartExperienceVideo = null;
+                pendingAutoStartExperienceVideoControl = null;
+                pendingAutoStartExperienceVideoKey = null;
+            }
+        }
+
+        @Override
+        public void onViewRecycled(FeedViewHolder holder) {
+            releaseHolderVideo(holder);
+            super.onViewRecycled(holder);
+        }
+    }
+
+    private boolean isDescendantOf(ViewGroup parent, View child) {
+        View current = child;
+        while (current != null) {
+            if (current == parent) return true;
+            if (!(current.getParent() instanceof View)) break;
+            current = (View) current.getParent();
+        }
+        return false;
     }
 
     // =========================================================
     // کارت حرفه‌ای تجربه
     // =========================================================
 
-    private void createExperienceCard(
+    private View createExperienceCard(
             DocumentSnapshot document,
             String currentUserId
     ) {
@@ -3536,6 +3675,12 @@ if (appliedThemeColor != currentThemeColor ||
 
             Runnable togglePlayback = () -> {
                 videoHandler.removeCallbacks(hideCenterControl[0]);
+                if (pendingAutoStartExperienceVideo == experienceVideo) {
+                    pendingAutoStartExperienceVideo = null;
+                    pendingAutoStartExperienceVideoControl = null;
+                    pendingAutoStartExperienceVideoKey = null;
+                    firstFeedVideoAutoStarted = true;
+                }
                 toggleFeedVideo(experienceVideo, centerPlay, videoKey);
                 if (experienceVideo.isPlaying()) {
                     videoHandler.post(progressTask[0]);
@@ -3606,13 +3751,14 @@ if (appliedThemeColor != currentThemeColor ||
                 videoTime.setText("00:00 / " + formatVideoTime(experienceVideo.getDuration()));
                 mp.setLooping(false);
                 mp.setVolume(muted[0] ? 0f : 1f, muted[0] ? 0f : 1f);
-                // فقط نخستین ویدیوی فید یک بار خودکار آغاز می‌شود؛ بقیه با انتخاب کاربر.
+                // نخستین ویدیو فقط زمانی خودکار پخش می‌شود که واقعاً در دید کاربر باشد.
                 if (!firstFeedVideoAutoStarted) {
-                    firstFeedVideoAutoStarted = true;
-                    autoStartedExperienceVideos.add(videoKey);
-                    startFeedVideo(experienceVideo, centerPlay, videoKey);
-                    videoHandler.removeCallbacks(hideCenterControl[0]);
-                    videoHandler.postDelayed(hideCenterControl[0], 1400);
+                    pendingAutoStartExperienceVideo = experienceVideo;
+                    pendingAutoStartExperienceVideoControl = centerPlay;
+                    pendingAutoStartExperienceVideoKey = videoKey;
+                    centerPlay.setVisibility(View.VISIBLE);
+                    centerPlay.setText("▶");
+                    tryAutoStartFirstVisibleExperienceVideo();
                 } else {
                     centerPlay.setVisibility(View.VISIBLE);
                     centerPlay.setText("▶");
@@ -3631,6 +3777,11 @@ if (appliedThemeColor != currentThemeColor ||
                 }
             });
             experienceVideo.setOnErrorListener((mp, what, extra) -> {
+                if (pendingAutoStartExperienceVideo == experienceVideo) {
+                    pendingAutoStartExperienceVideo = null;
+                    pendingAutoStartExperienceVideoControl = null;
+                    pendingAutoStartExperienceVideoKey = null;
+                }
                 centerPlay.setVisibility(View.VISIBLE);
                 centerPlay.setText("▶");
                 Toast.makeText(ExperienceListActivity.this,
@@ -3882,7 +4033,7 @@ if (appliedThemeColor != currentThemeColor ||
                 documentId, detailTitle, detailText, detailImageUrl,
                 getExperienceDateTime(document), isMyExperience, card));
 
-        feedLayout.addView(card);
+        return card;
     }
 
     // =========================================================
@@ -5583,4 +5734,4 @@ if (appliedThemeColor != currentThemeColor ||
         }
     }
 
-                          }
+        }
