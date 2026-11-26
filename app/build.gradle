@@ -40,15 +40,10 @@ versionName '1.0'
             minifyEnabled false
             signingConfig signingConfigs.release
 
-            buildConfigField "String",
-                    "OPENROUTER_API_KEY",
-                    "\"${System.getenv("OPENROUTER_API_KEY") ?: ""}\""
         }
 
         debug {
-            buildConfigField "String",
-                    "OPENROUTER_API_KEY",
-                    "\"${System.getenv("OPENROUTER_API_KEY") ?: ""}\""
+            
         }
     }
 }
