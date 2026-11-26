@@ -38,6 +38,11 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class AIActivity extends Activity {
 
@@ -48,6 +53,31 @@ public class AIActivity extends Activity {
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private boolean isSending = false;
+
+    // Supabase Edge Function configuration. The publishable key is public;
+    // the OpenRouter secret remains only in Supabase Function Secrets.
+    private static final String SUPABASE_URL =
+            "https://gorbhuqmkjlkrklhasdh.supabase.co";
+    private static final String SUPABASE_PUBLISHABLE_KEY =
+            "sb_publishable_xCkd5NsZ3jcQ6IqKKzm_Lg_UtF_ToDD";
+    private static final String AI_CHAT_ENDPOINT =
+            SUPABASE_URL + "/functions/v1/ai-chat";
+
+    private static final int MAX_MESSAGES = 17;
+    private static final int MAX_MESSAGE_CHARS = 8000;
+    private static final int MAX_TOTAL_CHARS = 24000;
+
+    private final ArrayList<ChatMessage> conversationHistory = new ArrayList<>();
+
+    private static final class ChatMessage {
+        final String role;
+        final String content;
+
+        ChatMessage(String role, String content) {
+            this.role = role;
+            this.content = content;
+        }
+    }
 
     private int primary = Color.rgb(12, 91, 120);
     private int darkBlue = Color.rgb(5, 43, 70);
@@ -138,6 +168,22 @@ public class AIActivity extends Activity {
             case "about_msg": values = new String[]{"دستیار هوشمند تجربه‌ها\n\nهمراه شما برای پرسش، یادگیری و دریافت پاسخ درباره موضوعات گوناگون.", "TajroBehha AI Assistant\n\nHere to help you ask, learn, and get answers on many topics.", "د تجربه‌ها هوښیار مرستیال\n\nستاسو د پوښتنو او زده‌کړو ملګری.", "تجربہ‌ها کا ذہین معاون\n\nمختلف موضوعات پر سوالات اور سیکھنے میں آپ کا ساتھی۔", "TajroBehha स्मार्ट सहायक\n\nविभिन्न विषयों पर सवालों और सीखने में आपका साथी।", "المساعد الذكي لتجربه‌ها\n\nرفيقك في السؤال والتعلّم والحصول على إجابات في موضوعات متنوعة."}; break;
             case "empty": values = new String[]{"لطفاً سؤال خود را بنویسید", "Please write your question", "مهرباني وکړئ خپله پوښتنه ولیکئ", "براہِ کرم اپنا سوال لکھیں", "कृपया अपना सवाल लिखें", "يرجى كتابة سؤالك"}; break;
             case "thinking": values = new String[]{"در حال فکر کردن... ✨", "Thinking... ✨", "فکر کوم... ✨", "سوچ رہا ہوں... ✨", "सोच रहा हूँ... ✨", "أفكر... ✨"}; break;
+            case "login_required": values = new String[]{
+                    "برای استفاده از دستیار، ابتدا وارد حساب خود شوید.",
+                    "Please sign in to use the AI assistant.",
+                    "د مرستیال کارولو لپاره لومړی خپل حساب ته ننوځئ.",
+                    "ذہین معاون استعمال کرنے کے لیے پہلے اپنے اکاؤنٹ میں سائن اِن کریں۔",
+                    "AI सहायक का उपयोग करने के लिए पहले अपने खाते में साइन इन करें।",
+                    "يرجى تسجيل الدخول أولاً لاستخدام المساعد الذكي."
+            }; break;
+            case "question_too_long": values = new String[]{
+                    "متن هر پیام نباید بیشتر از ۸۰۰۰ نویسه باشد.",
+                    "Each message must be 8,000 characters or fewer.",
+                    "د هر پیغام اوږدوالی باید تر ۸۰۰۰ تورو زیات نه وي.",
+                    "ہر پیغام 8,000 حروف سے زیادہ نہیں ہونا چاہیے۔",
+                    "हर संदेश 8,000 अक्षरों से अधिक नहीं होना चाहिए।",
+                    "يجب ألا يتجاوز طول كل رسالة 8000 حرف."
+            }; break;
             case "not_configured": values = new String[]{"کلید OpenRouter در برنامه تنظیم نشده است.", "OpenRouter key is not configured in the app.", "د OpenRouter کیلي په اپ کې نه ده ټاکل شوې.", "ایپ میں OpenRouter کلید سیٹ نہیں ہے۔", "ऐप में OpenRouter कुंजी सेट नहीं है।", "مفتاح OpenRouter غير مُعدّ في التطبيق."}; break;
             case "no_answer": values = new String[]{"پاسخی از مدل دریافت نشد.", "No response was received from the model.", "له ماډل څخه ځواب ترلاسه نه شو.", "ماڈل سے جواب موصول نہیں ہوا۔", "मॉडल से कोई जवाब नहीं मिला।", "لم يتم استلام رد من النموذج."}; break;
             case "empty_answer": values = new String[]{"پاسخ مدل خالی بود.", "The model returned an empty answer.", "د ماډل ځواب تش و.", "ماڈل کا جواب خالی تھا۔", "मॉडल का जवाब खाली था।", "كان رد النموذج فارغاً."}; break;
@@ -288,6 +334,10 @@ public class AIActivity extends Activity {
         main.addView(bottom);
 
         setContentView(main);
+        if (savedInstanceState != null) {
+            restoreConversationHistory(
+                    savedInstanceState.getString("ai_conversation_history", ""));
+        }
         if (savedInstanceState != null &&
                 savedInstanceState.containsKey("ai_messages")) {
             ArrayList<String> savedMessages =
@@ -337,6 +387,7 @@ public class AIActivity extends Activity {
                     return true;
                 }
                 messagesLayout.removeAllViews();
+                conversationHistory.clear();
                 addMessage(false, getWelcomeMessage(), false);
                 questionInput.setText("");
                 Toast.makeText(this, tr("new_started"), Toast.LENGTH_SHORT).show();
@@ -355,6 +406,7 @@ public class AIActivity extends Activity {
                                 return;
                             }
                             messagesLayout.removeAllViews();
+                            conversationHistory.clear();
                             addMessage(false, tr("cleared_msg"), false);
                             Toast.makeText(this, tr("cleared"), Toast.LENGTH_SHORT).show();
                         }).show();
@@ -390,9 +442,55 @@ public class AIActivity extends Activity {
     private void sendQuestion() {
         if (isSending) return;
 
-        String question = questionInput.getText().toString().trim();
+        final String question = questionInput.getText().toString().trim();
         if (question.isEmpty()) {
             Toast.makeText(this, tr("empty"), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (question.length() > MAX_MESSAGE_CHARS) {
+            Toast.makeText(this, tr("question_too_long"), Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Capture the language on the UI thread; do not access Activity resources
+        // from the background executor.
+        final String responseLanguage = responseLanguageName(languageCode());
+        final String loginRequiredMessage = tr("login_required");
+        final String sorryMessage = tr("sorry");
+        final String emptyAnswerMessage = tr("empty_answer");
+        final String unknownErrorPrefix = tr("unknown_error");
+
+        // Prepare a bounded snapshot of the successful conversation history.
+        // The current user message is added last, as required by ai-chat.
+        final ArrayList<ChatMessage> requestHistory =
+                new ArrayList<>(conversationHistory);
+        while (requestHistory.size() > MAX_MESSAGES - 1) {
+            requestHistory.remove(0);
+        }
+
+        int totalChars = question.length();
+        for (ChatMessage item : requestHistory) {
+            totalChars += item.content.length();
+        }
+        while (!requestHistory.isEmpty() && totalChars > MAX_TOTAL_CHARS) {
+            ChatMessage removed = requestHistory.remove(0);
+            totalChars -= removed.content.length();
+        }
+
+        final JSONArray requestMessages = new JSONArray();
+        try {
+            for (ChatMessage item : requestHistory) {
+                JSONObject jsonMessage = new JSONObject();
+                jsonMessage.put("role", item.role);
+                jsonMessage.put("content", item.content);
+                requestMessages.put(jsonMessage);
+            }
+            JSONObject currentUserMessage = new JSONObject();
+            currentUserMessage.put("role", "user");
+            currentUserMessage.put("content", question);
+            requestMessages.put(currentUserMessage);
+        } catch (Exception e) {
+            Toast.makeText(this, tr("sorry"), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -408,46 +506,39 @@ public class AIActivity extends Activity {
         executor.execute(() -> {
             HttpURLConnection connection = null;
             try {
-                String apiKey = BuildConfig.OPENROUTER_API_KEY;
-                if (apiKey == null || apiKey.trim().isEmpty()) {
-                    throw new Exception(tr("not_configured"));
+                FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+                if (firebaseUser == null) {
+                    throw new Exception(loginRequiredMessage);
                 }
 
-                URL url = new URL("https://openrouter.ai/api/v1/chat/completions");
+                String firebaseIdToken = Tasks.await(
+                        firebaseUser.getIdToken(false), 30, TimeUnit.SECONDS
+                ).getToken();
+
+                if (firebaseIdToken == null || firebaseIdToken.trim().isEmpty()) {
+                    throw new Exception(loginRequiredMessage);
+                }
+
+                URL url = new URL(AI_CHAT_ENDPOINT);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
                 connection.setConnectTimeout(30000);
                 connection.setReadTimeout(60000);
                 connection.setDoOutput(true);
-                connection.setRequestProperty("Authorization", "Bearer " + apiKey);
-                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                connection.setRequestProperty(
+                        "Authorization", "Bearer " + firebaseIdToken);
+                connection.setRequestProperty(
+                        "apikey", SUPABASE_PUBLISHABLE_KEY);
+                connection.setRequestProperty(
+                        "Content-Type", "application/json; charset=UTF-8");
+                connection.setRequestProperty("Accept", "application/json");
 
                 JSONObject body = new JSONObject();
-                body.put("model", "openrouter/free");
-                JSONArray messages = new JSONArray();
-                JSONObject systemMessage = new JSONObject();
-                systemMessage.put("role", "system");
-                String responseLanguage = "fa".equals(languageCode()) ? "فارسی/دری" :
-                        "en".equals(languageCode()) ? "English" :
-                        "ps".equals(languageCode()) ? "پښتو" :
-                        "ur".equals(languageCode()) ? "اردو" :
-                        "hi".equals(languageCode()) ? "हिन्दी" : "العربية";
-                systemMessage.put("content",
-                        "You are the AI assistant of the TajroBehha app. Always answer in " + responseLanguage + ". " +
-                        "Use clear, respectful, useful language. Do not limit yourself to user experiences; " +
-                        "answer general, scientific, educational, technology, historical and everyday questions " +
-                        "as far as your knowledge allows. If you do not have enough information, say so honestly. " +
-                        "Never present fabricated information as fact. For medical questions, give cautious general " +
-                        "information and recommend consulting a doctor for serious situations. " +
-                        "Organize answers appropriately for the question.");
-                messages.put(systemMessage);
-                JSONObject userMessage = new JSONObject();
-                userMessage.put("role", "user");
-                userMessage.put("content", question);
-                messages.put(userMessage);
-                body.put("messages", messages);
+                body.put("messages", requestMessages);
+                body.put("language", responseLanguage);
 
                 byte[] data = body.toString().getBytes(StandardCharsets.UTF_8);
+                connection.setFixedLengthStreamingMode(data.length);
                 try (OutputStream output = connection.getOutputStream()) {
                     output.write(data);
                     output.flush();
@@ -456,44 +547,126 @@ public class AIActivity extends Activity {
                 int responseCode = connection.getResponseCode();
                 InputStream inputStream = responseCode >= 200 && responseCode < 300
                         ? connection.getInputStream() : connection.getErrorStream();
+
                 StringBuilder response = new StringBuilder();
                 if (inputStream != null) {
                     try (BufferedReader reader = new BufferedReader(
                             new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
                         String line;
-                        while ((line = reader.readLine()) != null) response.append(line);
+                        while ((line = reader.readLine()) != null) {
+                            response.append(line);
+                        }
                     }
                 }
-                if (responseCode < 200 || responseCode >= 300) {
-                    throw new Exception("OpenRouter HTTP " + responseCode + "\n" + response);
+
+                JSONObject responseJson;
+                try {
+                    responseJson = new JSONObject(response.toString());
+                } catch (Exception parseError) {
+                    throw new Exception("HTTP " + responseCode
+                            + ": " + sorryMessage);
                 }
 
-                JSONObject json = new JSONObject(response.toString());
-                JSONArray choices = json.getJSONArray("choices");
-                if (choices.length() == 0) throw new Exception(tr("no_answer"));
-                JSONObject message = choices.getJSONObject(0).getJSONObject("message");
-                String answer = message.optString("content", "").trim();
-                if (answer.isEmpty()) throw new Exception(tr("empty_answer"));
+                if (responseCode < 200 || responseCode >= 300) {
+                    String serverError = responseJson.optString("error", "").trim();
+                    if (serverError.isEmpty()) {
+                        serverError = "HTTP " + responseCode;
+                    }
+                    throw new Exception(serverError);
+                }
 
-                String finalAnswer = answer;
+                String answer = responseJson.optString("reply", "").trim();
+                if (answer.isEmpty()) {
+                    throw new Exception(emptyAnswerMessage);
+                }
+
+                final String finalAnswer = answer;
                 runOnUiThread(() -> {
                     removeMessage(loading);
+
+                    // Commit only successful turns to context history.
+                    conversationHistory.clear();
+                    conversationHistory.addAll(requestHistory);
+                    conversationHistory.add(new ChatMessage("user", question));
+                    conversationHistory.add(new ChatMessage("assistant", finalAnswer));
+
                     addMessage(false, finalAnswer, true);
                     finishSending();
                 });
             } catch (Exception e) {
                 String error = e.getMessage();
-                if (error == null || error.isEmpty()) error = tr("unknown_error") + e;
-                String finalError = error;
+                if (error == null || error.trim().isEmpty()) {
+                    error = unknownErrorPrefix + e.getClass().getSimpleName();
+                }
+                final String finalError = error;
                 runOnUiThread(() -> {
                     removeMessage(loading);
-                    addMessage(false, tr("sorry") + "\n" + finalError, false);
+                    addMessage(false, sorryMessage + "\\n" + finalError, false);
                     finishSending();
                 });
             } finally {
                 if (connection != null) connection.disconnect();
             }
         });
+    }
+
+    private String responseLanguageName(String code) {
+        if ("en".equals(code)) return "English";
+        if ("ps".equals(code)) return "پښتو";
+        if ("ur".equals(code)) return "اردو";
+        if ("hi".equals(code)) return "हिन्दी";
+        if ("ar".equals(code)) return "العربية";
+        return "فارسی/دری";
+    }
+
+    private void restoreConversationHistory(String savedHistory) {
+        conversationHistory.clear();
+        if (savedHistory == null || savedHistory.trim().isEmpty()) return;
+
+        try {
+            JSONArray array = new JSONArray(savedHistory);
+            int start = Math.max(0, array.length() - 18);
+            for (int i = start; i < array.length(); i++) {
+                JSONObject item = array.optJSONObject(i);
+                if (item == null) continue;
+                String role = item.optString("role", "");
+                String content = item.optString("content", "").trim();
+                if (!("user".equals(role) || "assistant".equals(role))
+                        || content.isEmpty()
+                        || content.length() > MAX_MESSAGE_CHARS) {
+                    continue;
+                }
+                conversationHistory.add(new ChatMessage(role, content));
+            }
+
+            int totalChars = 0;
+            for (ChatMessage item : conversationHistory) {
+                totalChars += item.content.length();
+            }
+            while (!conversationHistory.isEmpty()
+                    && (conversationHistory.size() > 18
+                    || totalChars > MAX_TOTAL_CHARS)) {
+                ChatMessage removed = conversationHistory.remove(0);
+                totalChars -= removed.content.length();
+            }
+        } catch (Exception ignored) {
+            conversationHistory.clear();
+        }
+    }
+
+    private String serializeConversationHistory() {
+        JSONArray array = new JSONArray();
+        for (ChatMessage item : conversationHistory) {
+            JSONObject json = new JSONObject();
+            try {
+                json.put("role", item.role);
+                json.put("content", item.content);
+                array.put(json);
+            } catch (Exception ignored) {
+                // Skip an individual malformed entry; valid entries are preserved.
+            }
+        }
+        return array.toString();
     }
 
     private void finishSending() {
@@ -619,6 +792,8 @@ public class AIActivity extends Activity {
         if (questionInput != null) {
             outState.putString("ai_input", questionInput.getText().toString());
         }
+        outState.putString(
+                "ai_conversation_history", serializeConversationHistory());
     }
 
     private void recreateIfThemeChanged() {
