@@ -252,8 +252,8 @@ public class MainActivity extends Activity {
                         "आपका सहायक", "مساعدك الذكي"),
                 IconView.TYPE_AI, 0xFFEAF0F8, ThemeManager.getThemeColor(this));
         rewardedCard = createFeatureCard(
-                text("حمایت از تجربه‌ها", "Support iNtaj", "د تجربو ملاتړ",
-                        "تجربات کی حمایت", "iNtaj का समर्थन", "دعم iNtaj"),
+                text("حمایت از تجربه‌ها", "Support N TAJ", "د تجربو ملاتړ",
+                        "تجربات کی حمایت", "N TAJ का समर्थन", "دعم N TAJ"),
                 text("همراه توسعه برنامه", "Help the app grow",
                         "د اپ پرمختګ ملاتړ", "ایپ کی ترقی میں مدد",
                         "ऐप के विकास में मदद", "ساهم في تطوير التطبيق"),
@@ -301,12 +301,12 @@ public class MainActivity extends Activity {
         mainLayout.addView(supportDescription);
 
         footer = makeText(
-                text("iNtaj • یاد بگیر • شریک کن",
-                        "iNtaj • Learn • Share",
-                        "iNtaj • زده کړه • شریک یې کړه",
-                        "iNtaj • سیکھیں • شیئر کریں",
-                        "iNtaj • सीखें • साझा करें",
-                        "iNtaj • تعلّم • شارك"),
+                text("N TAJ • یاد بگیر • شریک کن",
+                        "N TAJ • Learn • Share",
+                        "N TAJ • زده کړه • شریک یې کړه",
+                        "N TAJ • سیکھیں • شیئر کریں",
+                        "N TAJ • सीखें • साझा करें",
+                        "N TAJACAVCSS • تعلّم • شارك"),
                 12, Color.GRAY, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(8), 0, dp(8));
