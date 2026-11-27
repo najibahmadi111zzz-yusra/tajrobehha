@@ -3744,7 +3744,7 @@ if (appliedThemeColor != currentThemeColor ||
                         if (frameWidth > 0 && sourceVideoWidth > 0 && sourceVideoHeight > 0) {
                             int targetHeight = Math.round(
                                     frameWidth * (sourceVideoHeight / (float) sourceVideoWidth));
-                            targetHeight = Math.max(dp(180), Math.min(targetHeight, dp(520)));
+                            targetHeight = Math.max(dp(180), Math.min(targetHeight, dp(950)));
                             videoFrameParams.height = targetHeight;
                             videoFrame.setLayoutParams(videoFrameParams);
                         }
