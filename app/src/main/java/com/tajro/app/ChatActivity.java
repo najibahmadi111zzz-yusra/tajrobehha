@@ -1409,7 +1409,9 @@ public class ChatActivity extends Activity {
                 text("⋮", 26);
 
         myProfileMenu.setTextColor(
-                Color.WHITE
+                ThemeManager.isNightMode(this)
+                        ? Color.WHITE
+                        : Color.rgb(75, 82, 92)
         );
 
         myProfileMenu.setGravity(
@@ -2371,7 +2373,11 @@ titleText =
 
         TextView menu =
                 text("⋮", 26);
-        menu.setTextColor(Color.WHITE);
+        menu.setTextColor(
+                ThemeManager.isNightMode(this)
+                        ? Color.WHITE
+                        : Color.rgb(75, 82, 92)
+        );
 
         menu.setGravity(
                 Gravity.CENTER
@@ -7083,14 +7089,19 @@ private void styleChatDialog(AlertDialog dialog) {
         list.setBackgroundColor(Color.rgb(18, 35, 53));
         list.setDivider(new android.graphics.drawable.ColorDrawable(Color.rgb(43, 68, 88)));
         list.setDividerHeight(dp(1));
-        for (int i = 0; i < list.getChildCount(); i++) {
-            View child = list.getChildAt(i);
-            if (child instanceof android.widget.CheckedTextView) {
-                ((android.widget.CheckedTextView) child).setTextColor(Color.WHITE);
-            } else if (child instanceof android.widget.TextView) {
-                ((android.widget.TextView) child).setTextColor(Color.WHITE);
+        Runnable applyPrivacyTextColor = () -> {
+            int readableGray = Color.rgb(190, 198, 208);
+            for (int i = 0; i < list.getChildCount(); i++) {
+                View child = list.getChildAt(i);
+                if (child instanceof android.widget.CheckedTextView) {
+                    ((android.widget.CheckedTextView) child).setTextColor(readableGray);
+                } else if (child instanceof android.widget.TextView) {
+                    ((android.widget.TextView) child).setTextColor(readableGray);
+                }
             }
-        }
+        };
+        applyPrivacyTextColor.run();
+        list.post(applyPrivacyTextColor);
     }
 
     int[] buttonIds = {
