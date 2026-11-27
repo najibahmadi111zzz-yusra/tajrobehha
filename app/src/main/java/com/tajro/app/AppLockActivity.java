@@ -6,6 +6,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.InputType;
+import android.text.method.PasswordTransformationMethod;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.EditText;
@@ -197,6 +198,10 @@ public class AppLockActivity extends Activity {
         passwordInput.setInputType(
                 InputType.TYPE_CLASS_NUMBER
                         | InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        );
+        // اجبار مخفی‌ماندن رمز قفل از لحظه ورود.
+        passwordInput.setTransformationMethod(
+                PasswordTransformationMethod.getInstance()
         );
 
         passwordInput.setSingleLine(true);
