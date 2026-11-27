@@ -3586,7 +3586,10 @@ if (appliedThemeColor != currentThemeColor ||
             // قاب ویدیو با اندازه متوسط و نسبت نزدیک به 4:5؛ بدون بیرون‌زدگی از کارت.
             LinearLayout.LayoutParams videoFrameParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(360));
-            videoFrameParams.setMargins(dp(4), dp(8), dp(4), dp(12));
+            // کارت برای متن و عنوان padding دارد؛ ویدیو را با حاشیه منفی افقی
+            // تا لبه داخلی کارت گسترش می‌دهیم تا نوار خالی کناره‌ها باقی نماند.
+            // ارتفاع فعلی 360 و سقف تطبیق نسبت تصویر 520 بدون تغییر حفظ می‌شوند.
+            videoFrameParams.setMargins(-dp(12), dp(8), -dp(12), dp(12));
 
             VideoView experienceVideo = new VideoView(this);
             // از پوشاندن Surface ویدیو با پس‌زمینه خود VideoView جلوگیری می‌کنیم.
@@ -5734,4 +5737,4 @@ if (appliedThemeColor != currentThemeColor ||
         }
     }
 
-        }
+    }
