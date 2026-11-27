@@ -82,6 +82,11 @@ public class BallGameActivity extends Activity {
         private final ArrayList<MovingGate> movingGates = new ArrayList<>();
         // پهپادهای نگهبان از مرحله سوم به بعد مسیر توپ را به‌صورت متحرک منحرف می‌کنند.
         private final ArrayList<GuardianDrone> guardianDrones = new ArrayList<>();
+        // لوله‌های زرینِ قابل عبور؛ هر لوله پس از عبور کامل، جایزه می‌دهد.
+        private final ArrayList<GoldenPipe> goldenPipes = new ArrayList<>();
+        // صندوق‌های گنج و قدرت‌های قابل جمع‌آوری در مسیر هر مرحله
+        private final ArrayList<TreasureChest> treasureChests = new ArrayList<>();
+        private final ArrayList<PowerOrb> powerOrbs = new ArrayList<>();
         private final ArrayList<Particle> particles = new ArrayList<>();
 
         private RectF finish;
@@ -101,6 +106,11 @@ public class BallGameActivity extends Activity {
         private int level = 1;
         private int score = 0;
         private int collectedRings = 0;
+        private int collectedGoldenPipes = 0;
+        private int openedChests = 0;
+        private int activePowerType = -1;
+        private float powerTimer = 0f;
+        private float shieldTimer = 0f;
 
         // سکه‌های دائمی بازیکن و جایزه مرحله جاری
         private int coins = 0;
@@ -233,6 +243,14 @@ public class BallGameActivity extends Activity {
             movingObstacles.clear();
             movingGates.clear();
             guardianDrones.clear();
+            goldenPipes.clear();
+            treasureChests.clear();
+            powerOrbs.clear();
+            collectedGoldenPipes = 0;
+            openedChests = 0;
+            activePowerType = -1;
+            powerTimer = 0f;
+            shieldTimer = 0f;
             particles.clear();
 
             finished = false;
@@ -487,6 +505,36 @@ public class BallGameActivity extends Activity {
                         section,
                         t
                 );
+
+                // صندوق‌های گنج در سکوهای امن؛ مراحل بالاتر جایزه ارزشمندتری دارند.
+                if (section >= 3 && section % (level <= 5 ? 8 : 6) == 0) {
+                    float chestX = left + (right - left) * 0.62f;
+                    treasureChests.add(new TreasureChest(new RectF(
+                            chestX, y - t * 0.92f, chestX + t * 0.92f, y - t * 0.08f)));
+                }
+
+                // گوی‌های قدرت: سپر محافظ، سرعت بیشتر و آهنربای سکه.
+                if (section >= 5 && section % 10 == (level % 10)) {
+                    float orbX = left + (right - left) * 0.78f;
+                    int orbType = (section / 10 + level) % 3;
+                    powerOrbs.add(new PowerOrb(orbX, y - t * (2.0f + (section % 3) * 0.22f), orbType));
+                }
+
+                // در هر مرحله چند لوله زرین در مسیر اصلی قرار می‌گیرد؛ جای آن‌ها
+                // عمداً از تیغه‌ها و فنرهای معمول همان بخش فاصله دارد.
+                int pipeEvery = level <= 3 ? 11 : level <= 7 ? 9 : 7;
+                if (section >= 4 && section % pipeEvery == (level % pipeEvery)) {
+                    float pipeWidth = t * (3.9f + (level % 3) * 0.22f);
+                    float pipeX = left + t * 1.35f;
+                    if (pipeX + pipeWidth < right - t * 0.55f) {
+                        float pipeTop = y - t * 1.92f;
+                        float pipeBottom = y + t * 0.10f;
+                        goldenPipes.add(new GoldenPipe(
+                                new RectF(pipeX, pipeTop, pipeX + pipeWidth, pipeBottom),
+                                level % 5
+                        ));
+                    }
+                }
 
                 // دروازه‌های کشویی از مرحله دوم به بعد؛ در مراحل پایانی سریع‌تر می‌شوند.
                 if (level >= 2 && section % (level >= 11 ? 5 : 7) == 0) {
@@ -754,6 +802,39 @@ public class BallGameActivity extends Activity {
                     portalCenterX + portalSize / 2f,
                     portalCenterY + portalSize / 2f
             );
+
+            // لوله‌ای که با دیوار، تیغه، فنر یا مانع متحرک تداخل داشته باشد حذف می‌شود.
+            for (int i = goldenPipes.size() - 1; i >= 0; i--) {
+                GoldenPipe pipe = goldenPipes.get(i);
+                RectF safeArea = new RectF(pipe.bounds.left - t * 0.10f,
+                        pipe.bounds.top - t * 0.08f,
+                        pipe.bounds.right + t * 0.10f,
+                        pipe.bounds.bottom + t * 0.08f);
+                boolean blocked = false;
+                for (RectF wall : walls) if (RectF.intersects(safeArea, wall)) { blocked = true; break; }
+                if (!blocked) for (RectF spike : spikes) if (RectF.intersects(safeArea, spike)) { blocked = true; break; }
+                if (!blocked) for (RectF spring : springs) if (RectF.intersects(safeArea, spring)) { blocked = true; break; }
+                if (!blocked) for (MovingObstacle obstacle : movingObstacles) {
+                    if (RectF.intersects(safeArea, obstacle.getRect())) { blocked = true; break; }
+                }
+                if (!blocked) for (MovingGate gate : movingGates) {
+                    if (RectF.intersects(safeArea, gate.getRect())) { blocked = true; break; }
+                }
+                if (blocked) goldenPipes.remove(i);
+            }
+
+            // تضمین حداقل یک لوله کاملاً قابل مشاهده در هر مرحله.
+            if (goldenPipes.isEmpty() && !platforms.isEmpty()) {
+                RectF firstGround = platforms.get(0);
+                float pipeWidth = t * 3.75f;
+                float pipeX = firstGround.left + t * 3.35f;
+                if (pipeX + pipeWidth < firstGround.right - t * 0.35f) {
+                    goldenPipes.add(new GoldenPipe(new RectF(
+                            pipeX, firstGround.top - t * 1.92f,
+                            pipeX + pipeWidth, firstGround.top + t * 0.10f),
+                            level % 5));
+                }
+            }
         }
 
         private void addWorldObjects(
@@ -974,6 +1055,11 @@ public class BallGameActivity extends Activity {
             if (dt < 0) dt = 0;
 
             time += dt;
+            if (powerTimer > 0f) {
+                powerTimer = Math.max(0f, powerTimer - dt);
+                if (powerTimer == 0f) activePowerType = -1;
+            }
+            if (shieldTimer > 0f) shieldTimer = Math.max(0f, shieldTimer - dt);
 
             updateParticles(dt);
             updateMovingObstacles();
@@ -995,9 +1081,9 @@ public class BallGameActivity extends Activity {
 
             ballVX =
                     Math.max(
-                            -maxSpeed,
+                            -(maxSpeed + (activePowerType == 1 ? 260f : 0f)),
                             Math.min(
-                                    maxSpeed,
+                                    maxSpeed + (activePowerType == 1 ? 260f : 0f),
                                     ballVX
                             )
                     );
@@ -1005,6 +1091,7 @@ public class BallGameActivity extends Activity {
             ballVY += gravity * dt;
 
             float oldY = ballY;
+            float oldX = ballX;
             float oldBottom = oldY + radius();
 
             ballX += ballVX * dt;
@@ -1122,10 +1209,11 @@ public class BallGameActivity extends Activity {
                  i >= 0;
                  i--) {
 
+                float ringPickupRadius = radius() * (activePowerType == 2 ? 3.0f : 0.85f);
                 if (circleRect(
                         ballX,
                         ballY,
-                        radius() * 0.85f,
+                        ringPickupRadius,
                         rings.get(i)
                 )) {
 
@@ -1141,6 +1229,62 @@ public class BallGameActivity extends Activity {
                     );
 
                     playRingSound();
+                }
+            }
+
+            // عبور واقعی از لوله: توپ باید وارد دهانه شود و از انتهای آن بیرون بیاید.
+            for (GoldenPipe pipe : goldenPipes) {
+                if (pipe.collected) continue;
+                float pipeCenterY = pipe.bounds.centerY();
+                boolean inTunnelHeight = Math.abs(ballY - pipeCenterY) <= tile() * 0.49f;
+                boolean overlapsTunnel = ballX + radius() * 0.65f > pipe.bounds.left
+                        && ballX - radius() * 0.65f < pipe.bounds.right;
+                if (overlapsTunnel && inTunnelHeight) {
+                    pipe.entered = true;
+                }
+                if (pipe.entered && ballX > pipe.bounds.right + radius() * 0.25f) {
+                    pipe.collected = true;
+                    collectedGoldenPipes++;
+                    int pipeReward = 50 + level * 5;
+                    coins += pipeReward;
+                    score += 250 + level * 10;
+                    createGoldParticles(pipe.bounds.centerX(), pipeCenterY);
+                    playRingSound();
+                    saveProgress();
+                }
+            }
+
+            // بازکردن صندوق گنج با تماس توپ؛ جایزه در کیف پول دائمی ذخیره می‌شود.
+            for (int i = treasureChests.size() - 1; i >= 0; i--) {
+                TreasureChest chest = treasureChests.get(i);
+                if (circleRect(ballX, ballY, radius() * 0.92f, chest.bounds)) {
+                    treasureChests.remove(i);
+                    openedChests++;
+                    int reward = 100 + level * 20;
+                    coins += reward;
+                    score += reward * 2;
+                    createGoldParticles(chest.bounds.centerX(), chest.bounds.centerY());
+                    playRingSound();
+                    saveProgress();
+                }
+            }
+
+            // گوی‌های قدرت با تماس فعال می‌شوند؛ هر قدرت برای مدت محدود باقی می‌ماند.
+            for (int i = powerOrbs.size() - 1; i >= 0; i--) {
+                PowerOrb orb = powerOrbs.get(i);
+                RectF orbRect = new RectF(orb.x - tile() * 0.48f, orb.y - tile() * 0.48f,
+                        orb.x + tile() * 0.48f, orb.y + tile() * 0.48f);
+                if (circleRect(ballX, ballY, radius(), orbRect)) {
+                    powerOrbs.remove(i);
+                    activePowerType = orb.type;
+                    powerTimer = 10f;
+                    if (orb.type == 0) shieldTimer = 10f;
+                    int bonus = 25 + level * 5;
+                    coins += bonus;
+                    score += 150;
+                    createGoldParticles(orb.x, orb.y);
+                    playRingSound();
+                    saveProgress();
                 }
             }
 
@@ -1239,16 +1383,18 @@ public class BallGameActivity extends Activity {
             }
 
             for (RectF spike : spikes) {
-
-                if (circleRect(
-                        ballX,
-                        ballY,
-                        radius() * 0.82f,
-                        spike
-                )) {
-
+                if (circleRect(ballX, ballY, radius() * 0.82f, spike)) {
+                    if (shieldTimer > 0f) {
+                        shieldTimer = 0f;
+                        activePowerType = -1;
+                        powerTimer = 0f;
+                        ballVY = -jumpPower * 0.88f;
+                        ballVX = -ballVX * 0.72f;
+                        createGoldParticles(ballX, ballY);
+                        playJumpSound();
+                        break;
+                    }
                     hit();
-
                     return;
                 }
             }
@@ -1767,6 +1913,21 @@ public class BallGameActivity extends Activity {
                 q.life = 0.75f;
                 q.size += 2;
 
+                particles.add(q);
+            }
+        }
+
+        private void createGoldParticles(float x, float y) {
+            final int[] colors = {0xFFFFD54F, 0xFFFFF1A8, 0xFFFFA000, 0xFFFFFFFF};
+            for (int i = 0; i < 28; i++) {
+                double angle = random.nextDouble() * Math.PI * 2.0;
+                float speed = 110f + random.nextFloat() * 330f;
+                Particle q = new Particle(x, y,
+                        (float) Math.cos(angle) * speed,
+                        (float) Math.sin(angle) * speed - 70f);
+                q.life = 0.75f + random.nextFloat() * 0.65f;
+                q.size += 1.5f + random.nextFloat() * 2.5f;
+                q.color = colors[random.nextInt(colors.length)];
                 particles.add(q);
             }
         }
@@ -2600,6 +2761,14 @@ public class BallGameActivity extends Activity {
                 drawMovingGate(canvas, gate);
             }
 
+            // لوله‌های زرین در لایه جلویی محیط رسم می‌شوند تا بازیکن آن‌ها را واضح ببیند.
+            for (GoldenPipe pipe : goldenPipes) {
+                drawGoldenPipe(canvas, pipe);
+            }
+
+            for (TreasureChest chest : treasureChests) drawTreasureChest(canvas, chest);
+            for (PowerOrb orb : powerOrbs) drawPowerOrb(canvas, orb);
+
             for (RectF spike :
                     spikes) {
 
@@ -3204,6 +3373,132 @@ public class BallGameActivity extends Activity {
             );
 
             p.setAlpha(255);
+        }
+
+        private void drawGoldenPipe(Canvas canvas, GoldenPipe pipe) {
+            RectF r = pipe.bounds;
+            p.setStyle(Paint.Style.FILL);
+            float t = tile();
+            float thickness = t * 0.20f;
+            float pulse = 1f + (float) Math.sin(time * 4.0f + pipe.style) * 0.035f;
+
+            // هاله بیرونی برای اینکه لوله در محیط گم نشود.
+            glow.setStyle(Paint.Style.STROKE);
+            glow.setStrokeWidth(t * 0.34f);
+            glow.setColor(0x66FFD54F);
+            canvas.drawRoundRect(r.left - t * 0.04f, r.top - t * 0.04f,
+                    r.right + t * 0.04f, r.bottom + t * 0.04f,
+                    t * 0.48f, t * 0.48f, glow);
+            glow.setStyle(Paint.Style.FILL);
+
+            // بدنه فلزی طلایی چندلایه.
+            p.setShader(new LinearGradient(r.left, r.top, r.right, r.bottom,
+                    new int[]{0xFFFFF3A6, 0xFFFFC928, 0xFFB66A08, 0xFFFFE36B},
+                    new float[]{0f, 0.32f, 0.72f, 1f}, Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(r, t * 0.42f, t * 0.42f, p);
+            p.setShader(null);
+
+            // دهانه تاریک و کاملاً باز؛ توپ از همین فضای خالی عبور می‌کند.
+            RectF inner = new RectF(r.left + thickness, r.top + thickness,
+                    r.right - thickness, r.bottom - thickness * 0.30f);
+            p.setColor(0xFF172435);
+            canvas.drawRoundRect(inner, t * 0.30f, t * 0.30f, p);
+            p.setColor(0xFF263D4C);
+            canvas.drawRoundRect(inner.left + t * 0.08f, inner.top + t * 0.08f,
+                    inner.right - t * 0.08f, inner.bottom - t * 0.06f,
+                    t * 0.22f, t * 0.22f, p);
+
+            // نور درونی تونل و رگه‌های طلایی متحرک.
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(Math.max(2f, t * 0.055f));
+            p.setColor(0xAAFFE58A);
+            float shineX = inner.left + (float) ((time * t * 1.6f) % Math.max(t, inner.width()));
+            canvas.drawLine(shineX, inner.top + t * 0.15f,
+                    Math.min(inner.right, shineX + t * 0.55f), inner.top + t * 0.15f, p);
+            p.setStyle(Paint.Style.FILL);
+
+            // حلقه‌های ضخیم دهانه در دو طرف.
+            for (int side = 0; side < 2; side++) {
+                float cx = side == 0 ? r.left + thickness * 0.50f : r.right - thickness * 0.50f;
+                p.setShader(new LinearGradient(cx - thickness, r.top, cx + thickness, r.bottom,
+                        0xFFFFF7BD, 0xFFB87908, Shader.TileMode.CLAMP));
+                canvas.drawOval(cx - thickness * 0.72f, r.top + t * 0.04f,
+                        cx + thickness * 0.72f, r.bottom - t * 0.04f, p);
+                p.setShader(null);
+                p.setColor(0xFF182A38);
+                canvas.drawOval(cx - thickness * 0.27f, inner.top + t * 0.02f,
+                        cx + thickness * 0.27f, inner.bottom - t * 0.02f, p);
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(Math.max(2f, t * 0.055f));
+                p.setColor(0xFFFFF0A0);
+                canvas.drawOval(cx - thickness * 0.72f, r.top + t * 0.04f,
+                        cx + thickness * 0.72f, r.bottom - t * 0.04f, p);
+                p.setStyle(Paint.Style.FILL);
+            }
+
+            // گوهر رنگی ویژه مرحله روی تاج لوله؛ رنگ آن با دنیای هر مرحله عوض می‌شود.
+            final int[] jewelColors = {0xFF42DDF4, 0xFFFF6B6B, 0xFFB388FF, 0xFF69F0AE, 0xFFFFD54F};
+            float jewelX = r.centerX();
+            float jewelY = r.top + t * 0.10f;
+            glow.setStyle(Paint.Style.FILL);
+            glow.setColor(0x66FFFFFF);
+            canvas.drawCircle(jewelX, jewelY, t * 0.24f, glow);
+            p.setColor(jewelColors[pipe.style]);
+            canvas.drawCircle(jewelX, jewelY, t * 0.15f, p);
+            p.setColor(0xFFFFFFFF);
+            canvas.drawCircle(jewelX - t * 0.045f, jewelY - t * 0.05f, t * 0.045f, p);
+
+            // سه سکه روشن داخل لوله تا جایزه برای بازیکن از دور قابل تشخیص باشد.
+            if (!pipe.collected) {
+                for (int i = 0; i < 3; i++) {
+                    float cx = inner.left + inner.width() * (0.28f + i * 0.22f);
+                    float cy = inner.centerY() + (float) Math.sin(time * 3f + i) * t * 0.08f;
+                    float cr = t * 0.13f * pulse;
+                    p.setColor(0xFFFFD740);
+                    canvas.drawCircle(cx, cy, cr, p);
+                    p.setStyle(Paint.Style.STROKE);
+                    p.setStrokeWidth(Math.max(1.5f, t * 0.035f));
+                    p.setColor(0xFFFFF6B0);
+                    canvas.drawCircle(cx, cy, cr * 0.68f, p);
+                    p.setStyle(Paint.Style.FILL);
+                }
+            } else {
+                p.setColor(0xAAFFFFFF);
+                p.setTextAlign(Paint.Align.CENTER);
+                p.setTextSize(t * 0.30f);
+                canvas.drawText("✓", r.centerX(), r.centerY() + t * 0.10f, p);
+                p.setTextAlign(Paint.Align.LEFT);
+            }
+            p.setShader(null);
+            p.setStyle(Paint.Style.FILL);
+            p.setAlpha(255);
+        }
+
+        private void drawTreasureChest(Canvas canvas, TreasureChest chest) {
+            RectF r = chest.bounds;
+            float pulse = 1f + (float) Math.sin(time * 4f + r.left) * 0.06f;
+            glow.setStyle(Paint.Style.FILL); glow.setColor(0x55FFD54F);
+            canvas.drawCircle(r.centerX(), r.centerY(), tile() * 0.72f * pulse, glow);
+            p.setStyle(Paint.Style.FILL); p.setColor(0xFF8D4A16);
+            canvas.drawRoundRect(r, tile() * 0.14f, tile() * 0.14f, p);
+            p.setColor(0xFFFFB52E);
+            canvas.drawRoundRect(r.left, r.top, r.right, r.top + r.height() * 0.42f, tile() * 0.12f, tile() * 0.12f, p);
+            p.setColor(0xFFFFE082); p.setStrokeWidth(Math.max(2f, tile() * 0.07f));
+            canvas.drawRect(r.centerX() - tile() * 0.07f, r.top, r.centerX() + tile() * 0.07f, r.bottom, p);
+            p.setColor(0xFFFFF3B0); canvas.drawCircle(r.centerX(), r.centerY(), tile() * 0.10f, p);
+        }
+
+        private void drawPowerOrb(Canvas canvas, PowerOrb orb) {
+            int[] colors = {0xFF42DDF4, 0xFFFFC928, 0xFFB388FF};
+            float r = tile() * 0.34f;
+            float pulse = 1f + (float) Math.sin(time * 5f + orb.x * 0.01f) * 0.12f;
+            glow.setStyle(Paint.Style.FILL); glow.setColor(0x55FFFFFF);
+            canvas.drawCircle(orb.x, orb.y, r * 2.0f * pulse, glow);
+            p.setColor(colors[orb.type]); canvas.drawCircle(orb.x, orb.y, r * pulse, p);
+            p.setColor(Color.WHITE); p.setTextAlign(Paint.Align.CENTER); p.setTextSize(r * 1.15f);
+            String symbol = orb.type == 0 ? "S" : orb.type == 1 ? "⚡" : "✦";
+            canvas.drawText(symbol, orb.x, orb.y + r * 0.38f, p);
+            p.setTextAlign(Paint.Align.LEFT);
         }
 
         private void drawPortalSparkles(Canvas canvas, RectF r) {
@@ -3967,6 +4262,13 @@ public class BallGameActivity extends Activity {
             );
         }
 
+        private String stageName() {
+            String[] names = {"جنگل سبز", "دره آبی", "غار کریستالی", "پل‌های متحرک", "سرزمین آتش",
+                    "شب ستاره‌ای", "باغ جادویی", "آتشفشان سرخ", "قله یخی", "معبد زرین",
+                    "جزیره‌های آسمانی", "سرزمین بنفش", "اقیانوس نور", "قلعه مکانیکی", "قلعه نهایی"};
+            return names[Math.max(0, Math.min(names.length - 1, level - 1))];
+        }
+
         private void drawHud(
                 Canvas canvas
         ) {
@@ -4002,6 +4304,9 @@ public class BallGameActivity extends Activity {
                     p
             );
 
+            p.setTextSize(11.5f);
+            p.setTextAlign(Paint.Align.CENTER);
+            canvas.drawText(stageName(), getWidth() * 0.5f, 73, p);
             p.setTextSize(15);
             p.setTextAlign(Paint.Align.LEFT);
             canvas.drawText(
@@ -4012,12 +4317,18 @@ public class BallGameActivity extends Activity {
             );
 
             p.setTextAlign(Paint.Align.CENTER);
+            p.setTextSize(12.5f);
             canvas.drawText(
-                    tr("حلقه: ", "Rings: ", "حلقې: ", "حلقے: ", "छल्ले: ", "الحلقات: ") + collectedRings,
+                    tr("حلقه: ", "Rings: ", "حلقې: ", "حلقے: ", "छल्ले: ", "الحلقات: ") + collectedRings
+                            + "   |   "
+                            + tr("لوله زرین: ", "Gold pipes: ", "زرینې نلۍ: ", "سنہری پائپ: ", "सुनहरी पाइप: ", "الأنابيب الذهبية: ")
+                            + collectedGoldenPipes
+                            + "   |   " + tr("گنج: ", "Chests: ", "خزانه: ", "خزانہ: ", "खजाना: ", "الكنوز: ") + openedChests,
                     getWidth() * 0.50f,
                     105,
                     p
             );
+            p.setTextSize(15);
 
             // نشان طلایی کیف پول سکه‌ها
             float coinX = getWidth() - 105;
@@ -4033,6 +4344,13 @@ public class BallGameActivity extends Activity {
             p.setTextAlign(Paint.Align.LEFT);
             canvas.drawText(String.valueOf(coins), coinX + 16, 101, p);
             p.setTextAlign(Paint.Align.CENTER);
+            if (powerTimer > 0f) {
+                p.setTextSize(12f); p.setColor(0xFFFFF3B0);
+                String powerLabel = activePowerType == 0 ? tr("سپر ", "Shield ", "ډال ", "ڈھال ", "ढाल ", "درع ")
+                        : activePowerType == 1 ? tr("سرعت ", "Speed ", "چټکتیا ", "رفتار ", "गति ", "سرعة ")
+                        : tr("جایزه ", "Bonus ", "بونس ", "بونس ", "बोनस ", "مكافأة ");
+                canvas.drawText(powerLabel + (int) Math.ceil(powerTimer) + "s", getWidth() * 0.5f, 79, p);
+            }
 
             if (finished) {
 
@@ -4493,6 +4811,31 @@ public class BallGameActivity extends Activity {
             }
         }
 
+        private class TreasureChest {
+            final RectF bounds;
+            TreasureChest(RectF bounds) { this.bounds = new RectF(bounds); }
+        }
+
+        private class PowerOrb {
+            final float x, y;
+            final int type;
+            PowerOrb(float x, float y, int type) { this.x = x; this.y = y; this.type = type; }
+        }
+
+        private class GoldenPipe {
+            final RectF bounds;
+            final int style;
+            boolean entered;
+            boolean collected;
+
+            GoldenPipe(RectF bounds, int style) {
+                this.bounds = new RectF(bounds);
+                this.style = style;
+                this.entered = false;
+                this.collected = false;
+            }
+        }
+
         private class MovingGate {
             float x, baseY, width, height, speed, travel, phase, offsetY;
 
@@ -4517,4 +4860,4 @@ public class BallGameActivity extends Activity {
             }
         }
     }
-                             }
+                }
