@@ -3585,7 +3585,7 @@ if (appliedThemeColor != currentThemeColor ||
             // image on some Android devices while audio continues. Keep the frame unclipped.
             // قاب ویدیو با اندازه متوسط و نسبت نزدیک به 4:5؛ بدون بیرون‌زدگی از کارت.
             LinearLayout.LayoutParams videoFrameParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(420));
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(360));
             videoFrameParams.setMargins(dp(4), dp(8), dp(4), dp(12));
 
             VideoView experienceVideo = new VideoView(this);
@@ -3741,7 +3741,7 @@ if (appliedThemeColor != currentThemeColor ||
                         if (frameWidth > 0 && sourceVideoWidth > 0 && sourceVideoHeight > 0) {
                             int targetHeight = Math.round(
                                     frameWidth * (sourceVideoHeight / (float) sourceVideoWidth));
-                            targetHeight = Math.max(dp(180), Math.min(targetHeight, dp(1000)));
+                            targetHeight = Math.max(dp(180), Math.min(targetHeight, dp(520)));
                             videoFrameParams.height = targetHeight;
                             videoFrame.setLayoutParams(videoFrameParams);
                         }
