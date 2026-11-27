@@ -519,7 +519,7 @@ public class AccountActivity extends Activity {
 
         // از روش استاندارد اندروید برای مخفی‌کردن رمز استفاده می‌کنیم.
         passwordInput.setTransformationMethod(
-                PasswordTransformationMethod.getInstance()
+                new AlwaysMaskedPasswordTransformationMethod()
         );
 
         layout.addView(passwordInput);
@@ -2507,7 +2507,7 @@ private void permanentlyDeleteAccount(FirebaseUser user) {
 
                     field.setTransformationMethod(visible[0]
                             ? null
-                            : PasswordTransformationMethod.getInstance());
+                            : new AlwaysMaskedPasswordTransformationMethod());
 
                     field.setSelection(Math.max(0, Math.min(cursor, field.length())));
                     field.setCompoundDrawablesWithIntrinsicBounds(
