@@ -6,8 +6,11 @@ import android.os.Bundle;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.view.ViewParent;
+import android.text.util.Linkify;
+import android.text.method.LinkMovementMethod;
 import java.util.Locale;
 import java.util.ArrayList;
 import android.graphics.Color;
@@ -68,6 +71,11 @@ public class AIActivity extends Activity {
     private static final int MAX_TOTAL_CHARS = 24000;
 
     private final ArrayList<ChatMessage> conversationHistory = new ArrayList<>();
+    private SharedPreferences historyPreferences;
+    private String activeChatId = "";
+    private String activeChatTitle = "";
+    private static final String HISTORY_KEY = "saved_ai_conversations_v1";
+    private static final int MAX_SAVED_CHATS = 40;
 
     private static final class ChatMessage {
         final String role;
@@ -194,6 +202,15 @@ public class AIActivity extends Activity {
             case "copy": values = new String[]{"▣  کپی پاسخ", "▣  Copy answer", "▣  ځواب کاپي", "▣  جواب کاپی کریں", "▣  जवाब कॉपी करें", "▣  نسخ الرد"}; break;
             case "copy_label": values = new String[]{"پاسخ دستیار", "Assistant answer", "د مرستیال ځواب", "معاون کا جواب", "सहायक का जवाब", "رد المساعد"}; break;
             case "copied": values = new String[]{"پاسخ کپی شد", "Answer copied", "ځواب کاپي شو", "جواب کاپی ہو گیا", "जवाब कॉपी हुआ", "تم نسخ الرد"}; break;
+            case "history": values = new String[]{"گفتگوهای قبلی", "Chat history", "د خبرو اترو مخینه", "گفتگوؤں کی فہرست", "बातचीत का इतिहास", "سجل المحادثات"}; break;
+            case "history_empty": values = new String[]{"هنوز گفتگویی ذخیره نشده است.", "No saved conversations yet.", "تر اوسه کومې خبرې نه دي ساتل شوې.", "ابھی کوئی گفتگو محفوظ نہیں ہے۔", "अभी कोई बातचीत सहेजी नहीं गई है।", "لا توجد محادثات محفوظة بعد."}; break;
+            case "rename": values = new String[]{"تغییر نام", "Rename", "نوم بدلول", "نام تبدیل کریں", "नाम बदलें", "إعادة التسمية"}; break;
+            case "delete": values = new String[]{"حذف", "Delete", "ړنګول", "حذف کریں", "हटाएँ", "حذف"}; break;
+            case "rename_hint": values = new String[]{"نام گفتگو", "Conversation name", "د خبرو نوم", "گفتگو کا نام", "बातचीत का नाम", "اسم المحادثة"}; break;
+            case "deleted": values = new String[]{"گفتگو حذف شد", "Conversation deleted", "خبرې اترې ړنګې شوې", "گفتگو حذف ہو گئی", "बातचीत हटा दी गई", "تم حذف المحادثة"}; break;
+            case "history_saved": values = new String[]{"گفتگو در این دستگاه ذخیره شد", "Conversation saved on this device", "خبرې اترې په دې وسیله کې وساتل شوې", "گفتگو اس ڈیوائس پر محفوظ ہوئی", "बातचीत इस डिवाइस पर सहेजी गई", "حُفظت المحادثة على هذا الجهاز"}; break;
+            case "delete_confirm": values = new String[]{"این گفتگو حذف شود؟", "Delete this conversation?", "دا خبرې اترې ړنګې شي؟", "کیا یہ گفتگو حذف کر دی جائے؟", "क्या यह बातचीत हटाई जाए?", "هل تريد حذف هذه المحادثة؟"}; break;
+            case "save_error": values = new String[]{"ذخیره گفتگو انجام نشد.", "Could not save the conversation.", "خبرې اترې ونه ساتل شوې.", "گفتگو محفوظ نہیں ہو سکی۔", "बातचीत सहेजी नहीं जा सकी।", "تعذر حفظ المحادثة."}; break;
             default: values = new String[]{key,key,key,key,key,key};
         }
         int index = "en".equals(lang) ? 1 : "ps".equals(lang) ? 2 : "ur".equals(lang) ? 3 : "hi".equals(lang) ? 4 : "ar".equals(lang) ? 5 : 0;
@@ -334,6 +351,11 @@ public class AIActivity extends Activity {
         main.addView(bottom);
 
         setContentView(main);
+        initializeLocalHistory();
+        if (savedInstanceState != null) {
+            activeChatId = savedInstanceState.getString("ai_active_chat_id", activeChatId);
+            activeChatTitle = savedInstanceState.getString("ai_active_chat_title", activeChatTitle);
+        }
         if (savedInstanceState != null) {
             restoreConversationHistory(
                     savedInstanceState.getString("ai_conversation_history", ""));
@@ -377,6 +399,7 @@ public class AIActivity extends Activity {
         popup.getMenu().add(0, 1, 0, tr("new_chat"));
         popup.getMenu().add(0, 2, 1, tr("clear_chat"));
         popup.getMenu().add(0, 3, 2, tr("about"));
+        popup.getMenu().add(0, 4, 3, tr("history"));
 
         popup.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
@@ -386,8 +409,11 @@ public class AIActivity extends Activity {
                             Toast.LENGTH_SHORT).show();
                     return true;
                 }
+                saveActiveConversation();
                 messagesLayout.removeAllViews();
                 conversationHistory.clear();
+                activeChatId = String.valueOf(System.currentTimeMillis());
+                activeChatTitle = "";
                 addMessage(false, getWelcomeMessage(), false);
                 questionInput.setText("");
                 Toast.makeText(this, tr("new_started"), Toast.LENGTH_SHORT).show();
@@ -407,9 +433,16 @@ public class AIActivity extends Activity {
                             }
                             messagesLayout.removeAllViews();
                             conversationHistory.clear();
+                            removeSavedConversation(activeChatId);
+                            activeChatId = String.valueOf(System.currentTimeMillis());
+                            activeChatTitle = "";
                             addMessage(false, tr("cleared_msg"), false);
                             Toast.makeText(this, tr("cleared"), Toast.LENGTH_SHORT).show();
                         }).show();
+                return true;
+            }
+            if (id == 4) {
+                showConversationHistory();
                 return true;
             }
             if (id == 3) {
@@ -423,6 +456,207 @@ public class AIActivity extends Activity {
             return false;
         });
         popup.show();
+    }
+
+    // Conversation history is stored locally per Firebase account. It is not cloud-synced.
+    private void initializeLocalHistory() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
+        historyPreferences = getSharedPreferences("ai_history_" + user.getUid(), MODE_PRIVATE);
+        if (activeChatId == null || activeChatId.isEmpty()) {
+            activeChatId = String.valueOf(System.currentTimeMillis());
+        }
+    }
+
+    private String makeTitle(String question) {
+        String title = question == null ? "" : question.trim().replace('\n', ' ');
+        if (title.length() > 42) title = title.substring(0, 42).trim() + "…";
+        return title.isEmpty() ? tr("new_chat") : title;
+    }
+
+    private JSONArray readSavedChats() {
+        if (historyPreferences == null) return new JSONArray();
+        try {
+            return new JSONArray(historyPreferences.getString(HISTORY_KEY, "[]"));
+        } catch (Exception ignored) {
+            return new JSONArray();
+        }
+    }
+
+    private void saveActiveConversation() {
+        if (historyPreferences == null || activeChatId == null || activeChatId.isEmpty()
+                || conversationHistory.isEmpty()) return;
+        try {
+            JSONArray old = readSavedChats();
+            JSONArray updated = new JSONArray();
+            JSONObject current = new JSONObject();
+            current.put("id", activeChatId);
+            current.put("title", activeChatTitle.isEmpty() ? tr("new_chat") : activeChatTitle);
+            current.put("updated", System.currentTimeMillis());
+            JSONArray messages = new JSONArray();
+            for (ChatMessage item : conversationHistory) {
+                JSONObject entry = new JSONObject();
+                entry.put("role", item.role);
+                entry.put("content", item.content);
+                messages.put(entry);
+            }
+            current.put("messages", messages);
+            updated.put(current);
+            for (int i = 0; i < old.length() && updated.length() < MAX_SAVED_CHATS; i++) {
+                JSONObject item = old.optJSONObject(i);
+                if (item == null || activeChatId.equals(item.optString("id"))) continue;
+                updated.put(item);
+            }
+            historyPreferences.edit().putString(HISTORY_KEY, updated.toString()).apply();
+        } catch (Exception e) {
+            Toast.makeText(this, tr("save_error"), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showConversationHistory() {
+        if (isSending) {
+            Toast.makeText(this, tr("wait"), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        JSONArray chats = readSavedChats();
+        if (chats.length() == 0) {
+            new AlertDialog.Builder(this).setTitle(tr("history"))
+                    .setMessage(tr("history_empty"))
+                    .setPositiveButton(tr("close"), null).show();
+            return;
+        }
+        ArrayList<JSONObject> entries = new ArrayList<>();
+        ArrayList<String> labels = new ArrayList<>();
+        for (int i = 0; i < chats.length(); i++) {
+            JSONObject item = chats.optJSONObject(i);
+            if (item == null) continue;
+            entries.add(item);
+            labels.add(item.optString("title", tr("new_chat")));
+        }
+        String[] options = labels.toArray(new String[0]);
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(tr("history"))
+                .setItems(options, (d, which) -> openSavedConversation(entries.get(which)))
+                .setNegativeButton(tr("close"), null).create();
+        dialog.setOnShowListener(v -> {
+            android.widget.ListView list = dialog.getListView();
+            list.setOnItemLongClickListener((parent, view, position, id) -> {
+                showConversationActions(entries.get(position));
+                dialog.dismiss();
+                return true;
+            });
+        });
+        dialog.show();
+    }
+
+    private void openSavedConversation(JSONObject saved) {
+        if (isSending || saved == null) return;
+        try {
+            saveActiveConversation();
+            activeChatId = saved.optString("id", String.valueOf(System.currentTimeMillis()));
+            activeChatTitle = saved.optString("title", tr("new_chat"));
+            conversationHistory.clear();
+            JSONArray messages = saved.optJSONArray("messages");
+            if (messages != null) {
+                int start = Math.max(0, messages.length() - MAX_MESSAGES);
+                for (int i = start; i < messages.length(); i++) {
+                    JSONObject item = messages.optJSONObject(i);
+                    if (item == null) continue;
+                    String role = item.optString("role", "");
+                    String content = item.optString("content", "");
+                    if (("user".equals(role) || "assistant".equals(role))
+                            && !content.trim().isEmpty() && content.length() <= MAX_MESSAGE_CHARS) {
+                        conversationHistory.add(new ChatMessage(role, content));
+                    }
+                }
+            }
+            messagesLayout.removeAllViews();
+            if (conversationHistory.isEmpty()) addMessage(false, getWelcomeMessage(), false);
+            else for (ChatMessage item : conversationHistory) {
+                addMessage("user".equals(item.role), item.content, "assistant".equals(item.role));
+            }
+            questionInput.setText("");
+        } catch (Exception ignored) {
+            Toast.makeText(this, tr("save_error"), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showConversationActions(JSONObject saved) {
+        String[] actions = {tr("rename"), tr("delete")};
+        new AlertDialog.Builder(this).setTitle(saved.optString("title", tr("history")))
+                .setItems(actions, (dialog, which) -> {
+                    if (which == 0) renameSavedConversation(saved);
+                    else confirmDeleteConversation(saved);
+                }).show();
+    }
+
+    private void renameSavedConversation(JSONObject saved) {
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setText(saved.optString("title", ""));
+        input.setHint(tr("rename_hint"));
+        new AlertDialog.Builder(this).setTitle(tr("rename")).setView(input)
+                .setNegativeButton(tr("cancel"), null)
+                .setPositiveButton(tr("rename"), (d, w) -> {
+                    String name = input.getText().toString().trim();
+                    if (name.isEmpty()) name = tr("new_chat");
+                    if (name.length() > 60) name = name.substring(0, 60);
+                    try {
+                        saved.put("title", name);
+                        if (activeChatId.equals(saved.optString("id"))) activeChatTitle = name;
+                        replaceSavedChat(saved);
+                    } catch (Exception ignored) {
+                        Toast.makeText(this, tr("save_error"), Toast.LENGTH_SHORT).show();
+                    }
+                }).show();
+    }
+
+    private void confirmDeleteConversation(JSONObject saved) {
+        new AlertDialog.Builder(this).setTitle(tr("delete"))
+                .setMessage(tr("delete_confirm"))
+                .setNegativeButton(tr("cancel"), null)
+                .setPositiveButton(tr("delete"), (d, w) -> {
+                    JSONArray old = readSavedChats();
+                    JSONArray updated = new JSONArray();
+                    String id = saved.optString("id", "");
+                    for (int i = 0; i < old.length(); i++) {
+                        JSONObject item = old.optJSONObject(i);
+                        if (item != null && !id.equals(item.optString("id"))) updated.put(item);
+                    }
+                    if (historyPreferences != null) historyPreferences.edit()
+                            .putString(HISTORY_KEY, updated.toString()).apply();
+                    if (id.equals(activeChatId)) {
+                        activeChatId = String.valueOf(System.currentTimeMillis());
+                        activeChatTitle = "";
+                        conversationHistory.clear();
+                        messagesLayout.removeAllViews();
+                        addMessage(false, getWelcomeMessage(), false);
+                    }
+                    Toast.makeText(this, tr("deleted"), Toast.LENGTH_SHORT).show();
+                }).show();
+    }
+
+    private void removeSavedConversation(String chatId) {
+        if (historyPreferences == null || chatId == null) return;
+        JSONArray old = readSavedChats();
+        JSONArray updated = new JSONArray();
+        for (int i = 0; i < old.length(); i++) {
+            JSONObject item = old.optJSONObject(i);
+            if (item != null && !chatId.equals(item.optString("id"))) updated.put(item);
+        }
+        historyPreferences.edit().putString(HISTORY_KEY, updated.toString()).apply();
+    }
+
+    private void replaceSavedChat(JSONObject changed) {
+        JSONArray old = readSavedChats();
+        JSONArray updated = new JSONArray();
+        String id = changed.optString("id", "");
+        for (int i = 0; i < old.length(); i++) {
+            JSONObject item = old.optJSONObject(i);
+            if (item == null) continue;
+            updated.put(id.equals(item.optString("id")) ? changed : item);
+        }
+        if (historyPreferences != null) historyPreferences.edit()
+                .putString(HISTORY_KEY, updated.toString()).apply();
     }
 
     private int dp(float value) {
@@ -589,6 +823,8 @@ public class AIActivity extends Activity {
                     conversationHistory.addAll(requestHistory);
                     conversationHistory.add(new ChatMessage("user", question));
                     conversationHistory.add(new ChatMessage("assistant", finalAnswer));
+                    if (activeChatTitle.isEmpty()) activeChatTitle = makeTitle(question);
+                    saveActiveConversation();
 
                     addMessage(false, finalAnswer, true);
                     finishSending();
@@ -713,6 +949,8 @@ public class AIActivity extends Activity {
         text.setTextColor(textColor);
         text.setGravity(Gravity.RIGHT);
         text.setTextIsSelectable(true);
+        Linkify.addLinks(text, Linkify.WEB_URLS);
+        text.setMovementMethod(LinkMovementMethod.getInstance());
         text.setLineSpacing(dp(3), 1.0f);
         text.setPadding(0, dp(8), 0, dp(4));
         bubble.addView(text);
@@ -794,6 +1032,8 @@ public class AIActivity extends Activity {
         }
         outState.putString(
                 "ai_conversation_history", serializeConversationHistory());
+        outState.putString("ai_active_chat_id", activeChatId);
+        outState.putString("ai_active_chat_title", activeChatTitle);
     }
 
     private void recreateIfThemeChanged() {
