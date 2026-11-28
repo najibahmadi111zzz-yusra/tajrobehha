@@ -296,7 +296,24 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("خطا در بررسی لایک"))
                 return "Error checking like";
-        }
+        
+            if (fa.equals("کامنت را ویرایش کنید")) return "Edit comment";
+            if (fa.equals("ویرایش")) return "Edit";
+            if (fa.equals("حذف کامنت")) return "Delete comment";
+            if (fa.equals("آیا از حذف این کامنت مطمئن هستید؟")) return "Are you sure you want to delete this comment?";
+            if (fa.equals("کامنت ویرایش شد.")) return "Comment updated.";
+            if (fa.equals("کامنت حذف شد.")) return "Comment deleted.";
+            if (fa.equals("ویرایش کامنت ناموفق بود.")) return "Could not edit comment.";
+            if (fa.equals("حذف کامنت ناموفق بود.")) return "Could not delete comment.";
+            if (fa.equals("تجربه‌های ذخیره‌شده")) return "Saved experiences";
+            if (fa.equals("هنوز تجربه‌ای ذخیره نکرده‌اید.")) return "You haven't saved any experiences yet.";
+            if (fa.equals("حذف از ذخیره‌شده‌ها")) return "Remove from saved";
+            if (fa.equals("تجربه ذخیره‌شده در دسترس نیست.")) return "This saved experience is unavailable.";
+            if (fa.equals("برای دیدن تجربه‌های ذخیره‌شده وارد حساب شوید.")) return "Please log in to view saved experiences.";
+
+            if (fa.equals("مشاهده تجربه‌هایی که برای بعد ذخیره کرده‌اید")) return "View experiences you saved for later";
+            if (fa.equals("خطا در بارگذاری تجربه‌های ذخیره‌شده.")) return "Could not load saved experiences.";
+}
 
         // پښتو
         if ("ps".equals(lang)) {
@@ -384,7 +401,24 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("خطا در بررسی لایک"))
                 return "د خوښونې په کتلو کې تېروتنه";
-        }
+        
+            if (fa.equals("کامنت را ویرایش کنید")) return "تبصره سمول کړئ";
+            if (fa.equals("ویرایش")) return "سمون";
+            if (fa.equals("حذف کامنت")) return "تبصره ړنګول";
+            if (fa.equals("آیا از حذف این کامنت مطمئن هستید؟")) return "ایا ډاډه یاست چې دا تبصره ړنګه کړئ؟";
+            if (fa.equals("کامنت ویرایش شد.")) return "تبصره سمه شوه.";
+            if (fa.equals("کامنت حذف شد.")) return "تبصره ړنګه شوه.";
+            if (fa.equals("ویرایش کامنت ناموفق بود.")) return "د تبصرې سمون ناکام شو.";
+            if (fa.equals("حذف کامنت ناموفق بود.")) return "د تبصرې ړنګول ناکام شول.";
+            if (fa.equals("تجربه‌های ذخیره‌شده")) return "خوندي شوې تجربې";
+            if (fa.equals("هنوز تجربه‌ای ذخیره نکرده‌اید.")) return "تاسو تر اوسه کومه تجربه نه ده خوندي کړې.";
+            if (fa.equals("حذف از ذخیره‌شده‌ها")) return "له خوندي شوو څخه لرې کول";
+            if (fa.equals("تجربه ذخیره‌شده در دسترس نیست.")) return "دا خوندي شوې تجربه شتون نه لري.";
+            if (fa.equals("برای دیدن تجربه‌های ذخیره‌شده وارد حساب شوید.")) return "د خوندي شوو تجربو د لیدلو لپاره خپل حساب ته ننوځئ.";
+
+            if (fa.equals("مشاهده تجربه‌هایی که برای بعد ذخیره کرده‌اید")) return "هغه تجربې وګورئ چې وروسته مو لپاره خوندي کړې دي";
+            if (fa.equals("خطا در بارگذاری تجربه‌های ذخیره‌شده.")) return "د خوندي شوو تجربو په پورته کولو کې تېروتنه.";
+}
 
         // اردو
         if ("ur".equals(lang)) {
@@ -472,7 +506,24 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("خطا در بررسی لایک"))
                 return "لائک چیک کرنے میں خرابی";
-        }
+        
+            if (fa.equals("کامنت را ویرایش کنید")) return "تبصرہ ترمیم کریں";
+            if (fa.equals("ویرایش")) return "ترمیم";
+            if (fa.equals("حذف کامنت")) return "تبصرہ حذف کریں";
+            if (fa.equals("آیا از حذف این کامنت مطمئن هستید؟")) return "کیا آپ واقعی یہ تبصرہ حذف کرنا چاہتے ہیں؟";
+            if (fa.equals("کامنت ویرایش شد.")) return "تبصرہ ترمیم ہوگیا۔";
+            if (fa.equals("کامنت حذف شد.")) return "تبصرہ حذف ہوگیا۔";
+            if (fa.equals("ویرایش کامنت ناموفق بود.")) return "تبصرہ ترمیم نہیں ہو سکا۔";
+            if (fa.equals("حذف کامنت ناموفق بود.")) return "تبصرہ حذف نہیں ہو سکا۔";
+            if (fa.equals("تجربه‌های ذخیره‌شده")) return "محفوظ شدہ تجربات";
+            if (fa.equals("هنوز تجربه‌ای ذخیره نکرده‌اید.")) return "آپ نے ابھی کوئی تجربہ محفوظ نہیں کیا۔";
+            if (fa.equals("حذف از ذخیره‌شده‌ها")) return "محفوظ فہرست سے ہٹائیں";
+            if (fa.equals("تجربه ذخیره‌شده در دسترس نیست.")) return "یہ محفوظ تجربہ دستیاب نہیں۔";
+            if (fa.equals("برای دیدن تجربه‌های ذخیره‌شده وارد حساب شوید.")) return "محفوظ تجربات دیکھنے کے لیے لاگ اِن کریں۔";
+
+            if (fa.equals("مشاهده تجربه‌هایی که برای بعد ذخیره کرده‌اید")) return "بعد کے لیے محفوظ کیے گئے تجربات دیکھیں";
+            if (fa.equals("خطا در بارگذاری تجربه‌های ذخیره‌شده.")) return "محفوظ تجربات لوڈ نہیں ہو سکے۔";
+}
 
         // हिन्दी
         if ("hi".equals(lang)) {
@@ -560,7 +611,24 @@ public class ExperienceListActivity extends Activity {
 
             if (fa.equals("خطا در بررسی لایک"))
                 return "लाइक जाँचने में त्रुटि";
-        }
+        
+            if (fa.equals("کامنت را ویرایش کنید")) return "टिप्पणी संपादित करें";
+            if (fa.equals("ویرایش")) return "संपादित करें";
+            if (fa.equals("حذف کامنت")) return "टिप्पणी हटाएँ";
+            if (fa.equals("آیا از حذف این کامنت مطمئن هستید؟")) return "क्या आप वाकई यह टिप्पणी हटाना चाहते हैं?";
+            if (fa.equals("کامنت ویرایش شد.")) return "टिप्पणी अपडेट हुई।";
+            if (fa.equals("کامنت حذف شد.")) return "टिप्पणी हटा दी गई।";
+            if (fa.equals("ویرایش کامنت ناموفق بود.")) return "टिप्पणी संपादित नहीं हो सकी।";
+            if (fa.equals("حذف کامنت ناموفق بود.")) return "टिप्पणी हटाई नहीं जा सकी।";
+            if (fa.equals("تجربه‌های ذخیره‌شده")) return "सहेजे गए अनुभव";
+            if (fa.equals("هنوز تجربه‌ای ذخیره نکرده‌اید.")) return "आपने अभी तक कोई अनुभव सहेजा नहीं है।";
+            if (fa.equals("حذف از ذخیره‌شده‌ها")) return "सहेजी गई सूची से हटाएँ";
+            if (fa.equals("تجربه ذخیره‌شده در دسترس نیست.")) return "यह सहेजा गया अनुभव उपलब्ध नहीं है।";
+            if (fa.equals("برای دیدن تجربه‌های ذخیره‌شده وارد حساب شوید.")) return "सहेजे गए अनुभव देखने के लिए लॉग इन करें।";
+
+            if (fa.equals("مشاهده تجربه‌هایی که برای بعد ذخیره کرده‌اید")) return "बाद के लिए सहेजे गए अनुभव देखें";
+            if (fa.equals("خطا در بارگذاری تجربه‌های ذخیره‌شده.")) return "सहेजे गए अनुभव लोड नहीं हो सके।";
+}
 
         // متن‌های فرم انتشار تجربه
         if ("en".equals(lang)) {
@@ -771,7 +839,24 @@ public class ExperienceListActivity extends Activity {
             if (fa.equals("رد شد")) return "تم الرفض";
             if (fa.equals("پاسخ ثبت شد.")) return "تم تسجيل الرد.";
             if (fa.equals("ثبت پاسخ ناموفق بود؛ قوانین فایربیس را بررسی کنید.")) return "فشل تسجيل الرد؛ تحقق من قواعد Firebase.";
-        }
+        
+            if (fa.equals("کامنت را ویرایش کنید")) return "تعديل التعليق";
+            if (fa.equals("ویرایش")) return "تعديل";
+            if (fa.equals("حذف کامنت")) return "حذف التعليق";
+            if (fa.equals("آیا از حذف این کامنت مطمئن هستید؟")) return "هل أنت متأكد من حذف هذا التعليق؟";
+            if (fa.equals("کامنت ویرایش شد.")) return "تم تعديل التعليق.";
+            if (fa.equals("کامنت حذف شد.")) return "تم حذف التعليق.";
+            if (fa.equals("ویرایش کامنت ناموفق بود.")) return "تعذّر تعديل التعليق.";
+            if (fa.equals("حذف کامنت ناموفق بود.")) return "تعذّر حذف التعليق.";
+            if (fa.equals("تجربه‌های ذخیره‌شده")) return "التجارب المحفوظة";
+            if (fa.equals("هنوز تجربه‌ای ذخیره نکرده‌اید.")) return "لم تحفظ أي تجربة بعد.";
+            if (fa.equals("حذف از ذخیره‌شده‌ها")) return "إزالة من المحفوظات";
+            if (fa.equals("تجربه ذخیره‌شده در دسترس نیست.")) return "هذه التجربة المحفوظة غير متاحة.";
+            if (fa.equals("برای دیدن تجربه‌های ذخیره‌شده وارد حساب شوید.")) return "يرجى تسجيل الدخول لرؤية التجارب المحفوظة.";
+
+            if (fa.equals("مشاهده تجربه‌هایی که برای بعد ذخیره کرده‌اید")) return "عرض التجارب التي حفظتها لوقت لاحق";
+            if (fa.equals("خطا در بارگذاری تجربه‌های ذخیره‌شده.")) return "تعذّر تحميل التجارب المحفوظة.";
+}
         return fa;
     }
 
@@ -1090,6 +1175,17 @@ if (appliedThemeColor != currentThemeColor ||
         LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(-1, dp(70));
         refreshParams.bottomMargin = dp(10);
         panel.addView(refreshItem, refreshParams);
+
+        View savedItem = createSettingsPanelItem("🔖", text("تجربه‌های ذخیره‌شده"),
+                text("مشاهده تجربه‌هایی که برای بعد ذخیره کرده‌اید"));
+        LinearLayout.LayoutParams savedParams = new LinearLayout.LayoutParams(-1, dp(70));
+        savedParams.bottomMargin = dp(10);
+        panel.addView(savedItem, savedParams);
+        savedItem.setOnClickListener(v -> {
+            settingsDialog.dismiss();
+            showSavedExperiences();
+        });
+
         refreshItem.setOnClickListener(v -> {
             settingsDialog.dismiss();
             if (!refreshBatchActive) {
@@ -3945,6 +4041,14 @@ if (appliedThemeColor != currentThemeColor ||
                 Color.rgb(239, 247, 255), Color.rgb(193, 220, 246)));
         likeRow.addView(likeButton, new LinearLayout.LayoutParams(dp(92), dp(36)));
 
+        TextView heartButton = new TextView(this);
+        heartButton.setText("♡");
+        heartButton.setTextSize(25);
+        heartButton.setTextColor(Color.rgb(211, 48, 72));
+        heartButton.setGravity(Gravity.CENTER);
+        heartButton.setContentDescription(text("❤️ قلب"));
+        likeRow.addView(heartButton, new LinearLayout.LayoutParams(dp(38), dp(36)));
+
         TextView likeCount = new TextView(this);
         likeCount.setText(text("۰")); likeCount.setTextSize(13);
         likeCount.setTextColor(secondaryTextColor());
@@ -4012,7 +4116,7 @@ if (appliedThemeColor != currentThemeColor ||
             AlertDialog reactionDialog = new AlertDialog.Builder(ExperienceListActivity.this)
                     .setView(chooser).create();
             likeChoice.setOnClickListener(choice -> { reactionDialog.dismiss(); toggleLike(document, currentUserId, likeButton, likeCount); });
-            heartChoice.setOnClickListener(choice -> { reactionDialog.dismiss(); toggleHeart(document, currentUserId, likeButton, heartCount); });
+            heartChoice.setOnClickListener(choice -> { reactionDialog.dismiss(); toggleHeart(document, currentUserId, heartButton, heartCount); });
             reactionDialog.show();
             if (reactionDialog.getWindow() != null) {
                 reactionDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
@@ -4067,7 +4171,15 @@ if (appliedThemeColor != currentThemeColor ||
 
         // وضعیت جداگانهٔ لایک و قلب
         loadLikeStatus(document, currentUserId, likeButton, likeCount);
-        loadHeartStatus(document, heartCount);
+        loadHeartStatus(document, heartButton, heartCount);
+        heartButton.setOnClickListener(v -> {
+            if (currentUserId == null || currentUserId.trim().isEmpty()) {
+                Toast.makeText(ExperienceListActivity.this,
+                        text("برای لایک کردن وارد حساب شوید"), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            toggleHeart(document, currentUserId, heartButton, heartCount);
+        });
 
         // کامنت و اشتراک‌گذاری مستقیماً روی کارت اصلی
         LinearLayout socialRow = new LinearLayout(this);
@@ -4076,24 +4188,26 @@ if (appliedThemeColor != currentThemeColor ||
         socialRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         TextView commentsButton = new TextView(this);
         commentsButton.setText(text("💬 کامنت"));
-        commentsButton.setTextSize(14);
+        commentsButton.setTextSize(13);
         commentsButton.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         commentsButton.setTextColor(themeAccentColor());
         commentsButton.setGravity(Gravity.CENTER);
-        commentsButton.setPadding(dp(10), dp(8), dp(10), dp(8));
+        commentsButton.setPadding(dp(8), dp(8), dp(8), dp(8));
+        commentsButton.setElevation(dp(2));
         commentsButton.setBackground(createReactionBackground(
-                Color.rgb(235, 248, 250), Color.rgb(167, 218, 224)));
+                Color.rgb(235, 248, 250), Color.rgb(125, 195, 205)));
 
         TextView shareButtonCard = new TextView(this);
         shareButtonCard.setText(text("↗ اشتراک‌گذاری"));
-        shareButtonCard.setTextSize(14);
+        shareButtonCard.setTextSize(13);
         shareButtonCard.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         shareButtonCard.setTextColor(isDarkThemePalette()
                 ? primaryTextColor() : Color.rgb(113, 83, 25));
         shareButtonCard.setGravity(Gravity.CENTER);
-        shareButtonCard.setPadding(dp(10), dp(8), dp(10), dp(8));
+        shareButtonCard.setPadding(dp(8), dp(8), dp(8), dp(8));
+        shareButtonCard.setElevation(dp(2));
         shareButtonCard.setBackground(createReactionBackground(
-                Color.rgb(255, 249, 231), Color.rgb(230, 207, 145)));
+                Color.rgb(255, 249, 231), Color.rgb(220, 190, 115)));
 
         TextView savePostButton = new TextView(this);
         savePostButton.setText(text("🔖 ذخیره"));
@@ -4101,9 +4215,10 @@ if (appliedThemeColor != currentThemeColor ||
         savePostButton.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         savePostButton.setTextColor(primaryTextColor());
         savePostButton.setGravity(Gravity.CENTER);
-        savePostButton.setPadding(dp(4), dp(8), dp(4), dp(8));
+        savePostButton.setPadding(dp(6), dp(8), dp(6), dp(8));
+        savePostButton.setElevation(dp(2));
         savePostButton.setBackground(createReactionBackground(
-                cardSurfaceColor(), themeBorderColor()));
+                cardSurfaceColor(), themeAccentColor()));
         savePostButton.setContentDescription(text("🔖 ذخیره"));
 
         LinearLayout.LayoutParams commentParams = new LinearLayout.LayoutParams(0, dp(44), 1);
@@ -4135,6 +4250,7 @@ if (appliedThemeColor != currentThemeColor ||
         // برای تجربه‌های متنی/عکسی، ردیف استاندارد پایین کارت بدون تغییر باقی می‌ماند.
         if (videoFrameForActions != null) {
             likeButton.setVisibility(View.GONE);
+            heartButton.setVisibility(View.GONE);
             likeCount.setVisibility(View.GONE);
             heartCount.setVisibility(View.GONE);
             socialRow.setVisibility(View.GONE);
@@ -4184,8 +4300,8 @@ if (appliedThemeColor != currentThemeColor ||
             actionRail.addView(avatarHolder, avatarRailParams);
 
             LinearLayout likeAction = createVideoOverlayAction("♡", text("واکنش"));
-            LinearLayout commentAction = createVideoOverlayAction("●", text("کامنت"));
-            LinearLayout saveAction = createVideoOverlayAction("▣", text("ذخیره"));
+            LinearLayout commentAction = createVideoOverlayAction("💬", text("کامنت"));
+            LinearLayout saveAction = createVideoOverlayAction("🔖", text("ذخیره"));
             LinearLayout shareAction = createVideoOverlayAction("↗", text("اشتراک‌گذاری"));
             TextView saveOverlayCaption = (TextView) saveAction.getChildAt(2);
             savePostButton.addTextChangedListener(new TextWatcher() {
@@ -4198,8 +4314,22 @@ if (appliedThemeColor != currentThemeColor ||
             });
 
             TextView overlayLikeCount = (TextView) likeAction.getTag();
+            TextView overlayHeartSymbol = (TextView) likeAction.getChildAt(0);
             TextView overlayCommentCount = (TextView) commentAction.getTag();
-            bindVideoOverlayCount(likeCount, overlayLikeCount, false);
+            bindVideoOverlayCount(heartCount, overlayLikeCount, false);
+            boolean initiallyHearted = "♥".contentEquals(heartButton.getText());
+            overlayHeartSymbol.setText(initiallyHearted ? "♥" : "♡");
+            overlayHeartSymbol.setTextColor(initiallyHearted
+                    ? Color.rgb(255, 55, 85) : Color.WHITE);
+            heartButton.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence value, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence value, int start, int before, int count) {
+                    boolean active = value != null && "♥".contentEquals(value);
+                    overlayHeartSymbol.setText(active ? "♥" : "♡");
+                    overlayHeartSymbol.setTextColor(active ? Color.rgb(255, 55, 85) : Color.WHITE);
+                }
+                @Override public void afterTextChanged(Editable value) { }
+            });
             bindVideoOverlayCount(commentsButton, overlayCommentCount, true);
 
             likeAction.setContentDescription(text("واکنش"));
@@ -4207,8 +4337,7 @@ if (appliedThemeColor != currentThemeColor ||
             saveAction.setContentDescription(text("ذخیره"));
             shareAction.setContentDescription(text("اشتراک‌گذاری"));
 
-            likeAction.setOnClickListener(v -> likeButton.performClick());
-            likeAction.setOnLongClickListener(v -> likeButton.performLongClick());
+            likeAction.setOnClickListener(v -> heartButton.performClick());
             commentAction.setOnClickListener(v -> commentsButton.performClick());
             saveAction.setOnClickListener(v -> savePostButton.performClick());
             shareAction.setOnClickListener(v -> shareButtonCard.performClick());
@@ -4686,7 +4815,8 @@ if (appliedThemeColor != currentThemeColor ||
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(list);
-        content.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(260)));
+        content.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(280)));
         EditText input = new EditText(this);
         input.setHint(text("نظر خود را بنویسید..."));
         input.setGravity(Gravity.RIGHT | Gravity.TOP);
@@ -4694,36 +4824,145 @@ if (appliedThemeColor != currentThemeColor ||
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle(text("کامنت‌ها"))
                 .setView(content).setNegativeButton(text("بستن"), null)
                 .setPositiveButton(text("ثبت کامنت"), null).create();
-        experience.collection("comments").get()
-                .addOnSuccessListener(q -> {
-                    list.removeAllViews();
-                    if (q.isEmpty()) { TextView empty = new TextView(this); empty.setText(text("هنوز کامنتی ثبت نشده است.")); empty.setGravity(Gravity.RIGHT); list.addView(empty); }
-                    for (DocumentSnapshot d : q.getDocuments()) {
-                        String uid = d.getString("userId");
-                        String comment = d.getString("text");
-                        TextView row = new TextView(this);
-                        row.setText((comment == null ? "" : comment) + "\n");
-                        row.setTextSize(15); row.setTextColor(primaryTextColor()); row.setGravity(Gravity.RIGHT);
-                        row.setPadding(0, dp(8), 0, dp(8));
-                        list.addView(row);
-                        if (uid != null) db.collection("users").document(uid).get().addOnSuccessListener(u -> {
-                            String name = u.getString("name"); if (name == null || name.trim().isEmpty()) name = u.getString("username");
-                            row.setText((name == null || name.trim().isEmpty() ? text("کاربر") : name) + "\n" + (comment == null ? "" : comment));
-                        });
-                    }
-                }).addOnFailureListener(e -> Toast.makeText(this, text("بارگذاری کامنت‌ها ناموفق بود"), Toast.LENGTH_SHORT).show());
+
+        Runnable reload = () -> renderExperienceComments(experience, list, countView);
+        reload.run();
+
         dialog.setOnShowListener(unused -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             FirebaseUser user = auth == null ? null : auth.getCurrentUser();
             String value = input.getText().toString().trim();
-            if (user == null) { Toast.makeText(this, text("برای ثبت کامنت وارد حساب شوید"), Toast.LENGTH_SHORT).show(); return; }
-            if (value.isEmpty()) { input.setError(text("متن کامنت را بنویسید")); return; }
-            java.util.HashMap<String,Object> data = new java.util.HashMap<>();
-            data.put("userId", user.getUid()); data.put("text", value); data.put("timestamp", FieldValue.serverTimestamp());
+            if (user == null) {
+                Toast.makeText(this, text("برای ثبت کامنت وارد حساب شوید"), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (value.isEmpty()) {
+                input.setError(text("متن کامنت را بنویسید"));
+                return;
+            }
+            Map<String, Object> data = new HashMap<>();
+            data.put("userId", user.getUid());
+            data.put("text", value);
+            data.put("timestamp", FieldValue.serverTimestamp());
             experience.collection("comments").add(data).addOnSuccessListener(ref -> {
-                loadCommentCount(experience, countView); Toast.makeText(this, text("کامنت ثبت شد"), Toast.LENGTH_SHORT).show(); dialog.dismiss();
-            }).addOnFailureListener(e -> Toast.makeText(this, text("ثبت کامنت ناموفق بود"), Toast.LENGTH_SHORT).show());
+                input.setText("");
+                reload.run();
+                Toast.makeText(this, text("کامنت ثبت شد"), Toast.LENGTH_SHORT).show();
+            }).addOnFailureListener(e ->
+                    Toast.makeText(this, text("ثبت کامنت ناموفق بود"), Toast.LENGTH_SHORT).show());
         }));
         dialog.show();
+    }
+
+    private void renderExperienceComments(DocumentReference experience, LinearLayout list,
+                                          TextView countView) {
+        experience.collection("comments").get().addOnSuccessListener(q -> {
+            if (isFinishing()) return;
+            list.removeAllViews();
+            countView.setText(text("💬 کامنت (") + formatCount(q.size()) + ")");
+            if (q.isEmpty()) {
+                TextView empty = new TextView(this);
+                empty.setText(text("هنوز کامنتی ثبت نشده است."));
+                empty.setTextColor(secondaryTextColor());
+                empty.setGravity(Gravity.CENTER);
+                empty.setPadding(dp(8), dp(18), dp(8), dp(18));
+                list.addView(empty);
+                return;
+            }
+            for (DocumentSnapshot d : q.getDocuments()) {
+                String uid = d.getString("userId");
+                String comment = d.getString("text");
+                String commentId = d.getId();
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.VERTICAL);
+                row.setPadding(dp(10), dp(8), dp(10), dp(8));
+                row.setBackground(createReactionBackground(cardSurfaceColor(), themeBorderColor()));
+
+                LinearLayout heading = new LinearLayout(this);
+                heading.setOrientation(LinearLayout.HORIZONTAL);
+                heading.setGravity(Gravity.CENTER_VERTICAL);
+                TextView name = new TextView(this);
+                name.setText(text("کاربر"));
+                name.setTextSize(13);
+                name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+                name.setTextColor(themeAccentColor());
+                heading.addView(name, new LinearLayout.LayoutParams(0, -2, 1f));
+
+                FirebaseUser current = auth == null ? null : auth.getCurrentUser();
+                boolean ownComment = current != null && current.getUid().equals(uid);
+                if (ownComment) {
+                    TextView more = new TextView(this);
+                    more.setText("⋮");
+                    more.setTextSize(22);
+                    more.setTextColor(secondaryTextColor());
+                    more.setGravity(Gravity.CENTER);
+                    more.setPadding(dp(10), 0, dp(4), 0);
+                    heading.addView(more, new LinearLayout.LayoutParams(dp(38), dp(34)));
+                    more.setOnClickListener(v -> showCommentActions(
+                            experience, commentId, comment == null ? "" : comment,
+                            list, countView));
+                }
+                row.addView(heading);
+
+                TextView body = new TextView(this);
+                body.setText(comment == null ? "" : comment);
+                body.setTextSize(14);
+                body.setTextColor(primaryTextColor());
+                body.setGravity(Gravity.RIGHT);
+                body.setPadding(0, dp(4), 0, dp(2));
+                row.addView(body);
+                LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
+                rowParams.setMargins(0, 0, 0, dp(7));
+                list.addView(row, rowParams);
+
+                if (uid != null && !uid.trim().isEmpty()) {
+                    db.collection("users").document(uid).get().addOnSuccessListener(u -> {
+                        String displayName = firstNonEmpty(u.getString("name"),
+                                u.getString("username"), u.getString("displayName"), text("کاربر"));
+                        name.setText(displayName);
+                    });
+                }
+            }
+        }).addOnFailureListener(e ->
+                Toast.makeText(this, text("بارگذاری کامنت‌ها ناموفق بود"), Toast.LENGTH_SHORT).show());
+    }
+
+    private void showCommentActions(DocumentReference experience, String commentId, String oldText,
+                                    LinearLayout list, TextView countView) {
+        String[] options = {text("ویرایش"), text("حذف کامنت")};
+        new AlertDialog.Builder(this).setItems(options, (dialog, which) -> {
+            if (which == 0) {
+                EditText editor = new EditText(this);
+                editor.setText(oldText);
+                editor.setGravity(Gravity.RIGHT | Gravity.TOP);
+                new AlertDialog.Builder(this).setTitle(text("کامنت را ویرایش کنید"))
+                        .setView(editor).setNegativeButton(text("لغو"), null)
+                        .setPositiveButton(text("ویرایش"), (d, w) -> {
+                            String updated = editor.getText().toString().trim();
+                            if (updated.isEmpty()) {
+                                Toast.makeText(this, text("متن کامنت را بنویسید"), Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            experience.collection("comments").document(commentId)
+                                    .update("text", updated)
+                                    .addOnSuccessListener(unused -> {
+                                        renderExperienceComments(experience, list, countView);
+                                        Toast.makeText(this, text("کامنت ویرایش شد."), Toast.LENGTH_SHORT).show();
+                                    }).addOnFailureListener(error ->
+                                            Toast.makeText(this, text("ویرایش کامنت ناموفق بود."), Toast.LENGTH_SHORT).show());
+                        }).show();
+            } else if (which == 1) {
+                new AlertDialog.Builder(this).setMessage(text("آیا از حذف این کامنت مطمئن هستید؟"))
+                        .setNegativeButton(text("لغو"), null)
+                        .setPositiveButton(text("حذف"), (d, w) ->
+                                experience.collection("comments").document(commentId).delete()
+                                        .addOnSuccessListener(unused -> {
+                                            renderExperienceComments(experience, list, countView);
+                                            Toast.makeText(this, text("کامنت حذف شد."), Toast.LENGTH_SHORT).show();
+                                        }).addOnFailureListener(error ->
+                                                Toast.makeText(this, text("حذف کامنت ناموفق بود."), Toast.LENGTH_SHORT).show()))
+                        .show();
+            }
+        }).show();
     }
 
     private void showReactors(DocumentReference experience, String initialTab) {
@@ -4776,57 +5015,70 @@ if (appliedThemeColor != currentThemeColor ||
         return drawable;
     }
 
-    private void loadHeartStatus(DocumentSnapshot experience,
+    private void loadHeartStatus(DocumentSnapshot experience, TextView heartButton,
                                  TextView heartCount) {
-        CollectionReference hearts = experience.getReference()
-                .collection("hearts");
-        hearts.get().addOnSuccessListener(snapshot ->
-                heartCount.setText(formatCount(snapshot.size())))
-                .addOnFailureListener(e ->
-                        Toast.makeText(ExperienceListActivity.this,
-                                text("بارگذاری تعداد قلب‌ها ناموفق بود"),
-                                Toast.LENGTH_SHORT).show());
+        CollectionReference hearts = experience.getReference().collection("hearts");
+        String uid = auth == null || auth.getCurrentUser() == null
+                ? null : auth.getCurrentUser().getUid();
+        hearts.get().addOnSuccessListener(snapshot -> {
+            if (heartCount != null) heartCount.setText(formatCount(snapshot.size()));
+        }).addOnFailureListener(e ->
+                Toast.makeText(ExperienceListActivity.this,
+                        text("بارگذاری تعداد قلب‌ها ناموفق بود"), Toast.LENGTH_SHORT).show());
+
+        if (uid == null || heartButton == null) {
+            if (heartButton != null) {
+                heartButton.setText("♡");
+                heartButton.setTextColor(Color.rgb(211, 48, 72));
+            }
+            return;
+        }
+        hearts.document(uid).get().addOnSuccessListener(mine -> {
+            if (heartButton == null || isFinishing()) return;
+            boolean active = mine.exists();
+            heartButton.setText(active ? "♥" : "♡");
+            heartButton.setTextColor(active ? Color.rgb(230, 35, 70) : Color.rgb(211, 48, 72));
+        }).addOnFailureListener(e ->
+                Log.w("ExperienceHeart", "Could not load current user's heart state", e));
     }
 
-    private void toggleHeart(DocumentSnapshot experience,
-                             String currentUserId,
-                             TextView heartButton,
-                             TextView heartCount) {
-
+    private void toggleHeart(DocumentSnapshot experience, String currentUserId,
+                             TextView heartButton, TextView heartCount) {
         if (currentUserId == null || currentUserId.trim().isEmpty()) return;
-
         DocumentReference experienceRef = experience.getReference();
         DocumentReference heartRef = experienceRef.collection("hearts").document(currentUserId);
         DocumentReference likeRef = experienceRef.collection("likes").document(currentUserId);
 
+        heartButton.setEnabled(false);
         db.runTransaction(transaction -> {
-            // تمام خواندن‌ها باید پیش از هر نوشتن انجام شوند.
             DocumentSnapshot heartSnap = transaction.get(heartRef);
             DocumentSnapshot likeSnap = transaction.get(likeRef);
-
             if (heartSnap.exists()) {
                 transaction.delete(heartRef);
                 return "removed";
             }
-            if (likeSnap.exists()) {
-                return "has_like";
-            }
-
-            java.util.HashMap<String, Object> data = new java.util.HashMap<>();
+            if (likeSnap.exists()) return "has_like";
+            Map<String, Object> data = new HashMap<>();
             data.put("userId", currentUserId);
             data.put("timestamp", FieldValue.serverTimestamp());
             transaction.set(heartRef, data);
             return "added";
         }).addOnSuccessListener(result -> {
+            heartButton.setEnabled(true);
             if ("has_like".equals(result)) {
-                Toast.makeText(this, text("شما قبلاً این تجربه را لایک کرده‌اید؛ هر تجربه فقط یک واکنش دارد."), Toast.LENGTH_SHORT).show();
+                Toast.makeText(this,
+                        text("شما قبلاً این تجربه را لایک کرده‌اید؛ هر تجربه فقط یک واکنش دارد."),
+                        Toast.LENGTH_SHORT).show();
             } else {
-                heartButton.setText("removed".equals(result) ? text("👍 واکنش") : text("❤️ واکنش"));
+                boolean active = "added".equals(result);
+                heartButton.setText(active ? "♥" : "♡");
+                heartButton.setTextColor(active ? Color.rgb(230, 35, 70) : Color.rgb(211, 48, 72));
             }
-            loadHeartStatus(experience, heartCount);
+            loadHeartStatus(experience, heartButton, heartCount);
         }).addOnFailureListener(e -> {
+            heartButton.setEnabled(true);
             Toast.makeText(this, text("خطا در ثبت یا برداشتن قلب"), Toast.LENGTH_SHORT).show();
-            loadHeartStatus(experience, heartCount);
+            loadHeartStatus(experience, heartButton, heartCount);
         });
     }
 
@@ -5329,6 +5581,12 @@ if (appliedThemeColor != currentThemeColor ||
         item.setPadding(dp(2), dp(3), dp(2), dp(3));
         item.setClickable(true);
         item.setFocusable(true);
+        GradientDrawable actionSurface = new GradientDrawable();
+        actionSurface.setColor(0x2AFFFFFF);
+        actionSurface.setCornerRadius(dp(17));
+        actionSurface.setStroke(dp(1), 0x55FFFFFF);
+        item.setBackground(actionSurface);
+        item.setElevation(dp(2));
 
         TextView symbol = new TextView(this);
         symbol.setText(icon);
@@ -5380,6 +5638,106 @@ if (appliedThemeColor != currentThemeColor ||
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) { update.run(); }
             @Override public void afterTextChanged(Editable editable) { }
         });
+    }
+
+    private void showSavedExperiences() {
+        FirebaseUser user = auth == null ? null : auth.getCurrentUser();
+        if (user == null) {
+            Toast.makeText(this, text("برای دیدن تجربه‌های ذخیره‌شده وارد حساب شوید."),
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(12), dp(8), dp(12), dp(8));
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(list);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(text("تجربه‌های ذخیره‌شده"))
+                .setView(scroll).setPositiveButton(text("بستن"), null).create();
+        dialog.show();
+
+        db.collection("users").document(user.getUid()).collection("savedExperiences")
+                .orderBy("savedAt", Query.Direction.DESCENDING)
+                .get().addOnSuccessListener(saved -> {
+                    list.removeAllViews();
+                    if (saved.isEmpty()) {
+                        TextView empty = new TextView(this);
+                        empty.setText(text("هنوز تجربه‌ای ذخیره نکرده‌اید."));
+                        empty.setTextColor(secondaryTextColor());
+                        empty.setGravity(Gravity.CENTER);
+                        empty.setPadding(dp(12), dp(24), dp(12), dp(24));
+                        list.addView(empty);
+                        return;
+                    }
+                    for (DocumentSnapshot bookmark : saved.getDocuments()) {
+                        String experienceId = bookmark.getString("experienceId");
+                        if (experienceId == null || experienceId.trim().isEmpty()) {
+                            experienceId = bookmark.getId();
+                        }
+                        final String id = experienceId;
+                        LinearLayout row = new LinearLayout(this);
+                        row.setOrientation(LinearLayout.HORIZONTAL);
+                        row.setGravity(Gravity.CENTER_VERTICAL);
+                        row.setPadding(dp(10), dp(8), dp(10), dp(8));
+                        row.setBackground(createReactionBackground(cardSurfaceColor(), themeBorderColor()));
+
+                        TextView title = new TextView(this);
+                        title.setText(firstNonEmpty(bookmark.getString("title"), text("تجربه")));
+                        title.setTextColor(primaryTextColor());
+                        title.setTextSize(14);
+                        title.setMaxLines(2);
+                        title.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+                        row.addView(title, new LinearLayout.LayoutParams(0, dp(54), 1f));
+
+                        TextView remove = new TextView(this);
+                        remove.setText("✕");
+                        remove.setTextColor(Color.rgb(190, 55, 65));
+                        remove.setTextSize(18);
+                        remove.setGravity(Gravity.CENTER);
+                        row.addView(remove, new LinearLayout.LayoutParams(dp(42), dp(42)));
+                        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
+                        rowParams.setMargins(0, 0, 0, dp(7));
+                        list.addView(row, rowParams);
+
+                        row.setOnClickListener(v -> db.collection("experiences").document(id)
+                                .get().addOnSuccessListener(experienceDoc -> {
+                                    if (!experienceDoc.exists()) {
+                                        Toast.makeText(this, text("تجربه ذخیره‌شده در دسترس نیست."),
+                                                Toast.LENGTH_SHORT).show();
+                                        return;
+                                    }
+                                    dialog.dismiss();
+                                    showExperienceDetails(id,
+                                            experienceDoc.getString("title"),
+                                            experienceDoc.getString("text"),
+                                            firstNonEmpty(experienceDoc.getString("imageUrl"),
+                                                    experienceDoc.getString("image")),
+                                            getExperienceDateTime(experienceDoc), false, null);
+                                }).addOnFailureListener(error ->
+                                        Toast.makeText(this, text("تجربه ذخیره‌شده در دسترس نیست."),
+                                                Toast.LENGTH_SHORT).show()));
+
+                        remove.setOnClickListener(v -> bookmark.getReference().delete()
+                                .addOnSuccessListener(unused -> {
+                                    list.removeView(row);
+                                    if (list.getChildCount() == 0) {
+                                        TextView empty = new TextView(this);
+                                        empty.setText(text("هنوز تجربه‌ای ذخیره نکرده‌اید."));
+                                        empty.setGravity(Gravity.CENTER);
+                                        empty.setPadding(dp(12), dp(24), dp(12), dp(24));
+                                        list.addView(empty);
+                                    }
+                                    Toast.makeText(this, text("از ذخیره‌شده‌ها برداشته شد."),
+                                            Toast.LENGTH_SHORT).show();
+                                }).addOnFailureListener(error ->
+                                        Toast.makeText(this, text("حذف از ذخیره‌شده‌ها ناموفق بود."),
+                                                Toast.LENGTH_SHORT).show()));
+                    }
+                }).addOnFailureListener(error ->
+                        Toast.makeText(this, text("خطا در بارگذاری تجربه‌های ذخیره‌شده."),
+                                Toast.LENGTH_SHORT).show());
     }
 
     // نشانک تجربه‌ها: هر کاربر فقط زیرمجموعهٔ ذخیره‌شده‌های حساب خودش را می‌بیند.
@@ -6077,4 +6435,4 @@ if (appliedThemeColor != currentThemeColor ||
         }
     }
 
-}
+    }
