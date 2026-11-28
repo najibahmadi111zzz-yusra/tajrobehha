@@ -524,6 +524,13 @@ public class AccountActivity extends Activity {
 
         layout.addView(passwordInput);
         styleInputField(passwordInput);
+
+        // styleInputField() calls setSingleLine(true), which can replace
+        // the password transformation. Reapply masking after styling.
+        passwordInput.setTransformationMethod(
+                new AlwaysMaskedPasswordTransformationMethod()
+        );
+
         attachPasswordEye(passwordInput);
 
         // ==========================================
