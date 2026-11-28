@@ -37,6 +37,8 @@ import android.widget.VideoView;
 import android.widget.ProgressBar;
 import android.widget.MediaController;
 import android.widget.SeekBar;
+import android.text.TextWatcher;
+import android.text.Editable;
 import android.os.Handler;
 import android.os.Looper;
 import android.media.MediaMetadataRetriever;
@@ -210,6 +212,25 @@ public class ExperienceListActivity extends Activity {
 
         // English
         if ("en".equals(lang)) {
+            if (fa.equals("ذخیره‌شده")) return "Saved";
+            // Video overlay action translations
+            if (fa.equals("واکنش")) return "Like";
+            if (fa.equals("کامنت")) return "Comments";
+            if (fa.equals("ذخیره")) return "Save";
+            if (fa.equals("اشتراک‌گذاری")) return "Share";
+            if (fa.equals("پروفایل")) return "Profile";
+
+            // Bookmark feature translations
+            if (fa.equals("🔖 ذخیره")) return "🔖 Save";
+            if (fa.equals("🔖 ذخیره‌شده")) return "🔖 Saved";
+            if (fa.equals("برای ذخیره تجربه وارد حساب شوید.")) return "Please log in to save this experience.";
+            if (fa.equals("تجربه ذخیره شد.")) return "Experience saved.";
+            if (fa.equals("از ذخیره‌شده‌ها برداشته شد.")) return "Removed from saved experiences.";
+            if (fa.equals("ذخیره تجربه ناموفق بود.")) return "Could not save the experience.";
+            if (fa.equals("حذف از ذخیره‌شده‌ها ناموفق بود.")) return "Could not remove the saved experience.";
+            if (fa.equals("بررسی وضعیت ذخیره ناموفق بود.")) return "Could not check the saved status.";
+            if (fa.equals("خطا در بارگذاری وضعیت ذخیره.")) return "Could not load the saved status.";
+            if (fa.equals("تجربه")) return "Experience";
 
             if (fa.equals("تجربه‌ها")) return "Experiences";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 Users' Experiences";
@@ -279,6 +300,25 @@ public class ExperienceListActivity extends Activity {
 
         // پښتو
         if ("ps".equals(lang)) {
+            if (fa.equals("ذخیره‌شده")) return "خوندي شوې";
+            // Video overlay action translations
+            if (fa.equals("واکنش")) return "غبرګون";
+            if (fa.equals("کامنت")) return "تبصرې";
+            if (fa.equals("ذخیره")) return "خوندي کول";
+            if (fa.equals("اشتراک‌گذاری")) return "شریکول";
+            if (fa.equals("پروفایل")) return "پروفایل";
+
+            // Bookmark feature translations
+            if (fa.equals("🔖 ذخیره")) return "🔖 خوندي کول";
+            if (fa.equals("🔖 ذخیره‌شده")) return "🔖 خوندي شوې";
+            if (fa.equals("برای ذخیره تجربه وارد حساب شوید.")) return "د دې تجربې د خوندي کولو لپاره خپل حساب ته ننوځئ.";
+            if (fa.equals("تجربه ذخیره شد.")) return "تجربه خوندي شوه.";
+            if (fa.equals("از ذخیره‌شده‌ها برداشته شد.")) return "تجربه له خوندي شوو څخه لرې شوه.";
+            if (fa.equals("ذخیره تجربه ناموفق بود.")) return "د تجربې خوندي کول ناکام شول.";
+            if (fa.equals("حذف از ذخیره‌شده‌ها ناموفق بود.")) return "له خوندي شوو څخه د تجربې لرې کول ناکام شول.";
+            if (fa.equals("بررسی وضعیت ذخیره ناموفق بود.")) return "د خوندي کېدو حالت کتل ناکام شول.";
+            if (fa.equals("خطا در بارگذاری وضعیت ذخیره.")) return "د خوندي کېدو حالت پورته کول ناکام شول.";
+            if (fa.equals("تجربه")) return "تجربه";
 
             if (fa.equals("تجربه‌ها")) return "تجربې";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 د کاروونکو تجربې";
@@ -348,6 +388,25 @@ public class ExperienceListActivity extends Activity {
 
         // اردو
         if ("ur".equals(lang)) {
+            if (fa.equals("ذخیره‌شده")) return "محفوظ شدہ";
+            // Video overlay action translations
+            if (fa.equals("واکنش")) return "ردِعمل";
+            if (fa.equals("کامنت")) return "تبصرے";
+            if (fa.equals("ذخیره")) return "محفوظ کریں";
+            if (fa.equals("اشتراک‌گذاری")) return "شیئر کریں";
+            if (fa.equals("پروفایل")) return "پروفائل";
+
+            // Bookmark feature translations
+            if (fa.equals("🔖 ذخیره")) return "🔖 محفوظ کریں";
+            if (fa.equals("🔖 ذخیره‌شده")) return "🔖 محفوظ شدہ";
+            if (fa.equals("برای ذخیره تجربه وارد حساب شوید.")) return "اس تجربے کو محفوظ کرنے کے لیے اپنے اکاؤنٹ میں لاگ اِن کریں۔";
+            if (fa.equals("تجربه ذخیره شد.")) return "تجربہ محفوظ ہو گیا۔";
+            if (fa.equals("از ذخیره‌شده‌ها برداشته شد.")) return "تجربہ محفوظ شدہ فہرست سے ہٹا دیا گیا۔";
+            if (fa.equals("ذخیره تجربه ناموفق بود.")) return "تجربہ محفوظ نہیں ہو سکا۔";
+            if (fa.equals("حذف از ذخیره‌شده‌ها ناموفق بود.")) return "محفوظ شدہ فہرست سے تجربہ نہیں ہٹایا جا سکا۔";
+            if (fa.equals("بررسی وضعیت ذخیره ناموفق بود.")) return "محفوظ ہونے کی حالت معلوم نہیں ہو سکی۔";
+            if (fa.equals("خطا در بارگذاری وضعیت ذخیره.")) return "محفوظ شدہ حالت لوڈ نہیں ہو سکی۔";
+            if (fa.equals("تجربه")) return "تجربہ";
 
             if (fa.equals("تجربه‌ها")) return "تجربات";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 صارفین کے تجربات";
@@ -417,6 +476,25 @@ public class ExperienceListActivity extends Activity {
 
         // हिन्दी
         if ("hi".equals(lang)) {
+            if (fa.equals("ذخیره‌شده")) return "सहेजा गया";
+            // Video overlay action translations
+            if (fa.equals("واکنش")) return "प्रतिक्रिया";
+            if (fa.equals("کامنت")) return "टिप्पणियाँ";
+            if (fa.equals("ذخیره")) return "सहेजें";
+            if (fa.equals("اشتراک‌گذاری")) return "साझा करें";
+            if (fa.equals("پروفایل")) return "प्रोफ़ाइल";
+
+            // Bookmark feature translations
+            if (fa.equals("🔖 ذخیره")) return "🔖 सहेजें";
+            if (fa.equals("🔖 ذخیره‌شده")) return "🔖 सहेजा गया";
+            if (fa.equals("برای ذخیره تجربه وارد حساب شوید.")) return "इस अनुभव को सहेजने के लिए अपने खाते में लॉग इन करें।";
+            if (fa.equals("تجربه ذخیره شد.")) return "अनुभव सहेज लिया गया।";
+            if (fa.equals("از ذخیره‌شده‌ها برداشته شد.")) return "अनुभव सहेजी गई सूची से हटा दिया गया।";
+            if (fa.equals("ذخیره تجربه ناموفق بود.")) return "अनुभव सहेजा नहीं जा सका।";
+            if (fa.equals("حذف از ذخیره‌شده‌ها ناموفق بود.")) return "सहेजी गई सूची से अनुभव हटाया नहीं जा सका।";
+            if (fa.equals("بررسی وضعیت ذخیره ناموفق بود.")) return "सहेजने की स्थिति जाँची नहीं जा सकी।";
+            if (fa.equals("خطا در بارگذاری وضعیت ذخیره.")) return "सहेजने की स्थिति लोड नहीं हो सकी।";
+            if (fa.equals("تجربه")) return "अनुभव";
 
             if (fa.equals("تجربه‌ها")) return "अनुभव";
             if (fa.equals("📚 تجربه‌های کاربران")) return "📚 उपयोगकर्ताओं के अनुभव";
@@ -548,6 +626,25 @@ public class ExperienceListActivity extends Activity {
 
         // العربية
         if ("ar".equals(lang)) {
+            if (fa.equals("ذخیره‌شده")) return "محفوظ";
+            // Video overlay action translations
+            if (fa.equals("واکنش")) return "تفاعل";
+            if (fa.equals("کامنت")) return "التعليقات";
+            if (fa.equals("ذخیره")) return "حفظ";
+            if (fa.equals("اشتراک‌گذاری")) return "مشاركة";
+            if (fa.equals("پروفایل")) return "الملف الشخصي";
+
+            // Bookmark feature translations
+            if (fa.equals("🔖 ذخیره")) return "🔖 حفظ";
+            if (fa.equals("🔖 ذخیره‌شده")) return "🔖 محفوظ";
+            if (fa.equals("برای ذخیره تجربه وارد حساب شوید.")) return "يرجى تسجيل الدخول لحفظ هذه التجربة.";
+            if (fa.equals("تجربه ذخیره شد.")) return "تم حفظ التجربة.";
+            if (fa.equals("از ذخیره‌شده‌ها برداشته شد.")) return "تمت إزالة التجربة من المحفوظات.";
+            if (fa.equals("ذخیره تجربه ناموفق بود.")) return "تعذّر حفظ التجربة.";
+            if (fa.equals("حذف از ذخیره‌شده‌ها ناموفق بود.")) return "تعذّرت إزالة التجربة من المحفوظات.";
+            if (fa.equals("بررسی وضعیت ذخیره ناموفق بود.")) return "تعذّر التحقق من حالة الحفظ.";
+            if (fa.equals("خطا در بارگذاری وضعیت ذخیره.")) return "تعذّر تحميل حالة الحفظ.";
+            if (fa.equals("تجربه")) return "تجربة";
             if (fa.equals("هنوز تجربه‌ای منتشر نشده است.\n\n")) return "لم تُنشر أي تجربة بعد.\n\n";
             if (fa.equals("اولین تجربه خود را ثبت کنید! ✍️")) return "كن أول من يشارك تجربته! ✍️";
             if (fa.equals("❤️ واکنش")) return "❤️ تفاعل";
@@ -3567,6 +3664,7 @@ if (appliedThemeColor != currentThemeColor ||
                 experience
         );
 
+        FrameLayout videoFrameForActions = null;
         // پخش‌کننده ویدیوی فید: بدون حاشیه، کنترل مرکزی، صدای قابل کنترل و نوار ظریف پایین.
         String experienceVideoUrl = document.getString("videoUrl"); // سازگاری با پست‌های قدیمی
         String experienceVideoPath = document.getString("videoPath");
@@ -3577,6 +3675,7 @@ if (appliedThemeColor != currentThemeColor ||
             final String videoKey = document.getId();
 
             FrameLayout videoFrame = new FrameLayout(this);
+            videoFrameForActions = videoFrame;
             GradientDrawable videoFrameBackground = new GradientDrawable();
             videoFrameBackground.setColor(Color.BLACK);
             videoFrameBackground.setCornerRadius(dp(12));
@@ -3996,14 +4095,30 @@ if (appliedThemeColor != currentThemeColor ||
         shareButtonCard.setBackground(createReactionBackground(
                 Color.rgb(255, 249, 231), Color.rgb(230, 207, 145)));
 
+        TextView savePostButton = new TextView(this);
+        savePostButton.setText(text("🔖 ذخیره"));
+        savePostButton.setTextSize(13);
+        savePostButton.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        savePostButton.setTextColor(primaryTextColor());
+        savePostButton.setGravity(Gravity.CENTER);
+        savePostButton.setPadding(dp(4), dp(8), dp(4), dp(8));
+        savePostButton.setBackground(createReactionBackground(
+                cardSurfaceColor(), themeBorderColor()));
+        savePostButton.setContentDescription(text("🔖 ذخیره"));
+
         LinearLayout.LayoutParams commentParams = new LinearLayout.LayoutParams(0, dp(44), 1);
-        commentParams.setMargins(dp(3), dp(5), dp(5), dp(2));
+        commentParams.setMargins(dp(3), dp(5), dp(3), dp(2));
+        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(0, dp(44), 1);
+        saveParams.setMargins(dp(3), dp(5), dp(3), dp(2));
         LinearLayout.LayoutParams shareParams = new LinearLayout.LayoutParams(0, dp(44), 1);
-        shareParams.setMargins(dp(5), dp(5), dp(3), dp(2));
+        shareParams.setMargins(dp(3), dp(5), dp(3), dp(2));
         socialRow.addView(commentsButton, commentParams);
+        socialRow.addView(savePostButton, saveParams);
         socialRow.addView(shareButtonCard, shareParams);
         card.addView(socialRow);
         loadCommentCount(document.getReference(), commentsButton);
+        loadSavedExperienceStatus(document.getId(), savePostButton);
+        savePostButton.setOnClickListener(v -> toggleSavedExperience(document, savePostButton));
         commentsButton.setOnClickListener(v -> showComments(document.getReference(), commentsButton));
 
         // نسخه‌های ثابت برای استفاده داخل lambda اشتراک‌گذاری
@@ -4015,6 +4130,95 @@ if (appliedThemeColor != currentThemeColor ||
                 detailSafe(shareText),
                 shareImageUrl
         ));
+
+        // نوار شناور اختصاصی ویدیو: واکنش، کامنت، نشانک و اشتراک‌گذاری روی خود ویدیو.
+        // برای تجربه‌های متنی/عکسی، ردیف استاندارد پایین کارت بدون تغییر باقی می‌ماند.
+        if (videoFrameForActions != null) {
+            likeButton.setVisibility(View.GONE);
+            likeCount.setVisibility(View.GONE);
+            heartCount.setVisibility(View.GONE);
+            socialRow.setVisibility(View.GONE);
+
+            LinearLayout actionRail = new LinearLayout(this);
+            actionRail.setOrientation(LinearLayout.VERTICAL);
+            actionRail.setGravity(Gravity.CENTER_HORIZONTAL);
+            actionRail.setPadding(dp(3), dp(8), dp(3), dp(8));
+            GradientDrawable railBackground = new GradientDrawable();
+            railBackground.setColor(0x77000000);
+            railBackground.setCornerRadius(dp(25));
+            railBackground.setStroke(dp(1), 0x33FFFFFF);
+            actionRail.setBackground(railBackground);
+            actionRail.setElevation(dp(5));
+
+            FrameLayout.LayoutParams railParams = new FrameLayout.LayoutParams(
+                    dp(62), ViewGroup.LayoutParams.WRAP_CONTENT,
+                    Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+            railParams.setMargins(0, 0, dp(8), dp(8));
+
+            // آواتار کوچک از همان اطلاعات پروفایل موجود؛ مسیر ویرایش عکس جداگانه‌ای اضافه نمی‌شود.
+            FrameLayout avatarHolder = new FrameLayout(this);
+            ImageView videoAuthorAvatar = new ImageView(this);
+            videoAuthorAvatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            GradientDrawable avatarShape = new GradientDrawable();
+            avatarShape.setShape(GradientDrawable.OVAL);
+            avatarShape.setColor(cardSurfaceColor());
+            avatarShape.setStroke(dp(2), Color.WHITE);
+            videoAuthorAvatar.setBackground(avatarShape);
+            videoAuthorAvatar.setClipToOutline(true);
+            avatarHolder.addView(videoAuthorAvatar, new FrameLayout.LayoutParams(dp(43), dp(43), Gravity.CENTER));
+            TextView avatarFallbackName = new TextView(this);
+            avatarFallbackName.setVisibility(View.GONE);
+            if (userId != null && !userId.trim().isEmpty()) {
+                loadUserProfile(userId, avatarFallbackName, videoAuthorAvatar, text("کاربر"));
+            } else if (profileImage.getDrawable() != null) {
+                videoAuthorAvatar.setImageDrawable(profileImage.getDrawable());
+            }
+            avatarHolder.setContentDescription(text("پروفایل"));
+            avatarHolder.setOnClickListener(v -> {
+                if (userId != null && !userId.trim().isEmpty()) {
+                    showPublicProfile(userId, authorName.getText().toString(), "");
+                }
+            });
+            LinearLayout.LayoutParams avatarRailParams = new LinearLayout.LayoutParams(dp(48), dp(52));
+            avatarRailParams.bottomMargin = dp(5);
+            actionRail.addView(avatarHolder, avatarRailParams);
+
+            LinearLayout likeAction = createVideoOverlayAction("♡", text("واکنش"));
+            LinearLayout commentAction = createVideoOverlayAction("●", text("کامنت"));
+            LinearLayout saveAction = createVideoOverlayAction("▣", text("ذخیره"));
+            LinearLayout shareAction = createVideoOverlayAction("↗", text("اشتراک‌گذاری"));
+            TextView saveOverlayCaption = (TextView) saveAction.getChildAt(2);
+            savePostButton.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    boolean isSaved = s != null && s.toString().equals(text("🔖 ذخیره‌شده"));
+                    saveOverlayCaption.setText(isSaved ? text("ذخیره‌شده") : text("ذخیره"));
+                }
+                @Override public void afterTextChanged(Editable editable) { }
+            });
+
+            TextView overlayLikeCount = (TextView) likeAction.getTag();
+            TextView overlayCommentCount = (TextView) commentAction.getTag();
+            bindVideoOverlayCount(likeCount, overlayLikeCount, false);
+            bindVideoOverlayCount(commentsButton, overlayCommentCount, true);
+
+            likeAction.setContentDescription(text("واکنش"));
+            commentAction.setContentDescription(text("کامنت"));
+            saveAction.setContentDescription(text("ذخیره"));
+            shareAction.setContentDescription(text("اشتراک‌گذاری"));
+
+            likeAction.setOnClickListener(v -> likeButton.performClick());
+            likeAction.setOnLongClickListener(v -> likeButton.performLongClick());
+            commentAction.setOnClickListener(v -> commentsButton.performClick());
+            saveAction.setOnClickListener(v -> savePostButton.performClick());
+            shareAction.setOnClickListener(v -> shareButtonCard.performClick());
+
+            actionRail.addView(likeAction);
+            actionRail.addView(commentAction);
+            actionRail.addView(saveAction);
+            actionRail.addView(shareAction);
+            videoFrameForActions.addView(actionRail, railParams);
+        }
 
         // جزئیات برای همه کاربران؛ ویرایش و حذف فقط داخل صفحه جزئیات و برای مالک
         Button detailsButton = new Button(this);
@@ -5117,6 +5321,142 @@ if (appliedThemeColor != currentThemeColor ||
         return "";
     }
 
+    // دکمهٔ فشرده و خوانا برای نوار شناور روی ویدیو.
+    private LinearLayout createVideoOverlayAction(String icon, String caption) {
+        LinearLayout item = new LinearLayout(this);
+        item.setOrientation(LinearLayout.VERTICAL);
+        item.setGravity(Gravity.CENTER);
+        item.setPadding(dp(2), dp(3), dp(2), dp(3));
+        item.setClickable(true);
+        item.setFocusable(true);
+
+        TextView symbol = new TextView(this);
+        symbol.setText(icon);
+        symbol.setTextColor(Color.WHITE);
+        symbol.setTextSize(27);
+        symbol.setGravity(Gravity.CENTER);
+        symbol.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+        item.addView(symbol, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(32)));
+
+        TextView count = new TextView(this);
+        count.setText("0");
+        count.setTextColor(Color.WHITE);
+        count.setTextSize(10);
+        count.setGravity(Gravity.CENTER);
+        item.addView(count, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(15)));
+
+        TextView title = new TextView(this);
+        title.setText(caption);
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(9);
+        title.setGravity(Gravity.CENTER);
+        title.setMaxLines(1);
+        title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        item.addView(title, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(15)));
+
+        item.setTag(count);
+        return item;
+    }
+
+    // شمارندهٔ نوار روی ویدیو از همان TextViewهای اصلی تغذیه می‌شود تا دو منبع داده نداشته باشیم.
+    private void bindVideoOverlayCount(TextView source, TextView target, boolean parseParentheses) {
+        if (source == null || target == null) return;
+        Runnable update = () -> {
+            String value = source.getText() == null ? "0" : source.getText().toString();
+            if (parseParentheses) {
+                int open = value.lastIndexOf('(');
+                int close = value.lastIndexOf(')');
+                if (open >= 0 && close > open) value = value.substring(open + 1, close);
+                else value = "0";
+            }
+            target.setText(value.trim().isEmpty() ? "0" : value.trim());
+        };
+        update.run();
+        source.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { update.run(); }
+            @Override public void afterTextChanged(Editable editable) { }
+        });
+    }
+
+    // نشانک تجربه‌ها: هر کاربر فقط زیرمجموعهٔ ذخیره‌شده‌های حساب خودش را می‌بیند.
+    private void loadSavedExperienceStatus(String experienceId, TextView button) {
+        FirebaseUser user = auth == null ? null : auth.getCurrentUser();
+        if (user == null) {
+            button.setText(text("🔖 ذخیره"));
+            return;
+        }
+        db.collection("users").document(user.getUid())
+                .collection("savedExperiences").document(experienceId)
+                .get()
+                .addOnSuccessListener(saved -> {
+                    if (button.getParent() != null) {
+                        button.setText(saved.exists() ? text("🔖 ذخیره‌شده") : text("🔖 ذخیره"));
+                        button.setContentDescription(saved.exists()
+                                ? text("🔖 ذخیره‌شده") : text("🔖 ذخیره"));
+                    }
+                })
+                .addOnFailureListener(error ->
+                        Log.w("ExperienceBookmark", "Could not load saved status", error));
+    }
+
+    private void toggleSavedExperience(DocumentSnapshot experience, TextView button) {
+        FirebaseUser user = auth == null ? null : auth.getCurrentUser();
+        if (user == null) {
+            Toast.makeText(this, text("برای ذخیره تجربه وارد حساب شوید."), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final String uid = user.getUid();
+        final DocumentReference savedRef = db.collection("users").document(uid)
+                .collection("savedExperiences").document(experience.getId());
+
+        button.setEnabled(false);
+        savedRef.get().addOnSuccessListener(existing -> {
+            if (existing.exists()) {
+                savedRef.delete().addOnSuccessListener(unused -> {
+                    button.setText(text("🔖 ذخیره"));
+                    button.setContentDescription(text("🔖 ذخیره"));
+                    button.setEnabled(true);
+                    Toast.makeText(this, text("از ذخیره‌شده‌ها برداشته شد."),
+                            Toast.LENGTH_SHORT).show();
+                }).addOnFailureListener(error -> {
+                    button.setEnabled(true);
+                    Toast.makeText(this, text("حذف از ذخیره‌شده‌ها ناموفق بود."),
+                            Toast.LENGTH_SHORT).show();
+                    Log.w("ExperienceBookmark", "Could not remove bookmark", error);
+                });
+            } else {
+                Map<String, Object> data = new HashMap<>();
+                data.put("experienceId", experience.getId());
+                data.put("userId", experience.getString("userId"));
+                data.put("title", firstNonEmpty(experience.getString("title"), text("تجربه")));
+                data.put("savedAt", FieldValue.serverTimestamp());
+
+                savedRef.set(data).addOnSuccessListener(unused -> {
+                    button.setText(text("🔖 ذخیره‌شده"));
+                    button.setContentDescription(text("🔖 ذخیره‌شده"));
+                    button.setEnabled(true);
+                    Toast.makeText(this, text("تجربه ذخیره شد."),
+                            Toast.LENGTH_SHORT).show();
+                }).addOnFailureListener(error -> {
+                    button.setEnabled(true);
+                    Toast.makeText(this, text("ذخیره تجربه ناموفق بود."),
+                            Toast.LENGTH_SHORT).show();
+                    Log.w("ExperienceBookmark", "Could not save bookmark", error);
+                });
+            }
+        }).addOnFailureListener(error -> {
+            button.setEnabled(true);
+            Toast.makeText(this, text("بررسی وضعیت ذخیره ناموفق بود."),
+                    Toast.LENGTH_SHORT).show();
+            Log.w("ExperienceBookmark", "Could not check bookmark", error);
+        });
+    }
+
     // پروفایل عمومی با چیدمان نزدیک به TikTok؛ اطلاعات خصوصی نمایش داده نمی‌شود.
     private void showPublicProfile(String uid, String fallbackName, String photoUrl) {
         if (uid == null || uid.trim().isEmpty()) return;
@@ -5737,4 +6077,4 @@ if (appliedThemeColor != currentThemeColor ||
         }
     }
 
-    }
+}
