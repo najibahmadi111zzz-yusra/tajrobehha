@@ -1156,29 +1156,29 @@ if (appliedThemeColor != currentThemeColor ||
     private void showExperienceSettingsPanel() {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(18), dp(18), dp(18), dp(14));
+        panel.setPadding(dp(14), dp(14), dp(14), dp(10));
         panel.setBackgroundColor(cardSurfaceColor());
 
         TextView heading = new TextView(this);
         heading.setText("⚙  " + text("تنظیمات تجربه‌ها"));
-        heading.setTextSize(19);
+        heading.setTextSize(17);
         heading.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         heading.setTextColor(primaryTextColor());
         heading.setGravity(Gravity.CENTER_VERTICAL);
-        heading.setPadding(dp(4), dp(4), dp(4), dp(14));
+        heading.setPadding(dp(4), dp(2), dp(4), dp(9));
         panel.addView(heading, new LinearLayout.LayoutParams(-1, -2));
 
         AlertDialog settingsDialog = new AlertDialog.Builder(this).setView(panel).create();
 
         View refreshItem = createSettingsPanelItem("⟳", text("تازه‌سازی تجربه‌ها"),
                 text("بارگذاری دوباره پست‌ها، داستان‌ها و دوستان"));
-        LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(-1, dp(70));
+        LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(-1, dp(60));
         refreshParams.bottomMargin = dp(10);
         panel.addView(refreshItem, refreshParams);
 
         View savedItem = createSettingsPanelItem("🔖", text("تجربه‌های ذخیره‌شده"),
                 text("مشاهده تجربه‌هایی که برای بعد ذخیره کرده‌اید"));
-        LinearLayout.LayoutParams savedParams = new LinearLayout.LayoutParams(-1, dp(70));
+        LinearLayout.LayoutParams savedParams = new LinearLayout.LayoutParams(-1, dp(60));
         savedParams.bottomMargin = dp(10);
         panel.addView(savedItem, savedParams);
         savedItem.setOnClickListener(v -> {
@@ -1201,7 +1201,7 @@ if (appliedThemeColor != currentThemeColor ||
         // پروفایل از این پنل حذف شده؛ دسترسی آن در خود صفحه تجربه‌ها موجود است.
         View accountItem = createSettingsPanelItem("⚙", text("حساب و تنظیمات حساب"),
                 text("مدیریت اطلاعات، ورود و تنظیمات حساب کاربری"));
-        panel.addView(accountItem, new LinearLayout.LayoutParams(-1, dp(70)));
+        panel.addView(accountItem, new LinearLayout.LayoutParams(-1, dp(60)));
         accountItem.setOnClickListener(v -> {
             settingsDialog.dismiss();
             startActivity(new Intent(ExperienceListActivity.this, AccountActivity.class));
@@ -1222,11 +1222,11 @@ if (appliedThemeColor != currentThemeColor ||
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(13), dp(9), dp(13), dp(9));
+        row.setPadding(dp(10), dp(6), dp(10), dp(6));
         GradientDrawable rowBg = new GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
                 new int[]{cardSurfaceColor(), cardSurfaceColor()});
-        rowBg.setCornerRadius(dp(17));
+        rowBg.setCornerRadius(dp(14));
         rowBg.setStroke(dp(1), themeBorderColor());
         row.setBackground(rowBg);
         row.setElevation(dp(1));
@@ -1235,35 +1235,35 @@ if (appliedThemeColor != currentThemeColor ||
 
         TextView iconView = new TextView(this);
         iconView.setText(icon);
-        iconView.setTextSize(21);
+        iconView.setTextSize(19);
         iconView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         iconView.setTextColor(themeAccentColor());
         iconView.setGravity(Gravity.CENTER);
         GradientDrawable iconBg = new GradientDrawable();
         iconBg.setColor(cardSurfaceColor());
-        iconBg.setCornerRadius(dp(13));
+        iconBg.setCornerRadius(dp(11));
         iconView.setBackground(iconBg);
-        row.addView(iconView, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        row.addView(iconView, new LinearLayout.LayoutParams(dp(38), dp(38)));
 
         LinearLayout labels = new LinearLayout(this);
         labels.setOrientation(LinearLayout.VERTICAL);
-        labels.setPadding(dp(10), 0, 0, 0);
+        labels.setPadding(dp(8), 0, 0, 0);
         TextView titleView = new TextView(this);
         titleView.setText(title);
-        titleView.setTextSize(14);
+        titleView.setTextSize(13);
         titleView.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         titleView.setTextColor(primaryTextColor());
         labels.addView(titleView);
         TextView subtitleView = new TextView(this);
         subtitleView.setText(subtitle);
-        subtitleView.setTextSize(11);
+        subtitleView.setTextSize(10);
         subtitleView.setTextColor(secondaryTextColor());
         subtitleView.setPadding(0, dp(2), 0, 0);
         labels.addView(subtitleView);
         row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
         TextView arrow = new TextView(this);
         arrow.setText("›");
-        arrow.setTextSize(25);
+        arrow.setTextSize(22);
         arrow.setTypeface(Typeface.DEFAULT_BOLD);
         arrow.setTextColor(secondaryTextColor());
         arrow.setGravity(Gravity.CENTER);
@@ -4043,7 +4043,7 @@ if (appliedThemeColor != currentThemeColor ||
 
         TextView heartButton = new TextView(this);
         heartButton.setText("♡");
-        heartButton.setTextSize(25);
+        heartButton.setTextSize(22);
         heartButton.setTextColor(Color.rgb(211, 48, 72));
         heartButton.setGravity(Gravity.CENTER);
         heartButton.setContentDescription(text("❤️ قلب"));
@@ -4388,7 +4388,7 @@ if (appliedThemeColor != currentThemeColor ||
         ScrollView scroll = new ScrollView(this);
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(16), dp(10), dp(16), dp(10));
+        box.setPadding(dp(13), dp(8), dp(13), dp(8));
         scroll.addView(box);
 
         if (imageUrl != null && !imageUrl.trim().isEmpty()) {
@@ -4424,7 +4424,7 @@ if (appliedThemeColor != currentThemeColor ||
 
         TextView titleView = new TextView(this);
         titleView.setText(titleValue == null ? text("بدون عنوان") : titleValue);
-        titleView.setTextSize(21);
+        titleView.setTextSize(19);
         titleView.setTextColor(primaryTextColor());
         titleView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         titleView.setGravity(Gravity.RIGHT);
@@ -4433,7 +4433,7 @@ if (appliedThemeColor != currentThemeColor ||
 
         TextView bodyView = new TextView(this);
         bodyView.setText(bodyValue == null ? "" : bodyValue);
-        bodyView.setTextSize(17);
+        bodyView.setTextSize(16);
         bodyView.setTextColor(primaryTextColor());
         bodyView.setGravity(Gravity.RIGHT);
         bodyView.setLineSpacing(dp(4), 1.08f);
@@ -4874,12 +4874,25 @@ if (appliedThemeColor != currentThemeColor ||
                 String commentId = d.getId();
                 LinearLayout row = new LinearLayout(this);
                 row.setOrientation(LinearLayout.VERTICAL);
-                row.setPadding(dp(10), dp(8), dp(10), dp(8));
+                row.setPadding(dp(9), dp(7), dp(9), dp(7));
                 row.setBackground(createReactionBackground(cardSurfaceColor(), themeBorderColor()));
 
                 LinearLayout heading = new LinearLayout(this);
                 heading.setOrientation(LinearLayout.HORIZONTAL);
                 heading.setGravity(Gravity.CENTER_VERTICAL);
+                ImageView commentAvatar = new ImageView(this);
+                commentAvatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                GradientDrawable commentAvatarBg = new GradientDrawable();
+                commentAvatarBg.setShape(GradientDrawable.OVAL);
+                commentAvatarBg.setColor(cardSurfaceColor());
+                commentAvatarBg.setStroke(dp(1), themeBorderColor());
+                commentAvatar.setBackground(commentAvatarBg);
+                commentAvatar.setClipToOutline(true);
+                LinearLayout.LayoutParams commentAvatarParams =
+                        new LinearLayout.LayoutParams(dp(34), dp(34));
+                commentAvatarParams.setMargins(0, 0, dp(8), 0);
+                heading.addView(commentAvatar, commentAvatarParams);
+
                 TextView name = new TextView(this);
                 name.setText(text("کاربر"));
                 name.setTextSize(13);
@@ -4919,6 +4932,10 @@ if (appliedThemeColor != currentThemeColor ||
                         String displayName = firstNonEmpty(u.getString("name"),
                                 u.getString("username"), u.getString("displayName"), text("کاربر"));
                         name.setText(displayName);
+                        String photo = firstNonEmpty(u.getString("photoUrl"),
+                                u.getString("profilePhoto"), u.getString("profilePhotoUrl"),
+                                u.getString("photo"), "");
+                        if (!photo.isEmpty()) loadProfileImage(photo, commentAvatar);
                     });
                 }
             }
@@ -4983,11 +5000,29 @@ if (appliedThemeColor != currentThemeColor ||
                 for (DocumentSnapshot d : q.getDocuments()) {
                     String uid = d.getString("userId"); if (uid == null) uid = d.getId();
                     final String userId = uid;
-                    LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(0, dp(6), 0, dp(6));
-                    ImageView avatar = new ImageView(this); avatar.setImageResource(android.R.drawable.sym_def_app_icon);
-                    row.addView(avatar, new LinearLayout.LayoutParams(dp(42), dp(42)));
-                    TextView name = new TextView(this); name.setText(text("کاربر")); name.setTextSize(15); name.setPadding(dp(10),0,dp(10),0); name.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
-                    row.addView(name, new LinearLayout.LayoutParams(0, dp(46), 1)); people.addView(row);
+                    LinearLayout row = new LinearLayout(this);
+                    row.setOrientation(LinearLayout.HORIZONTAL);
+                    row.setGravity(Gravity.CENTER_VERTICAL);
+                    row.setPadding(dp(9), dp(6), dp(9), dp(6));
+                    row.setBackground(createReactionBackground(cardSurfaceColor(), themeBorderColor()));
+                    ImageView avatar = new ImageView(this);
+                    avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    avatar.setImageResource(android.R.drawable.sym_def_app_icon);
+                    GradientDrawable reactorAvatarBg = new GradientDrawable();
+                    reactorAvatarBg.setShape(GradientDrawable.OVAL);
+                    reactorAvatarBg.setColor(cardSurfaceColor());
+                    reactorAvatarBg.setStroke(dp(1), themeBorderColor());
+                    avatar.setBackground(reactorAvatarBg);
+                    avatar.setClipToOutline(true);
+                    LinearLayout.LayoutParams reactorAvatarParams =
+                            new LinearLayout.LayoutParams(dp(36), dp(36));
+                    reactorAvatarParams.setMargins(0, 0, dp(8), 0);
+                    row.addView(avatar, reactorAvatarParams);
+                    TextView name = new TextView(this); name.setText(text("کاربر")); name.setTextSize(14); name.setPadding(dp(4),0,dp(4),0); name.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
+                    row.addView(name, new LinearLayout.LayoutParams(0, dp(40), 1));
+                    LinearLayout.LayoutParams reactorRowParams = new LinearLayout.LayoutParams(-1, -2);
+                    reactorRowParams.setMargins(0, 0, 0, dp(6));
+                    people.addView(row, reactorRowParams);
                     db.collection("users").document(userId).get().addOnSuccessListener(u -> {
                         String n = u.getString("name"); if (n == null || n.trim().isEmpty()) n = u.getString("username"); if (n == null || n.trim().isEmpty()) n = u.getString("displayName");
                         name.setText(("likes".equals(col) ? "👍 " : "❤️ ") + (n == null || n.trim().isEmpty() ? text("کاربر") : n));
@@ -5650,7 +5685,7 @@ if (appliedThemeColor != currentThemeColor ||
 
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(dp(12), dp(8), dp(12), dp(8));
+        list.setPadding(dp(10), dp(6), dp(10), dp(6));
         ScrollView scroll = new ScrollView(this);
         scroll.addView(list);
         AlertDialog dialog = new AlertDialog.Builder(this)
@@ -5680,25 +5715,25 @@ if (appliedThemeColor != currentThemeColor ||
                         LinearLayout row = new LinearLayout(this);
                         row.setOrientation(LinearLayout.HORIZONTAL);
                         row.setGravity(Gravity.CENTER_VERTICAL);
-                        row.setPadding(dp(10), dp(8), dp(10), dp(8));
+                        row.setPadding(dp(8), dp(6), dp(8), dp(6));
                         row.setBackground(createReactionBackground(cardSurfaceColor(), themeBorderColor()));
 
                         TextView title = new TextView(this);
                         title.setText(firstNonEmpty(bookmark.getString("title"), text("تجربه")));
                         title.setTextColor(primaryTextColor());
-                        title.setTextSize(14);
+                        title.setTextSize(13);
                         title.setMaxLines(2);
                         title.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-                        row.addView(title, new LinearLayout.LayoutParams(0, dp(54), 1f));
+                        row.addView(title, new LinearLayout.LayoutParams(0, dp(46), 1f));
 
                         TextView remove = new TextView(this);
                         remove.setText("✕");
                         remove.setTextColor(Color.rgb(190, 55, 65));
                         remove.setTextSize(18);
                         remove.setGravity(Gravity.CENTER);
-                        row.addView(remove, new LinearLayout.LayoutParams(dp(42), dp(42)));
+                        row.addView(remove, new LinearLayout.LayoutParams(dp(36), dp(36)));
                         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
-                        rowParams.setMargins(0, 0, 0, dp(7));
+                        rowParams.setMargins(0, 0, 0, dp(5));
                         list.addView(row, rowParams);
 
                         row.setOnClickListener(v -> db.collection("experiences").document(id)
